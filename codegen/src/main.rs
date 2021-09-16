@@ -1,13 +1,14 @@
-use prisma::{cli, generator};
+use prisma_client_rust::{cli, generator};
 use std::env;
 use std::io;
 use std::io::{BufReader, BufRead, Write};
 use std::default::Default;
 use serde_json;
 use serde_json::{json, Value};
-use prisma::jsonrpc::{Request, Response};
-use prisma::jsonrpc::methods::{ManifestResponse, Manifest};
-use prisma::generator::Root;
+use serde_path_to_error;
+use prisma_client_rust::jsonrpc::{Request, Response};
+use prisma_client_rust::jsonrpc::methods::{ManifestResponse, Manifest};
+use prisma_client_rust::generator::Root;
 use std::any::Any;
 use serde::Serialize;
 use std::iter::Map;
@@ -32,21 +33,36 @@ fn invoke_prisma() -> Result<(), ()> {
         let value = match input.method.as_str() {
             "getManifest" => serde_json::to_value(ManifestResponse {
                 manifest: Manifest {
-                    default_output: "db".to_string(),
+                    default_output: "prisma.rs".to_string(),
                     pretty_name: "Prisma Client Rust".to_string(),
                     ..Default::default()
                 }
             }
         ).unwrap(),
             "generate" => {
-                let mut params: Root = serde_json::from_value(input.params).unwrap();
+                let params_str = input.params.to_string();
 
-                generator::run(&mut params);
+                let deserializer =
+                    &mut serde_json::Deserializer::from_str(&params_str);
+
+                let result: Result<Root, _> =
+                    serde_path_to_error::deserialize(deserializer);
+
+                match result {
+                    Ok(mut params) => {
+                        println!("Generating");
+                        generator::run(&mut params);
+                    }
+                    Err(err) => {
+                        panic!("{}", err);
+                    }
+                };
 
                 serde_json::to_value(json!(null)).unwrap()
             },
             _ => panic!()
         };
+
 
         let response = Response {
             jsonrpc: "2.0".to_string(),

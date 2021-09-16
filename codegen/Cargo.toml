@@ -1,21 +1,11 @@
 [package]
-name = "prisma-client-rust"
+name = "prisma-client-rust-codegen"
 version = "0.1.2"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2018"
 description = "A prisma client for Rust"
 license = "MIT"
 
-[workspace]
-members = [
-    "codegen",
-]
-
-[lib]
-path = "lib.rs"
-
-[build-dependencies]
-prisma-client-rust-codegen = { path = "./codegen" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

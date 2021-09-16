@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use serde_json::{Value as SerdeValue};
 use std::collections::HashMap;
+use super::dmmf;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -8,10 +9,9 @@ pub struct Root {
     pub generator: Generator,
     pub other_generators: Vec<Generator>,
     pub schema_path: String,
-    // #[serde(rename = "DMMF")]
-    pub dmmf: SerdeValue,
+    pub dmmf: dmmf::Document,
     pub datasources: Vec<Datasource>,
-    // pub binary_paths: BinaryPaths
+    pub binary_paths: Option<BinaryPaths>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

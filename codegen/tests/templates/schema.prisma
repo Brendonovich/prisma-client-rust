@@ -1,0 +1,12 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("postgres://test")
+}
+
+generator client {
+  provider = "cargo run"
+}
+
+model User {
+  id String @id
+}

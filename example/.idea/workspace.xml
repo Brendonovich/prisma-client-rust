@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" ENABLED="true" />
+    </configurations>
+  </component>
+  <component name="CargoProjects">
+    <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="26fa8357-1094-4adc-93ef-efee647f0cdf" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/../codegen/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/src/generator/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../codegen/tests/templates/expected.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/prisma.schema" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/tests/templates/schema.prisma" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/binaries/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/binaries/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/binaries/platform.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/binaries/platform.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/cli.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/cli.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/generator/mod.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/generator/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/generator/types.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/jsonrpc/methods.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/jsonrpc/methods.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/jsonrpc/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/jsonrpc/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/tests/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/templates/expected.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/templates/schema.prisma" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/templates/templates.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../codegen/tests/templates/templates.rs" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="qwkcisc9" />
+  </component>
+  <component name="ProjectId" id="1syeUeKiXuR7uQnLwFpbhK78DyB" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="cidr.known.project.marker" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run --package example --bin example" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="version" value="2" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="26fa8357-1094-4adc-93ef-efee647f0cdf" name="Default Changelist" comment="" />
+      <created>1621849273382</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1621849273382</updated>
+      <workItem from="1621849274875" duration="2000" />
+      <workItem from="1621849998033" duration="607000" />
+      <workItem from="1621851727787" duration="2328000" />
+      <workItem from="1621910264644" duration="4628000" />
+      <workItem from="1622010503580" duration="1139000" />
+      <workItem from="1628012885924" duration="22000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+</project>

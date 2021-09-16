@@ -1,0 +1,16 @@
+pub struct PrismaClient \{
+    pub engine: Engine,
+    pub prisma: PrismaActions,
+{{ for model in dmmf.datamodel.models }}
+    pub { model.name | snake }: { model.name | uppercamel }Actions,
+{{ endfor }}
+}
+
+impl PrismaClient {
+    pub fn new() -> PrismaClient {
+        PrismaClient {
+            engine: Engine::new(schema, true),
+            prisma:
+        }
+    }
+}
