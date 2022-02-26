@@ -25,15 +25,21 @@ pub enum PostWhereParam {
     IdContains(String),
     IdStartsWith(String),
     IdEndsWith(String),
+    IdEquals(String),
     NameContains(String),
     NameStartsWith(String),
     NameEndsWith(String),
+    NameEquals(String),
     CommentsSome(Vec<CommentWhereParam>),
     CommentsEvery(Vec<CommentWhereParam>),
     CategoryIs(Vec<CategoryWhereParam>),
     CategoryIdContains(String),
     CategoryIdStartsWith(String),
     CategoryIdEndsWith(String),
+    CategoryIdEquals(String),
+    Not(Vec<PostWhereParam>),
+    Or(Vec<PostWhereParam>),
+    And(Vec<PostWhereParam>),
 }
 impl PostWhereParam {
     pub fn field(&self) -> Field {
@@ -65,6 +71,15 @@ impl PostWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::IdEquals(value) => Field {
+                name: "id".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::NameContains(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
@@ -87,6 +102,15 @@ impl PostWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::NameEquals(value) => Field {
+                name: "name".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
                     value: Some(serde_json::to_value(value).unwrap()),
                     ..Default::default()
                 }]),
@@ -164,6 +188,48 @@ impl PostWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::CategoryIdEquals(value) => Field {
+                name: "categoryID".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::Not(value) => Field {
+                name: "Not".into(),
+                fields: Some(vec![Field {
+                    name: "NOT".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::Or(value) => Field {
+                name: "Or".into(),
+                fields: Some(vec![Field {
+                    name: "OR".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::And(value) => Field {
+                name: "And".into(),
+                fields: Some(vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
         }
     }
 }
@@ -172,6 +238,30 @@ pub struct PostFindMany<'a> {
 }
 impl<'a> PostFindMany<'a> {
     pub async fn exec(self) -> Vec<PostModel> {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct PostFindFirst<'a> {
+    query: Query<'a>,
+}
+impl<'a> PostFindFirst<'a> {
+    pub async fn exec(self) -> PostModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct PostFindUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> PostFindUnique<'a> {
+    pub async fn exec(self) -> PostModel {
         let request = engine::GQLRequest {
             query: self.query.build(),
             variables: std::collections::HashMap::new(),
@@ -212,7 +302,7 @@ impl<'a> PostActions<'a> {
         };
         PostFindMany { query }
     }
-    pub fn find_first(&self, params: Vec<PostWhereParam>) -> Query {
+    pub fn find_first(&self, params: Vec<PostWhereParam>) -> PostFindFirst {
         let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
@@ -242,9 +332,9 @@ impl<'a> PostActions<'a> {
             ],
             inputs,
         };
-        query
+        PostFindFirst { query }
     }
-    pub fn find_unique(&self, param: PostWhereParam) -> Query {
+    pub fn find_unique(&self, param: PostWhereParam) -> PostFindUnique {
         let mut field = param.field();
         if let Some(fields) = &field.fields {
             if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
@@ -269,7 +359,7 @@ impl<'a> PostActions<'a> {
                 ..Default::default()
             }],
         };
-        query
+        PostFindUnique { query }
     }
 }
 pub struct CommentActions<'a> {
@@ -279,7 +369,11 @@ pub enum CommentWhereParam {
     IdContains(String),
     IdStartsWith(String),
     IdEndsWith(String),
+    IdEquals(String),
     PostIs(Vec<PostWhereParam>),
+    Not(Vec<CommentWhereParam>),
+    Or(Vec<CommentWhereParam>),
+    And(Vec<CommentWhereParam>),
 }
 impl CommentWhereParam {
     pub fn field(&self) -> Field {
@@ -311,6 +405,15 @@ impl CommentWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::IdEquals(value) => Field {
+                name: "id".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::PostIs(value) => Field {
                 name: "post".into(),
                 fields: Some(vec![Field {
@@ -326,6 +429,39 @@ impl CommentWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::Not(value) => Field {
+                name: "Not".into(),
+                fields: Some(vec![Field {
+                    name: "NOT".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::Or(value) => Field {
+                name: "Or".into(),
+                fields: Some(vec![Field {
+                    name: "OR".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::And(value) => Field {
+                name: "And".into(),
+                fields: Some(vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
         }
     }
 }
@@ -334,6 +470,30 @@ pub struct CommentFindMany<'a> {
 }
 impl<'a> CommentFindMany<'a> {
     pub async fn exec(self) -> Vec<CommentModel> {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CommentFindFirst<'a> {
+    query: Query<'a>,
+}
+impl<'a> CommentFindFirst<'a> {
+    pub async fn exec(self) -> CommentModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CommentFindUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> CommentFindUnique<'a> {
+    pub async fn exec(self) -> CommentModel {
         let request = engine::GQLRequest {
             query: self.query.build(),
             variables: std::collections::HashMap::new(),
@@ -370,7 +530,7 @@ impl<'a> CommentActions<'a> {
         };
         CommentFindMany { query }
     }
-    pub fn find_first(&self, params: Vec<CommentWhereParam>) -> Query {
+    pub fn find_first(&self, params: Vec<CommentWhereParam>) -> CommentFindFirst {
         let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
@@ -396,9 +556,9 @@ impl<'a> CommentActions<'a> {
             outputs: vec![Output::new("id")],
             inputs,
         };
-        query
+        CommentFindFirst { query }
     }
-    pub fn find_unique(&self, param: CommentWhereParam) -> Query {
+    pub fn find_unique(&self, param: CommentWhereParam) -> CommentFindUnique {
         let mut field = param.field();
         if let Some(fields) = &field.fields {
             if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
@@ -419,7 +579,7 @@ impl<'a> CommentActions<'a> {
                 ..Default::default()
             }],
         };
-        query
+        CommentFindUnique { query }
     }
 }
 pub struct CategoryActions<'a> {
@@ -429,15 +589,21 @@ pub enum CategoryWhereParam {
     IdContains(String),
     IdStartsWith(String),
     IdEndsWith(String),
+    IdEquals(String),
     NameContains(String),
     NameStartsWith(String),
     NameEndsWith(String),
+    NameEquals(String),
     WeightLt(i64),
     WeightGt(i64),
     WeightLte(i64),
     WeightGte(i64),
+    WeightEquals(i64),
     PostsSome(Vec<PostWhereParam>),
     PostsEvery(Vec<PostWhereParam>),
+    Not(Vec<CategoryWhereParam>),
+    Or(Vec<CategoryWhereParam>),
+    And(Vec<CategoryWhereParam>),
 }
 impl CategoryWhereParam {
     pub fn field(&self) -> Field {
@@ -469,6 +635,15 @@ impl CategoryWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::IdEquals(value) => Field {
+                name: "id".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::NameContains(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
@@ -491,6 +666,15 @@ impl CategoryWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::NameEquals(value) => Field {
+                name: "name".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
                     value: Some(serde_json::to_value(value).unwrap()),
                     ..Default::default()
                 }]),
@@ -532,6 +716,15 @@ impl CategoryWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::WeightEquals(value) => Field {
+                name: "weight".into(),
+                fields: Some(vec![Field {
+                    name: "equals".into(),
+                    value: Some(serde_json::to_value(value).unwrap()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::PostsSome(value) => Field {
                 name: "posts".into(),
                 fields: Some(vec![Field {
@@ -562,6 +755,39 @@ impl CategoryWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::Not(value) => Field {
+                name: "Not".into(),
+                fields: Some(vec![Field {
+                    name: "NOT".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::Or(value) => Field {
+                name: "Or".into(),
+                fields: Some(vec![Field {
+                    name: "OR".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::And(value) => Field {
+                name: "And".into(),
+                fields: Some(vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
         }
     }
 }
@@ -570,6 +796,30 @@ pub struct CategoryFindMany<'a> {
 }
 impl<'a> CategoryFindMany<'a> {
     pub async fn exec(self) -> Vec<CategoryModel> {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CategoryFindFirst<'a> {
+    query: Query<'a>,
+}
+impl<'a> CategoryFindFirst<'a> {
+    pub async fn exec(self) -> CategoryModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CategoryFindUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> CategoryFindUnique<'a> {
+    pub async fn exec(self) -> CategoryModel {
         let request = engine::GQLRequest {
             query: self.query.build(),
             variables: std::collections::HashMap::new(),
@@ -610,7 +860,7 @@ impl<'a> CategoryActions<'a> {
         };
         CategoryFindMany { query }
     }
-    pub fn find_first(&self, params: Vec<CategoryWhereParam>) -> Query {
+    pub fn find_first(&self, params: Vec<CategoryWhereParam>) -> CategoryFindFirst {
         let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
@@ -640,9 +890,9 @@ impl<'a> CategoryActions<'a> {
             ],
             inputs,
         };
-        query
+        CategoryFindFirst { query }
     }
-    pub fn find_unique(&self, param: CategoryWhereParam) -> Query {
+    pub fn find_unique(&self, param: CategoryWhereParam) -> CategoryFindUnique {
         let mut field = param.field();
         if let Some(fields) = &field.fields {
             if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
@@ -667,7 +917,7 @@ impl<'a> CategoryActions<'a> {
                 ..Default::default()
             }],
         };
-        query
+        CategoryFindUnique { query }
     }
 }
 #[derive(serde :: Deserialize, Debug)]
@@ -740,6 +990,15 @@ impl Post {
     pub fn category_id() -> PostCategoryId {
         PostCategoryId {}
     }
+    pub fn not(params: Vec<PostWhereParam>) -> PostWhereParam {
+        PostWhereParam::Not(params)
+    }
+    pub fn or(params: Vec<PostWhereParam>) -> PostWhereParam {
+        PostWhereParam::Or(params)
+    }
+    pub fn and(params: Vec<PostWhereParam>) -> PostWhereParam {
+        PostWhereParam::And(params)
+    }
 }
 pub struct PostId {}
 impl PostId {
@@ -752,6 +1011,9 @@ impl PostId {
     pub fn ends_with(&self, value: String) -> PostWhereParam {
         PostWhereParam::IdEndsWith(value)
     }
+    pub fn equals(&self, value: String) -> PostWhereParam {
+        PostWhereParam::IdEquals(value)
+    }
 }
 pub struct PostName {}
 impl PostName {
@@ -763,6 +1025,9 @@ impl PostName {
     }
     pub fn ends_with(&self, value: String) -> PostWhereParam {
         PostWhereParam::NameEndsWith(value)
+    }
+    pub fn equals(&self, value: String) -> PostWhereParam {
+        PostWhereParam::NameEquals(value)
     }
 }
 pub struct PostComments {}
@@ -791,6 +1056,9 @@ impl PostCategoryId {
     pub fn ends_with(&self, value: String) -> PostWhereParam {
         PostWhereParam::CategoryIdEndsWith(value)
     }
+    pub fn equals(&self, value: String) -> PostWhereParam {
+        PostWhereParam::CategoryIdEquals(value)
+    }
 }
 pub struct Comment {}
 impl Comment {
@@ -799,6 +1067,15 @@ impl Comment {
     }
     pub fn post() -> CommentPost {
         CommentPost {}
+    }
+    pub fn not(params: Vec<CommentWhereParam>) -> CommentWhereParam {
+        CommentWhereParam::Not(params)
+    }
+    pub fn or(params: Vec<CommentWhereParam>) -> CommentWhereParam {
+        CommentWhereParam::Or(params)
+    }
+    pub fn and(params: Vec<CommentWhereParam>) -> CommentWhereParam {
+        CommentWhereParam::And(params)
     }
 }
 pub struct CommentId {}
@@ -811,6 +1088,9 @@ impl CommentId {
     }
     pub fn ends_with(&self, value: String) -> CommentWhereParam {
         CommentWhereParam::IdEndsWith(value)
+    }
+    pub fn equals(&self, value: String) -> CommentWhereParam {
+        CommentWhereParam::IdEquals(value)
     }
 }
 pub struct CommentPost {}
@@ -833,6 +1113,15 @@ impl Category {
     pub fn posts() -> CategoryPosts {
         CategoryPosts {}
     }
+    pub fn not(params: Vec<CategoryWhereParam>) -> CategoryWhereParam {
+        CategoryWhereParam::Not(params)
+    }
+    pub fn or(params: Vec<CategoryWhereParam>) -> CategoryWhereParam {
+        CategoryWhereParam::Or(params)
+    }
+    pub fn and(params: Vec<CategoryWhereParam>) -> CategoryWhereParam {
+        CategoryWhereParam::And(params)
+    }
 }
 pub struct CategoryId {}
 impl CategoryId {
@@ -845,6 +1134,9 @@ impl CategoryId {
     pub fn ends_with(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::IdEndsWith(value)
     }
+    pub fn equals(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::IdEquals(value)
+    }
 }
 pub struct CategoryName {}
 impl CategoryName {
@@ -856,6 +1148,9 @@ impl CategoryName {
     }
     pub fn ends_with(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::NameEndsWith(value)
+    }
+    pub fn equals(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::NameEquals(value)
     }
 }
 pub struct CategoryWeight {}
@@ -871,6 +1166,9 @@ impl CategoryWeight {
     }
     pub fn gte(&self, value: i64) -> CategoryWhereParam {
         CategoryWhereParam::WeightGte(value)
+    }
+    pub fn equals(&self, value: i64) -> CategoryWhereParam {
+        CategoryWhereParam::WeightEquals(value)
     }
 }
 pub struct CategoryPosts {}

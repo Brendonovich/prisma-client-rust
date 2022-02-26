@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::dmmf::{Document, Model};
+use crate::generator::dmmf::{Document, Method, Model, Type};
 
 pub fn generate_actions(models: &Vec<Model>) -> TokenStream {
     models
@@ -75,7 +75,16 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 .into_iter()
                 .find(|t| t.name == field.field_type.string())
             {
-                Some(t) => t,
+                Some(mut t) => Type {
+                    methods: {
+                        t.methods.append(&mut vec![Method {
+                            name: "Equals".into(),
+                            action: "equals".into(),
+                        }]);
+                        t.methods
+                    },
+                    ..t
+                },
                 None => panic!("{:?}", field.field_type.string()),
             };
 
@@ -118,7 +127,33 @@ fn generate_model_actions(model: &Model) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    for op in Document::operators() {
+        let op_name = &op.name;
+        let name_ident = format_ident!("{}", op.name);
+        let action = &op.action;
+
+        variants.push(quote! { #name_ident(Vec<#model_where_param>) });
+        match_arms.push(quote! {
+            Self::#name_ident(value) =>
+                Field {
+                    name: #op_name.into(),
+                    fields: Some(vec![
+                        Field {
+                            name: #action.into(),
+                            list: true,
+                            wrap_list: true,
+                            fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                            ..Default::default()
+                        }
+                    ]),
+                    ..Default::default()
+                }
+        });
+    }
+
     let model_find_many = format_ident!("{}FindMany", &model_name_pascal_ident);
+    let model_find_first = format_ident!("{}FindFirst", &model_name_pascal_ident);
+    let model_find_unique = format_ident!("{}FindUnique", &model_name_pascal_ident);
 
     quote! {
         pub struct #model_actions_pascal<'a> {
@@ -147,7 +182,37 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                     query: self.query.build(),
                     variables: std::collections::HashMap::new(),
                 };
-                
+
+                self.query.perform(request).await
+            }
+        }
+
+        pub struct #model_find_first<'a> {
+            query: Query<'a>
+        }
+
+        impl<'a> #model_find_first<'a> {
+            pub async fn exec(self) -> #model_pascal_ident {
+                let request = engine::GQLRequest {
+                    query: self.query.build(),
+                    variables: std::collections::HashMap::new(),
+                };
+
+                self.query.perform(request).await
+            }
+        }
+
+        pub struct #model_find_unique<'a> {
+            query: Query<'a>
+        }
+
+        impl<'a> #model_find_unique<'a> {
+            pub async fn exec(self) -> #model_pascal_ident {
+                let request = engine::GQLRequest {
+                    query: self.query.build(),
+                    variables: std::collections::HashMap::new(),
+                };
+
                 self.query.perform(request).await
             }
         }
@@ -189,7 +254,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 #model_find_many { query }
             }
 
-            pub fn find_first(&self, params: Vec<#model_where_param>) -> Query {
+            pub fn find_first(&self, params: Vec<#model_where_param>) -> #model_find_first {
                 let where_fields: Vec<Field> = params.iter().map(|param|
                     param.field()
                 ).collect();
@@ -222,11 +287,11 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                     inputs
                 };
 
-                query
+                #model_find_first { query }
             }
 
             // TODO: Dedicated unique field
-            pub fn find_unique(&self, param: #model_where_param) -> Query {
+            pub fn find_unique(&self, param: #model_where_param) -> #model_find_unique {
                 let mut field = param.field();
 
                 if let Some(fields) = &field.fields {
@@ -252,7 +317,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                     }]
                 };
 
-                query
+                #model_find_unique { query }
             }
         }
     }

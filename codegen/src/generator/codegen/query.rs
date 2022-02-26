@@ -11,7 +11,7 @@ fn generate_query(model: &Model) -> TokenStream {
     let name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
     let model_where_param = format_ident!("{}WhereParam", name_pascal);
 
-    let struct_field_methods = model
+    let model_field_structs = model
         .fields
         .iter()
         .map(|field| {
@@ -62,7 +62,16 @@ fn generate_query(model: &Model) -> TokenStream {
                     .into_iter()
                     .find(|t| t.name == field.field_type.string())
                 {
-                    Some(t) => t,
+                    Some(mut t) => Type {
+                        methods: {
+                            t.methods.append(&mut vec![Method {
+                                name: "Equals".into(),
+                                action: "equals".into(),
+                            }]);
+                            t.methods
+                        },
+                        ..t
+                    },
                     None => panic!("{:?}", field.field_type.string()),
                 };
 
@@ -115,13 +124,28 @@ fn generate_query(model: &Model) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    let model_operator_struct_methods = Document::operators()
+        .iter()
+        .map(|op| {
+            let field_method_name = format_ident!("{}", op.name.to_case(Case::Snake));
+            let op_name_ident = format_ident!("{}", op.name.to_case(Case::Pascal));
+
+            quote! {
+                pub fn #field_method_name(params: Vec<#model_where_param>) -> #model_where_param {
+                    #model_where_param::#op_name_ident(params)
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
     quote! {
         pub struct #name_pascal {}
 
         impl #name_pascal {
             #(#model_query_struct_methods)*
+            #(#model_operator_struct_methods)*
         }
 
-        #(#struct_field_methods)*
+        #(#model_field_structs)*
     }
 }
