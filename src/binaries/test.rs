@@ -39,10 +39,9 @@ struct Type {
 
 /// Generates the client.
 pub fn write_to_dir(datamodel: &str, path: PathBuf) {
-    let model_str = fs::read_to_string(PathBuf::from(datamodel))
-        .expect("failed to read .prisma file");
-    fs::write(path, generate(&model_str))
-        .expect("Error while writing to prisma.rs");
+    let model_str =
+        fs::read_to_string(PathBuf::from(datamodel)).expect("failed to read .prisma file");
+    fs::write(path, generate(&model_str)).expect("Error while writing to prisma.rs");
 }
 
 fn generate(model_str: &str) -> String {
@@ -391,24 +390,4 @@ fn format_method_name(name: String) -> String {
         .to_snake_case()
         .to_lowercase()
         .to_plural()
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn generate_client() {
-        let out = super::generate(
-            r##"
-datasource pg {
-	provider = "mysql"
-	url = "mysql://root:prisma@localhost:3306/default@default"
-}
-
-model User {
-    id String @id @default(cuid())
-}
-"##,
-        );
-        println!("{}", out);
-    }
 }

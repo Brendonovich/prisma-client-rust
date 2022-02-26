@@ -1,7 +1,7 @@
-use serde::{Serialize, Deserialize};
-use serde_json::{Value as SerdeValue};
-use std::collections::HashMap;
 use super::dmmf;
+use convert_case::{Case, Casing};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -11,7 +11,8 @@ pub struct Root {
     pub schema_path: String,
     pub dmmf: dmmf::Document,
     pub datasources: Vec<Datasource>,
-    pub binary_paths: Option<BinaryPaths>
+    pub binary_paths: Option<BinaryPaths>,
+    pub datamodel: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -19,7 +20,7 @@ pub struct Root {
 pub struct Config {
     pub package: Option<String>,
     pub disable_gitignores: Option<String>,
-    pub disable_go_binaries: Option<String>
+    pub disable_go_binaries: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -37,7 +38,7 @@ pub struct Generator {
 #[serde(rename_all = "camelCase")]
 pub struct Value {
     pub from_env_var: Option<String>,
-    pub value: Option<String>
+    pub value: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -46,7 +47,7 @@ pub enum ProviderType {
     MySQL,
     Mongo,
     SQLite,
-    PostgreSQL
+    PostgreSQL,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -54,7 +55,7 @@ pub enum ProviderType {
 pub struct Datasource {
     pub name: String,
     pub active_provider: ProviderType,
-    pub provider: Vec<ProviderType>,
+    pub provider: String,
     pub url: EnvValue,
 }
 
@@ -62,7 +63,7 @@ pub struct Datasource {
 #[serde(rename_all = "camelCase")]
 pub struct EnvValue {
     pub from_env_var: Option<String>,
-    pub value: Option<String>
+    pub value: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -70,5 +71,30 @@ pub struct EnvValue {
 pub struct BinaryPaths {
     pub migration_engine: HashMap<String, String>,
     pub query_engine: HashMap<String, String>,
-    pub introspection_engine: HashMap<String, String>
+    pub introspection_engine: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphQLType(String);
+
+impl GraphQLType {
+    pub fn string(&self) -> &str {
+        &self.0
+    }
+
+    pub fn value(&self) -> String {
+        let string = self.string();
+
+        match string {
+            "Int" => "i64".to_string(),
+            "BigInt" => "i64".to_string(),
+            "Float" => "f32".to_string(),
+            "Boolean" => "bool".to_string(),
+            "Bytes" => "Vec<u8>".to_string(),
+            "DateTime" => "chrono::DateTime<chrono::Utc>".to_string(),
+            "Json" => "serde_json::Value".to_string(),
+            _ => string.to_case(Case::Pascal),
+        }
+    }
 }

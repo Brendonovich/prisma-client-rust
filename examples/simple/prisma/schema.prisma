@@ -1,0 +1,28 @@
+datasource db {
+    provider = "postgresql"
+    url      = "postgresql://postgres:postgres@localhost:15432/testing"
+}
+
+generator client {
+    provider = "prisma-client-rust"
+}
+
+model Post {
+    id         String    @id
+    name       String?
+    comments   Comment[] @relation()
+    category   Category? @relation(fields: [categoryID], references: [id])
+    categoryID String?
+}
+
+model Comment {
+    id   String @id
+    post Post   @relation(references: [id], fields: [id])
+}
+
+model Category {
+    id     String @id @default(cuid())
+    name   String
+    weight Int?
+    posts  Post[]
+}

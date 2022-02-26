@@ -1,19 +1,18 @@
-use prisma_client_rust::{cli, generator};
+use prisma_client_rust_codegen::generator::Root;
+use prisma_client_rust_codegen::jsonrpc::{
+    methods::{Manifest, ManifestResponse},
+    Request, Response,
+};
+use prisma_client_rust_codegen::{cli, generator};
+use serde_json;
+use serde_json::json;
+use serde_path_to_error;
+use std::default::Default;
 use std::env;
 use std::io;
-use std::io::{BufReader, BufRead, Write};
-use std::default::Default;
-use serde_json;
-use serde_json::{json, Value};
-use serde_path_to_error;
-use prisma_client_rust::jsonrpc::{Request, Response};
-use prisma_client_rust::jsonrpc::methods::{ManifestResponse, Manifest};
-use prisma_client_rust::generator::Root;
-use std::any::Any;
-use serde::Serialize;
-use std::iter::Map;
+use std::io::{BufRead, BufReader, Write};
 
-fn main(){
+fn main() {
     let args = env::args().skip(1);
 
     if args.len() > 0 {
@@ -36,21 +35,20 @@ fn invoke_prisma() -> Result<(), ()> {
                     default_output: "prisma.rs".to_string(),
                     pretty_name: "Prisma Client Rust".to_string(),
                     ..Default::default()
-                }
-            }
-        ).unwrap(),
+                },
+            })
+            .unwrap(),
             "generate" => {
                 let params_str = input.params.to_string();
 
-                let deserializer =
-                    &mut serde_json::Deserializer::from_str(&params_str);
+                let deserializer = &mut serde_json::Deserializer::from_str(&params_str);
 
-                let result: Result<Root, _> =
-                    serde_path_to_error::deserialize(deserializer);
+                let result: Result<Root, _> = serde_path_to_error::deserialize(deserializer);
 
                 match result {
                     Ok(mut params) => {
-                        println!("Generating");
+                        // println!("Generating");
+                        // println!("{:?}", params);
                         generator::run(&mut params);
                     }
                     Err(err) => {
@@ -59,19 +57,18 @@ fn invoke_prisma() -> Result<(), ()> {
                 };
 
                 serde_json::to_value(json!(null)).unwrap()
-            },
-            _ => panic!()
+            }
+            _ => panic!(),
         };
-
 
         let response = Response {
             jsonrpc: "2.0".to_string(),
             id: input.id,
-            result: value
+            result: value,
         };
 
-        let mut bytes = serde_json::to_vec(&response)
-            .expect("Could not marshal json data for reply");
+        let mut bytes =
+            serde_json::to_vec(&response).expect("Could not marshal json data for reply");
 
         bytes.push(b'\n');
 

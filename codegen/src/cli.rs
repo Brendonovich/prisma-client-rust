@@ -1,8 +1,6 @@
-use std::process::{Command};
+use prisma_client_rust::binaries::{self, platform};
 use std::env;
-use crate::binaries;
-use crate::binaries::platform;
-use std::path::{PathBuf, Path};
+use std::process::Command;
 
 pub fn main(args: &Vec<String>) {
     let dir = binaries::global_cache_dir();
@@ -15,10 +13,8 @@ pub fn main(args: &Vec<String>) {
 
     cmd.args(args);
 
-    let binary_name = platform::check_for_extension(
-        platform::name(),
-        platform::binary_platform_name()
-    );
+    let binary_name =
+        platform::check_for_extension(platform::name(), platform::binary_platform_name());
 
     cmd.envs(env::vars());
     cmd.env("PRISMA_HIDE_UPDATE_MESSAGE", "true");
@@ -28,10 +24,14 @@ pub fn main(args: &Vec<String>) {
 
         match env::var(e.env.to_string()) {
             Ok(var) => value = var,
-            Err(_) => value = dir
-                .join(binaries::ENGINE_VERSION)
-                .join(format!("prisma-{}-{}", e.name.to_string(), binary_name))
-                .into_os_string().into_string().unwrap()
+            Err(_) => {
+                value = dir
+                    .join(binaries::ENGINE_VERSION)
+                    .join(format!("prisma-{}-{}", e.name.to_string(), binary_name))
+                    .into_os_string()
+                    .into_string()
+                    .unwrap()
+            }
         }
 
         cmd.env(e.env.to_string(), value);
