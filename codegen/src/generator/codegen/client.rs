@@ -26,12 +26,8 @@ pub fn generate_client(root: &Root) -> TokenStream {
     let datamodel = &root.datamodel;
 
     quote! {
-        use prisma_client_rust::builder::{Query, Output, Input, Field};
+        use prisma_client_rust::builder::{Query, Output, Input, Field, self};
         use prisma_client_rust::engine::{Engine, QueryEngine, self};
-
-        pub struct PrismaActions {
-
-        }
 
         pub struct PrismaClient {
             pub engine: Box<dyn Engine>,

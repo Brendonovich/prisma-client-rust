@@ -56,6 +56,7 @@ impl<'a> Query<'a> {
 
         let response = self.engine.perform(request).await;
 
+        // TODO: error handling
         serde_json::from_value(response.data.unwrap().result).unwrap()
     }
 
@@ -185,4 +186,17 @@ impl<'a> Query<'a> {
 
         string
     }
+}
+
+pub fn transform_equals(mut fields: Vec<Field>) -> Vec<Field> {
+    for mut field in &mut fields {
+        if let Some(fields) = &field.fields {
+            if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
+                field.value = inner.value.clone();
+                field.fields = None;
+            }
+        }
+    }
+
+    fields
 }

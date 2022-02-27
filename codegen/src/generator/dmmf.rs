@@ -349,25 +349,34 @@ pub struct Field {
     pub relation_to_fields: Option<Vec<String>>,
     pub relation_on_delete: Option<String>,
     pub is_generated: Option<bool>,
-    pub is_updated_at: Option<bool>,
+    pub is_updated_at: bool,
     pub documentation: Option<String>,
 }
 
 pub struct RelationMethod {
-    name: String,
-    action: String,
+    pub name: String,
+    pub action: String,
 }
 
 impl Field {
     pub fn required_on_create(&self) -> bool {
-        self.is_required
-            || !self.is_updated_at.unwrap_or(false)
-            || !self.has_default_value
-            || !self.is_read_only
-            || !(self.relation_name.is_some() && self.is_list)
+        println!("{:?}", self);
+        if !self.is_required
+            || self.is_updated_at
+            || self.has_default_value
+            || self.is_read_only
+        {
+            return false;
+        }
+
+        if self.relation_name.is_some() && self.is_list {
+            return false;
+        }
+        
+        true
     }
 
-    pub fn relation_methods(self) -> Vec<RelationMethod> {
+    pub fn relation_methods(&self) -> Vec<RelationMethod> {
         if self.is_list {
             return vec![
                 RelationMethod {
@@ -382,14 +391,14 @@ impl Field {
         }
 
         vec![RelationMethod {
-            name: "Where".to_string(),
+            name: "Is".to_string(),
             action: "is".to_string(),
         }]
     }
 }
 
 impl Model {
-    pub fn actions(self) -> Vec<String> {
+    pub fn actions(&self) -> Vec<String> {
         vec!["Set".to_string(), "Equals".to_string()]
     }
 

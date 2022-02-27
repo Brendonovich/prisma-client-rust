@@ -1,6 +1,5 @@
-use prisma_client_rust::builder::{Field, Input, Output, Query};
+use prisma_client_rust::builder::{self, Field, Input, Output, Query};
 use prisma_client_rust::engine::{self, Engine, QueryEngine};
-pub struct PrismaActions {}
 pub struct PrismaClient {
     pub engine: Box<dyn Engine>,
 }
@@ -23,50 +22,52 @@ pub struct PostActions<'a> {
 }
 pub enum PostWhereParam {
     IdContains(String),
-    IdStartsWith(String),
-    IdEndsWith(String),
+    IdHasPrefix(String),
+    IdHasSuffix(String),
     IdEquals(String),
     NameContains(String),
-    NameStartsWith(String),
-    NameEndsWith(String),
+    NameHasPrefix(String),
+    NameHasSuffix(String),
     NameEquals(String),
     CommentsSome(Vec<CommentWhereParam>),
     CommentsEvery(Vec<CommentWhereParam>),
+    CommentsLink(Box<CommentWhereParam>),
     CategoryIs(Vec<CategoryWhereParam>),
+    CategoryLink(Box<CategoryWhereParam>),
     CategoryIdContains(String),
-    CategoryIdStartsWith(String),
-    CategoryIdEndsWith(String),
+    CategoryIdHasPrefix(String),
+    CategoryIdHasSuffix(String),
     CategoryIdEquals(String),
     Not(Vec<PostWhereParam>),
     Or(Vec<PostWhereParam>),
     And(Vec<PostWhereParam>),
 }
 impl PostWhereParam {
-    pub fn field(&self) -> Field {
+    pub fn field(self) -> Field {
         match self {
             Self::IdContains(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdStartsWith(value) => Field {
+            Self::IdHasPrefix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdEndsWith(value) => Field {
+            Self::IdHasSuffix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -75,7 +76,7 @@ impl PostWhereParam {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -84,25 +85,25 @@ impl PostWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::NameStartsWith(value) => Field {
+            Self::NameHasPrefix(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::NameEndsWith(value) => Field {
+            Self::NameHasSuffix(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -111,7 +112,7 @@ impl PostWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -146,6 +147,21 @@ impl PostWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::CommentsLink(value) => Field {
+                name: "comments".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(vec![Field {
+                        name: "AND".into(),
+                        fields: Some(builder::transform_equals(vec![value.field()])),
+                        list: true,
+                        wrap_list: true,
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::CategoryIs(value) => Field {
                 name: "category".into(),
                 fields: Some(vec![Field {
@@ -161,29 +177,42 @@ impl PostWhereParam {
                 }]),
                 ..Default::default()
             },
+            Self::CategoryLink(value) => Field {
+                name: "category".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(vec![Field {
+                        name: "AND".into(),
+                        fields: Some(builder::transform_equals(vec![value.field()])),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
             Self::CategoryIdContains(value) => Field {
                 name: "categoryID".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::CategoryIdStartsWith(value) => Field {
+            Self::CategoryIdHasPrefix(value) => Field {
                 name: "categoryID".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::CategoryIdEndsWith(value) => Field {
+            Self::CategoryIdHasSuffix(value) => Field {
                 name: "categoryID".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -192,42 +221,30 @@ impl PostWhereParam {
                 name: "categoryID".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
             Self::Not(value) => Field {
-                name: "Not".into(),
-                fields: Some(vec![Field {
-                    name: "NOT".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "NOT".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::Or(value) => Field {
-                name: "Or".into(),
-                fields: Some(vec![Field {
-                    name: "OR".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "OR".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::And(value) => Field {
-                name: "And".into(),
-                fields: Some(vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "AND".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
         }
@@ -268,42 +285,65 @@ impl<'a> PostFindUnique<'a> {
         };
         self.query.perform(request).await
     }
+    pub fn delete(self) -> PostDeleteUnique<'a> {
+        PostDeleteUnique {
+            query: Query {
+                operation: "mutation".into(),
+                method: "deleteOne".into(),
+                model: "Post".into(),
+                ..self.query
+            },
+        }
+    }
+}
+pub struct PostCreateOne<'a> {
+    query: Query<'a>,
+}
+impl<'a> PostCreateOne<'a> {
+    pub async fn exec(self) -> PostModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct PostDeleteUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> PostDeleteUnique<'a> {
+    pub async fn exec(self) -> PostModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
 }
 impl<'a> PostActions<'a> {
-    pub fn find_many(&self, params: Vec<PostWhereParam>) -> PostFindMany {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
-        let inputs = if where_fields.len() > 0 {
-            vec![Input {
-                name: "where".into(),
-                fields: vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(where_fields),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            }]
-        } else {
-            Vec::new()
-        };
+    pub fn find_unique(&self, param: PostWhereParam) -> PostFindUnique {
+        let fields = builder::transform_equals(vec![param.field()]);
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findMany".into(),
+            method: "findUnique".into(),
             model: "Post".into(),
             outputs: vec![
                 Output::new("id"),
                 Output::new("name"),
                 Output::new("categoryID"),
             ],
-            inputs,
+            inputs: vec![Input {
+                name: "where".into(),
+                fields,
+                ..Default::default()
+            }],
         };
-        PostFindMany { query }
+        PostFindUnique { query }
     }
     pub fn find_first(&self, params: Vec<PostWhereParam>) -> PostFindFirst {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
                 name: "where".into(),
@@ -334,19 +374,44 @@ impl<'a> PostActions<'a> {
         };
         PostFindFirst { query }
     }
-    pub fn find_unique(&self, param: PostWhereParam) -> PostFindUnique {
-        let mut field = param.field();
-        if let Some(fields) = &field.fields {
-            if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
-                field.value = inner.value.clone();
-                field.fields = None;
-            }
-        }
+    pub fn find_many(&self, params: Vec<PostWhereParam>) -> PostFindMany {
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
+        let inputs = if where_fields.len() > 0 {
+            vec![Input {
+                name: "where".into(),
+                fields: vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(where_fields),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }]
+        } else {
+            Vec::new()
+        };
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findUnique".into(),
+            method: "findMany".into(),
+            model: "Post".into(),
+            outputs: vec![
+                Output::new("id"),
+                Output::new("name"),
+                Output::new("categoryID"),
+            ],
+            inputs,
+        };
+        PostFindMany { query }
+    }
+    pub fn create_one(&self, id: PostSetId, params: Vec<PostSetParam>) -> PostCreateOne {
+        let query = Query {
+            engine: self.client.engine.as_ref(),
+            name: String::new(),
+            operation: "mutation".into(),
+            method: "createOne".into(),
             model: "Post".into(),
             outputs: vec![
                 Output::new("id"),
@@ -354,12 +419,12 @@ impl<'a> PostActions<'a> {
                 Output::new("categoryID"),
             ],
             inputs: vec![Input {
-                name: "where".into(),
-                fields: vec![field],
+                name: "data".into(),
+                fields: params.into_iter().map(|p| p.field()).collect(),
                 ..Default::default()
             }],
         };
-        PostFindUnique { query }
+        PostCreateOne { query }
     }
 }
 pub struct CommentActions<'a> {
@@ -367,40 +432,41 @@ pub struct CommentActions<'a> {
 }
 pub enum CommentWhereParam {
     IdContains(String),
-    IdStartsWith(String),
-    IdEndsWith(String),
+    IdHasPrefix(String),
+    IdHasSuffix(String),
     IdEquals(String),
     PostIs(Vec<PostWhereParam>),
+    PostLink(Box<PostWhereParam>),
     Not(Vec<CommentWhereParam>),
     Or(Vec<CommentWhereParam>),
     And(Vec<CommentWhereParam>),
 }
 impl CommentWhereParam {
-    pub fn field(&self) -> Field {
+    pub fn field(self) -> Field {
         match self {
             Self::IdContains(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdStartsWith(value) => Field {
+            Self::IdHasPrefix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdEndsWith(value) => Field {
+            Self::IdHasSuffix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -409,7 +475,7 @@ impl CommentWhereParam {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -429,37 +495,38 @@ impl CommentWhereParam {
                 }]),
                 ..Default::default()
             },
-            Self::Not(value) => Field {
-                name: "Not".into(),
+            Self::PostLink(value) => Field {
+                name: "post".into(),
                 fields: Some(vec![Field {
-                    name: "NOT".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    name: "connect".into(),
+                    fields: Some(vec![Field {
+                        name: "AND".into(),
+                        fields: Some(builder::transform_equals(vec![value.field()])),
+                        ..Default::default()
+                    }]),
                     ..Default::default()
                 }]),
+                ..Default::default()
+            },
+            Self::Not(value) => Field {
+                name: "NOT".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::Or(value) => Field {
-                name: "Or".into(),
-                fields: Some(vec![Field {
-                    name: "OR".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "OR".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::And(value) => Field {
-                name: "And".into(),
-                fields: Some(vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "AND".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
         }
@@ -500,38 +567,61 @@ impl<'a> CommentFindUnique<'a> {
         };
         self.query.perform(request).await
     }
+    pub fn delete(self) -> CommentDeleteUnique<'a> {
+        CommentDeleteUnique {
+            query: Query {
+                operation: "mutation".into(),
+                method: "deleteOne".into(),
+                model: "Comment".into(),
+                ..self.query
+            },
+        }
+    }
+}
+pub struct CommentCreateOne<'a> {
+    query: Query<'a>,
+}
+impl<'a> CommentCreateOne<'a> {
+    pub async fn exec(self) -> CommentModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CommentDeleteUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> CommentDeleteUnique<'a> {
+    pub async fn exec(self) -> CommentModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
 }
 impl<'a> CommentActions<'a> {
-    pub fn find_many(&self, params: Vec<CommentWhereParam>) -> CommentFindMany {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
-        let inputs = if where_fields.len() > 0 {
-            vec![Input {
-                name: "where".into(),
-                fields: vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(where_fields),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            }]
-        } else {
-            Vec::new()
-        };
+    pub fn find_unique(&self, param: CommentWhereParam) -> CommentFindUnique {
+        let fields = builder::transform_equals(vec![param.field()]);
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findMany".into(),
+            method: "findUnique".into(),
             model: "Comment".into(),
             outputs: vec![Output::new("id")],
-            inputs,
+            inputs: vec![Input {
+                name: "where".into(),
+                fields,
+                ..Default::default()
+            }],
         };
-        CommentFindMany { query }
+        CommentFindUnique { query }
     }
     pub fn find_first(&self, params: Vec<CommentWhereParam>) -> CommentFindFirst {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
                 name: "where".into(),
@@ -558,28 +648,53 @@ impl<'a> CommentActions<'a> {
         };
         CommentFindFirst { query }
     }
-    pub fn find_unique(&self, param: CommentWhereParam) -> CommentFindUnique {
-        let mut field = param.field();
-        if let Some(fields) = &field.fields {
-            if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
-                field.value = inner.value.clone();
-                field.fields = None;
-            }
-        }
+    pub fn find_many(&self, params: Vec<CommentWhereParam>) -> CommentFindMany {
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
+        let inputs = if where_fields.len() > 0 {
+            vec![Input {
+                name: "where".into(),
+                fields: vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(where_fields),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }]
+        } else {
+            Vec::new()
+        };
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findUnique".into(),
+            method: "findMany".into(),
+            model: "Comment".into(),
+            outputs: vec![Output::new("id")],
+            inputs,
+        };
+        CommentFindMany { query }
+    }
+    pub fn create_one(
+        &self,
+        post: CommentSetPost,
+        params: Vec<CommentSetParam>,
+    ) -> CommentCreateOne {
+        let query = Query {
+            engine: self.client.engine.as_ref(),
+            name: String::new(),
+            operation: "mutation".into(),
+            method: "createOne".into(),
             model: "Comment".into(),
             outputs: vec![Output::new("id")],
             inputs: vec![Input {
-                name: "where".into(),
-                fields: vec![field],
+                name: "data".into(),
+                fields: params.into_iter().map(|p| p.field()).collect(),
                 ..Default::default()
             }],
         };
-        CommentFindUnique { query }
+        CommentCreateOne { query }
     }
 }
 pub struct CategoryActions<'a> {
@@ -587,50 +702,51 @@ pub struct CategoryActions<'a> {
 }
 pub enum CategoryWhereParam {
     IdContains(String),
-    IdStartsWith(String),
-    IdEndsWith(String),
+    IdHasPrefix(String),
+    IdHasSuffix(String),
     IdEquals(String),
     NameContains(String),
-    NameStartsWith(String),
-    NameEndsWith(String),
+    NameHasPrefix(String),
+    NameHasSuffix(String),
     NameEquals(String),
-    WeightLt(i64),
-    WeightGt(i64),
-    WeightLte(i64),
-    WeightGte(i64),
+    WeightLT(i64),
+    WeightGT(i64),
+    WeightLTE(i64),
+    WeightGTE(i64),
     WeightEquals(i64),
     PostsSome(Vec<PostWhereParam>),
     PostsEvery(Vec<PostWhereParam>),
+    PostsLink(Box<PostWhereParam>),
     Not(Vec<CategoryWhereParam>),
     Or(Vec<CategoryWhereParam>),
     And(Vec<CategoryWhereParam>),
 }
 impl CategoryWhereParam {
-    pub fn field(&self) -> Field {
+    pub fn field(self) -> Field {
         match self {
             Self::IdContains(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdStartsWith(value) => Field {
+            Self::IdHasPrefix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::IdEndsWith(value) => Field {
+            Self::IdHasSuffix(value) => Field {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -639,7 +755,7 @@ impl CategoryWhereParam {
                 name: "id".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -648,25 +764,25 @@ impl CategoryWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "contains".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::NameStartsWith(value) => Field {
+            Self::NameHasPrefix(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "starts_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::NameEndsWith(value) => Field {
+            Self::NameHasSuffix(value) => Field {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "ends_with".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -675,43 +791,43 @@ impl CategoryWhereParam {
                 name: "name".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::WeightLt(value) => Field {
+            Self::WeightLT(value) => Field {
                 name: "weight".into(),
                 fields: Some(vec![Field {
                     name: "lt".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::WeightGt(value) => Field {
+            Self::WeightGT(value) => Field {
                 name: "weight".into(),
                 fields: Some(vec![Field {
                     name: "gt".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::WeightLte(value) => Field {
+            Self::WeightLTE(value) => Field {
                 name: "weight".into(),
                 fields: Some(vec![Field {
                     name: "lte".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
             },
-            Self::WeightGte(value) => Field {
+            Self::WeightGTE(value) => Field {
                 name: "weight".into(),
                 fields: Some(vec![Field {
                     name: "gte".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -720,7 +836,7 @@ impl CategoryWhereParam {
                 name: "weight".into(),
                 fields: Some(vec![Field {
                     name: "equals".into(),
-                    value: Some(serde_json::to_value(value).unwrap()),
+                    value: Some(value.into()),
                     ..Default::default()
                 }]),
                 ..Default::default()
@@ -755,37 +871,40 @@ impl CategoryWhereParam {
                 }]),
                 ..Default::default()
             },
-            Self::Not(value) => Field {
-                name: "Not".into(),
+            Self::PostsLink(value) => Field {
+                name: "posts".into(),
                 fields: Some(vec![Field {
-                    name: "NOT".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                    name: "connect".into(),
+                    fields: Some(vec![Field {
+                        name: "AND".into(),
+                        fields: Some(builder::transform_equals(vec![value.field()])),
+                        list: true,
+                        wrap_list: true,
+                        ..Default::default()
+                    }]),
                     ..Default::default()
                 }]),
+                ..Default::default()
+            },
+            Self::Not(value) => Field {
+                name: "NOT".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::Or(value) => Field {
-                name: "Or".into(),
-                fields: Some(vec![Field {
-                    name: "OR".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "OR".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
             Self::And(value) => Field {
-                name: "And".into(),
-                fields: Some(vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                    ..Default::default()
-                }]),
+                name: "AND".into(),
+                list: true,
+                wrap_list: true,
+                fields: Some(value.into_iter().map(|f| f.field()).collect()),
                 ..Default::default()
             },
         }
@@ -826,42 +945,65 @@ impl<'a> CategoryFindUnique<'a> {
         };
         self.query.perform(request).await
     }
+    pub fn delete(self) -> CategoryDeleteUnique<'a> {
+        CategoryDeleteUnique {
+            query: Query {
+                operation: "mutation".into(),
+                method: "deleteOne".into(),
+                model: "Category".into(),
+                ..self.query
+            },
+        }
+    }
+}
+pub struct CategoryCreateOne<'a> {
+    query: Query<'a>,
+}
+impl<'a> CategoryCreateOne<'a> {
+    pub async fn exec(self) -> CategoryModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
+}
+pub struct CategoryDeleteUnique<'a> {
+    query: Query<'a>,
+}
+impl<'a> CategoryDeleteUnique<'a> {
+    pub async fn exec(self) -> CategoryModel {
+        let request = engine::GQLRequest {
+            query: self.query.build(),
+            variables: std::collections::HashMap::new(),
+        };
+        self.query.perform(request).await
+    }
 }
 impl<'a> CategoryActions<'a> {
-    pub fn find_many(&self, params: Vec<CategoryWhereParam>) -> CategoryFindMany {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
-        let inputs = if where_fields.len() > 0 {
-            vec![Input {
-                name: "where".into(),
-                fields: vec![Field {
-                    name: "AND".into(),
-                    list: true,
-                    wrap_list: true,
-                    fields: Some(where_fields),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            }]
-        } else {
-            Vec::new()
-        };
+    pub fn find_unique(&self, param: CategoryWhereParam) -> CategoryFindUnique {
+        let fields = builder::transform_equals(vec![param.field()]);
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findMany".into(),
+            method: "findUnique".into(),
             model: "Category".into(),
             outputs: vec![
                 Output::new("id"),
                 Output::new("name"),
                 Output::new("weight"),
             ],
-            inputs,
+            inputs: vec![Input {
+                name: "where".into(),
+                fields,
+                ..Default::default()
+            }],
         };
-        CategoryFindMany { query }
+        CategoryFindUnique { query }
     }
     pub fn find_first(&self, params: Vec<CategoryWhereParam>) -> CategoryFindFirst {
-        let where_fields: Vec<Field> = params.iter().map(|param| param.field()).collect();
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
         let inputs = if where_fields.len() > 0 {
             vec![Input {
                 name: "where".into(),
@@ -892,19 +1034,48 @@ impl<'a> CategoryActions<'a> {
         };
         CategoryFindFirst { query }
     }
-    pub fn find_unique(&self, param: CategoryWhereParam) -> CategoryFindUnique {
-        let mut field = param.field();
-        if let Some(fields) = &field.fields {
-            if let Some(inner) = fields.iter().find(|f| f.name == "equals") {
-                field.value = inner.value.clone();
-                field.fields = None;
-            }
-        }
+    pub fn find_many(&self, params: Vec<CategoryWhereParam>) -> CategoryFindMany {
+        let where_fields: Vec<Field> = params.into_iter().map(|param| param.field()).collect();
+        let inputs = if where_fields.len() > 0 {
+            vec![Input {
+                name: "where".into(),
+                fields: vec![Field {
+                    name: "AND".into(),
+                    list: true,
+                    wrap_list: true,
+                    fields: Some(where_fields),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }]
+        } else {
+            Vec::new()
+        };
         let query = Query {
             engine: self.client.engine.as_ref(),
             name: String::new(),
             operation: "query".into(),
-            method: "findUnique".into(),
+            method: "findMany".into(),
+            model: "Category".into(),
+            outputs: vec![
+                Output::new("id"),
+                Output::new("name"),
+                Output::new("weight"),
+            ],
+            inputs,
+        };
+        CategoryFindMany { query }
+    }
+    pub fn create_one(
+        &self,
+        name: CategorySetName,
+        params: Vec<CategorySetParam>,
+    ) -> CategoryCreateOne {
+        let query = Query {
+            engine: self.client.engine.as_ref(),
+            name: String::new(),
+            operation: "mutation".into(),
+            method: "createOne".into(),
             model: "Category".into(),
             outputs: vec![
                 Output::new("id"),
@@ -912,12 +1083,12 @@ impl<'a> CategoryActions<'a> {
                 Output::new("weight"),
             ],
             inputs: vec![Input {
-                name: "where".into(),
-                fields: vec![field],
+                name: "data".into(),
+                fields: params.into_iter().map(|p| p.field()).collect(),
                 ..Default::default()
             }],
         };
-        CategoryFindUnique { query }
+        CategoryCreateOne { query }
     }
 }
 #[derive(serde :: Deserialize, Debug)]
@@ -974,6 +1145,56 @@ impl CategoryModel {
     }
 }
 pub struct Post {}
+pub enum PostSetParam {
+    Id(String),
+    Name(String),
+    Comments(Vec<CommentWhereParam>),
+    Category(CategoryWhereParam),
+    CategoryId(String),
+}
+impl PostSetParam {
+    pub fn field(self) -> Field {
+        match self {
+            Self::Id(value) => Field {
+                name: "id".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Name(value) => Field {
+                name: "name".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Comments(value) => Field {
+                name: "comments".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(builder::transform_equals(
+                        value.into_iter().map(|item| item.field()).collect(),
+                    )),
+                    list: true,
+                    wrap_list: true,
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::Category(value) => Field {
+                name: "category".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(builder::transform_equals(vec![value.field()])),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+            Self::CategoryId(value) => Field {
+                name: "category_id".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+        }
+    }
+}
 impl Post {
     pub fn id() -> PostId {
         PostId {}
@@ -1001,36 +1222,60 @@ impl Post {
     }
 }
 pub struct PostId {}
+pub struct PostSetId(String);
+impl From<PostSetId> for PostSetParam {
+    fn from(value: PostSetId) -> Self {
+        Self::Id(value.0)
+    }
+}
 impl PostId {
     pub fn contains(&self, value: String) -> PostWhereParam {
         PostWhereParam::IdContains(value)
     }
-    pub fn starts_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::IdStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::IdHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::IdEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::IdHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> PostWhereParam {
         PostWhereParam::IdEquals(value)
     }
+    pub fn set<T: From<PostSetId>>(&self, value: String) -> T {
+        PostSetId(value).into()
+    }
 }
 pub struct PostName {}
+pub struct PostSetName(String);
+impl From<PostSetName> for PostSetParam {
+    fn from(value: PostSetName) -> Self {
+        Self::Name(value.0)
+    }
+}
 impl PostName {
     pub fn contains(&self, value: String) -> PostWhereParam {
         PostWhereParam::NameContains(value)
     }
-    pub fn starts_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::NameStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::NameHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::NameEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::NameHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> PostWhereParam {
         PostWhereParam::NameEquals(value)
     }
+    pub fn set<T: From<PostSetName>>(&self, value: String) -> T {
+        PostSetName(value).into()
+    }
 }
 pub struct PostComments {}
+pub struct PostSetComments(Vec<CommentWhereParam>);
+impl From<PostSetComments> for PostSetParam {
+    fn from(value: PostSetComments) -> Self {
+        Self::Comments(value.0.into_iter().map(|v| v.into()).collect())
+    }
+}
 impl PostComments {
     pub fn some(&self, value: Vec<CommentWhereParam>) -> PostWhereParam {
         PostWhereParam::CommentsSome(value)
@@ -1038,29 +1283,74 @@ impl PostComments {
     pub fn every(&self, value: Vec<CommentWhereParam>) -> PostWhereParam {
         PostWhereParam::CommentsEvery(value)
     }
+    pub fn link<T: From<PostSetComments>>(&self, value: Vec<CommentWhereParam>) -> T {
+        PostSetComments(value).into()
+    }
 }
 pub struct PostCategory {}
+pub struct PostSetCategory(CategoryWhereParam);
+impl From<PostSetCategory> for PostSetParam {
+    fn from(value: PostSetCategory) -> Self {
+        Self::Category(value.0)
+    }
+}
 impl PostCategory {
     pub fn is(&self, value: Vec<CategoryWhereParam>) -> PostWhereParam {
         PostWhereParam::CategoryIs(value)
     }
+    pub fn link<T: From<PostSetCategory>>(&self, value: CategoryWhereParam) -> T {
+        PostSetCategory(value).into()
+    }
 }
 pub struct PostCategoryId {}
+pub struct PostSetCategoryId(String);
+impl From<PostSetCategoryId> for PostSetParam {
+    fn from(value: PostSetCategoryId) -> Self {
+        Self::CategoryId(value.0)
+    }
+}
 impl PostCategoryId {
     pub fn contains(&self, value: String) -> PostWhereParam {
         PostWhereParam::CategoryIdContains(value)
     }
-    pub fn starts_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::CategoryIdStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::CategoryIdHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> PostWhereParam {
-        PostWhereParam::CategoryIdEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> PostWhereParam {
+        PostWhereParam::CategoryIdHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> PostWhereParam {
         PostWhereParam::CategoryIdEquals(value)
     }
+    pub fn set<T: From<PostSetCategoryId>>(&self, value: String) -> T {
+        PostSetCategoryId(value).into()
+    }
 }
 pub struct Comment {}
+pub enum CommentSetParam {
+    Id(String),
+    Post(PostWhereParam),
+}
+impl CommentSetParam {
+    pub fn field(self) -> Field {
+        match self {
+            Self::Id(value) => Field {
+                name: "id".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Post(value) => Field {
+                name: "post".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(builder::transform_equals(vec![value.field()])),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        }
+    }
+}
 impl Comment {
     pub fn id() -> CommentId {
         CommentId {}
@@ -1079,27 +1369,85 @@ impl Comment {
     }
 }
 pub struct CommentId {}
+pub struct CommentSetId(String);
+impl From<CommentSetId> for CommentSetParam {
+    fn from(value: CommentSetId) -> Self {
+        Self::Id(value.0)
+    }
+}
 impl CommentId {
     pub fn contains(&self, value: String) -> CommentWhereParam {
         CommentWhereParam::IdContains(value)
     }
-    pub fn starts_with(&self, value: String) -> CommentWhereParam {
-        CommentWhereParam::IdStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> CommentWhereParam {
+        CommentWhereParam::IdHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> CommentWhereParam {
-        CommentWhereParam::IdEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> CommentWhereParam {
+        CommentWhereParam::IdHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> CommentWhereParam {
         CommentWhereParam::IdEquals(value)
     }
+    pub fn set<T: From<CommentSetId>>(&self, value: String) -> T {
+        CommentSetId(value).into()
+    }
 }
 pub struct CommentPost {}
+pub struct CommentSetPost(PostWhereParam);
+impl From<CommentSetPost> for CommentSetParam {
+    fn from(value: CommentSetPost) -> Self {
+        Self::Post(value.0)
+    }
+}
 impl CommentPost {
     pub fn is(&self, value: Vec<PostWhereParam>) -> CommentWhereParam {
         CommentWhereParam::PostIs(value)
     }
+    pub fn link<T: From<CommentSetPost>>(&self, value: PostWhereParam) -> T {
+        CommentSetPost(value).into()
+    }
 }
 pub struct Category {}
+pub enum CategorySetParam {
+    Id(String),
+    Name(String),
+    Weight(i64),
+    Posts(Vec<PostWhereParam>),
+}
+impl CategorySetParam {
+    pub fn field(self) -> Field {
+        match self {
+            Self::Id(value) => Field {
+                name: "id".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Name(value) => Field {
+                name: "name".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Weight(value) => Field {
+                name: "weight".into(),
+                value: Some(value.into()),
+                ..Default::default()
+            },
+            Self::Posts(value) => Field {
+                name: "posts".into(),
+                fields: Some(vec![Field {
+                    name: "connect".into(),
+                    fields: Some(builder::transform_equals(
+                        value.into_iter().map(|item| item.field()).collect(),
+                    )),
+                    list: true,
+                    wrap_list: true,
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        }
+    }
+}
 impl Category {
     pub fn id() -> CategoryId {
         CategoryId {}
@@ -1124,59 +1472,95 @@ impl Category {
     }
 }
 pub struct CategoryId {}
+pub struct CategorySetId(String);
+impl From<CategorySetId> for CategorySetParam {
+    fn from(value: CategorySetId) -> Self {
+        Self::Id(value.0)
+    }
+}
 impl CategoryId {
     pub fn contains(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::IdContains(value)
     }
-    pub fn starts_with(&self, value: String) -> CategoryWhereParam {
-        CategoryWhereParam::IdStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::IdHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> CategoryWhereParam {
-        CategoryWhereParam::IdEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::IdHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::IdEquals(value)
     }
+    pub fn set<T: From<CategorySetId>>(&self, value: String) -> T {
+        CategorySetId(value).into()
+    }
 }
 pub struct CategoryName {}
+pub struct CategorySetName(String);
+impl From<CategorySetName> for CategorySetParam {
+    fn from(value: CategorySetName) -> Self {
+        Self::Name(value.0)
+    }
+}
 impl CategoryName {
     pub fn contains(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::NameContains(value)
     }
-    pub fn starts_with(&self, value: String) -> CategoryWhereParam {
-        CategoryWhereParam::NameStartsWith(value)
+    pub fn has_prefix(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::NameHasPrefix(value)
     }
-    pub fn ends_with(&self, value: String) -> CategoryWhereParam {
-        CategoryWhereParam::NameEndsWith(value)
+    pub fn has_suffix(&self, value: String) -> CategoryWhereParam {
+        CategoryWhereParam::NameHasSuffix(value)
     }
     pub fn equals(&self, value: String) -> CategoryWhereParam {
         CategoryWhereParam::NameEquals(value)
     }
+    pub fn set<T: From<CategorySetName>>(&self, value: String) -> T {
+        CategorySetName(value).into()
+    }
 }
 pub struct CategoryWeight {}
+pub struct CategorySetWeight(i64);
+impl From<CategorySetWeight> for CategorySetParam {
+    fn from(value: CategorySetWeight) -> Self {
+        Self::Weight(value.0)
+    }
+}
 impl CategoryWeight {
     pub fn lt(&self, value: i64) -> CategoryWhereParam {
-        CategoryWhereParam::WeightLt(value)
+        CategoryWhereParam::WeightLT(value)
     }
     pub fn gt(&self, value: i64) -> CategoryWhereParam {
-        CategoryWhereParam::WeightGt(value)
+        CategoryWhereParam::WeightGT(value)
     }
     pub fn lte(&self, value: i64) -> CategoryWhereParam {
-        CategoryWhereParam::WeightLte(value)
+        CategoryWhereParam::WeightLTE(value)
     }
     pub fn gte(&self, value: i64) -> CategoryWhereParam {
-        CategoryWhereParam::WeightGte(value)
+        CategoryWhereParam::WeightGTE(value)
     }
     pub fn equals(&self, value: i64) -> CategoryWhereParam {
         CategoryWhereParam::WeightEquals(value)
     }
+    pub fn set<T: From<CategorySetWeight>>(&self, value: i64) -> T {
+        CategorySetWeight(value).into()
+    }
 }
 pub struct CategoryPosts {}
+pub struct CategorySetPosts(Vec<PostWhereParam>);
+impl From<CategorySetPosts> for CategorySetParam {
+    fn from(value: CategorySetPosts) -> Self {
+        Self::Posts(value.0.into_iter().map(|v| v.into()).collect())
+    }
+}
 impl CategoryPosts {
     pub fn some(&self, value: Vec<PostWhereParam>) -> CategoryWhereParam {
         CategoryWhereParam::PostsSome(value)
     }
     pub fn every(&self, value: Vec<PostWhereParam>) -> CategoryWhereParam {
         CategoryWhereParam::PostsEvery(value)
+    }
+    pub fn link<T: From<CategorySetPosts>>(&self, value: Vec<PostWhereParam>) -> T {
+        CategorySetPosts(value).into()
     }
 }
