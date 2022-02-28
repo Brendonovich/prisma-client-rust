@@ -6,6 +6,10 @@ edition = "2018"
 description = "A prisma client for Rust"
 license = "MIT"
 
+exclude = [
+    "examples"
+]
+
 [workspace]
 members = [
     "codegen",
