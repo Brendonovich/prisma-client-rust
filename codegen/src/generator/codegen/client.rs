@@ -61,7 +61,7 @@ pub fn generate_client(root: &Root) -> TokenStream {
 
         #[derive(serde::Deserialize)]
         pub struct DeleteResult {
-            count: usize,
+            pub count: isize,
         }
 
         pub struct PrismaClient {

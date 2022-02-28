@@ -1,0 +1,38 @@
+datasource db {
+    provider = "postgresql"
+    url      = "postgresql://postgres:postgres@localhost:15432/readme"
+}
+
+generator client {
+    provider      = "prisma-client-rust"
+    binaryTargets = ["native"]
+    output        = "../src/db"
+}
+
+model User {
+    username    String @id
+    displayName String
+
+    posts           Post[]
+    comments        Comment[]
+}
+
+model Post {
+    id      String @id
+    content String
+
+    comments Comment[] @relation()
+
+    User         User   @relation(fields: [userUsername], references: [username])
+    userUsername String
+}
+
+model Comment {
+    id String @id
+
+    postId String
+    post   Post   @relation(fields: [postId], references: [id])
+
+    User         User?   @relation(fields: [userUsername], references: [username])
+    userUsername String?
+}

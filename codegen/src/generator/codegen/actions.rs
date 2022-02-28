@@ -211,7 +211,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             .iter()
             .filter(|f| f.required_on_create())
             .map(|f| {
-                let arg_name = format_ident!("{}", &f.name);
+                let arg_name = format_ident!("{}", &f.name.to_case(Case::Snake));
                 let arg_type =
                     format_ident!("{}Set{}", model_name_pascal, f.name.to_case(Case::Pascal));
                 quote! {
@@ -225,7 +225,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             .iter()
             .filter(|f| f.required_on_create())
             .map(|f| {
-                let arg_name = format_ident!("{}", &f.name);
+                let arg_name = format_ident!("{}", &f.name.to_case(Case::Snake));
                 let arg_type =
                     format_ident!("{}Set{}", model_name_pascal, f.name.to_case(Case::Pascal));
                 quote! {
@@ -338,13 +338,15 @@ fn generate_model_actions(model: &Model) -> TokenStream {
         }
 
         impl<'a> #model_delete<'a> {
-            pub async fn exec(self) -> DeleteResult {
+            pub async fn exec(self) -> isize {
                 let request = engine::GQLRequest {
                     query: self.query.build(),
                     variables: std::collections::HashMap::new(),
                 };
 
-                self.query.perform(request).await
+                let result: DeleteResult = self.query.perform(request).await;
+                
+                result.count
             }
         }
 
