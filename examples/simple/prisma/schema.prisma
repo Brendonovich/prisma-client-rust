@@ -1,10 +1,12 @@
 datasource db {
     provider = "postgresql"
-    url      = "postgresql://postgres:postgres@localhost:15432/testing"
+    url      = "postgresql://postgres:postgres@localhost:15432/simple"
 }
 
 generator client {
-    provider = "prisma-client-rust"
+    provider      = "prisma-client-rust"
+    binaryTargets = ["native"]
+    output        = "../src/db"
 }
 
 model Post {
@@ -16,8 +18,10 @@ model Post {
 }
 
 model Comment {
-    id   String @id
-    post Post   @relation(references: [id], fields: [id])
+    id String @id
+
+    postId String 
+    post   Post   @relation(fields: [postId], references: [id])
 }
 
 model Category {

@@ -1,5 +1,5 @@
 [package]
-name = "prisma_client_rust"
+name = "prisma-client-rust"
 version = "0.1.2"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2018"
@@ -8,7 +8,8 @@ license = "MIT"
 
 [workspace]
 members = [
-    "codegen"
+    "codegen",
+    "examples/*"
 ]
 
 [dependencies]

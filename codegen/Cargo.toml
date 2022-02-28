@@ -1,5 +1,5 @@
 [package]
-name = "prisma_client_rust_codegen"
+name = "prisma-client-rust-codegen"
 version = "0.1.2"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2018"
@@ -21,4 +21,4 @@ convert_case = "0.4.0"
 syn = "1.0.86"
 quote = "1.0.15"
 reqwest = {version="0.11.9", features=["blocking"]}
-prisma_client_rust = {path = "../"}
+prisma-client-rust = {path = "../"}

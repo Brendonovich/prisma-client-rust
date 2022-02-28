@@ -16,7 +16,7 @@ pub struct Data {
     pub result: Value,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct GQLRequest {
     pub query: String,
     pub variables: HashMap<String, Value>,

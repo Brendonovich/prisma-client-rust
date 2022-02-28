@@ -2,3 +2,4 @@ target
 .idea
 DS_STORE
 .DS_Store
+db/

@@ -14,7 +14,7 @@ pub fn main(args: &Vec<String>) {
     cmd.args(args);
 
     let binary_name =
-        platform::check_for_extension(platform::name(), platform::binary_platform_name());
+        platform::check_for_extension(&platform::name(), &platform::binary_platform_name());
 
     cmd.envs(env::vars());
     cmd.env("PRISMA_HIDE_UPDATE_MESSAGE", "true");

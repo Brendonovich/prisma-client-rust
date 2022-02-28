@@ -88,16 +88,8 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                                 name: #field_name.into(),
                                 fields: Some(vec![
                                     Field {
-                                        name: #action.into(),
-                                        fields: Some(vec![
-                                            Field {
-                                                name: "AND".into(),
-                                                list: true,
-                                                wrap_list: true,
-                                                fields: Some(value.into_iter().map(|f| f.field()).collect()),
-                                                ..Default::default()
-                                            }
-                                        ]),
+                                        name: "AND".into(),
+                                        fields: Some(value.into_iter().map(|f| f.field()).collect()),
                                         ..Default::default()
                                     }
                                 ]),
@@ -227,11 +219,25 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 }
             });
 
+    let create_one_required_arg_pushes =
+        model
+            .fields
+            .iter()
+            .filter(|f| f.required_on_create())
+            .map(|f| {
+                let arg_name = format_ident!("{}", &f.name);
+                let arg_type =
+                    format_ident!("{}Set{}", model_name_pascal, f.name.to_case(Case::Pascal));
+                quote! {
+                    input_fields.push(#model_set_param::from(#arg_name).field());
+                }
+            });
+
     let model_create_one = format_ident!("{}CreateOne", &model_name_pascal_ident);
     let model_find_first = format_ident!("{}FindFirst", &model_name_pascal_ident);
     let model_find_unique = format_ident!("{}FindUnique", &model_name_pascal_ident);
     let model_find_many = format_ident!("{}FindMany", &model_name_pascal_ident);
-    let model_delete_unique = format_ident!("{}DeleteUnique", &model_name_pascal_ident);
+    let model_delete = format_ident!("{}Delete", &model_name_pascal_ident);
     let model_where_params = model_where_params.quote();
 
     quote! {
@@ -253,6 +259,21 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 };
 
                 self.query.perform(request).await
+            }
+            
+
+            pub fn delete(self) -> #model_delete<'a> {
+                #model_delete {
+                    query: Query {
+                        operation: "mutation".into(),
+                        method: "deleteMany".into(),
+                        model: #model_name.into(),
+                        outputs: vec! [
+                            Output::new("count"),
+                        ],
+                        ..self.query
+                    }
+                }
             }
         }
 
@@ -285,8 +306,8 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 self.query.perform(request).await
             }
 
-            pub fn delete(self) -> #model_delete_unique<'a> {
-                #model_delete_unique {
+            pub fn delete(self) -> #model_delete<'a> {
+                #model_delete {
                     query: Query {
                         operation: "mutation".into(),
                         method: "deleteOne".into(),
@@ -312,12 +333,12 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             }
         }
 
-        pub struct #model_delete_unique<'a> {
+        pub struct #model_delete<'a> {
             query: Query<'a>
         }
 
-        impl<'a> #model_delete_unique<'a> {
-            pub async fn exec(self) -> #model_pascal_ident {
+        impl<'a> #model_delete<'a> {
+            pub async fn exec(self) -> DeleteResult {
                 let request = engine::GQLRequest {
                     query: self.query.build(),
                     variables: std::collections::HashMap::new(),
@@ -395,13 +416,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 let inputs = if where_fields.len() > 0 {
                     vec![Input {
                         name: "where".into(),
-                        fields: vec![Field {
-                            name: "AND".into(),
-                            list: true,
-                            wrap_list: true,
-                            fields: Some(where_fields),
-                            ..Default::default()
-                        }],
+                        fields: where_fields,
                         ..Default::default()
                     }]
                 } else {
@@ -424,6 +439,10 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             }
 
             pub fn create_one(&self, #(#create_one_required_args)* params: Vec<#model_set_param>) -> #model_create_one {
+                let mut input_fields = params.into_iter().map(|p| p.field()).collect::<Vec<_>>();
+                
+                #(#create_one_required_arg_pushes)*
+                
                 let query = Query {
                     engine: self.client.engine.as_ref(),
                     name: String::new(),
@@ -435,7 +454,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                     ],
                     inputs: vec![Input {
                         name: "data".into(),
-                        fields: params.into_iter().map(|p| p.field()).collect(),
+                        fields: input_fields,
                         ..Default::default()
                     }]
                 };

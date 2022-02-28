@@ -13,14 +13,20 @@ pub struct Root {
     pub datasources: Vec<Datasource>,
     pub binary_paths: Option<BinaryPaths>,
     pub datamodel: String,
+    pub engine_modules: Option<Vec<String>>,
 }
 
+fn default_package() -> String {
+    "./db".into()
+}
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
-    pub package: Option<String>,
+    #[serde(default = "default_package")]
+    pub package: String,
+    // pub output: String,
     pub disable_gitignores: Option<String>,
-    pub disable_go_binaries: Option<String>,
+    pub disable_rust_binaries: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -29,8 +35,8 @@ pub struct Generator {
     pub output: Value,
     pub name: String,
     pub provider: Value,
-    pub config: HashMap<String, String>,
-    pub binary_targets: Vec<String>,
+    pub config: Config,
+    pub binary_targets: Vec<Value>,
     // pub pinned_binary_target: String
 }
 
@@ -38,7 +44,7 @@ pub struct Generator {
 #[serde(rename_all = "camelCase")]
 pub struct Value {
     pub from_env_var: Option<String>,
-    pub value: Option<String>,
+    pub value: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

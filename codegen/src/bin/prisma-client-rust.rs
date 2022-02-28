@@ -9,17 +9,29 @@ use serde_json::json;
 use serde_path_to_error;
 use std::default::Default;
 use std::env;
+use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 
 fn main() {
-    let args = env::args().skip(1);
+    let args = env::args();
 
-    if args.len() > 0 {
-        cli::main(&args.collect());
+    if args.len() > 1 {
+        let args = args.skip(1).collect::<Vec<_>>();
+        let command: &str = &args[0];
+
+        match command {
+            "prefetch" => {
+                cli::main(&vec!["-v".into()]);
+                return;
+            }
+            _ => cli::main(&args),
+        }
+
+        return;
+    } else {
+        invoke_prisma();
     }
-
-    invoke_prisma();
 }
 
 fn invoke_prisma() -> Result<(), ()> {
@@ -47,8 +59,6 @@ fn invoke_prisma() -> Result<(), ()> {
 
                 match result {
                     Ok(mut params) => {
-                        // println!("Generating");
-                        // println!("{:?}", params);
                         generator::run(&mut params);
                     }
                     Err(err) => {
@@ -75,7 +85,10 @@ fn invoke_prisma() -> Result<(), ()> {
         let bytes_arr = bytes.as_ref();
 
         io::stderr().by_ref().write(bytes_arr).unwrap();
-    }
 
-    Ok(())
+        return match input.method.as_str() {
+            "generate" => Ok(()),
+            _ => continue,
+        };
+    }
 }

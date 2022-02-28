@@ -1,20 +1,18 @@
+use regex::{Match, Regex};
 use std::env;
 use std::ops::Add;
 use std::process::Command;
-use regex::{Regex, Match};
 
 // TODO: openssl binary
 pub fn binary_platform_name() -> String {
     let platform = name();
 
     match platform.as_str() {
-        "linux" => {
-            match get_linux_distro().as_str() {
-                "alpine" => "linux-musl".to_string(),
-                distro => panic!("unimplemented distro: {}", distro)
-            }
+        "linux" => match get_linux_distro().as_str() {
+            "alpine" => "linux-musl".to_string(),
+            distro => panic!("unimplemented distro: {}", distro),
         },
-        _ => platform
+        _ => platform,
     }
 }
 
@@ -23,7 +21,7 @@ pub fn name() -> String {
 
     match os {
         "macos" => "darwin".to_string(),
-        os => os.to_string()
+        os => os.to_string(),
     }
 }
 
@@ -34,16 +32,13 @@ fn get_linux_distro() -> String {
     let stderr = String::from_utf8(out.stderr).unwrap();
 
     if stdout != "" {
-
     } else if stderr != "" {
-
     }
 
     "debian".to_string()
 }
 
 fn parse_linux_distro(str: String) -> String {
-
     let id_matches = Regex::new(r#"(?m)^ID="?([^"\n]*)"?"#)
         .unwrap()
         .find_iter(&str)
@@ -70,29 +65,30 @@ fn parse_linux_distro(str: String) -> String {
         return "alpine".to_string();
     };
 
-    if id_like.contains("centos") ||
-        id_like.contains("fedora") ||
-        id_like.contains("rhel") ||
-        id == "fedora" {
+    if id_like.contains("centos")
+        || id_like.contains("fedora")
+        || id_like.contains("rhel")
+        || id == "fedora"
+    {
         return "rhel".to_string();
     };
 
-    if id_like.contains("debian") ||
-        id_like.contains("ubuntu") ||
-        id == "debian" {
+    if id_like.contains("debian") || id_like.contains("ubuntu") || id == "debian" {
         return "debian".to_string();
     }
 
     "debian".to_string()
 }
 
-pub fn check_for_extension(platform: String, path: String) -> String {
+pub fn check_for_extension(platform: &str, path: &str) -> String {
+    let path = path.to_string();
+    
     if platform == "windows" {
         if path.contains(".gz") {
-            return path.replace(".gz", ".exe.gz")
+            return path.replace(".gz", ".exe.gz");
         }
-        return path.add(".exe")
+        return path.add(".exe");
     }
-
+    
     path
 }

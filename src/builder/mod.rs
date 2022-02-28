@@ -53,8 +53,11 @@ pub struct Query<'a> {
 impl<'a> Query<'a> {
     pub async fn perform<T: DeserializeOwned>(&self, request: GQLRequest) -> T {
         // TODO: check if engine running
+        // println!("{:?}", &request);
 
         let response = self.engine.perform(request).await;
+
+        // println!("{:?}", response);
 
         // TODO: error handling
         serde_json::from_value(response.data.unwrap().result).unwrap()

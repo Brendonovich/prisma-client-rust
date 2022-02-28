@@ -1,0 +1,4 @@
+{
+  "rust-analyzer.files.excludeDirs": ["**/db"],
+  "rust-analyzer.checkOnSave.enable": false
+}

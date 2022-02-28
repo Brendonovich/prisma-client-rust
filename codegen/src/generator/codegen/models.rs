@@ -17,20 +17,24 @@ fn generate_model(model: &Model) -> TokenStream {
         .iter()
         .filter(|f| !f.kind.is_relation())
         .map(|field| {
+            let field_name = &field.name;
             let name = format_ident!("{}", field.name.to_case(Case::Snake));
             let field_type = format_ident!("{}", field.field_type.value());
 
             if field.is_list {
                 quote! {
+                    #[serde(rename = #field_name)]
                     pub #name: Vec<#field_type>
                 }
             } else {
                 if field.is_required {
                     quote! {
+                        #[serde(rename = #field_name)]
                         pub #name: #field_type
                     }
                 } else {
                     quote! {
+                        #[serde(rename = #field_name)]
                         pub #name: Option<#field_type>
                     }
                 }
@@ -43,20 +47,24 @@ fn generate_model(model: &Model) -> TokenStream {
         .iter()
         .filter(|f| f.kind.is_relation())
         .map(|field| {
+            let field_name = &field.name;
             let name = format_ident!("{}", field.name.to_case(Case::Snake));
             let field_type = format_ident!("{}Model", field.field_type.value());
 
             if field.is_list {
                 quote! {
+                   #[serde(rename = #field_name)]
                    #name: Option<Vec<#field_type>>
                 }
             } else {
                 if field.is_required {
                     quote! {
+                        #[serde(rename = #field_name)]
                         #name: Option<#field_type>
                     }
                 } else {
                     quote! {
+                        #[serde(rename = #field_name)]
                         pub #name: Option<#field_type>
                     }
                 }

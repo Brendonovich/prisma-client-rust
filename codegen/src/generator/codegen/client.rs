@@ -25,9 +25,44 @@ pub fn generate_client(root: &Root) -> TokenStream {
 
     let datamodel = &root.datamodel;
 
+    let engine_module_declarations = if let Some(engine_modules) = &root.engine_modules {
+        engine_modules
+            .iter()
+            .map(|module| {
+                let module_name = format_ident!("{}", module.to_case(Case::Snake));
+                quote! {
+                    mod #module_name;
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        vec![]
+    };
+
+    let engine_module_inits = if let Some(engine_modules) = &root.engine_modules {
+        engine_modules
+            .iter()
+            .map(|module| {
+                let module_name = format_ident!("{}", module.to_case(Case::Snake));
+                quote! {
+                    #module_name::init();
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        vec![]
+    };
+
     quote! {
+        #(#engine_module_declarations)*
+
         use prisma_client_rust::builder::{Query, Output, Input, Field, self};
         use prisma_client_rust::engine::{Engine, QueryEngine, self};
+
+        #[derive(serde::Deserialize)]
+        pub struct DeleteResult {
+            count: usize,
+        }
 
         pub struct PrismaClient {
             pub engine: Box<dyn Engine>,
@@ -35,6 +70,8 @@ pub fn generate_client(root: &Root) -> TokenStream {
 
         impl PrismaClient {
             pub fn new() -> Self {
+                #(#engine_module_inits)*
+
                 Self {
                     engine: Box::new(QueryEngine::new(#datamodel.to_string(), true)),
                 }

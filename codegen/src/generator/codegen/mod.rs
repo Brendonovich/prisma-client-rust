@@ -5,7 +5,7 @@ mod query;
 
 use super::Root;
 
-pub fn generate_prisma_client(root: &Root) -> String {
+pub fn generate_prisma_module(root: &Root) -> String {
     let mut client = client::generate_client(root);
 
     client.extend(actions::generate_actions(&root.dmmf.datamodel.models));

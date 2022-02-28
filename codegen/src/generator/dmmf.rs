@@ -360,7 +360,6 @@ pub struct RelationMethod {
 
 impl Field {
     pub fn required_on_create(&self) -> bool {
-        println!("{:?}", self);
         if !self.is_required
             || self.is_updated_at
             || self.has_default_value
@@ -392,7 +391,7 @@ impl Field {
 
         vec![RelationMethod {
             name: "Is".to_string(),
-            action: "is".to_string(),
+            action: "where".to_string(),
         }]
     }
 }

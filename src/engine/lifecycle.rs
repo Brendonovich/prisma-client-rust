@@ -29,6 +29,8 @@ impl QueryEngine {
         let port = port::get_port();
 
         let url = format!("http://localhost:{}", port);
+        
+        // println!("query engine running at {}", url);
 
         let child = Command::new(file)
             .args(["-p", &port, "--enable-raw-queries"])
@@ -40,7 +42,7 @@ impl QueryEngine {
             .spawn()
             .unwrap();
 
-        println!("starting engine...");
+        // println!("starting engine...");
 
         self.state = QueryEngineState::Running { url, child };
 
@@ -52,7 +54,7 @@ impl QueryEngine {
             let body = match body {
                 Some(body) => body,
                 None => {
-                    println!("could not connect; retrying...");
+                    // println!("could not connect; retrying...");
                     std::thread::sleep(std::time::Duration::from_millis(1000));
                     continue;
                 }
@@ -81,30 +83,30 @@ impl QueryEngine {
     ) -> Option<String> {
         match &self.state {
             QueryEngineState::NotRunning => None,
-            QueryEngineState::Running { url, .. } => {
-                self.http
-                    .request(
-                        Method::from_bytes(method.as_bytes()).unwrap(),
-                        format!("{}{}", url, path),
-                    )
-                    .header("content-type", "application/json")
-                    .body(serde_json::to_string(&payload).unwrap())
-                    .send()
-                    .and_then(|res| res.text())
-                    .await
-                    .ok()
-            }
+            QueryEngineState::Running { url, .. } => self
+                .http
+                .request(
+                    Method::from_bytes(method.as_bytes()).unwrap(),
+                    format!("{}{}", url, path),
+                )
+                .header("content-type", "application/json")
+                .body(serde_json::to_string(&payload).unwrap())
+                .send()
+                .and_then(|res| res.text())
+                .await
+                .ok(),
         }
     }
 
     fn ensure() -> String {
         let binaries_path = binaries::global_unpack_dir();
-        let binary_name = platform::check_for_extension(platform::name(), platform::name());
+        let binary_name = platform::check_for_extension(&platform::name(), &platform::name());
         let exact_binary_name =
-            platform::check_for_extension(platform::name(), platform::binary_platform_name());
+            platform::check_for_extension(&platform::name(), &platform::binary_platform_name());
 
-        let mut force_version = true;
+        // let mut force_version = true;
         let name = "prisma-query-engine-";
+
         let local_path = Path::new("./").join(format!("{}{}", name, &binary_name));
         let local_exact_path = Path::new("./").join(format!("{}{}", name, &exact_binary_name));
         let global_path = Path::new(&binaries_path).join(format!("{}{}", name, &binary_name));
@@ -122,7 +124,7 @@ impl QueryEngine {
             );
 
             // might need to be let Ok()
-            if let Err(_) = fs::metadata(&prisma_query_engine_binary) {
+            if let Ok(_) = fs::metadata(&prisma_query_engine_binary) {
                 panic!(
                     "PRISMA_QUERY_ENGINE_BINARY was provided, but no query engine was found at {}",
                     prisma_query_engine_binary
@@ -133,30 +135,30 @@ impl QueryEngine {
         };
 
         if let Ok(_) = fs::metadata(&local_exact_path) {
-            println!("exact query engine found in working directory");
+            // println!("exact query engine found in working directory");
             file = Some(local_exact_path.to_string_lossy().to_string());
         } else if let Ok(_) = fs::metadata(&local_path) {
-            println!("query engine found in working directory");
+            // println!("query engine found in working directory");
             file = Some(local_path.to_string_lossy().to_string());
         } else if let Ok(_) = fs::metadata(&global_exact_path) {
-            println!("exact query engine found in global directory");
+            // println!("exact query engine found in global directory");
             file = Some(global_exact_path.to_string_lossy().to_string());
         } else if let Ok(_) = fs::metadata(&global_path) {
-            println!("query engine found in global directory");
+            // println!("query engine found in global directory");
             file = Some(global_path.to_string_lossy().to_string());
         } else {
             panic!("no query engine found");
         }
 
-        let output = Command::new(file.clone().unwrap())
-            .arg("--version")
-            .output()
-            .unwrap();
+        // let output = Command::new(file.clone().unwrap())
+        //     .arg("--version")
+        //     .output()
+        //     .unwrap();
 
-        let version = String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .to_string()
-            .replacen("query-engine", "", 1);
+        // let version = String::from_utf8_lossy(&output.stdout)
+        //     .trim()
+        //     .to_string()
+        //     .replacen("query-engine", "", 1);
 
         // TODO Force version
 
