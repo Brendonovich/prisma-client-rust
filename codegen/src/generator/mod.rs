@@ -3,7 +3,7 @@ pub use types::*;
 pub mod codegen;
 pub mod dmmf;
 
-use prisma_client_rust::binaries::{
+use prisma_client_rust_core::binaries::{
     self, bindata, fetch_engine, global_cache_dir, platform::binary_platform_name,
 };
 use std::fs;

@@ -619,12 +619,21 @@ checksum = "58893f751c9b0412871a09abd62ecd2a00298c6c83befa223ef98c52aef40cbe"
 name = "prisma-client-rust"
 version = "0.2.0"
 dependencies = [
- "async-trait",
+ "prisma-client-rust-codegen",
+ "prisma-client-rust-core",
+ "serde_json",
+ "serde_path_to_error",
+]
+
+[[package]]
+name = "prisma-client-rust-codegen"
+version = "0.2.0"
+dependencies = [
  "convert_case",
  "directories",
  "flate2",
- "futures",
  "http",
+ "prisma-client-rust-core",
  "quote",
  "regex",
  "reqwest",
@@ -635,14 +644,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "prisma-client-rust-codegen"
-version = "0.1.2"
+name = "prisma-client-rust-core"
+version = "0.2.0"
 dependencies = [
+ "async-trait",
  "convert_case",
  "directories",
  "flate2",
+ "futures",
  "http",
- "prisma-client-rust",
  "quote",
  "regex",
  "reqwest",
@@ -812,20 +822,20 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.64"
+version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "799e97dc9fdae36a5c8b8f2cae9ce2ee9fdce2058c57a93e6099d919fd982f79"
+checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
 dependencies = [
- "itoa 0.4.7",
+ "itoa 1.0.1",
  "ryu",
  "serde",
 ]
 
 [[package]]
 name = "serde_path_to_error"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42f6109f0506e20f7e0f910e51a0079acf41da8e0694e6442527c4ddf5a2b158"
+checksum = "d7868ad3b8196a8a0aea99a8220b124278ee5320a55e4fde97794b6f85b1a377"
 dependencies = [
  "serde",
 ]

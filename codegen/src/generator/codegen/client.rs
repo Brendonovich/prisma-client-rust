@@ -56,8 +56,8 @@ pub fn generate_client(root: &Root) -> TokenStream {
     quote! {
         #(#engine_module_declarations)*
 
-        use prisma_client_rust::builder::{Query, Output, Input, Field, self};
-        use prisma_client_rust::engine::{Engine, QueryEngine, self};
+        use prisma_client_rust_core::builder::{Query, Output, Input, Field, self};
+        use prisma_client_rust_core::engine::{Engine, QueryEngine, self};
 
         #[derive(serde::Deserialize)]
         pub struct DeleteResult {

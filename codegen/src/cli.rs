@@ -1,4 +1,4 @@
-use prisma_client_rust::binaries::{self, platform};
+use prisma_client_rust_core::binaries::{self, platform};
 use std::env;
 use std::process::Command;
 
