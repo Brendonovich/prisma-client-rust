@@ -29,9 +29,18 @@ fn main() {
         }
 
         return;
-    } else {
-        invoke_prisma();
     }
+    
+    if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
+        println!("This command is only meant to be invoked internally. Please run the following instead:");
+		println!("`prisma-client-rust <command>`");
+		println!("e.g.");
+		println!("`prisma-client-rust generate`");
+        
+        std::process::exit(1);
+    }
+    
+    invoke_prisma();
 }
 
 fn invoke_prisma() -> Result<(), ()> {

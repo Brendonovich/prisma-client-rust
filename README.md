@@ -182,7 +182,8 @@ async fn main() {
 
     client.engine.connect();
 
-    // Delete a single record matching a given condition (also works with find_unique)
+    // Delete a single record matching a given condition
+    // (also works with find_unique)
     client
         .post()
         .find_unique(Post::id().equals("0".to_string()))
@@ -190,7 +191,13 @@ async fn main() {
         .exec()
         .await;
 
-    // Delete many records matching given conditions (In this case, deletes every user)
-    client.user().find_many(vec![]).delete().exec().await;
+    // Delete many records matching given conditions
+    // (In this case, deletes every user)
+    client
+        .user()
+        .find_many(vec![])
+        .delete()
+        .exec()
+        .await;
 }
 ```

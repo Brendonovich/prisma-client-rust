@@ -37,5 +37,9 @@ pub fn main(args: &Vec<String>) {
         cmd.env(e.env.to_string(), value);
     }
 
-    cmd.spawn().unwrap();
+    cmd.stdout(std::process::Stdio::inherit());
+    cmd.stdin(std::process::Stdio::inherit());
+    cmd.stderr(std::process::Stdio::inherit());
+    
+    cmd.output().unwrap();
 }
