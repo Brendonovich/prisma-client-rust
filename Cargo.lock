@@ -617,7 +617,7 @@ checksum = "58893f751c9b0412871a09abd62ecd2a00298c6c83befa223ef98c52aef40cbe"
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "prisma-client-rust-codegen",
  "prisma-client-rust-core",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-codegen"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "convert_case",
  "directories",
@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "convert_case",

@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2018"
 description = "A prisma client for Rust"
@@ -18,7 +18,7 @@ members = [
 ]
 
 [dependencies]
-prisma-client-rust-core = { path = "./core", version = "0.2.0" }
-prisma-client-rust-codegen = { path = "./codegen", version = "0.2.0" }
+prisma-client-rust-core = { path = "./core", version = "0.2.1" }
+prisma-client-rust-codegen = { path = "./codegen", version = "0.2.1" }
 serde_json = "1.0.79"
 serde_path_to_error = "0.1.7"
