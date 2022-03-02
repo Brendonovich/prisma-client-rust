@@ -2368,7 +2368,7 @@ checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "datamodel",
  "directories",
@@ -2388,7 +2388,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-codegen"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "convert_case",
  "http",
@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "datamodel",
  "directories",

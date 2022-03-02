@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust-codegen"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 license = "MIT"
@@ -14,4 +14,4 @@ convert_case = "0.4.0"
 syn = "1.0.86"
 quote = "1.0.15"
 
-prisma-client-rust-core = { path = "../core", version = "0.2.1" }
+prisma-client-rust-core = { path = "../core", version = "0.3.0" }
