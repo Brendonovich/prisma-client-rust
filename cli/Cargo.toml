@@ -4,6 +4,7 @@ version = "0.3.0"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 license = "MIT"
+description = "CLI for prisma-client-rust"
 
 [[bin]]
 name = "prisma-client-rust"
