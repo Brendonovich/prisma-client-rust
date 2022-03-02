@@ -10,16 +10,16 @@ generator client {
 }
 
 model User {
-    id String @id @map("username")
+    id          String @id @map("username")
     displayName String
 
     posts Post[]
 }
 
 model Post {
-    id String @id
+    id      String @id
     content String
 
-    user         User   @relation(fields: [userId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
     userId String
 }
