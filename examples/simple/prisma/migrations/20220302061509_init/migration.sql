@@ -1,16 +1,17 @@
--- CreateTable
-CREATE TABLE "User" (
-    "username" TEXT NOT NULL,
-    "displayName" TEXT NOT NULL,
+/*
+  Warnings:
 
-    CONSTRAINT "User_pkey" PRIMARY KEY ("username")
-);
+  - Added the required column `displayName` to the `User` table without a default value. This is not possible if the table is not empty.
+
+*/
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "displayName" TEXT NOT NULL;
 
 -- CreateTable
 CREATE TABLE "Post" (
     "id" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "userUsername" TEXT NOT NULL,
+    "userUsername" TEXT,
 
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
 );
@@ -25,7 +26,7 @@ CREATE TABLE "Comment" (
 );
 
 -- AddForeignKey
-ALTER TABLE "Post" ADD CONSTRAINT "Post_userUsername_fkey" FOREIGN KEY ("userUsername") REFERENCES "User"("username") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Post" ADD CONSTRAINT "Post_userUsername_fkey" FOREIGN KEY ("userUsername") REFERENCES "User"("username") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Comment" ADD CONSTRAINT "Comment_userUsername_fkey" FOREIGN KEY ("userUsername") REFERENCES "User"("username") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -6,15 +6,15 @@ datasource db {
 generator client {
     provider      = "prisma-client-rust"
     binaryTargets = ["native"]
-    output        = "../src/db"
+    output        = "../src/db.rs"
 }
 
 model User {
     username    String @id
     displayName String
 
-    posts           Post[]
-    comments        Comment[]
+    posts    Post[]
+    comments Comment[]
 }
 
 model Post {

@@ -1,9 +1,10 @@
-use std::sync::Arc;
-
-use serde::{de::DeserializeOwned, Deserialize};
+use graphql_parser::parse_query;
+use query_core::QuerySchemaRef;
+use request_handlers::GraphQLProtocolAdapter;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::engine::{Engine, GQLRequest};
+use crate::Executor;
 
 #[derive(Debug, Default)]
 
@@ -39,9 +40,19 @@ pub struct Field {
     pub value: Option<serde_json::Value>,
 }
 
-#[derive(Debug)]
+pub struct QueryContext<'a> {
+    executor: &'a Executor,
+    schema: QuerySchemaRef,
+}
+
+impl<'a> QueryContext<'a> {
+    pub fn new(executor: &'a Executor, schema: QuerySchemaRef) -> Self {
+        Self { executor, schema }
+    }
+}
+
 pub struct Query<'a> {
-    pub engine: &'a dyn Engine,
+    pub ctx: QueryContext<'a>,
     pub operation: String,
     pub name: String,
     pub method: String,
@@ -51,16 +62,25 @@ pub struct Query<'a> {
 }
 
 impl<'a> Query<'a> {
-    pub async fn perform<T: DeserializeOwned>(&self, request: GQLRequest) -> T {
+    pub async fn perform<T: DeserializeOwned>(self) -> T {
         // TODO: check if engine running
         // println!("{:?}", &request);
+        let query_string = self.build();
+        let document = parse_query(&query_string).unwrap();
+        let operation = GraphQLProtocolAdapter::convert(document, None).unwrap();
 
-        let response = self.engine.perform(request).await;
+        let response = self
+            .ctx
+            .executor
+            .execute(None, operation, self.ctx.schema, None)
+            .await
+            .unwrap()
+            .data;
 
         // println!("{:?}", response);
 
         // TODO: error handling
-        serde_json::from_value(response.data.unwrap().result).unwrap()
+        serde_json::from_value(serde_json::to_value(response).unwrap()).unwrap()
     }
 
     pub fn build(&self) -> String {

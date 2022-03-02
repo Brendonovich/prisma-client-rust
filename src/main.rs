@@ -9,7 +9,6 @@ use serde_json::json;
 use serde_path_to_error;
 use std::default::Default;
 use std::env;
-use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 

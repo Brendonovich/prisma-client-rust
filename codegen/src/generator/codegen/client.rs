@@ -25,39 +25,15 @@ pub fn generate_client(root: &Root) -> TokenStream {
 
     let datamodel = &root.datamodel;
 
-    let engine_module_declarations = if let Some(engine_modules) = &root.engine_modules {
-        engine_modules
-            .iter()
-            .map(|module| {
-                let module_name = format_ident!("{}", module.to_case(Case::Snake));
-                quote! {
-                    mod #module_name;
-                }
-            })
-            .collect::<Vec<_>>()
-    } else {
-        vec![]
-    };
-
-    let engine_module_inits = if let Some(engine_modules) = &root.engine_modules {
-        engine_modules
-            .iter()
-            .map(|module| {
-                let module_name = format_ident!("{}", module.to_case(Case::Snake));
-                quote! {
-                    #module_name::init();
-                }
-            })
-            .collect::<Vec<_>>()
-    } else {
-        vec![]
-    };
-
     quote! {
-        #(#engine_module_declarations)*
+        use prisma_client_rust::builder::{self, Field, Input, Output, Query, QueryContext};
+        use prisma_client_rust::datamodel::parse_configuration;
+        use prisma_client_rust::prisma_models::InternalDataModelBuilder;
+        use prisma_client_rust::query_core::{schema_builder, BuildMode, QuerySchema, QueryExecutor};
+        use prisma_client_rust::Executor;
+        use prisma_client_rust::{datamodel, prisma_models, query_core};
 
-        use prisma_client_rust::builder::{Query, Output, Input, Field, self};
-        use prisma_client_rust::engine::{Engine, QueryEngine, self};
+        use std::sync::Arc;
 
         #[derive(serde::Deserialize)]
         pub struct DeleteResult {
@@ -65,15 +41,40 @@ pub fn generate_client(root: &Root) -> TokenStream {
         }
 
         pub struct PrismaClient {
-            pub engine: Box<dyn Engine>,
+            executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
+            query_schema: Arc<QuerySchema>,
         }
 
         impl PrismaClient {
-            pub fn new() -> Self {
-                #(#engine_module_inits)*
-
+            // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
+            pub async fn new() -> Self {
+                let datamodel_str = #datamodel;
+                let config = parse_configuration(datamodel_str).unwrap().subject;
+                let source = config
+                    .datasources
+                    .first()
+                    .expect("Pleasy supply a datasource in your schema.prisma file");
+                let url = if let Some(url) = source.load_shadow_database_url().unwrap() {
+                    url
+                } else {
+                    source.load_url(|key| std::env::var(key).ok()).unwrap()
+                };
+                let (db_name, executor) = query_core::executor::load(&source, &[], &url)
+                    .await
+                    .unwrap();
+                let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
+                let query_schema = Arc::new(schema_builder::build(
+                    internal_model,
+                    BuildMode::Modern,
+                    true,
+                    source.capabilities(),
+                    vec![],
+                    source.referential_integrity(),
+                ));
+                executor.primary_connector().get_connection().await.unwrap();
                 Self {
-                    engine: Box::new(QueryEngine::new(#datamodel.to_string(), true)),
+                    executor,
+                    query_schema,
                 }
             }
 

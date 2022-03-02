@@ -13,10 +13,16 @@ directories = "3.0.2"
 http = "0.2.4"
 flate2 = "1.0.20"
 regex = "1.5.4"
-serde_path_to_error = "0.1"
 convert_case = "0.4.0"
 syn = "1.0.86"
 quote = "1.0.15"
 reqwest = {version="0.11.9", features=["blocking"]}
 async-trait = "0.1.52"
 futures = "0.3.21"
+
+query-core = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
+request-handlers = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
+datamodel-connector = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
+prisma-models = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
+datamodel = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
+graphql-parser = { git = "https://github.com/prisma/graphql-parser" }

@@ -77,7 +77,6 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
             for action in actions {
                 let action_name = action.name;
-                let action = action.action;
                 let variant_name = format_ident!("{}{}", field_name_pascal, &action_name);
                 let q = format_ident!("{}{}", field_name_pascal, action_name);
 
@@ -226,8 +225,6 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             .filter(|f| f.required_on_create())
             .map(|f| {
                 let arg_name = format_ident!("{}", &f.name.to_case(Case::Snake));
-                let arg_type =
-                    format_ident!("{}Set{}", model_name_pascal, f.name.to_case(Case::Pascal));
                 quote! {
                     input_fields.push(#model_set_param::from(#arg_name).field());
                 }
@@ -253,12 +250,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
         impl<'a> #model_find_many<'a> {
             pub async fn exec(self) -> Vec<#model_pascal_ident> {
-                let request = engine::GQLRequest {
-                    query: self.query.build(),
-                    variables: std::collections::HashMap::new(),
-                };
-
-                self.query.perform(request).await
+                self.query.perform().await
             }
             
 
@@ -283,12 +275,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
         impl<'a> #model_find_first<'a> {
             pub async fn exec(self) -> #model_pascal_ident {
-                let request = engine::GQLRequest {
-                    query: self.query.build(),
-                    variables: std::collections::HashMap::new(),
-                };
-
-                self.query.perform(request).await
+                self.query.perform().await
             }
         }
 
@@ -298,12 +285,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
         impl<'a> #model_find_unique<'a> {
             pub async fn exec(self) -> #model_pascal_ident {
-                let request = engine::GQLRequest {
-                    query: self.query.build(),
-                    variables: std::collections::HashMap::new(),
-                };
-
-                self.query.perform(request).await
+                self.query.perform().await
             }
 
             pub fn delete(self) -> #model_delete<'a> {
@@ -324,12 +306,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
         impl<'a> #model_create_one<'a> {
             pub async fn exec(self) -> #model_pascal_ident {
-                let request = engine::GQLRequest {
-                    query: self.query.build(),
-                    variables: std::collections::HashMap::new(),
-                };
-
-                self.query.perform(request).await
+                self.query.perform().await
             }
         }
 
@@ -339,12 +316,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
 
         impl<'a> #model_delete<'a> {
             pub async fn exec(self) -> isize {
-                let request = engine::GQLRequest {
-                    query: self.query.build(),
-                    variables: std::collections::HashMap::new(),
-                };
-
-                let result: DeleteResult = self.query.perform(request).await;
+                let result: DeleteResult = self.query.perform().await;
                 
                 result.count
             }
@@ -356,7 +328,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 let fields = builder::transform_equals(vec![param.field()]);
 
                 let query = Query {
-                    engine: self.client.engine.as_ref(),
+                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
                     name: String::new(),
                     operation: "query".into(),
                     method: "findUnique".into(),
@@ -396,7 +368,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 };
 
                 let query = Query {
-                    engine: self.client.engine.as_ref(),
+                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
                     name: String::new(),
                     operation: "query".into(),
                     method: "findFirst".into(),
@@ -426,7 +398,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 };
 
                 let query = Query {
-                    engine: self.client.engine.as_ref(),
+                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
                     name: String::new(),
                     operation: "query".into(),
                     method: "findMany".into(),
@@ -446,7 +418,7 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 #(#create_one_required_arg_pushes)*
                 
                 let query = Query {
-                    engine: self.client.engine.as_ref(),
+                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
                     name: String::new(),
                     operation: "mutation".into(),
                     method: "createOne".into(),
@@ -464,7 +436,5 @@ fn generate_model_actions(model: &Model) -> TokenStream {
                 #model_create_one { query }
             }
         }
-
-
     }
 }

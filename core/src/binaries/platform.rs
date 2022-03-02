@@ -1,4 +1,3 @@
-use regex::{Match, Regex};
 use std::env;
 use std::ops::Add;
 use std::process::Command;
@@ -33,48 +32,6 @@ fn get_linux_distro() -> String {
 
     if stdout != "" {
     } else if stderr != "" {
-    }
-
-    "debian".to_string()
-}
-
-fn parse_linux_distro(str: String) -> String {
-    let id_matches = Regex::new(r#"(?m)^ID="?([^"\n]*)"?"#)
-        .unwrap()
-        .find_iter(&str)
-        .collect::<Vec<Match>>();
-
-    let id = if id_matches.len() > 0 {
-        id_matches[0].as_str().to_string()
-    } else {
-        "".to_string()
-    };
-
-    let id_like_matches = Regex::new(r#"(?m)^ID_LIKE="?([^"\n]*)"?"#)
-        .unwrap()
-        .find_iter(&str)
-        .collect::<Vec<Match>>();
-
-    let id_like = if id_like_matches.len() > 0 {
-        id_like_matches[0].as_str().to_string()
-    } else {
-        "".to_string()
-    };
-
-    if id == "alpine" {
-        return "alpine".to_string();
-    };
-
-    if id_like.contains("centos")
-        || id_like.contains("fedora")
-        || id_like.contains("rhel")
-        || id == "fedora"
-    {
-        return "rhel".to_string();
-    };
-
-    if id_like.contains("debian") || id_like.contains("ubuntu") || id == "debian" {
-        return "debian".to_string();
     }
 
     "debian".to_string()

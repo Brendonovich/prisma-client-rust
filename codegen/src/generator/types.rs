@@ -7,13 +7,9 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub struct Root {
     pub generator: Generator,
-    pub other_generators: Vec<Generator>,
     pub schema_path: String,
     pub dmmf: dmmf::Document,
-    pub datasources: Vec<Datasource>,
-    pub binary_paths: Option<BinaryPaths>,
     pub datamodel: String,
-    pub engine_modules: Option<Vec<String>>,
 }
 
 fn default_package() -> String {
