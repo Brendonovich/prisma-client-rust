@@ -10,29 +10,16 @@ generator client {
 }
 
 model User {
-    username String @id
-    // displayName String
+    id String @id @map("username")
+    displayName String
 
     posts Post[]
-    // comments Comment[]
 }
 
 model Post {
     id String @id
-    // content String
+    content String
 
-    // comments Comment[] @relation()
-
-    User         User   @relation(fields: [userUsername], references: [username])
-    userUsername String
+    user         User   @relation(fields: [userId], references: [id])
+    userId String
 }
-
-// model Comment {
-//     id String @id
-
-//     postId String
-//     post   Post   @relation(fields: [postId], references: [id])
-
-//     User         User?   @relation(fields: [userUsername], references: [username])
-//     userUsername String?
-// }

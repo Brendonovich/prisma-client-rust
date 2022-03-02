@@ -10,7 +10,7 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "3.9.1";
+pub static PRISMA_CLI_VERSION: &str = "3.10.0";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
 
 pub fn prisma_cli_name() -> String {

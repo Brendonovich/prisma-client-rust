@@ -360,24 +360,20 @@ pub struct RelationMethod {
 
 impl Field {
     pub fn required_on_create(&self) -> bool {
-        if !self.is_required
-            || self.is_updated_at
-            || self.has_default_value
-            || self.is_read_only
-        {
+        if !self.is_required || self.is_updated_at || self.has_default_value || self.is_read_only {
             return false;
         }
 
         if self.relation_name.is_some() && self.is_list {
             return false;
         }
-        
+
         true
     }
 
     pub fn relation_methods(&self) -> Vec<RelationMethod> {
         if self.is_list {
-            return vec![
+            vec![
                 RelationMethod {
                     name: "Some".to_string(),
                     action: "some".to_string(),
@@ -386,13 +382,13 @@ impl Field {
                     name: "Every".to_string(),
                     action: "every".to_string(),
                 },
-            ];
+            ]
+        } else {
+            vec![RelationMethod {
+                name: "Is".to_string(),
+                action: "where".to_string(),
+            }]
         }
-
-        vec![RelationMethod {
-            name: "Is".to_string(),
-            action: "where".to_string(),
-        }]
     }
 }
 

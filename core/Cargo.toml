@@ -2,9 +2,9 @@
 name = "prisma-client-rust-core"
 version = "0.2.1"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
-edition = "2018"
-description = "A prisma client for Rust"
+edition = "2021"
 license = "MIT"
+
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -12,17 +12,11 @@ serde_json = "1.0"
 directories = "3.0.2"
 http = "0.2.4"
 flate2 = "1.0.20"
-regex = "1.5.4"
-convert_case = "0.4.0"
-syn = "1.0.86"
-quote = "1.0.15"
 reqwest = {version="0.11.9", features=["blocking"]}
-async-trait = "0.1.52"
-futures = "0.3.21"
+serde_path_to_error = "0.1.7"
 
 query-core = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
 request-handlers = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
-datamodel-connector = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
 prisma-models = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
 datamodel = { git = "https://github.com/prisma/prisma-engines", tag = "3.10.0" }
 graphql-parser = { git = "https://github.com/prisma/graphql-parser" }

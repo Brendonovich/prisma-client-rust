@@ -2370,8 +2370,18 @@ checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
 name = "prisma-client-rust"
 version = "0.2.1"
 dependencies = [
+ "datamodel",
+ "directories",
+ "flate2",
+ "graphql-parser",
+ "http",
  "prisma-client-rust-codegen",
  "prisma-client-rust-core",
+ "prisma-models",
+ "query-core",
+ "request-handlers",
+ "reqwest",
+ "serde",
  "serde_json",
  "serde_path_to_error",
 ]
@@ -2381,15 +2391,11 @@ name = "prisma-client-rust-codegen"
 version = "0.2.1"
 dependencies = [
  "convert_case",
- "directories",
- "flate2",
  "http",
  "prisma-client-rust-core",
  "quote",
- "regex",
  "serde",
  "serde_json",
- "serde_path_to_error",
  "syn",
 ]
 
@@ -2397,24 +2403,18 @@ dependencies = [
 name = "prisma-client-rust-core"
 version = "0.2.1"
 dependencies = [
- "async-trait",
- "convert_case",
  "datamodel",
- "datamodel-connector",
  "directories",
  "flate2",
- "futures",
  "graphql-parser",
  "http",
  "prisma-models",
  "query-core",
- "quote",
- "regex",
  "request-handlers",
  "reqwest",
  "serde",
  "serde_json",
- "syn",
+ "serde_path_to_error",
 ]
 
 [[package]]
@@ -3077,8 +3077,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "prisma-client-rust"
-version = "0.2.1"
+name = "sha-1"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "028f48d513f9678cda28f6e4064755b3fbb2af6acd672f2c209b62323f7aea0f"
 dependencies = [
  "cfg-if 1.0.0",
  "cpufeatures",

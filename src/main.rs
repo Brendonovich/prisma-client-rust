@@ -1,16 +1,18 @@
-use prisma_client_rust_codegen::generator::Root;
-use prisma_client_rust_codegen::jsonrpc::{
-    methods::{Manifest, ManifestResponse},
-    Request, Response,
+use prisma_client_rust_codegen::{
+    cli, generator,
+    generator::Root,
+    jsonrpc::{
+        methods::{Manifest, ManifestResponse},
+        Request, Response,
+    },
 };
-use prisma_client_rust_codegen::{cli, generator};
 use serde_json;
-use serde_json::json;
 use serde_path_to_error;
-use std::default::Default;
-use std::env;
-use std::io;
-use std::io::{BufRead, BufReader, Write};
+use std::{
+    default::Default,
+    env,
+    io::{stderr, stdin, BufRead, BufReader, Write},
+};
 
 fn main() {
     let args = env::args();
@@ -29,23 +31,23 @@ fn main() {
 
         return;
     }
-    
+
     if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
         println!("This command is only meant to be invoked internally. Please run the following instead:");
-		println!("`prisma-client-rust <command>`");
-		println!("e.g.");
-		println!("`prisma-client-rust generate`");
-        
+        println!("`prisma-client-rust <command>`");
+        println!("e.g.");
+        println!("`prisma-client-rust generate`");
+
         std::process::exit(1);
     }
-    
+
     invoke_prisma();
 }
 
 fn invoke_prisma() -> Result<(), ()> {
     loop {
         let mut content = String::new();
-        BufReader::new(io::stdin()).read_line(&mut content);
+        BufReader::new(stdin()).read_line(&mut content);
 
         let input: Request = serde_json::from_str(&content).unwrap();
 
@@ -74,7 +76,7 @@ fn invoke_prisma() -> Result<(), ()> {
                     }
                 };
 
-                serde_json::to_value(json!(null)).unwrap()
+                serde_json::Value::Null
             }
             _ => panic!(),
         };
@@ -92,7 +94,7 @@ fn invoke_prisma() -> Result<(), ()> {
 
         let bytes_arr = bytes.as_ref();
 
-        io::stderr().by_ref().write(bytes_arr).unwrap();
+        stderr().by_ref().write(bytes_arr).unwrap();
 
         return match input.method.as_str() {
             "generate" => Ok(()),

@@ -7,6 +7,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write as IoWrite;
 use std::path::Path;
+use std::process::Command;
 
 pub fn run(input: &mut Root) {
     let output = &input.generator.output.value;
@@ -25,4 +26,9 @@ pub fn run(input: &mut Root) {
     let client = codegen::generate_prisma_client(input);
 
     file.write(client.as_bytes()).unwrap();
+
+    Command::new("rustfmt")
+        .arg("--edition=2021")
+        .arg(output)
+        .output();
 }

@@ -64,8 +64,8 @@ pub struct Query<'a> {
 impl<'a> Query<'a> {
     pub async fn perform<T: DeserializeOwned>(self) -> T {
         // TODO: check if engine running
-        // println!("{:?}", &request);
         let query_string = self.build();
+
         let document = parse_query(&query_string).unwrap();
         let operation = GraphQLProtocolAdapter::convert(document, None).unwrap();
 
@@ -77,9 +77,6 @@ impl<'a> Query<'a> {
             .unwrap()
             .data;
 
-        // println!("{:?}", response);
-
-        // TODO: error handling
         serde_json::from_value(serde_json::to_value(response).unwrap()).unwrap()
     }
 
