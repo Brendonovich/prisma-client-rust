@@ -36,11 +36,14 @@ Primsa Client Rust is still under active development and is subject to change su
    ```
    generator client {
        provider = "prisma-client-rust"
-       // The folder that files should be generated to, relative to your schema file
+       // The file that the client should be generated to, relative to your schema file
        output = "../src/db.rs"
    }
    ```
-5. Generate the rust module by running `prisma-client-rust generate` in a terminal
+5. Generate the rust module
+    ```
+    prisma-client-rust generate`
+    ```
 6. Include the generated module in your code and connect a new Prisma client
 
    ```rs
