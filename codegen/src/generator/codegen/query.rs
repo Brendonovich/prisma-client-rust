@@ -99,7 +99,7 @@ fn generate_query(model: &Model) -> TokenStream {
         .iter()
         .map(|field| { 
             let field_struct_name =
-                format_ident!("{}{}", name_pascal, field.name.to_case(Case::Pascal));
+                format_ident!("{}{}Field", name_pascal, field.name.to_case(Case::Pascal));
             let field_type = format_ident!("{}", field.field_type.value());
             let field_name_pascal = field.name.to_case(Case::Pascal);
             let field_ident_pascal = format_ident!("{}", &field_name_pascal);
@@ -238,7 +238,7 @@ fn generate_query(model: &Model) -> TokenStream {
         .map(|field| {
             let field_method_name = format_ident!("{}", field.name.to_case(Case::Snake));
             let field_struct_name = format_ident!(
-                "{}{}",
+                "{}{}Field",
                 model.name.to_case(Case::Pascal),
                 field.name.to_case(Case::Pascal)
             );
@@ -267,13 +267,13 @@ fn generate_query(model: &Model) -> TokenStream {
 
     quote! {
         pub struct #name_pascal {}
-        
-        #model_set_enum_variants
 
         impl #name_pascal {
             #(#model_query_struct_methods)*
             #(#model_operator_struct_methods)*
         }
+        
+        #model_set_enum_variants
 
         #(#model_field_structs)*
     }
