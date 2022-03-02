@@ -26,11 +26,13 @@ pub fn generate(root: &Root) -> TokenStream {
     let datamodel = &root.datamodel;
 
     quote! {
-        use prisma_client_rust::builder::{self, Field, Input, Output, Query, QueryContext};
+        use prisma_client_rust::query::*;
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
         use prisma_client_rust::DeleteResult;
+        
+        use serde::{Serialize, Deserialize};
 
         use std::sync::Arc;
         

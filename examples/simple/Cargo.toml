@@ -7,8 +7,5 @@ edition = "2021"
 
 [dependencies]
 prisma-client-rust = { path="../../" }
-serde = "1.0.136"
+serde = { version = "1.0", features = ["derive"] }
 tokio = {features=["macros"], version = "1.17.0"}
-
-[build-dependencies]
-prisma-client-rust = { path="../../" }

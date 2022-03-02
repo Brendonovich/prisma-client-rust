@@ -1,5 +1,9 @@
-use prisma_client_rust_codegen::{
-    cli, generator,
+pub mod binaries;
+pub mod generator;
+pub mod jsonrpc;
+pub mod prisma_cli;
+
+use crate::{
     generator::Root,
     jsonrpc::{
         methods::{Manifest, ManifestResponse},
@@ -23,10 +27,10 @@ fn main() {
 
         match command {
             "prefetch" => {
-                cli::main(&vec!["-v".into()]);
+                prisma_cli::main(&vec!["-v".into()]);
                 return;
             }
-            _ => cli::main(&args),
+            _ => prisma_cli::main(&args),
         }
 
         return;

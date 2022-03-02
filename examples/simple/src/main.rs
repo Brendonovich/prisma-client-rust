@@ -32,7 +32,7 @@ pub async fn main() {
 
     let post_with_user = client
         .post()
-        .find_unique(Post::id().equals("0".to_string()))
+        .find_unique(Post::id().equals("post0".to_string()))
         .with(vec![Post::user().fetch()])
         .exec()
         .await;
@@ -41,7 +41,7 @@ pub async fn main() {
 
     let user_with_posts = client
         .user()
-        .find_unique(User::username().equals("user0".to_string()))
+        .find_unique(User::id().equals("user0".to_string()))
         .with(vec![User::posts().fetch(vec![])])
         .exec()
         .await;

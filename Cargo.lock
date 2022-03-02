@@ -684,9 +684,9 @@ dependencies = [
 
 [[package]]
 name = "directories"
-version = "3.0.2"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e69600ff1703123957937708eb27f7a564e48885c537782722ed0ba3189ce1d7"
+checksum = "f51c5d4ddabd36886dd3e1438cb358cdcb0d7c499cb99cb4ac2e38e18b5cb210"
 dependencies = [
  "dirs-sys",
 ]
@@ -875,9 +875,9 @@ checksum = "86d4de0081402f5e88cdac65c8dcdcc73118c1a7a465e2a05f0da05843a8ea33"
 
 [[package]]
 name = "flate2"
-version = "1.0.20"
+version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd3aec53de10fe96d7d8c565eb17f2c687bb5518a2ec453b5b1252964526abe0"
+checksum = "1e6988e897c1c9c485f43b47a529cef42fde0547f9d8d41a7062518f1d8fc53f"
 dependencies = [
  "cfg-if 1.0.0",
  "crc32fast",
@@ -2371,50 +2371,28 @@ name = "prisma-client-rust"
 version = "0.3.0"
 dependencies = [
  "datamodel",
- "directories",
- "flate2",
  "graphql-parser",
- "http",
- "prisma-client-rust-codegen",
- "prisma-client-rust-core",
  "prisma-models",
  "query-core",
  "request-handlers",
- "reqwest",
  "serde",
  "serde_json",
- "serde_path_to_error",
 ]
 
 [[package]]
-name = "prisma-client-rust-codegen"
+name = "prisma-client-rust-cli"
 version = "0.3.0"
 dependencies = [
  "convert_case",
- "http",
- "prisma-client-rust-core",
- "quote",
- "serde",
- "serde_json",
- "syn",
-]
-
-[[package]]
-name = "prisma-client-rust-core"
-version = "0.3.0"
-dependencies = [
- "datamodel",
  "directories",
  "flate2",
- "graphql-parser",
  "http",
- "prisma-models",
- "query-core",
- "request-handlers",
+ "quote",
  "reqwest",
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "syn",
 ]
 
 [[package]]

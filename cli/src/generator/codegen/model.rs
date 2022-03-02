@@ -350,7 +350,7 @@ impl SetParams {
                             fields: Some(vec![
                                 Field {
                                     name: "connect".into(),
-                                    fields: Some(builder::transform_equals(
+                                    fields: Some(transform_equals(
                                         where_params.into_iter().map(|item| item.field()).collect()
                                     )),
                                     list: true,
@@ -369,7 +369,7 @@ impl SetParams {
                             fields: Some(vec![
                                 Field {
                                     name: "connect".into(),
-                                    fields: Some(builder::transform_equals(vec![
+                                    fields: Some(transform_equals(vec![
                                         where_param.field()
                                     ])),
                                     ..Default::default()
@@ -744,7 +744,7 @@ impl DataStruct {
         } = self;
         
         quote! {
-            #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+            #[derive(Debug, Clone, Serialize, Deserialize)]
             pub struct #name {
                 #(#fields),*
             }
@@ -922,7 +922,7 @@ pub fn generate(model: &Model) -> TokenStream {
         impl<'a> #actions_struct<'a> {
             // TODO: Dedicated unique field
             pub fn find_unique(&self, param: #where_param_enum) -> #model_find_unique {
-                let fields = builder::transform_equals(vec![param.field()]);
+                let fields = transform_equals(vec![param.field()]);
 
                 let query = Query {
                     ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
