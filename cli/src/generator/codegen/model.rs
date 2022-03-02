@@ -6,7 +6,7 @@ use crate::generator::dmmf::{Document, Method, Model, Type};
 
 struct Outputs {
     pub fn_name: Ident,
-    outputs: Vec<TokenStream>
+    outputs: Vec<TokenStream>,
 }
 
 impl Outputs {
@@ -20,16 +20,14 @@ impl Outputs {
                 .map(|field| {
                     let field_name_string = &field.name;
                     quote!(Output::new(#field_name_string))
-                }).collect()
+                })
+                .collect(),
         }
     }
-    
+
     pub fn quote(&self) -> TokenStream {
-        let Self {
-            fn_name,
-            outputs
-        } = self;
-        
+        let Self { fn_name, outputs } = self;
+
         quote! {
             fn #fn_name() -> Vec<Output> {
                 vec![
@@ -58,7 +56,7 @@ impl WhereParams {
             variants: vec![],
             match_arms: vec![],
         };
-        
+
         for field in &model.fields {
             let field_type_string = field.field_type.string();
             let field_name_pascal = field.name.to_case(Case::Pascal);
@@ -74,7 +72,7 @@ impl WhereParams {
                     let variant_name = format_ident!("{}{}", field_name_pascal, &action_name);
 
                     params.add_variant(
-                        quote!(#variant_name(Vec<#field_type_where_param>)), 
+                        quote!(#variant_name(Vec<#field_type_where_param>)),
                         quote! {
                             Self::#variant_name(value) =>
                                 Field {
@@ -114,23 +112,23 @@ impl WhereParams {
                 for m in read_types.methods {
                     let variant_name = format_ident!("{}{}", field_name_pascal, &m.name);
                     let method_action = m.action;
-                    
+
                     params.add_variant(
-                    quote!(#variant_name(#field_type_value)),
-                    quote! {
+                        quote!(#variant_name(#field_type_value)),
+                        quote! {
                         Self::#variant_name(value) =>
                             Field {
                                 name: #field_name_string.into(),
                                 fields: Some(vec![
                                     Field {
-                                        name: #method_action.into(), 
+                                        name: #method_action.into(),
                                         value: Some(value.into()),
                                         ..Default::default()
                                     }
                                 ]),
                                 ..Default::default()
                             }
-                        }
+                        },
                     );
                 }
             }
@@ -151,10 +149,10 @@ impl WhereParams {
                             fields: Some(value.into_iter().map(|f| f.field()).collect()),
                             ..Default::default()
                         }
-                }
+                },
             );
         }
-        
+
         params
     }
 
@@ -193,6 +191,7 @@ impl WhereParams {
 struct WithParams {
     pub enum_name: Ident,
     pub struct_name: Ident,
+    pub with_fn: TokenStream,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
 }
@@ -200,24 +199,35 @@ struct WithParams {
 impl WithParams {
     pub fn new(model: &Model, outputs: &Outputs) -> Self {
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
+        let struct_name = format_ident!("{}With", &model_name_pascal_string);
 
         let mut params = Self {
             enum_name: format_ident!("{}WithParam", &model_name_pascal_string),
-            struct_name: format_ident!("{}With", &model_name_pascal_string),
+            with_fn: quote! {
+                pub fn with(mut self, fetches: Vec<#struct_name>) -> Self {
+                    let outputs = fetches
+                        .into_iter()
+                        .map(|f| f.param.output())
+                        .collect::<Vec<_>>();
+                    self.query.outputs.extend(outputs);
+                    self
+                }
+            },
+            struct_name,
             variants: vec![],
             match_arms: vec![],
         };
-            
+
         model.fields.iter()
             .filter(|f| f.kind.is_relation())
             .for_each(|field| {
                 let field_name_string = &field.name;
                 let relation_type_string = field.field_type.string();
-                
+
                 let field_name_pascal = format_ident!("{}", &field.name.to_case(Case::Pascal));
                 let relation_outputs_fn = Outputs::get_fn_name(relation_type_string);
                 let relation_where_param = WhereParams::get_enum_name(&relation_type_string);
-                
+
                 if field.is_list {
                     params.add_variant(
                         quote!(#field_name_pascal(Vec<#relation_where_param>)),
@@ -249,7 +259,7 @@ impl WithParams {
                     )
                 }
             });
-        
+
         params
     }
 
@@ -264,13 +274,14 @@ impl WithParams {
             match_arms,
             enum_name: name,
             struct_name,
+            ..
         } = self;
 
         quote! {
             pub struct #struct_name {
                 pub param: #name
             }
-            
+
             pub enum #name {
                 #(#variants),*
             }
@@ -292,21 +303,6 @@ impl WithParams {
             }
         }
     }
-    
-    pub fn with_fn(&self) -> TokenStream {
-        let struct_name = &self.struct_name;
-        
-        quote! {
-            pub fn with(mut self, fetches: Vec<#struct_name>) -> Self {
-                let outputs = fetches
-                    .into_iter()
-                    .map(|f| f.param.output())
-                    .collect::<Vec<_>>();
-                self.query.outputs.extend(outputs);
-                self
-            }
-        }
-    }
 }
 
 struct SetParams {
@@ -318,32 +314,33 @@ struct SetParams {
 impl SetParams {
     pub fn new(model: &Model) -> Self {
         let model_name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
-        
+
         let mut params = Self {
             enum_name: format_ident!("{}SetParam", model_name_pascal),
             variants: vec![],
-            match_arms: vec![]
+            match_arms: vec![],
         };
-        
+
         for field in &model.fields {
             let field_name_string = &field.name;
             let field_type_string = field.field_type.value();
             let field_name_pascal = format_ident!("{}", field.name.to_case(Case::Pascal));
             let field_type_value = format_ident!("{}", &field_type_string);
             let relation_where_param = WhereParams::get_enum_name(&field_type_string);
-            
+
             let (variant, match_arm) = match (field.kind.include_in_struct(), field.is_list) {
                 (true, _) => (
-                    quote! { #field_name_pascal(#field_type_value) }, 
+                    quote! { #field_name_pascal(#field_type_value) },
                     quote! {
                         Self::#field_name_pascal(value) => Field {
                             name: #field_name_string.into(),
                             value: Some(value.into()),
                             ..Default::default()
                         }
-                    }),
+                    },
+                ),
                 (_, true) => (
-                    quote! { #field_name_pascal(Vec<#relation_where_param>) }, 
+                    quote! { #field_name_pascal(Vec<#relation_where_param>) },
                     quote! {
                         Self::#field_name_pascal(where_params) => Field {
                             name: #field_name_string.into(),
@@ -360,9 +357,10 @@ impl SetParams {
                             ]),
                             ..Default::default()
                         }
-                    }),
+                    },
+                ),
                 (_, false) => (
-                    quote! { #field_name_pascal(#relation_where_param) }, 
+                    quote! { #field_name_pascal(#relation_where_param) },
                     quote! {
                         Self::#field_name_pascal(where_param) => Field {
                             name: #field_name_string.into(),
@@ -377,15 +375,16 @@ impl SetParams {
                             ]),
                             ..Default::default()
                         }
-                    })
+                    },
+                ),
             };
-            
+
             params.add_variant(variant, match_arm);
         }
-        
+
         params
     }
-    
+
     fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
         self.variants.push(variant);
         self.match_arms.push(match_arm);
@@ -417,16 +416,21 @@ impl SetParams {
 struct QueryStructs {
     pub name: Ident,
     methods: Vec<TokenStream>,
-    field_structs: Vec<TokenStream>
+    field_structs: Vec<TokenStream>,
 }
 
 impl QueryStructs {
-    pub fn new(model: &Model, set_params: &SetParams, where_params: &WhereParams, with_params: &WithParams) -> Self {
+    pub fn new(
+        model: &Model,
+        set_params: &SetParams,
+        where_params: &WhereParams,
+        with_params: &WithParams,
+    ) -> Self {
         let model_name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
-        
+
         let model_set_param = &set_params.enum_name;
         let model_where_param = &where_params.enum_name;
-        
+
         let field_methods = model
             .fields
             .iter()
@@ -445,7 +449,7 @@ impl QueryStructs {
                 }
             })
             .collect::<Vec<_>>();
-            
+
         let operator_methods = Document::operators()
             .iter()
             .map(|op| {
@@ -459,15 +463,15 @@ impl QueryStructs {
                 }
             })
             .collect::<Vec<_>>();
-            
+
         let mut methods = vec![];
         methods.extend(field_methods);
         methods.extend(operator_methods);
-        
+
         let field_structs = model
             .fields
             .iter()
-            .map(|field| { 
+            .map(|field| {
                 let field_name_pascal = format_ident!("{}", field.name.to_case(Case::Pascal));
                 let field_struct_name =
                     format_ident!("{}{}Field", model_name_pascal, &field_name_pascal);
@@ -494,7 +498,7 @@ impl QueryStructs {
                             }
                         })
                         .collect::<Vec<_>>()
-                        
+
                 } else {
                     let read_types = match Document::read_types()
                         .into_iter()
@@ -532,27 +536,27 @@ impl QueryStructs {
                         })
                         .collect::<Vec<_>>()
                 };
-                 
+
                 let field_set_struct_name = format_ident!("{}Set{}", model_name_pascal, &field_name_pascal);
 
                 let field_set_struct = if field.kind.is_relation() {
                     let with_struct = &with_params.struct_name;
                     let with_enum = &with_params.enum_name;
-                        
+
                     if field.is_list {
                         field_struct_fns.push(quote! {
                             pub fn link<T: From<#field_set_struct_name>>(&self, value: Vec<#relation_where_param>) -> T {
                                 #field_set_struct_name(value).into()
                             }
-                            
+
                             pub fn fetch(&self, params: Vec<#relation_where_param>) -> #with_struct {
                                 #with_enum::#field_name_pascal(params).into()
                             }
                         });
-                        
+
                         Some(quote! {
                             pub struct #field_set_struct_name(Vec<#relation_where_param>);
-                            
+
                             impl From<#field_set_struct_name> for #model_set_param {
                                 fn from(value: #field_set_struct_name) -> Self {
                                     Self::#field_name_pascal(value.0.into_iter().map(|v| v.into()).collect())
@@ -564,15 +568,15 @@ impl QueryStructs {
                             pub fn link<T: From<#field_set_struct_name>>(&self, value: #relation_where_param) -> T {
                                 #field_set_struct_name(value).into()
                             }
-                            
+
                             pub fn fetch(&self) -> #with_struct {
                                 #with_enum::#field_name_pascal.into()
                             }
                         });
-                        
+
                         Some(quote! {
                             pub struct #field_set_struct_name(#relation_where_param);
-                            
+
                             impl From<#field_set_struct_name> for #model_set_param {
                                 fn from(value: #field_set_struct_name) -> Self {
                                     Self::#field_name_pascal(value.0)
@@ -580,27 +584,27 @@ impl QueryStructs {
                             }
                         })
                     }
-                } else { 
+                } else {
                     field_struct_fns.push(quote! {
                         pub fn set<T: From<#field_set_struct_name>>(&self, value: #field_type) -> T {
                             #field_set_struct_name(value).into()
                         }
                     });
-                    
-                    Some(quote! { 
+
+                    Some(quote! {
                         pub struct #field_set_struct_name(#field_type);
-                    
+
                         impl From<#field_set_struct_name> for #model_set_param {
                             fn from(value: #field_set_struct_name) -> Self {
                                 Self::#field_name_pascal(value.0)
                             }
-                        } 
+                        }
                     })
                 };
 
                 quote! {
                     pub struct #field_struct_name {}
-                    
+
                     #field_set_struct
 
                     impl #field_struct_name {
@@ -609,28 +613,28 @@ impl QueryStructs {
                 }
             })
             .collect();
-            
+
         Self {
             name: format_ident!("{}", model.name.to_case(Case::Pascal)),
             methods,
-            field_structs
+            field_structs,
         }
     }
-    
+
     pub fn quote(&self) -> TokenStream {
         let Self {
             name,
             methods,
-            field_structs
+            field_structs,
         } = self;
-        
+
         quote! {
             pub struct #name {}
-            
+
             impl #name {
                 #(#methods)*
             }
-            
+
             #(#field_structs)*
         }
     }
@@ -639,7 +643,7 @@ impl QueryStructs {
 struct DataStruct {
     pub name: Ident,
     fields: Vec<TokenStream>,
-    relation_accessors: Vec<TokenStream>
+    relation_accessors: Vec<TokenStream>,
 }
 
 impl DataStruct {
@@ -652,9 +656,9 @@ impl DataStruct {
                 let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
                 let field_type_string = field.field_type.value();
 
-                if field.kind.is_relation() {           
+                if field.kind.is_relation() {
                     let field_type = Self::get_struct_name(&field_type_string);
-                    
+
                     match (field.is_list, field.is_required) {
                         (true, _) => quote! {
                            #[serde(rename = #field_name_string)]
@@ -667,9 +671,9 @@ impl DataStruct {
                         (_, false) => quote! {
                             #[serde(rename = #field_name_string)]
                             pub #field_name_snake: Option<#field_type>
-                        }
+                        },
                     }
-                } else{
+                } else {
                     let field_type = format_ident!("{}", &field_type_string);
 
                     match (field.is_list, field.is_required) {
@@ -684,12 +688,12 @@ impl DataStruct {
                         (_, false) => quote! {
                             #[serde(rename = #field_name_string)]
                             pub #field_name_snake: Option<#field_type>
-                        }
+                        },
                     }
                 }
             })
             .collect();
-        
+
         let relation_accessors = model
             .fields
             .iter()
@@ -697,12 +701,12 @@ impl DataStruct {
             .map(|field| {
                 let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
                 let field_type = DataStruct::get_struct_name(&field.field_type.value());
-                
+
                 let return_type = match field.is_list {
                     true => quote!(Vec<#field_type>),
-                    false => quote!(#field_type)
+                    false => quote!(#field_type),
                 };
-                
+
                 if field.is_required {
                     let err = format!(
                         "attempted to access {} but did not fetch it using the .with() syntax",
@@ -720,35 +724,36 @@ impl DataStruct {
                 } else {
                     // TODO: Figure out double option to allow for null check
                     // println!("attempted to access optional relation {} but did not fetch it using the .with() syntax", field_name_snake);
-                    
+
                     quote! {
                         pub fn #field_name_snake(&self) -> Option<&#return_type> {
                             self.#field_name_snake.as_ref()
                         }
                     }
                 }
-            }).collect();
-            
+            })
+            .collect();
+
         Self {
             name: Self::get_struct_name(&model.name),
             fields,
-            relation_accessors
+            relation_accessors,
         }
     }
-    
+
     pub fn quote(&self) -> TokenStream {
         let Self {
             name,
             fields,
-            relation_accessors
+            relation_accessors,
         } = self;
-        
+
         quote! {
             #[derive(Debug, Clone, Serialize, Deserialize)]
             pub struct #name {
                 #(#fields),*
             }
-            
+
             impl #name {
                 #(#relation_accessors)*
             }
@@ -760,40 +765,48 @@ impl DataStruct {
     }
 }
 
-pub fn generate(model: &Model) -> TokenStream {
-    let name_pascal_string = model.name.to_case(Case::Pascal);
-    let actions_struct = format_ident!("{}Actions", &name_pascal_string);
-    
-    let data_struct = DataStruct::new(&model);
-    let data_struct_name = &data_struct.name;
-    
-    let outputs = Outputs::new(&model);
-    let outputs_fn_name = &outputs.fn_name;
+struct Actions<'a> {
+    struct_name: Ident,
+    model_name_pascal_string: String,
+    data_struct_name: &'a Ident,
+    where_param_enum: &'a Ident,
+    set_param_enum: &'a Ident,
+    outputs_fn_name: &'a Ident,
+    with_fn: &'a TokenStream,
+    required_args: Vec<TokenStream>,
+    required_arg_pushes: Vec<TokenStream>,
+}
 
-    let where_params = WhereParams::new(&model);
-    let with_params = WithParams::new(&model, &outputs);
-    let set_params = SetParams::new(&model);
-    let query_structs = QueryStructs::new(&model, &set_params, &where_params, &with_params);
-    
-    let where_param_enum = where_params.enum_name.clone();
-    let set_param_enum = set_params.enum_name.clone();
+impl<'a> Actions<'a> {
+    pub fn new(
+        model: &Model,
+        where_params: &'a WhereParams,
+        set_params: &'a SetParams,
+        with_params: &'a WithParams,
+        outputs: &'a Outputs,
+        data_struct: &'a DataStruct,
+    ) -> Self {
+        let model_name_pascal_string = model.name.to_case(Case::Pascal);
+        let set_param_enum = &set_params.enum_name;
 
-    let create_one_required_args =
-        model
+        let required_args = model
             .fields
             .iter()
             .filter(|f| f.required_on_create())
             .map(|f| {
                 let arg_name = format_ident!("{}", &f.name.to_case(Case::Snake));
-                let arg_type =
-                    format_ident!("{}Set{}", name_pascal_string, f.name.to_case(Case::Pascal));
+                let arg_type = format_ident!(
+                    "{}Set{}",
+                    model_name_pascal_string,
+                    f.name.to_case(Case::Pascal)
+                );
                 quote! {
                     #arg_name: #arg_type,
                 }
-            });
+            })
+            .collect();
 
-    let create_one_required_arg_pushes =
-        model
+        let required_arg_pushes = model
             .fields
             .iter()
             .filter(|f| f.required_on_create())
@@ -802,228 +815,276 @@ pub fn generate(model: &Model) -> TokenStream {
                 quote! {
                     input_fields.push(#set_param_enum::from(#arg_name).field());
                 }
-            });
+            })
+            .collect();
 
-    let model_create_one = format_ident!("{}CreateOne", &name_pascal_string);
-    let model_find_first = format_ident!("{}FindFirst", &name_pascal_string);
-    let model_find_unique = format_ident!("{}FindUnique", &name_pascal_string);
-    let model_find_many = format_ident!("{}FindMany", &name_pascal_string);
-    let model_delete = format_ident!("{}Delete", &name_pascal_string);
-    
+        Self {
+            struct_name: format_ident!("{}Actions", &model_name_pascal_string),
+            data_struct_name: &data_struct.name,
+            model_name_pascal_string: model.name.to_case(Case::Pascal),
+            where_param_enum: &where_params.enum_name,
+            set_param_enum,
+            outputs_fn_name: &outputs.fn_name,
+            with_fn: &with_params.with_fn,
+            required_args,
+            required_arg_pushes,
+        }
+    }
+
+    pub fn quote(&self) -> TokenStream {
+        let Self {
+            struct_name,
+            data_struct_name,
+            model_name_pascal_string,
+            where_param_enum,
+            set_param_enum,
+            outputs_fn_name,
+            with_fn,
+            required_args,
+            required_arg_pushes,
+        } = self;
+
+        let model_create_one = format_ident!("{}CreateOne", model_name_pascal_string);
+        let model_find_first = format_ident!("{}FindFirst", model_name_pascal_string);
+        let model_find_unique = format_ident!("{}FindUnique", model_name_pascal_string);
+        let model_find_many = format_ident!("{}FindMany", model_name_pascal_string);
+        let model_delete = format_ident!("{}Delete", model_name_pascal_string);
+
+        quote! {
+            pub struct #struct_name<'a> {
+                client: &'a PrismaClient,
+            }
+
+            pub struct #model_find_many<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_find_many<'a> {
+                pub async fn exec(self) -> Vec<#data_struct_name> {
+                    self.query.perform().await
+                }
+
+                pub fn delete(self) -> #model_delete<'a> {
+                    #model_delete {
+                        query: Query {
+                            operation: "mutation".into(),
+                            method: "deleteMany".into(),
+                            model: #model_name_pascal_string.into(),
+                            outputs: vec! [
+                                Output::new("count"),
+                            ],
+                            ..self.query
+                        }
+                    }
+                }
+
+                #with_fn
+            }
+
+            pub struct #model_find_first<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_find_first<'a> {
+                pub async fn exec(self) -> #data_struct_name {
+                    self.query.perform().await
+                }
+
+                #with_fn
+            }
+
+            pub struct #model_find_unique<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_find_unique<'a> {
+                pub async fn exec(self) -> #data_struct_name {
+                    self.query.perform().await
+                }
+
+                pub fn delete(self) -> #model_delete<'a> {
+                    #model_delete {
+                        query: Query {
+                            operation: "mutation".into(),
+                            method: "deleteOne".into(),
+                            model: #model_name_pascal_string.into(),
+                            ..self.query
+                        }
+                    }
+                }
+
+                #with_fn
+            }
+
+            pub struct #model_create_one<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_create_one<'a> {
+                pub async fn exec(self) -> #data_struct_name {
+                    self.query.perform().await
+                }
+            }
+
+            pub struct #model_delete<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_delete<'a> {
+                pub async fn exec(self) -> isize {
+                    let result: DeleteResult = self.query.perform().await;
+
+                    result.count
+                }
+            }
+
+            impl<'a> #struct_name<'a> {
+                // TODO: Dedicated unique field
+                pub fn find_unique(&self, param: #where_param_enum) -> #model_find_unique {
+                    let fields = transform_equals(vec![param.field()]);
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "query".into(),
+                        method: "findUnique".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs: vec![Input {
+                            name: "where".into(),
+                            fields,
+                            ..Default::default()
+                        }]
+                    };
+
+                    #model_find_unique { query }
+                }
+
+                pub fn find_first(&self, params: Vec<#where_param_enum>) -> #model_find_first {
+                    let where_fields: Vec<Field> = params.into_iter().map(|param|
+                        param.field()
+                    ).collect();
+
+                    let inputs = if where_fields.len() > 0 {
+                        vec![Input {
+                            name: "where".into(),
+                            fields: vec![Field {
+                                name: "AND".into(),
+                                list: true,
+                                wrap_list: true,
+                                fields: Some(where_fields),
+                                ..Default::default()
+                            }],
+                            ..Default::default()
+                        }]
+                    } else {
+                        Vec::new()
+                    };
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "query".into(),
+                        method: "findFirst".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs
+                    };
+
+                    #model_find_first { query }
+                }
+
+                pub fn find_many(&self, params: Vec<#where_param_enum>) -> #model_find_many {
+                    let where_fields: Vec<Field> = params.into_iter().map(|param|
+                        param.field()
+                    ).collect();
+
+                    let inputs = if where_fields.len() > 0 {
+                        vec![Input {
+                            name: "where".into(),
+                            fields: where_fields,
+                            ..Default::default()
+                        }]
+                    } else {
+                        Vec::new()
+                    };
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "query".into(),
+                        method: "findMany".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs
+                    };
+
+                    #model_find_many { query }
+                }
+
+                pub fn create_one(&self, #(#required_args)* params: Vec<#set_param_enum>) -> #model_create_one {
+                    let mut input_fields = params.into_iter().map(|p| p.field()).collect::<Vec<_>>();
+
+                    #(#required_arg_pushes)*
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "mutation".into(),
+                        method: "createOne".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs: vec![Input {
+                            name: "data".into(),
+                            fields: input_fields,
+                            ..Default::default()
+                        }]
+                    };
+
+                    #model_create_one { query }
+                }
+            }
+        }
+    }
+}
+
+pub fn generate(model: &Model) -> TokenStream {
+    let data_struct = DataStruct::new(&model);
+    let set_params = SetParams::new(&model);
+    let where_params = WhereParams::new(&model);
+    let outputs = Outputs::new(&model);
+    let with_params = WithParams::new(&model, &outputs);
+    let query_structs = QueryStructs::new(&model, &set_params, &where_params, &with_params);
+    let actions = Actions::new(
+        &model,
+        &where_params,
+        &set_params,
+        &with_params,
+        &outputs,
+        &data_struct,
+    );
+
     let data_struct = data_struct.quote();
-    let model_where_params = where_params.quote();
-    let model_with_params = with_params.quote();
-    let model_set_params = set_params.quote();
-    let model_outputs_fn = outputs.quote();
-    let model_query_structs = query_structs.quote();
-    
-    let query_with_fn = with_params.with_fn();
+    let where_params = where_params.quote();
+    let with_params = with_params.quote();
+    let set_params = set_params.quote();
+    let outputs_fn = outputs.quote();
+    let query_structs = query_structs.quote();
+    let actions = actions.quote();
 
     quote! {
-        #model_outputs_fn
-        
+        #outputs_fn
+
         #data_struct
-        
-        #model_query_structs
-        
-        pub struct #actions_struct<'a> {
-            client: &'a PrismaClient,
-        }
 
-        #model_where_params
-        
-        #model_with_params
-        
-        #model_set_params
+        #query_structs
 
-        pub struct #model_find_many<'a> {
-            query: Query<'a>
-        }
+        #where_params
 
-        impl<'a> #model_find_many<'a> {
-            pub async fn exec(self) -> Vec<#data_struct_name> {
-                self.query.perform().await
-            } 
+        #with_params
 
-            pub fn delete(self) -> #model_delete<'a> {
-                #model_delete {
-                    query: Query {
-                        operation: "mutation".into(),
-                        method: "deleteMany".into(),
-                        model: #name_pascal_string.into(),
-                        outputs: vec! [
-                            Output::new("count"),
-                        ],
-                        ..self.query
-                    }
-                }
-            }
-            
-            #query_with_fn
-        }
+        #set_params
 
-        pub struct #model_find_first<'a> {
-            query: Query<'a>
-        }
-
-        impl<'a> #model_find_first<'a> {
-            pub async fn exec(self) -> #data_struct_name {
-                self.query.perform().await
-            }
-            
-            #query_with_fn
-        }
-
-        pub struct #model_find_unique<'a> {
-            query: Query<'a>
-        }
-
-        impl<'a> #model_find_unique<'a> {
-            pub async fn exec(self) -> #data_struct_name {
-                self.query.perform().await
-            }
-
-            pub fn delete(self) -> #model_delete<'a> {
-                #model_delete {
-                    query: Query {
-                        operation: "mutation".into(),
-                        method: "deleteOne".into(),
-                        model: #name_pascal_string.into(),
-                        ..self.query
-                    }
-                }
-            }
-            
-            #query_with_fn
-        }
-
-        pub struct #model_create_one<'a> {
-            query: Query<'a>
-        }
-
-        impl<'a> #model_create_one<'a> {
-            pub async fn exec(self) -> #data_struct_name {
-                self.query.perform().await
-            }
-        }
-
-        pub struct #model_delete<'a> {
-            query: Query<'a>
-        }
-
-        impl<'a> #model_delete<'a> {
-            pub async fn exec(self) -> isize {
-                let result: DeleteResult = self.query.perform().await;
-                
-                result.count
-            }
-        }
-
-        impl<'a> #actions_struct<'a> {
-            // TODO: Dedicated unique field
-            pub fn find_unique(&self, param: #where_param_enum) -> #model_find_unique {
-                let fields = transform_equals(vec![param.field()]);
-
-                let query = Query {
-                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                    name: String::new(),
-                    operation: "query".into(),
-                    method: "findUnique".into(),
-                    model: #name_pascal_string.into(),
-                    outputs: #outputs_fn_name(),
-                    inputs: vec![Input {
-                        name: "where".into(),
-                        fields,
-                        ..Default::default()
-                    }]
-                };
-
-                #model_find_unique { query }
-            }
-
-            pub fn find_first(&self, params: Vec<#where_param_enum>) -> #model_find_first {
-                let where_fields: Vec<Field> = params.into_iter().map(|param|
-                    param.field()
-                ).collect();
-
-                let inputs = if where_fields.len() > 0 {
-                    vec![Input {
-                        name: "where".into(),
-                        fields: vec![Field {
-                            name: "AND".into(),
-                            list: true,
-                            wrap_list: true,
-                            fields: Some(where_fields),
-                            ..Default::default()
-                        }],
-                        ..Default::default()
-                    }]
-                } else {
-                    Vec::new()
-                };
-
-                let query = Query {
-                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                    name: String::new(),
-                    operation: "query".into(),
-                    method: "findFirst".into(),
-                    model: #name_pascal_string.into(),
-                    outputs: #outputs_fn_name(),
-                    inputs
-                };
-
-                #model_find_first { query }
-            }
-
-            pub fn find_many(&self, params: Vec<#where_param_enum>) -> #model_find_many {
-                let where_fields: Vec<Field> = params.into_iter().map(|param|
-                    param.field()
-                ).collect();
-
-                let inputs = if where_fields.len() > 0 {
-                    vec![Input {
-                        name: "where".into(),
-                        fields: where_fields,
-                        ..Default::default()
-                    }]
-                } else {
-                    Vec::new()
-                };
-
-                let query = Query {
-                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                    name: String::new(),
-                    operation: "query".into(),
-                    method: "findMany".into(),
-                    model: #name_pascal_string.into(),
-                    outputs: #outputs_fn_name(),
-                    inputs
-                };
-
-                #model_find_many { query }
-            }
-
-            pub fn create_one(&self, #(#create_one_required_args)* params: Vec<#set_param_enum>) -> #model_create_one {
-                let mut input_fields = params.into_iter().map(|p| p.field()).collect::<Vec<_>>();
-                
-                #(#create_one_required_arg_pushes)*
-                
-                let query = Query {
-                    ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                    name: String::new(),
-                    operation: "mutation".into(),
-                    method: "createOne".into(),
-                    model: #name_pascal_string.into(),
-                    outputs: #outputs_fn_name(),
-                    inputs: vec![Input {
-                        name: "data".into(),
-                        fields: input_fields,
-                        ..Default::default()
-                    }]
-                };
-
-                #model_create_one { query }
-            }
-        }
+        #actions
     }
 }

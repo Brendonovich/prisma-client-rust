@@ -13,13 +13,13 @@ pub fn name() -> String {
 
 pub fn check_for_extension(platform: &str, path: &str) -> String {
     let path = path.to_string();
-    
+
     if platform == "windows" {
         if path.contains(".gz") {
             return path.replace(".gz", ".exe.gz");
         }
         return path.add(".exe");
     }
-    
+
     path
 }

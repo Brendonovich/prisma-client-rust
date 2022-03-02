@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub mod methods;
@@ -8,12 +8,12 @@ pub struct Request {
     pub jsonrpc: String,
     pub id: i32,
     pub method: String,
-    pub params: Value
+    pub params: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
     pub jsonrpc: String,
     pub id: i32,
-    pub result: Value
+    pub result: Value,
 }

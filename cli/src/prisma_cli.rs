@@ -1,6 +1,6 @@
+use crate::binaries;
 use std::env;
 use std::process::Command;
-use crate::binaries;
 
 pub fn main(args: &Vec<String>) {
     let dir = binaries::global_cache_dir();

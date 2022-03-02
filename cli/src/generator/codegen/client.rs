@@ -11,7 +11,8 @@ pub fn generate(root: &Root) -> TokenStream {
         .iter()
         .map(|model| {
             let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
-            let model_actions_struct_name = format_ident!("{}Actions", model.name.to_case(Case::Pascal));
+            let model_actions_struct_name =
+                format_ident!("{}Actions", model.name.to_case(Case::Pascal));
 
             quote! {
                 pub fn #model_name_snake(&self) -> #model_actions_struct_name {
@@ -31,16 +32,16 @@ pub fn generate(root: &Root) -> TokenStream {
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
         use prisma_client_rust::DeleteResult;
-        
+
         use serde::{Serialize, Deserialize};
 
         use std::sync::Arc;
-        
+
         pub struct PrismaClient {
             executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
             query_schema: Arc<QuerySchema>,
         }
-        
+
         impl PrismaClient {
             // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
             pub async fn new() -> Self {
