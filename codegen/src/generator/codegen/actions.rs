@@ -78,9 +78,8 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             for action in actions {
                 let action_name = action.name;
                 let variant_name = format_ident!("{}{}", field_name_pascal, &action_name);
-                let q = format_ident!("{}{}", field_name_pascal, action_name);
 
-                model_where_params.add_variant(quote! {#q(Vec<#field_type_where_param>)}, 
+                model_where_params.add_variant(quote! {#variant_name(Vec<#field_type_where_param>)}, 
                 quote! {
                         Self::#variant_name(value) =>
                             Field {
@@ -277,6 +276,10 @@ fn generate_model_actions(model: &Model) -> TokenStream {
             pub async fn exec(self) -> #model_pascal_ident {
                 self.query.perform().await
             }
+            
+            // pub fn with(&mut self, params: Vec<#model_with_param_ident>) -> Self {
+                
+            // }
         }
 
         pub struct #model_find_unique<'a> {
