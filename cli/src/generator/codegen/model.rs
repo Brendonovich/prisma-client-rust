@@ -107,14 +107,15 @@ impl WhereParams {
                     None => panic!("{:?}", field.field_type.string()),
                 };
 
-                let field_type_value = format_ident!("{}", field.field_type.value());
-
+                let field_type_value = field.field_type.value();
+                let field_type_tokens = field.field_type.value_tokens();
+                
                 for m in read_types.methods {
                     let variant_name = format_ident!("{}{}", field_name_pascal, &m.name);
                     let method_action = m.action;
 
                     params.add_variant(
-                        quote!(#variant_name(#field_type_value)),
+                        quote!(#variant_name(#field_type_tokens)),
                         quote! {
                         Self::#variant_name(value) =>
                             Field {
@@ -122,7 +123,7 @@ impl WhereParams {
                                 fields: Some(vec![
                                     Field {
                                         name: #method_action.into(),
-                                        value: Some(value.into()),
+                                        value: Some(serde_json::to_value(value).unwrap()),
                                         ..Default::default()
                                     }
                                 ]),
@@ -222,10 +223,10 @@ impl WithParams {
             .filter(|f| f.kind.is_relation())
             .for_each(|field| {
                 let field_name_string = &field.name;
-                let relation_type_string = field.field_type.string();
+                let relation_type_string = field.field_type.value();
 
                 let field_name_pascal = format_ident!("{}", &field.name.to_case(Case::Pascal));
-                let relation_outputs_fn = Outputs::get_fn_name(relation_type_string);
+                let relation_outputs_fn = Outputs::get_fn_name(&relation_type_string);
                 let relation_where_param = WhereParams::get_enum_name(&relation_type_string);
 
                 if field.is_list {
@@ -325,21 +326,21 @@ impl SetParams {
             let field_name_string = &field.name;
             let field_name_pascal = field.name.to_case(Case::Pascal);
             let field_type_string = field.field_type.value();
-            let field_type_value = format_ident!("{}", &field_type_string);
-            let relation_where_param = WhereParams::get_enum_name(&field_type_string);
-            let set_variant = if field.kind.is_relation() {
-                format_ident!("Link{}", &field_name_pascal)
+            
+            let field_type_tokens = field.field_type.value_tokens();
+            let (set_variant, relation_where_param) = if field.kind.is_relation() {
+                (format_ident!("Link{}", &field_name_pascal), Some(WhereParams::get_enum_name(&field_type_string)))
             } else {
-                format_ident!("{}", &field_name_pascal)
+                (format_ident!("{}", &field_name_pascal), None)
             };
 
             let (variant, match_arm) = match (field.kind.include_in_struct(), field.is_list) {
                 (true, _) => (
-                    quote!(#set_variant(#field_type_value)),
+                    quote!(#set_variant(#field_type_tokens)),
                     quote! {
                         Self::#set_variant(value) => Field {
                             name: #field_name_string.into(),
-                            value: Some(value.into()),
+                            value: Some(serde_json::to_value(value).unwrap()),
                             ..Default::default()
                         }
                     },
@@ -528,10 +529,11 @@ impl QueryStructs {
                 let field_name_pascal = format_ident!("{}", field.name.to_case(Case::Pascal));
                 let field_struct_name =
                     format_ident!("{}{}Field", model_name_pascal, &field_name_pascal);
-                let field_type = format_ident!("{}", field.field_type.value());
-                let relation_where_param = WhereParams::get_enum_name(&field.field_type.value());
+                let field_type_string = field.field_type.value();
+                let field_type = field.field_type.value_tokens();
 
                 let mut field_struct_fns = if field.kind.is_relation() {
+                let relation_where_param = WhereParams::get_enum_name(&field.field_type.value());
                     let methods = field.relation_methods();
 
                     methods
@@ -591,6 +593,7 @@ impl QueryStructs {
                 };
                 
                 let field_set_struct = if field.kind.is_relation() {
+                    let relation_where_param = WhereParams::get_enum_name(&field.field_type.value());
                     let field_link_struct_name = format_ident!("{}Link{}", model_name_pascal, &field_name_pascal);
                     let link_variant = format_ident!("Link{}", &field_name_pascal);
                     let unlink_varaint = format_ident!("Unlink{}", &field_name_pascal);
@@ -745,7 +748,7 @@ impl DataStruct {
                         },
                     }
                 } else {
-                    let field_type = format_ident!("{}", &field_type_string);
+                    let field_type = field.field_type.value_tokens();
 
                     match (field.is_list, field.is_required) {
                         (true, _) => quote! {
@@ -846,6 +849,7 @@ struct Actions<'a> {
     with_fn: &'a TokenStream,
     required_args: Vec<TokenStream>,
     required_arg_pushes: Vec<TokenStream>,
+    required_tuple_args: Vec<TokenStream>,
 }
 
 impl<'a> Actions<'a> {
@@ -896,6 +900,30 @@ impl<'a> Actions<'a> {
                 }
             })
             .collect();
+            
+        let required_tuple_args = model
+            .fields
+            .iter()
+            .filter(|f| f.required_on_create())
+            .map(|f| {
+                let arg_type = match f.kind.is_relation() {
+                    true => format_ident!(
+                        "{}Link{}",
+                        model_name_pascal_string,
+                        f.name.to_case(Case::Pascal)
+                    ),
+                    false => format_ident!(
+                        "{}Set{}",
+                        model_name_pascal_string,
+                        f.name.to_case(Case::Pascal)
+                    )
+                };
+                
+                quote! {
+                    #arg_type,
+                }
+            })
+            .collect();
 
         Self {
             struct_name: format_ident!("{}Actions", &model_name_pascal_string),
@@ -907,6 +935,7 @@ impl<'a> Actions<'a> {
             with_fn: &with_params.with_fn,
             required_args,
             required_arg_pushes,
+            required_tuple_args
         }
     }
 
@@ -920,6 +949,7 @@ impl<'a> Actions<'a> {
             outputs_fn_name,
             with_fn,
             required_args,
+            required_tuple_args,
             required_arg_pushes,
         } = self;
 

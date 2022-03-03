@@ -2370,6 +2370,7 @@ checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
 name = "prisma-client-rust"
 version = "0.3.0"
 dependencies = [
+ "chrono",
  "datamodel",
  "graphql-parser",
  "prisma-models",

@@ -1,5 +1,6 @@
 use super::dmmf;
 use convert_case::{Case, Casing};
+use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -97,6 +98,24 @@ impl GraphQLType {
             "DateTime" => "chrono::DateTime<chrono::Utc>".to_string(),
             "Json" => "serde_json::Value".to_string(),
             _ => string.to_case(Case::Pascal),
+        }
+    }
+
+    pub fn value_tokens(&self) -> TokenStream {
+        let string = self.string();
+
+        match string {
+            "Int" => quote!(i64),
+            "BigInt" => quote!(i64),
+            "Float" => quote!(f32),
+            "Boolean" => quote!(bool),
+            "Bytes" => quote!(Vec<u8>),
+            "DateTime" => quote!(chrono::DateTime<chrono::Utc>),
+            "Json" => quote!(serde_json::Value),
+            _ => {
+                let ident = format_ident!("{}", string.to_case(Case::Pascal));
+                quote!(#ident)
+            }
         }
     }
 }
