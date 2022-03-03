@@ -968,7 +968,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_find_many<'a> {
                 pub async fn exec(self) -> Vec<#data_struct_name> {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<Vec<#data_struct_name>>().await.unwrap()
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1026,7 +1026,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_find_first<'a> {
                 pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<#data_struct_name>().await.unwrap()
                 }
 
                 #with_fn
@@ -1038,7 +1038,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_find_unique<'a> {
                 pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<#data_struct_name>().await.unwrap()
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1093,7 +1093,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_create_one<'a> {
                 pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<#data_struct_name>().await.unwrap()
                 }
             }
 
@@ -1103,7 +1103,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_update_unique<'a> {
                 pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<#data_struct_name>().await.unwrap()
                 }
 
                 #with_fn
@@ -1115,7 +1115,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_update_many<'a> {
                 pub async fn exec(self) -> Vec<#data_struct_name> {
-                    self.query.perform().await.unwrap()
+                    self.query.perform::<Vec<#data_struct_name>>().await.unwrap()
                 }
 
                 #with_fn
@@ -1127,9 +1127,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_delete<'a> {
                 pub async fn exec(self) -> isize {
-                    let result: DeleteResult = self.query.perform().await.unwrap();
-
-                    result.count
+                    self.query.perform::<DeleteResult>().await.unwrap().count
                 }
             }
 
