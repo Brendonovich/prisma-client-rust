@@ -145,7 +145,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 query.perform().await
             }
 
-            pub async fn _execute_raw(&self, query: &str) -> Result<isize, CoreError> {
+            pub async fn _execute_raw(&self, query: &str) -> Result<i64, CoreError> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
                     operation: "mutation".into(),
@@ -167,7 +167,7 @@ pub fn generate(root: &Root) -> TokenStream {
                     outputs: vec![]
                 };
 
-                query.perform().await.map(|result: DeleteResult| result.count)
+                query.perform().await.map(|result: i64| result)
             }
 
             #(#model_actions)*
