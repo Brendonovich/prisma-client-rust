@@ -740,11 +740,11 @@ impl DataStruct {
                         },
                         (_, true) => quote! {
                             #[serde(rename = #field_name_string)]
-                            #field_name_snake: Option<#field_type>
+                            #field_name_snake: Box<Option<#field_type>>
                         },
                         (_, false) => quote! {
                             #[serde(rename = #field_name_string)]
-                            pub #field_name_snake: Option<#field_type>
+                            pub #field_name_snake: Box<Option<#field_type>>
                         },
                     }
                 } else {
@@ -789,7 +789,7 @@ impl DataStruct {
 
                     quote! {
                         pub fn #field_name_snake(&self) -> Result<&#return_type, String> {
-                            match &self.#field_name_snake {
+                            match self.#field_name_snake.as_ref() {
                                 Some(v) => Ok(v),
                                 None => Err(#err.to_string()),
                             }
@@ -801,7 +801,7 @@ impl DataStruct {
 
                     quote! {
                         pub fn #field_name_snake(&self) -> Option<&#return_type> {
-                            self.#field_name_snake.as_ref()
+                            self.#field_name_snake.as_ref().as_ref()
                         }
                     }
                 }
