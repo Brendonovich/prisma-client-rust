@@ -1025,8 +1025,8 @@ impl<'a> Actions<'a> {
             }
 
             impl<'a> #model_find_first<'a> {
-                pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform::<#data_struct_name>().await.unwrap()
+                pub async fn exec(self) -> Option<#data_struct_name> {
+                    self.query.perform::<Option<#data_struct_name>>().await.unwrap()
                 }
 
                 #with_fn
@@ -1037,8 +1037,8 @@ impl<'a> Actions<'a> {
             }
 
             impl<'a> #model_find_unique<'a> {
-                pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform::<#data_struct_name>().await.unwrap()
+                pub async fn exec(self) -> Option<#data_struct_name> {
+                    self.query.perform::<Option<#data_struct_name>>().await.unwrap()
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
