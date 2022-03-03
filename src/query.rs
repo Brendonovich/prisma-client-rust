@@ -1,5 +1,5 @@
 use graphql_parser::parse_query;
-use query_core::QuerySchemaRef;
+use query_core::{QuerySchemaRef, CoreError};
 use request_handlers::GraphQLProtocolAdapter;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -62,22 +62,21 @@ pub struct Query<'a> {
 }
 
 impl<'a> Query<'a> {
-    pub async fn perform<T: DeserializeOwned>(self) -> T {
+    pub async fn perform<T: DeserializeOwned>(self) -> Result<T, CoreError> {
         // TODO: check if engine running
         let query_string = self.build();
 
         let document = parse_query(&query_string).unwrap();
         let operation = GraphQLProtocolAdapter::convert(document, None).unwrap();
 
-        let response = self
+        self
             .ctx
             .executor
             .execute(None, operation, self.ctx.schema, None)
             .await
-            .unwrap()
-            .data;
-
-        serde_json::from_value(serde_json::to_value(response).unwrap()).unwrap()
+            .map(|response| {
+                serde_json::from_value(serde_json::to_value(response.data).unwrap()).unwrap()
+            })
     }
 
     pub fn build(&self) -> String {

@@ -33,11 +33,11 @@ pub fn generate(root: &Root) -> TokenStream {
         use prisma_client_rust::query::*;
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
-        use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
+        use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor, CoreError};
         use prisma_client_rust::DeleteResult;
         use prisma_client_rust::chrono;
         use prisma_client_rust::serde_json;
-        
+
         use serde::{Serialize, Deserialize};
 
         use std::path::Path;
@@ -120,7 +120,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 }
             }
 
-            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> Vec<T> {
+            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> Result<Vec<T>, CoreError> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
                     operation: "mutation".into(),
@@ -145,7 +145,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 query.perform().await
             }
 
-            pub async fn _execute_raw(&self, query: &str) -> isize {
+            pub async fn _execute_raw(&self, query: &str) -> Result<isize, CoreError> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
                     operation: "mutation".into(),
@@ -167,8 +167,7 @@ pub fn generate(root: &Root) -> TokenStream {
                     outputs: vec![]
                 };
 
-                let result: DeleteResult = query.perform().await;
-                return result.count;
+                query.perform().await.map(|result: DeleteResult| result.count)
             }
 
             #(#model_actions)*

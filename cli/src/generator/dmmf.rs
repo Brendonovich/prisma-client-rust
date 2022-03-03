@@ -420,7 +420,6 @@ pub struct SchemaInputType {
     is_required: Option<bool>,
     is_list: bool,
     type_: String,
-    // kind: FieldKind
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -429,7 +428,6 @@ pub struct SchemaOutputType {
     type_: String,
     is_list: bool,
     is_required: Option<bool>,
-    // kind: FieldKind
 }
 
 #[derive(Serialize, Deserialize, Debug)]
