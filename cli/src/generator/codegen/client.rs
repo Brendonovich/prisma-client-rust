@@ -26,6 +26,9 @@ pub fn generate(root: &Root) -> TokenStream {
 
     let datamodel = &root.datamodel;
 
+    let schema_path_root = format!("./{}", &root.schema_path);
+    let schema_path_prisma_folder = format!("./prisma/{}", &root.schema_path);
+
     quote! {
         use prisma_client_rust::query::*;
         use prisma_client_rust::datamodel::parse_configuration;
@@ -35,6 +38,7 @@ pub fn generate(root: &Root) -> TokenStream {
 
         use serde::{Serialize, Deserialize};
 
+        use std::path::Path;
         use std::sync::Arc;
 
         pub struct PrismaClient {
@@ -56,6 +60,20 @@ pub fn generate(root: &Root) -> TokenStream {
                 } else {
                     source.load_url(|key| std::env::var(key).ok()).unwrap()
                 };
+                // sqlite fix
+                let url = if url.starts_with("file:") {
+                    let path = url.split(":").nth(1).unwrap();
+
+                    if Path::new("./schema.prisma").exists() {
+                        url
+                    } else if Path::new("./prisma/schema.prisma").exists() {
+                        format!("file:./prisma/{}", path)
+                    } else {
+                        url
+                    }
+                } else {
+                    url
+                };
                 let (db_name, executor) = executor::load(&source, &[], &url)
                     .await
                     .unwrap();
@@ -73,6 +91,82 @@ pub fn generate(root: &Root) -> TokenStream {
                     executor,
                     query_schema,
                 }
+            }
+
+            pub async fn new_with_url(url: &str) -> Self {
+                let datamodel_str = #datamodel;
+                let config = parse_configuration(datamodel_str).unwrap().subject;
+                let source = config
+                    .datasources
+                    .first()
+                    .expect("Pleasy supply a datasource in your schema.prisma file");
+
+                let (db_name, executor) = executor::load(&source, &[], &url).await.unwrap();
+                let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
+                let query_schema = Arc::new(schema_builder::build(
+                    internal_model,
+                    BuildMode::Modern,
+                    true,
+                    source.capabilities(),
+                    vec![],
+                    source.referential_integrity(),
+                ));
+                executor.primary_connector().get_connection().await.unwrap();
+                Self {
+                    executor,
+                    query_schema,
+                }
+            }
+
+            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> Vec<T> {
+                let query = Query {
+                    ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
+                    operation: "mutation".into(),
+                    method: "queryRaw".into(),
+                    inputs: vec![
+                        Input {
+                            name: "query".into(),
+                            value: Some(query.into()),
+                            ..Default::default()
+                        },
+                        Input {
+                            name: "parameters".into(),
+                            value: Some("[]".into()),
+                            ..Default::default()
+                        }
+                    ],
+                    name: "".into(),
+                    model: "".into(),
+                    outputs: vec![]
+                };
+
+                query.perform().await
+            }
+
+            pub async fn _execute_raw(&self, query: &str) -> isize {
+                let query = Query {
+                    ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
+                    operation: "mutation".into(),
+                    method: "executeRaw".into(),
+                    inputs: vec![
+                        Input {
+                            name: "query".into(),
+                            value: Some(query.into()),
+                            ..Default::default()
+                        },
+                        Input {
+                            name: "parameters".into(),
+                            value: Some("[]".into()),
+                            ..Default::default()
+                        },
+                    ],
+                    name: "".into(),
+                    model: "".into(),
+                    outputs: vec![]
+                };
+
+                let result: DeleteResult = query.perform().await;
+                return result.count;
             }
 
             #(#model_actions)*
