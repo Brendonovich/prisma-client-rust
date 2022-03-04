@@ -21,11 +21,11 @@ Primsa Client Rust is still under active development and is subject to change su
 1. [Create a Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-client) and [migrate your database](https://www.prisma.io/docs/concepts/components/prisma-migrate)
 2. Install the `prisma-client-rust` CLI
    ```
-   cargo install prisma-client-rust-cli
+   $ cargo install prisma-client-rust-cli
    ```
 3. Add `prisma-client-rust` and `serde` as dependencies in `Cargo.toml`
 
-   ```
+   ```toml
    prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.3.0" }
    serde = { version = "1.0", features = ["derive"] }
    ```
@@ -33,7 +33,7 @@ Primsa Client Rust is still under active development and is subject to change su
    **Note**: `prisma-client-rust` cannot be installed from crates.io as it uses code from [Prisma's engines](https://github.com/prisma/prisma-engines). This means that your binary or library also cannot be published to crates.io. If you would like to do so, please make an issue and I will consider publishing a separate version that is less performant, but is crates.io compatible.
 
 4. Add `prisma-client-rust` as a generator to your Prisma schema
-   ```
+   ```prisma
    generator client {
        provider = "prisma-client-rust"
        // The file that the client should be generated to, relative to your schema file
@@ -42,7 +42,7 @@ Primsa Client Rust is still under active development and is subject to change su
    ```
 5. Generate the rust module
     ```
-    prisma-client-rust generate`
+    $ prisma-client-rust generate`
     ```
 6. Include the generated module in your code and connect a new Prisma client
 
