@@ -203,3 +203,8 @@ async fn main() {
         .await;
 }
 ```
+
+## Acknowledgements
+- [steebchen](https://github.com/steebchen) and all other contributors to [Prisma Client Go](https://github.com/prisma/prisma-client-go) for writing a lot of code that Prisma Client Rust basically copies
+- [seunlanlege](https://github.com/seunlanlege) for their work on [prisma-client-rs](https://github.com/polytope-labs/prisma-client-rs) which was used while integrating Prisma's query engine crates
+- [Prisma](https://prisma.io) for developing a brilliant and flexible open source ORM
