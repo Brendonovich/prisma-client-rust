@@ -34,9 +34,7 @@ pub fn generate(root: &Root) -> TokenStream {
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor, CoreError};
-        use prisma_client_rust::DeleteResult;
-        use prisma_client_rust::chrono;
-        use prisma_client_rust::serde_json;
+        use prisma_client_rust::{serde_json, chrono, operator::Operator, DeleteResult};
 
         use serde::{Serialize, Deserialize};
 
@@ -48,78 +46,62 @@ pub fn generate(root: &Root) -> TokenStream {
             query_schema: Arc<QuerySchema>,
         }
 
+        pub async fn new_client() -> Self {
+            let datamodel_str = #datamodel;
+            let config = parse_configuration(datamodel_str).unwrap().subject;
+            let source = config
+                .datasources
+                .first()
+                .expect("Pleasy supply a datasource in your schema.prisma file");
+            let url = if let Some(url) = source.load_shadow_database_url().unwrap() {
+                url
+            } else {
+                source.load_url(|key| std::env::var(key).ok()).unwrap()
+            };
+            // sqlite fix
+            let url = if url.starts_with("file:") {
+                let path = url.split(":").nth(1).unwrap();
+
+                if Path::new("./schema.prisma").exists() {
+                    url
+                } else if Path::new("./prisma/schema.prisma").exists() {
+                    format!("file:./prisma/{}", path)
+                } else {
+                    url
+                }
+            } else {
+                url
+            };
+            new_with_url(url)
+        }
+
+        // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
+        pub async fn new_client_with_url(url: &str) -> Self {
+            let datamodel_str = #datamodel;
+            let config = parse_configuration(datamodel_str).unwrap().subject;
+            let source = config
+                .datasources
+                .first()
+                .expect("Pleasy supply a datasource in your schema.prisma file");
+
+            let (db_name, executor) = executor::load(&source, &[], &url).await.unwrap();
+            let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
+            let query_schema = Arc::new(schema_builder::build(
+                internal_model,
+                BuildMode::Modern,
+                true,
+                source.capabilities(),
+                vec![],
+                source.referential_integrity(),
+            ));
+            executor.primary_connector().get_connection().await.unwrap();
+            Self {
+                executor,
+                query_schema,
+            }
+        }
+
         impl PrismaClient {
-            // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
-            pub async fn new() -> Self {
-                let datamodel_str = #datamodel;
-                let config = parse_configuration(datamodel_str).unwrap().subject;
-                let source = config
-                    .datasources
-                    .first()
-                    .expect("Pleasy supply a datasource in your schema.prisma file");
-                let url = if let Some(url) = source.load_shadow_database_url().unwrap() {
-                    url
-                } else {
-                    source.load_url(|key| std::env::var(key).ok()).unwrap()
-                };
-                // sqlite fix
-                let url = if url.starts_with("file:") {
-                    let path = url.split(":").nth(1).unwrap();
-
-                    if Path::new("./schema.prisma").exists() {
-                        url
-                    } else if Path::new("./prisma/schema.prisma").exists() {
-                        format!("file:./prisma/{}", path)
-                    } else {
-                        url
-                    }
-                } else {
-                    url
-                };
-                let (db_name, executor) = executor::load(&source, &[], &url)
-                    .await
-                    .unwrap();
-                let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
-                let query_schema = Arc::new(schema_builder::build(
-                    internal_model,
-                    BuildMode::Modern,
-                    true,
-                    source.capabilities(),
-                    vec![],
-                    source.referential_integrity(),
-                ));
-                executor.primary_connector().get_connection().await.unwrap();
-                Self {
-                    executor,
-                    query_schema,
-                }
-            }
-
-            pub async fn new_with_url(url: &str) -> Self {
-                let datamodel_str = #datamodel;
-                let config = parse_configuration(datamodel_str).unwrap().subject;
-                let source = config
-                    .datasources
-                    .first()
-                    .expect("Pleasy supply a datasource in your schema.prisma file");
-
-                let (db_name, executor) = executor::load(&source, &[], &url).await.unwrap();
-                let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
-                let query_schema = Arc::new(schema_builder::build(
-                    internal_model,
-                    BuildMode::Modern,
-                    true,
-                    source.capabilities(),
-                    vec![],
-                    source.referential_integrity(),
-                ));
-                executor.primary_connector().get_connection().await.unwrap();
-                Self {
-                    executor,
-                    query_schema,
-                }
-            }
-
             pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> Result<Vec<T>, CoreError> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),

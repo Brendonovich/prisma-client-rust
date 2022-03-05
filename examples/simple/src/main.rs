@@ -4,7 +4,7 @@ pub mod db;
 
 #[tokio::main]
 pub async fn main() {
-    let client = PrismaClient::new().await;
+    let client = db::new_client().await;
 
     let user = client
         .user()
@@ -24,7 +24,7 @@ pub async fn main() {
             Post::user().link(User::id().equals(user.id.to_string())),
             vec![],
         )
-        .exec()
+
         .await;
 
     println!("User: {:?}", user);
@@ -35,7 +35,8 @@ pub async fn main() {
         .find_unique(Post::id().equals("post0".to_string()))
         .with(vec![Post::user().fetch()])
         .exec()
-        .await;
+        .await
+        .unwrap();
 
     println!("Post user: {:?}", post_with_user.user().unwrap());
 
@@ -44,7 +45,8 @@ pub async fn main() {
         .find_unique(User::id().equals("user0".to_string()))
         .with(vec![User::posts().fetch(vec![])])
         .exec()
-        .await;
+        .await
+        .unwrap();
 
     println!("User posts: {:?}", user_with_posts.posts().unwrap());
 
