@@ -181,6 +181,16 @@ impl WhereParams {
                     }
                 }
             }
+            
+            impl From<Operator<Self>> for #name {
+                fn from(op: Operator<Self>) -> Self {
+                    match op {
+                        Operator::Not(value) => Self::Not(value),
+                        Operator::And(value) => Self::And(value),
+                        Operator::Or(value) => Self::Or(value)
+                    }
+                }
+            }
         }
     }
 
@@ -485,7 +495,7 @@ impl QueryStructs {
         let model_set_param = &set_params.enum_name;
         let model_where_param = &where_params.enum_name;
 
-        let field_methods = model
+        let methods = model
             .fields
             .iter()
             .map(|field| {
@@ -503,24 +513,6 @@ impl QueryStructs {
                 }
             })
             .collect::<Vec<_>>();
-
-        let operator_methods = Document::operators()
-            .iter()
-            .map(|op| {
-                let method_name = format_ident!("{}", op.name.to_case(Case::Snake));
-                let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
-
-                quote! {
-                    pub fn #method_name(params: Vec<#model_where_param>) -> #model_where_param {
-                        #model_where_param::#variant_name(params)
-                    }
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let mut methods = vec![];
-        methods.extend(field_methods);
-        methods.extend(operator_methods);
 
         let field_structs = model
             .fields
