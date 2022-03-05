@@ -266,16 +266,16 @@ pub struct SchemaEnum {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumValue {
-    name: String,
-    db_name: String,
+    pub name: String,
+    pub db_name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Enum {
-    name: String,
-    values: Vec<EnumValue>,
-    db_name: String,
+    pub name: String,
+    pub values: Vec<EnumValue>,
+    pub db_name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

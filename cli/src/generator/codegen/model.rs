@@ -104,7 +104,13 @@ impl WhereParams {
                         },
                         ..t
                     },
-                    None => panic!("{:?}", field.field_type.string()),
+                    None => Type {
+                        name: field.field_type.string().into(),
+                        methods: vec![Method {
+                            name: "Equals".into(),
+                            action: "equals".into(),
+                        }],
+                    },
                 };
 
                 let field_type_value = field.field_type.value();
@@ -561,7 +567,13 @@ impl QueryStructs {
                             },
                             ..t
                         },
-                        None => panic!("{:?}", field.field_type.string()),
+                        None => Type {
+                            name: field.field_type.string().into(),
+                            methods: vec![Method {
+                                name: "Equals".into(),
+                                action: "equals".into(),
+                            }]
+                        },
                     };
 
                     read_types
