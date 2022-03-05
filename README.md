@@ -42,7 +42,7 @@ Primsa Client Rust is still under active development and is subject to change su
    ```
 5. Generate the rust module
     ```
-    $ prisma-client-rust generate`
+    $ prisma-client-rust generate
     ```
 6. Include the generated module in your code and connect a new Prisma client
 
