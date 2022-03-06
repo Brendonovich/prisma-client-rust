@@ -72,7 +72,7 @@ pub fn generate(root: &Root) -> TokenStream {
             } else {
                 url
             };
-            new_with_url(url)
+            new_client_with_url(url)
         }
 
         // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
