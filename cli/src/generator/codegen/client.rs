@@ -46,7 +46,7 @@ pub fn generate(root: &Root) -> TokenStream {
             query_schema: Arc<QuerySchema>,
         }
 
-        pub async fn new_client() -> Self {
+        pub async fn new_client() -> PrismaClient {
             let datamodel_str = #datamodel;
             let config = parse_configuration(datamodel_str).unwrap().subject;
             let source = config
@@ -76,7 +76,7 @@ pub fn generate(root: &Root) -> TokenStream {
         }
 
         // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
-        pub async fn new_client_with_url(url: &str) -> Self {
+        pub async fn new_client_with_url(url: &str) -> PrismaClient {
             let datamodel_str = #datamodel;
             let config = parse_configuration(datamodel_str).unwrap().subject;
             let source = config
@@ -95,7 +95,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 source.referential_integrity(),
             ));
             executor.primary_connector().get_connection().await.unwrap();
-            Self {
+            PrismaClient {
                 executor,
                 query_schema,
             }
