@@ -288,7 +288,7 @@ pub struct Datamodel {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UniqueIndex {
-    pub name: String,
+    pub name: Option<String>,
     pub fields: Vec<String>,
 }
 
