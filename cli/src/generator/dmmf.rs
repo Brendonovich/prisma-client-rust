@@ -288,26 +288,8 @@ pub struct Datamodel {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UniqueIndex {
-    internal_name: String,
+    pub name: String,
     pub fields: Vec<String>,
-}
-
-impl UniqueIndex {
-    pub fn name(self) -> String {
-        if self.internal_name != "" {
-            return self.internal_name;
-        };
-
-        self.fields.join("")
-    }
-
-    pub fn ast_name(self) -> String {
-        if self.internal_name != "" {
-            return self.internal_name;
-        };
-
-        self.fields.join("_")
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
