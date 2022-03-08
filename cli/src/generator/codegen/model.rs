@@ -964,7 +964,13 @@ impl<'a> Actions<'a> {
         let model_update_unique = format_ident!("{}UpdateUnique", model_name_pascal_string);
         let model_update_many = format_ident!("{}UpdateMany", model_name_pascal_string);
         let model_delete = format_ident!("{}Delete", model_name_pascal_string);
-
+        
+        let raw_fn = quote! {
+            pub fn _raw_gql(&self) -> String {
+                self.query.build()
+            }
+        };
+        
         quote! {
             pub struct #model_find_many<'a> {
                 query: Query<'a>
@@ -1022,6 +1028,8 @@ impl<'a> Actions<'a> {
                 }
 
                 #with_fn
+                
+                #raw_fn
             }
 
             pub struct #model_find_first<'a> {
@@ -1034,6 +1042,8 @@ impl<'a> Actions<'a> {
                 }
 
                 #with_fn
+                
+                #raw_fn
             }
 
             pub struct #model_find_unique<'a> {
@@ -1089,6 +1099,8 @@ impl<'a> Actions<'a> {
                 }
 
                 #with_fn
+                
+                #raw_fn
             }
 
             pub struct #model_create_one<'a> {
@@ -1099,6 +1111,8 @@ impl<'a> Actions<'a> {
                 pub async fn exec(self) -> #data_struct_name {
                     self.query.perform::<#data_struct_name>().await.unwrap()
                 }
+            
+                #raw_fn
             }
 
             pub struct #model_update_unique<'a> {
@@ -1111,6 +1125,8 @@ impl<'a> Actions<'a> {
                 }
 
                 #with_fn
+                
+                #raw_fn
             }
 
             pub struct #model_update_many<'a> {
@@ -1123,6 +1139,8 @@ impl<'a> Actions<'a> {
                 }
 
                 #with_fn
+                
+                #raw_fn
             }
 
             pub struct #model_delete<'a> {
@@ -1133,6 +1151,8 @@ impl<'a> Actions<'a> {
                 pub async fn exec(self) -> isize {
                     self.query.perform::<DeleteResult>().await.unwrap().count
                 }
+                
+                #raw_fn
             }
 
             pub struct #struct_name<'a> {
@@ -1244,6 +1264,8 @@ impl<'a> Actions<'a> {
 
                     #model_create_one { query }
                 }
+
+                #raw_fn
             }
         }
     }
