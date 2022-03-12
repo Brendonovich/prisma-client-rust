@@ -24,6 +24,7 @@ pub async fn main() {
             Post::user().link(User::id().equals(user.id.to_string())),
             vec![],
         )
+        .exec()
         .await;
 
     println!("User: {:?}", user);

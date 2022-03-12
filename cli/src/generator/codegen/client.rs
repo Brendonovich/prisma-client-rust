@@ -151,19 +151,6 @@ pub fn generate(root: &Root) -> TokenStream {
 
                 query.perform().await.map(|result: i64| result)
             }
-
-            pub async fn _execute_gql<T: DeserializeOwned>(&self, gql: &str) -> Result<T, CoreError> {
-                let document = parse_query(&query_string).unwrap();
-                let operation = GraphQLProtocolAdapter::convert(document, None).unwrap();
-
-                self
-                    .executor
-                    .execute(None, operation, self.ctx.schema, None)
-                    .await
-                    .map(|response| {
-                        serde_json::from_value(serde_json::to_value(response.data).unwrap()).unwrap()
-                    })
-            }
             
             #(#model_actions)*
         }
