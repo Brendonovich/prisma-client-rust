@@ -207,7 +207,6 @@ impl WhereParams {
 
 struct WithParams {
     pub enum_name: Ident,
-    pub struct_name: Ident,
     pub with_fn: TokenStream,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
@@ -216,21 +215,16 @@ struct WithParams {
 impl WithParams {
     pub fn new(model: &Model, outputs: &Outputs) -> Self {
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
-        let struct_name = format_ident!("{}With", &model_name_pascal_string);
+        let enum_name = format_ident!("{}WithParam", &model_name_pascal_string);
 
         let mut params = Self {
-            enum_name: format_ident!("{}WithParam", &model_name_pascal_string),
             with_fn: quote! {
-                pub fn with(mut self, fetches: Vec<#struct_name>) -> Self {
-                    let outputs = fetches
-                        .into_iter()
-                        .map(|f| f.param.output())
-                        .collect::<Vec<_>>();
-                    self.query.outputs.extend(outputs);
+                pub fn with(mut self, param: #enum_name) -> Self {
+                    self.with_params.push(param);
                     self
                 }
             },
-            struct_name,
+            enum_name,
             variants: vec![],
             match_arms: vec![],
         };
@@ -290,25 +284,12 @@ impl WithParams {
             variants,
             match_arms,
             enum_name: name,
-            struct_name,
             ..
         } = self;
 
         quote! {
-            pub struct #struct_name {
-                pub param: #name
-            }
-
             pub enum #name {
                 #(#variants),*
-            }
-
-            impl From<#name> for #struct_name {
-                fn from(param: #name) -> Self {
-                    Self {
-                        param
-                    }
-                }
             }
 
             impl #name {
@@ -518,8 +499,8 @@ impl OrderByParams {
             params.add_variant(quote!(#variant_name(Direction)),
             quote! {
                 Self::#variant_name(direction) => Field {
-                    name: #field_name_string,
-                    value: Some(direction.into()),
+                    name: #field_name_string.into(),
+                    value: Some(serde_json::to_value(direction).unwrap()),
                     ..Default::default()
                 }
             });
@@ -677,7 +658,6 @@ impl QueryStructs {
                     let link_variant = format_ident!("Link{}", &field_name_pascal);
                     let unlink_varaint = format_ident!("Unlink{}", &field_name_pascal);
 
-                    let with_struct = &with_params.struct_name;
                     let with_enum = &with_params.enum_name;
 
                     if field.is_list {                        
@@ -690,8 +670,8 @@ impl QueryStructs {
                                 #model_set_param::#unlink_varaint(params)
                             }
 
-                            pub fn fetch(&self, params: Vec<#relation_where_param>) -> #with_struct {
-                                #with_enum::#field_name_pascal(params).into()
+                            pub fn fetch(&self, params: Vec<#relation_where_param>) -> #with_enum {
+                                #with_enum::#field_name_pascal(params)
                             }
                         });
 
@@ -718,8 +698,8 @@ impl QueryStructs {
                                 #field_link_struct_name(value).into()
                             }
 
-                            pub fn fetch(&self) -> #with_struct {
-                                #with_enum::#field_name_pascal.into()
+                            pub fn fetch(&self) -> #with_enum {
+                                #with_enum::#field_name_pascal
                             }
                         
                             #unlink_fn
@@ -743,6 +723,13 @@ impl QueryStructs {
                             #field_set_struct_name(value).into()
                         }
                     });
+                    
+                    let order_by_enum = &order_by_params.enum_name;
+                    field_struct_fns.push(quote! {
+                        pub fn order(&self, direction: Direction) -> #order_by_enum {
+                            #order_by_enum::#field_name_pascal(direction)
+                        }
+                    });
 
                     quote! {
                         pub struct #field_set_struct_name(#field_type);
@@ -754,13 +741,6 @@ impl QueryStructs {
                         }
                     }
                 };
-                
-                let order_by_enum = &order_by_params.enum_name;
-                field_struct_fns.push(quote! {
-                    pub fn order(&self, direction: Direction) -> #order_by_enum {
-                        #order_by_enum::#field_name_pascal(direction)
-                    }
-                });
 
                 quote! {
                     pub struct #field_struct_name {}
@@ -869,7 +849,7 @@ impl DataStruct {
 
                 if field.is_required {
                     let err = format!(
-                        "attempted to access {} but did not fetch it using the .with() syntax",
+                        "Attempted to access {} but did not fetch it using the .with() syntax",
                         field_name_snake
                     );
 
@@ -932,8 +912,9 @@ struct Actions<'a> {
     where_param_enum: &'a Ident,
     set_param_enum: &'a Ident,
     order_by_enum: &'a Ident,
-    order_by_fn: &'a TokenStream,
     outputs_fn_name: &'a Ident,
+    order_by_fn: &'a TokenStream,
+    with_param_enum: &'a Ident,
     with_fn: &'a TokenStream,
     required_args: Vec<TokenStream>,
     required_arg_pushes: Vec<TokenStream>,
@@ -1023,6 +1004,7 @@ impl<'a> Actions<'a> {
             order_by_enum: &order_by_params.enum_name,
             order_by_fn: &order_by_params.order_by_fn,
             outputs_fn_name: &outputs.fn_name,
+            with_param_enum: &with_params.enum_name,
             with_fn: &with_params.with_fn,
             required_args,
             required_arg_pushes,
@@ -1040,6 +1022,7 @@ impl<'a> Actions<'a> {
             order_by_enum,
             order_by_fn,
             outputs_fn_name,
+            with_param_enum,
             with_fn,
             required_args,
             required_tuple_args,
@@ -1058,27 +1041,34 @@ impl<'a> Actions<'a> {
             pub struct #model_find_many<'a> {
                 query: Query<'a>,
                 order_by_params: Vec<#order_by_enum>,
+                with_params: Vec<#with_param_enum>
             }
 
             impl<'a> #model_find_many<'a> {
-                pub async fn exec(self) -> Vec<#data_struct_name> {
+                pub async fn exec(self) -> QueryResult<Vec<#data_struct_name>> {
                     let Self {
                         mut query,
-                        order_by_params
+                        order_by_params,
+                        with_params
                     } = self;
                     
-                    if self.order_by_params.len() > 0 {
-                        self.query.inputs.push(Input {
+                    if order_by_params.len() > 0 {
+                        query.inputs.push(Input {
                             name: "orderBy".into(),
-                            fields: self.order_by_params
+                            fields: order_by_params
                                 .into_iter()
-                                .map(|f| f.param.field())
+                                .map(|f| f.field())
                                 .collect(),
                             ..Default::default()
                         });
                     }
                     
-                    self.query.perform::<Vec<#data_struct_name>>().await.unwrap()
+                    query.outputs.extend(with_params
+                        .into_iter()
+                        .map(|f| f.output())
+                        .collect::<Vec<_>>());
+                    
+                    query.perform::<Vec<#data_struct_name>>().await
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1123,7 +1113,8 @@ impl<'a> Actions<'a> {
                             operation: "mutation".into(),
                             method: "updateMany".into(),
                             ..self.query
-                        }
+                        },
+                        with_params: vec![]
                     }
                 }
                 
@@ -1135,27 +1126,34 @@ impl<'a> Actions<'a> {
             pub struct #model_find_first<'a> {
                 query: Query<'a>,
                 order_by_params: Vec<#order_by_enum>,
+                with_params: Vec<#with_param_enum>
             }
 
             impl<'a> #model_find_first<'a> {
-                pub async fn exec(self) -> Option<#data_struct_name> {
+                pub async fn exec(self) -> QueryResult<#data_struct_name> {
                     let Self {
                         mut query,
-                        order_by_params
+                        order_by_params,
+                        with_params
                     } = self;
                     
-                    if self.order_by_params.len() > 0 {
-                        self.query.inputs.push(Input {
+                    if order_by_params.len() > 0 {
+                        query.inputs.push(Input {
                             name: "orderBy".into(),
-                            fields: self.order_by_params
+                            fields: order_by_params
                                 .into_iter()
-                                .map(|f| f.param.field())
+                                .map(|f| f.field())
                                 .collect(),
                             ..Default::default()
                         });
                     }
                     
-                    self.query.perform::<Option<#data_struct_name>>().await.unwrap()
+                    query.outputs.extend(with_params
+                        .into_iter()
+                        .map(|f| f.output())
+                        .collect::<Vec<_>>());
+                    
+                    query.perform::<#data_struct_name>().await
                 }
 
                 #with_fn
@@ -1164,12 +1162,23 @@ impl<'a> Actions<'a> {
             }
 
             pub struct #model_find_unique<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                with_params: Vec<#with_param_enum>
             }
 
             impl<'a> #model_find_unique<'a> {
-                pub async fn exec(self) -> Option<#data_struct_name> {
-                    self.query.perform::<Option<#data_struct_name>>().await.unwrap()
+                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                    let Self {
+                        mut query,
+                        with_params
+                    } = self;
+                    
+                    query.outputs.extend(with_params
+                        .into_iter()
+                        .map(|f| f.output())
+                        .collect::<Vec<_>>());
+                    
+                    query.perform::<#data_struct_name>().await
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1211,7 +1220,8 @@ impl<'a> Actions<'a> {
                             operation: "mutation".into(),
                             method: "updateOne".into(),
                             ..self.query
-                        }
+                        },
+                        with_params: vec![]
                     }
                 }
 
@@ -1219,34 +1229,36 @@ impl<'a> Actions<'a> {
             }
 
             pub struct #model_create_one<'a> {
-                query: Query<'a>
+                query: Query<'a>,
             }
 
             impl<'a> #model_create_one<'a> {
-                pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform::<#data_struct_name>().await.unwrap()
+                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                    self.query.perform::<#data_struct_name>().await
                 }
             }
 
             pub struct #model_update_unique<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                with_params: Vec<#with_param_enum>
             }
 
             impl<'a> #model_update_unique<'a> {
-                pub async fn exec(self) -> #data_struct_name {
-                    self.query.perform::<#data_struct_name>().await.unwrap()
+                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                    self.query.perform::<#data_struct_name>().await
                 }
 
                 #with_fn
             }
 
             pub struct #model_update_many<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                with_params: Vec<#with_param_enum>
             }
 
             impl<'a> #model_update_many<'a> {
-                pub async fn exec(self) -> Vec<#data_struct_name> {
-                    self.query.perform::<Vec<#data_struct_name>>().await.unwrap()
+                pub async fn exec(self) -> QueryResult<Vec<#data_struct_name>> {
+                    self.query.perform::<Vec<#data_struct_name>>().await
                 }
 
                 #with_fn
@@ -1257,8 +1269,8 @@ impl<'a> Actions<'a> {
             }
 
             impl<'a> #model_delete<'a> {
-                pub async fn exec(self) -> isize {
-                    self.query.perform::<DeleteResult>().await.unwrap().count
+                pub async fn exec(self) -> QueryResult<isize> {
+                    self.query.perform::<DeleteResult>().await.map(|r| r.count)
                 }
             }
 
@@ -1285,7 +1297,10 @@ impl<'a> Actions<'a> {
                         }]
                     };
 
-                    #model_find_unique { query }
+                    #model_find_unique { 
+                        query,
+                        with_params: vec![]
+                    }
                 }
 
                 pub fn find_first(&self, params: Vec<#where_param_enum>) -> #model_find_first {
@@ -1319,7 +1334,7 @@ impl<'a> Actions<'a> {
                         inputs
                     };
 
-                    #model_find_first { query, order_by_params: vec![] }
+                    #model_find_first { query, order_by_params: vec![], with_params: vec![] }
                 }
 
                 pub fn find_many(&self, params: Vec<#where_param_enum>) -> #model_find_many {
@@ -1347,7 +1362,7 @@ impl<'a> Actions<'a> {
                         inputs
                     };
 
-                    #model_find_many { query, order_by_params: vec![] }
+                    #model_find_many { query, order_by_params: vec![], with_params: vec![] }
                 }
 
                 pub fn create_one(&self, #(#required_args)* params: Vec<#set_param_enum>) -> #model_create_one {

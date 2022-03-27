@@ -26,3 +26,4 @@ request-handlers = { git = "https://github.com/prisma/prisma-engines", tag = "3.
 prisma-models = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
 datamodel = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
 graphql-parser = { git = "https://github.com/prisma/graphql-parser" }
+thiserror = "1.0.30"

@@ -1,8 +1,9 @@
 use graphql_parser::parse_query;
-use query_core::{QuerySchemaRef, CoreError};
+use query_core::QuerySchemaRef;
 use request_handlers::GraphQLProtocolAdapter;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use thiserror::Error;
 
 use crate::Executor;
 
@@ -61,22 +62,41 @@ pub struct Query<'a> {
     pub outputs: Vec<Output>,
 }
 
+#[derive(Debug, Error)]
+pub enum QueryError {
+    #[error("Internal Error - GraphQL Parsing: {0}")]
+    GraphQLParse(#[from] graphql_parser::query::ParseError),
+
+    #[error("Internal Error - GraphQL Conversion: {0}")]
+    GraphQLConvert(#[from] request_handlers::HandlerError),
+
+    #[error("Error executing query: {0}")]
+    Execute(#[from] query_core::CoreError),
+
+    #[error("Error parsing query result: {0}")]
+    Parse(#[from] serde_json::Error),
+}
+
+pub type Result<T> = std::result::Result<T, QueryError>;
+
 impl<'a> Query<'a> {
-    pub async fn perform<T: DeserializeOwned>(self) -> Result<T, CoreError> {
+    pub async fn perform<T: DeserializeOwned>(self) -> Result<T> {
         // TODO: check if engine running
         let query_string = self.build();
 
-        let document = parse_query(&query_string).unwrap();
-        let operation = GraphQLProtocolAdapter::convert(document, None).unwrap();
+        let document = parse_query(&query_string)?;
+        let operation = GraphQLProtocolAdapter::convert(document, None)?;
 
-        self
+        let data = self
             .ctx
             .executor
             .execute(None, operation, self.ctx.schema, None)
-            .await
-            .map(|response| {
-                serde_json::from_value(serde_json::to_value(response.data).unwrap()).unwrap()
-            })
+            .await?;
+
+        let value = serde_json::to_value(data.data)?;
+        let ret = serde_json::from_value(value)?;
+
+        Ok(ret)
     }
 
     pub fn build(&self) -> String {
@@ -122,7 +142,8 @@ impl<'a> Query<'a> {
             string.push_str(":");
 
             let next = match &input.value {
-                Some(value) => serde_json::to_string(value).unwrap(),
+                Some(value) => serde_json::to_string(value)
+                    .expect(&format!("Failed to build input {}", input.name)),
                 None => self.build_fields(false, false, &input.fields),
             };
 
@@ -185,7 +206,10 @@ impl<'a> Query<'a> {
             }
 
             if let Some(value) = &field.value {
-                string.push_str(&serde_json::to_string(&value).unwrap());
+                string.push_str(
+                    &serde_json::to_string(&value)
+                        .expect(&format!("Failed to build field {}", field.name)),
+                );
             }
 
             if field.list {

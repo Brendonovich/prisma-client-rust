@@ -17,7 +17,9 @@ pub struct DeleteResult {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum Direction {
+    #[serde(rename = "asc")]
     Asc,
+    #[serde(rename = "desc")]
     Desc,
 }
 

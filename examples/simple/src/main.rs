@@ -14,7 +14,8 @@ pub async fn main() {
             vec![],
         )
         .exec()
-        .await;
+        .await
+        .unwrap();
 
     let post = client
         .post()
@@ -25,7 +26,8 @@ pub async fn main() {
             vec![],
         )
         .exec()
-        .await;
+        .await
+        .unwrap();
 
     println!("User: {:?}", user);
     println!("Post: {:?}", post);
@@ -33,7 +35,7 @@ pub async fn main() {
     let post_with_user = client
         .post()
         .find_unique(Post::id().equals("post0".to_string()))
-        .with(vec![Post::user().fetch()])
+        .with(Post::user().fetch())
         .exec()
         .await
         .unwrap();
@@ -43,16 +45,28 @@ pub async fn main() {
     let user_with_posts = client
         .user()
         .find_unique(User::id().equals("user0".to_string()))
-        .with(vec![User::posts().fetch(vec![])])
+        .with(User::posts().fetch(vec![]))
         .exec()
         .await
         .unwrap();
 
     println!("User posts: {:?}", user_with_posts.posts().unwrap());
 
-    let deleted_posts = client.post().find_many(vec![]).delete().exec().await;
+    let deleted_posts = client
+        .post()
+        .find_many(vec![])
+        .delete()
+        .exec()
+        .await
+        .unwrap();
     println!("Deleted {} posts", deleted_posts);
 
-    let deleted_users_count = client.user().find_many(vec![]).delete().exec().await;
+    let deleted_users_count = client
+        .user()
+        .find_many(vec![])
+        .delete()
+        .exec()
+        .await
+        .unwrap();
     println!("Deleted {} users", deleted_users_count);
 }

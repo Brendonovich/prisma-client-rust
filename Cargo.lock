@@ -2378,6 +2378,7 @@ dependencies = [
  "request-handlers",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

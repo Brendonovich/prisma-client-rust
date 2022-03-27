@@ -30,7 +30,7 @@ pub fn generate(root: &Root) -> TokenStream {
     let schema_path_prisma_folder = format!("./prisma/{}", &root.schema_path);
 
     quote! {
-        use prisma_client_rust::query::*;
+        use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor, CoreError};
@@ -102,7 +102,7 @@ pub fn generate(root: &Root) -> TokenStream {
         }
 
         impl PrismaClient {
-            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> Result<Vec<T>, CoreError> {
+            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> QueryResult<Vec<T>> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
                     operation: "mutation".into(),
@@ -127,7 +127,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 query.perform().await
             }
 
-            pub async fn _execute_raw(&self, query: &str) -> Result<i64, CoreError> {
+            pub async fn _execute_raw(&self, query: &str) -> QueryResult<i64> {
                 let query = Query {
                     ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
                     operation: "mutation".into(),
