@@ -80,7 +80,7 @@ impl WhereParams {
                                     fields: Some(vec![
                                         Field {
                                             name: "AND".into(),
-                                            fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                                            fields: Some(value.into_iter().map(|f| f.to_field()).collect()),
                                             ..Default::default()
                                         }
                                     ]),
@@ -153,7 +153,7 @@ impl WhereParams {
                             name: #action.into(),
                             list: true,
                             wrap_list: true,
-                            fields: Some(value.into_iter().map(|f| f.field()).collect()),
+                            fields: Some(value.into_iter().map(|f| f.to_field()).collect()),
                             ..Default::default()
                         }
                 },
@@ -181,7 +181,7 @@ impl WhereParams {
             }
 
             impl #name {
-                pub fn field(self) -> Field {
+                pub fn to_field(self) -> Field {
                     match self {
                         #(#match_arms),*
                     }
@@ -249,7 +249,7 @@ impl WithParams {
                                 inputs: if where_params.len() > 0 {
                                     vec![Input {
                                         name: "where".into(),
-                                        fields: where_params.into_iter().map(|f| f.field()).collect(),
+                                        fields: where_params.into_iter().map(|f| f.to_field()).collect(),
                                         ..Default::default()
                                     }]
                                 } else { vec![] },
@@ -293,7 +293,7 @@ impl WithParams {
             }
 
             impl #name {
-                pub fn output(self) -> Output {
+                pub fn to_output(self) -> Output {
                     match self {
                         #(#match_arms),*
                     }
@@ -353,7 +353,7 @@ impl SetParams {
                                     fields: Some(transform_equals(
                                         where_params
                                             .into_iter()
-                                            .map(|item| item.field())
+                                            .map(|item| item.to_field())
                                             .collect()
                                     )),
                                     list: true,
@@ -374,7 +374,7 @@ impl SetParams {
                                 Field {
                                     name: "connect".into(),
                                     fields: Some(transform_equals(vec![
-                                        where_param.field()
+                                        where_param.to_field()
                                     ])),
                                     ..Default::default()
                                 }
@@ -404,7 +404,7 @@ impl SetParams {
                                         fields: Some(transform_equals(
                                             where_params
                                                 .into_iter()
-                                                .map(|item| item.field())
+                                                .map(|item| item.to_field())
                                                 .collect()
                                         )),
                                         ..Default::default()
@@ -454,7 +454,7 @@ impl SetParams {
             }
 
             impl #enum_name {
-                pub fn field(self) -> Field {
+                pub fn to_field(self) -> Field {
                     match self {
                         #(#match_arms),*
                     }
@@ -528,7 +528,101 @@ impl OrderByParams {
             }
             
             impl #enum_name {
-                pub fn field(self) -> Field {
+                pub fn to_field(self) -> Field {
+                    match self {
+                        #(#match_arms),*
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct PaginationParams {
+    pub cursor_enum_name: Ident,
+    pub pagination_fns: TokenStream,
+    variants: Vec<TokenStream>,
+    match_arms: Vec<TokenStream>,
+}
+
+impl PaginationParams {
+    pub fn new(model: &Model) -> Self {
+        let model_name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
+        let cursor_enum_name = format_ident!("{}Cursor", model_name_pascal);
+        
+        let pagination_fns = quote! {
+            pub fn skip(mut self, skip: usize) -> Self {
+                self.query.inputs.push(Input {
+                    name: "skip".into(),
+                    value: Some(serde_json::to_value(skip).unwrap()),
+                    ..Default::default()
+                });
+                self
+            }
+            
+            pub fn take(mut self, take: usize) -> Self {
+                self.query.inputs.push(Input {
+                    name: "take".into(),
+                    value: Some(serde_json::to_value(take).unwrap()),
+                    ..Default::default()
+                });
+                self
+            }
+            
+            pub fn cursor(mut self, cursor: #cursor_enum_name) -> Self {
+                self.query.inputs.push(Input {
+                    name: "cursor".into(),
+                    fields: vec![cursor.to_field()],
+                    ..Default::default()
+                });
+                self
+            }
+        };
+        
+        let mut variants = vec![];
+        let mut match_arms = vec![];
+        
+        for f in model.fields.iter().filter(|f| !f.kind.is_relation()) {
+            let variant_name = format_ident!("{}", f.name.to_case(Case::Pascal));
+            let variant_type = format_ident!("{}", f.field_type.value());
+            let field_name_string = &f.name;
+            
+            variants.push(quote! {
+                #variant_name(#variant_type)
+            });
+            
+            match_arms.push(quote! {
+                Self::#variant_name(cursor) => Field {
+                    name: #field_name_string.into(),
+                    value: Some(serde_json::to_value(cursor).unwrap()),
+                    ..Default::default()
+                }
+            });
+        }
+        
+        Self {
+            cursor_enum_name,
+            pagination_fns,
+            variants,
+            match_arms
+        }
+    }
+    
+    pub fn quote(&self) -> TokenStream {
+        let Self {
+            cursor_enum_name,
+            pagination_fns,
+            variants,
+            match_arms,
+        } = self;
+        
+        quote! {
+            pub enum #cursor_enum_name {
+                #(#variants),*
+            }
+            
+            impl #cursor_enum_name {
+                pub fn to_field(self) -> Field {
                     match self {
                         #(#match_arms),*
                     }
@@ -916,6 +1010,7 @@ struct Actions<'a> {
     order_by_fn: &'a TokenStream,
     with_param_enum: &'a Ident,
     with_fn: &'a TokenStream,
+    pagination_fns: &'a TokenStream,
     required_args: Vec<TokenStream>,
     required_arg_pushes: Vec<TokenStream>,
     required_tuple_args: Vec<TokenStream>,
@@ -929,7 +1024,8 @@ impl<'a> Actions<'a> {
         with_params: &'a WithParams,
         outputs: &'a Outputs,
         data_struct: &'a DataStruct,
-        order_by_params: &'a OrderByParams
+        order_by_params: &'a OrderByParams,
+        pagination_params: &'a PaginationParams
     ) -> Self {
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
         let set_param_enum = &set_params.enum_name;
@@ -966,7 +1062,7 @@ impl<'a> Actions<'a> {
             .map(|f| {
                 let arg_name = format_ident!("{}", &f.name.to_case(Case::Snake));
                 quote! {
-                    input_fields.push(#set_param_enum::from(#arg_name).field());
+                    input_fields.push(#set_param_enum::from(#arg_name).to_field());
                 }
             })
             .collect();
@@ -1006,6 +1102,7 @@ impl<'a> Actions<'a> {
             outputs_fn_name: &outputs.fn_name,
             with_param_enum: &with_params.enum_name,
             with_fn: &with_params.with_fn,
+            pagination_fns: &pagination_params.pagination_fns,
             required_args,
             required_arg_pushes,
             required_tuple_args
@@ -1024,6 +1121,7 @@ impl<'a> Actions<'a> {
             outputs_fn_name,
             with_param_enum,
             with_fn,
+            pagination_fns,
             required_args,
             required_tuple_args,
             required_arg_pushes,
@@ -1057,7 +1155,7 @@ impl<'a> Actions<'a> {
                             name: "orderBy".into(),
                             fields: order_by_params
                                 .into_iter()
-                                .map(|f| f.field())
+                                .map(|f| f.to_field())
                                 .collect(),
                             ..Default::default()
                         });
@@ -1065,7 +1163,7 @@ impl<'a> Actions<'a> {
                     
                     query.outputs.extend(with_params
                         .into_iter()
-                        .map(|f| f.output())
+                        .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
                     query.perform::<Vec<#data_struct_name>>().await
@@ -1091,7 +1189,7 @@ impl<'a> Actions<'a> {
                         fields: params
                             .into_iter()
                             .map(|param| {
-                                let mut field = param.field();
+                                let mut field = param.to_field();
 
                                 if let Some(value) = field.value {
                                     field.fields = Some(vec![Field {
@@ -1121,6 +1219,8 @@ impl<'a> Actions<'a> {
                 #order_by_fn
 
                 #with_fn
+                
+                #pagination_fns
             }
 
             pub struct #model_find_first<'a> {
@@ -1142,7 +1242,7 @@ impl<'a> Actions<'a> {
                             name: "orderBy".into(),
                             fields: order_by_params
                                 .into_iter()
-                                .map(|f| f.field())
+                                .map(|f| f.to_field())
                                 .collect(),
                             ..Default::default()
                         });
@@ -1150,7 +1250,7 @@ impl<'a> Actions<'a> {
                     
                     query.outputs.extend(with_params
                         .into_iter()
-                        .map(|f| f.output())
+                        .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
                     query.perform::<#data_struct_name>().await
@@ -1159,6 +1259,8 @@ impl<'a> Actions<'a> {
                 #with_fn
                 
                 #order_by_fn
+                
+                #pagination_fns
             }
 
             pub struct #model_find_unique<'a> {
@@ -1175,7 +1277,7 @@ impl<'a> Actions<'a> {
                     
                     query.outputs.extend(with_params
                         .into_iter()
-                        .map(|f| f.output())
+                        .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
                     query.perform::<#data_struct_name>().await
@@ -1198,7 +1300,7 @@ impl<'a> Actions<'a> {
                         fields: params
                             .into_iter()
                             .map(|param| {
-                                let mut field = param.field();
+                                let mut field = param.to_field();
 
                                 if let Some(value) = field.value {
                                     field.fields = Some(vec![Field {
@@ -1281,7 +1383,7 @@ impl<'a> Actions<'a> {
             impl<'a> #struct_name<'a> {
                 // TODO: Dedicated unique field
                 pub fn find_unique(&self, param: #where_param_enum) -> #model_find_unique {
-                    let fields = transform_equals(vec![param.field()]);
+                    let fields = transform_equals(vec![param.to_field()]);
 
                     let query = Query {
                         ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
@@ -1305,7 +1407,7 @@ impl<'a> Actions<'a> {
 
                 pub fn find_first(&self, params: Vec<#where_param_enum>) -> #model_find_first {
                     let where_fields: Vec<Field> = params.into_iter().map(|param|
-                        param.field()
+                        param.to_field()
                     ).collect();
 
                     let inputs = if where_fields.len() > 0 {
@@ -1339,7 +1441,7 @@ impl<'a> Actions<'a> {
 
                 pub fn find_many(&self, params: Vec<#where_param_enum>) -> #model_find_many {
                     let where_fields: Vec<Field> = params.into_iter().map(|param|
-                        param.field()
+                        param.to_field()
                     ).collect();
 
                     let inputs = if where_fields.len() > 0 {
@@ -1366,7 +1468,7 @@ impl<'a> Actions<'a> {
                 }
 
                 pub fn create_one(&self, #(#required_args)* params: Vec<#set_param_enum>) -> #model_create_one {
-                    let mut input_fields = params.into_iter().map(|p| p.field()).collect::<Vec<_>>();
+                    let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
 
                     #(#required_arg_pushes)*
 
@@ -1396,6 +1498,7 @@ pub fn generate(model: &Model) -> TokenStream {
     let set_params = SetParams::new(&model);
     let where_params = WhereParams::new(&model);
     let order_by_params = OrderByParams::new(&model);
+    let pagination_params = PaginationParams::new(&model);
     let outputs = Outputs::new(&model);
     let with_params = WithParams::new(&model, &outputs);
     let query_structs = QueryStructs::new(&model, &set_params, &where_params, &with_params, &order_by_params);
@@ -1406,7 +1509,8 @@ pub fn generate(model: &Model) -> TokenStream {
         &with_params,
         &outputs,
         &data_struct,
-        &order_by_params
+        &order_by_params,
+        &pagination_params
     );
 
     let data_struct = data_struct.quote();
@@ -1414,6 +1518,7 @@ pub fn generate(model: &Model) -> TokenStream {
     let with_params = with_params.quote();
     let set_params = set_params.quote();
     let order_by_params = order_by_params.quote();
+    let pagination_params = pagination_params.quote();
     let outputs_fn = outputs.quote();
     let query_structs = query_structs.quote();
     let actions = actions.quote();
@@ -1432,6 +1537,8 @@ pub fn generate(model: &Model) -> TokenStream {
         #set_params
         
         #order_by_params
+        
+        #pagination_params
 
         #actions
     }
