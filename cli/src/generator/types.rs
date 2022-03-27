@@ -1,8 +1,9 @@
-use super::dmmf;
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use super::ast::dmmf;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -79,7 +80,7 @@ pub struct BinaryPaths {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLType(String);
+pub struct GraphQLType(pub String);
 
 impl GraphQLType {
     pub fn string(&self) -> &str {

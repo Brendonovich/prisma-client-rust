@@ -2,8 +2,6 @@ use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
 
-use crate::generator::dmmf::{Document, Method, Model, Type};
-
 struct Outputs {
     pub fn_name: Ident,
     outputs: Vec<TokenStream>,
@@ -767,7 +765,7 @@ impl QueryStructs {
                         "{}Equals",
                         &field_name_pascal,
                     );
-                    field_struct_fns.push(match (field.is_unique || field.is_id) {
+                    field_struct_fns.push(match field.is_unique || field.is_id {
                        true => quote! {
                             pub fn equals<T: From<#model_unique_where_param>>(&self, value: #field_type) -> T {
                                 #model_unique_where_param::#variant_name(value).into()
@@ -1171,6 +1169,7 @@ impl<'a> Actions<'a> {
         let model_find_many = format_ident!("{}FindMany", model_name_pascal_string);
         let model_update_unique = format_ident!("{}UpdateUnique", model_name_pascal_string);
         let model_update_many = format_ident!("{}UpdateMany", model_name_pascal_string);
+        let model_upsert_one = format_ident!("{}UpsertOne", model_name_pascal_string);
         let model_delete = format_ident!("{}Delete", model_name_pascal_string);
         
         quote! {
@@ -1204,7 +1203,7 @@ impl<'a> Actions<'a> {
                         .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
-                    query.perform::<Vec<#data_struct_name>>().await
+                    query.perform().await
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1291,7 +1290,7 @@ impl<'a> Actions<'a> {
                         .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
-                    query.perform::<#data_struct_name>().await
+                    query.perform().await
                 }
 
                 #with_fn
@@ -1318,7 +1317,7 @@ impl<'a> Actions<'a> {
                         .map(|f| f.to_output())
                         .collect::<Vec<_>>());
                     
-                    query.perform::<#data_struct_name>().await
+                    query.perform().await
                 }
 
                 pub fn delete(self) -> #model_delete<'a> {
@@ -1374,7 +1373,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_create_one<'a> {
                 pub async fn exec(self) -> QueryResult<#data_struct_name> {
-                    self.query.perform::<#data_struct_name>().await
+                    self.query.perform().await
                 }
             }
 
@@ -1385,7 +1384,7 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_update_unique<'a> {
                 pub async fn exec(self) -> QueryResult<#data_struct_name> {
-                    self.query.perform::<#data_struct_name>().await
+                    self.query.perform().await
                 }
 
                 #with_fn
@@ -1398,12 +1397,63 @@ impl<'a> Actions<'a> {
 
             impl<'a> #model_update_many<'a> {
                 pub async fn exec(self) -> QueryResult<Vec<#data_struct_name>> {
-                    self.query.perform::<Vec<#data_struct_name>>().await
+                    self.query.perform().await
                 }
 
                 #with_fn
             }
 
+            pub struct #model_upsert_one<'a> {
+                query: Query<'a>,
+            }
+    
+            impl<'a> #model_upsert_one<'a> {
+                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                    self.query.perform().await
+                }
+
+                pub fn create(
+                    mut self,
+                    #(#required_args)* 
+                    params: Vec<#set_param_enum>
+                ) -> Self {
+                    let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
+
+                    #(#required_arg_pushes)*
+
+                    self.query.inputs.push(Input {
+                        name: "create".into(),
+                        fields: input_fields,
+                        ..Default::default()
+                    });
+                    
+                    self
+                }
+
+                pub fn update(mut self, params: Vec<UserSetParam>) -> Self {
+                    self.query.inputs.push(Input {
+                        name: "update".into(),
+                        fields: params
+                            .into_iter()
+                            .map(|param| {
+                                let mut field = param.to_field();
+                                if let Some(value) = field.value {
+                                    field.fields = Some(vec![Field {
+                                        name: "set".into(),
+                                        value: Some(value),
+                                        ..Default::default()
+                                    }]);
+                                    field.value = None;
+                                }
+                                field
+                            })
+                            .collect(),
+                        ..Default::default()
+                    });
+                    self
+                }
+            }
+            
             pub struct #model_delete<'a> {
                 query: Query<'a>
             }
@@ -1526,6 +1576,27 @@ impl<'a> Actions<'a> {
                     };
 
                     #model_create_one { query }
+                }
+            
+                pub fn upsert_one(&self, param: #unique_where_param_enum) -> #model_upsert_one {
+                    let param: #where_param_enum = param.into();
+                    let fields = transform_equals(vec![param.to_field()]);
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "mutation".into(),
+                        method: "upsertOne".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs: vec![Input {
+                            name: "where".into(),
+                            fields,
+                            ..Default::default()
+                        }]
+                    };
+
+                    #model_upsert_one { query }
                 }
             }
         }

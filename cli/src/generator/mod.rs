@@ -1,7 +1,7 @@
 pub mod types;
+pub mod ast;
 pub use types::*;
 pub mod codegen;
-pub mod dmmf;
 
 use std::fs;
 use std::fs::File;

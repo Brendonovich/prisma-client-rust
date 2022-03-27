@@ -1,9 +1,9 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::Root;
+use crate::generator::{Root, ast::AST};
 
-pub fn generate(root: &Root) -> TokenStream {
+pub fn generate(root: &AST) -> TokenStream {
     let model_actions = root
         .dmmf
         .datamodel

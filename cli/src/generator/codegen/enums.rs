@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
-use quote::{__private::TokenStream, quote, format_ident};
+use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::dmmf::Enum;
+use crate::generator::ast::enums::Enum;
 
 pub fn generate(e: &Enum) -> TokenStream {
     let name = format_ident!("{}", e.name.to_case(Case::Pascal));

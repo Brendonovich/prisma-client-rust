@@ -2,9 +2,9 @@ mod client;
 mod enums;
 mod model;
 
-use super::Root;
+use super::{Root, ast::AST};
 
-pub fn generate_prisma_client(root: &Root) -> String {
+pub fn generate_prisma_client(root: &AST) -> String {
     let mut client = client::generate(root);
 
     for model in &root.dmmf.datamodel.models {
