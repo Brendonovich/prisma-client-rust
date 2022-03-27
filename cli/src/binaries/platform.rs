@@ -6,6 +6,8 @@ use std::sync::Mutex;
 
 pub fn binary_platform_name() -> String {
     let platform = name();
+    
+    get_openssl();
 
     let distro = match platform.as_str() {
         "linux" => match get_linux_distro().as_str() {
@@ -115,9 +117,10 @@ fn get_openssl() -> String {
 }
 
 fn parse_openssl_version(v: &str) -> String {
-    let r = Regex::new(r"^OpenSSL\s(\d+\.\d+\.\d+)");
+    let r = Regex::new(r"^OpenSSL\s(\d+\.\d+)\.\d");
     let matches = r.unwrap().captures(v).unwrap();
     if matches.len() > 0 {
+        dbg!(&matches);
         matches.get(1).unwrap().as_str().to_string() + ".x"
     } else {
         "1.1.x".to_string()
