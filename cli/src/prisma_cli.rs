@@ -11,7 +11,7 @@ pub fn main(args: &Vec<String>) {
 
     let mut cmd = Command::new(dir.join(prisma));
     let binary_name =
-        platform::check_for_extension(platform::name(), platform::binary_platform_name());
+        platform::check_for_extension(&platform::name(), &platform::binary_platform_name());
 
     cmd.args(args);
 
@@ -26,7 +26,7 @@ pub fn main(args: &Vec<String>) {
             Err(_) => {
                 let path = dir
                     .join(e.name)
-                    .join(format!("prisma-{}-{}", engine.name, binary_name));
+                    .join(format!("prisma-{}-{}", e.name, binary_name));
                 cmd.env(e.env, path);
             }
         }
