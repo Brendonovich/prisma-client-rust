@@ -90,9 +90,9 @@ impl GraphQLType {
         let string = self.string();
 
         match string {
-            "Int" => "i64".to_string(),
+            "Int" => "i32".to_string(),
             "BigInt" => "i64".to_string(),
-            "Float" => "f32".to_string(),
+            "Float" => "f64".to_string(),
             "Boolean" => "bool".to_string(),
             "Bytes" => "Vec<u8>".to_string(),
             "DateTime" => "chrono::DateTime<chrono::Utc>".to_string(),
@@ -105,9 +105,9 @@ impl GraphQLType {
         let string = self.string();
 
         match string {
-            "Int" => quote!(i64),
+            "Int" => quote!(i32),
             "BigInt" => quote!(i64),
-            "Float" => quote!(f32),
+            "Float" => quote!(f64),
             "Boolean" => quote!(bool),
             "Bytes" => quote!(Vec<u8>),
             "DateTime" => quote!(chrono::DateTime<chrono::Utc>),
