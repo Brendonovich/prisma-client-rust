@@ -7,8 +7,6 @@ use std::sync::Mutex;
 pub fn binary_platform_name() -> String {
     let platform = name();
     
-    get_openssl();
-
     let distro = match platform.as_str() {
         "linux" => match get_linux_distro().as_str() {
             "alpine" => return "linux-musl".to_string(),

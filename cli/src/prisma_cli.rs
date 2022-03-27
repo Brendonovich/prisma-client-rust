@@ -25,7 +25,7 @@ pub fn main(args: &Vec<String>) {
             }
             Err(_) => {
                 let path = dir
-                    .join(e.name)
+                    .join(binaries::ENGINE_VERSION)
                     .join(format!("prisma-{}-{}", e.name, binary_name));
                 cmd.env(e.env, path);
             }
