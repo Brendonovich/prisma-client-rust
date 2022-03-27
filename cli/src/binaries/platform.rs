@@ -120,7 +120,6 @@ fn parse_openssl_version(v: &str) -> String {
     let r = Regex::new(r"^OpenSSL\s(\d+\.\d+)\.\d");
     let matches = r.unwrap().captures(v).unwrap();
     if matches.len() > 0 {
-        dbg!(&matches);
         matches.get(1).unwrap().as_str().to_string() + ".x"
     } else {
         "1.1.x".to_string()
