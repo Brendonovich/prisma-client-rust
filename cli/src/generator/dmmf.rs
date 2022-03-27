@@ -375,10 +375,6 @@ impl Field {
 }
 
 impl Model {
-    pub fn actions(&self) -> Vec<String> {
-        vec!["Set".to_string(), "Equals".to_string()]
-    }
-
     pub fn relation_fields_plus_one(self) -> Vec<Field> {
         let mut fields = self
             .fields

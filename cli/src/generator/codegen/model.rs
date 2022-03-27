@@ -44,17 +44,25 @@ impl Outputs {
 
 struct WhereParams {
     pub enum_name: Ident,
+    pub unique_enum_name: Ident,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
+    unique_variants: Vec<TokenStream>,
+    from_unique_match_arms: Vec<TokenStream>
 }
 
 impl WhereParams {
     pub fn new(model: &Model) -> Self {
         let enum_name = Self::get_enum_name(&model.name);
+        let unique_enum_name = Self::get_unique_enum_name(&model.name);
+        
         let mut params = Self {
             enum_name: enum_name.clone(),
+            unique_enum_name: unique_enum_name.clone(),
             variants: vec![],
+            unique_variants: vec![],
             match_arms: vec![],
+            from_unique_match_arms: vec![]
         };
 
         for field in &model.fields {
@@ -119,24 +127,30 @@ impl WhereParams {
                 for m in read_types.methods {
                     let variant_name = format_ident!("{}{}", field_name_pascal, &m.name);
                     let method_action = m.action;
-
-                    params.add_variant(
-                        quote!(#variant_name(#field_type_tokens)),
-                        quote! {
-                        Self::#variant_name(value) =>
-                            Field {
-                                name: #field_name_string.into(),
-                                fields: Some(vec![
-                                    Field {
-                                        name: #method_action.into(),
-                                        value: Some(serde_json::to_value(value).unwrap()),
-                                        ..Default::default()
-                                    }
-                                ]),
-                                ..Default::default()
-                            }
-                        },
-                    );
+                    
+                    let variant = quote!(#variant_name(#field_type_tokens));
+                    let match_arm = quote! {
+                        Self::#variant_name(value) => Field {
+                            name: #field_name_string.into(),
+                            fields: Some(vec![
+                                Field {
+                                    name: #method_action.into(),
+                                    value: Some(serde_json::to_value(value).unwrap()),
+                                    ..Default::default()
+                                }
+                            ]),
+                            ..Default::default()
+                        }
+                    };
+                
+                    if field.is_unique || field.is_id {
+                        params.unique_variants.push(variant.clone());
+                        params.from_unique_match_arms.push(quote! {
+                            #unique_enum_name::#variant_name(value) => Self::#variant_name(value)
+                        });
+                    }
+                    
+                    params.add_variant(variant, match_arm);
                 }
             }
         }
@@ -171,16 +185,19 @@ impl WhereParams {
     pub fn quote(&self) -> TokenStream {
         let Self {
             variants,
+            unique_variants,
             match_arms,
-            enum_name: name,
+            enum_name,
+            unique_enum_name,
+            from_unique_match_arms
         } = self;
 
         quote! {
-            pub enum #name {
+            pub enum #enum_name {
                 #(#variants),*
             }
 
-            impl #name {
+            impl #enum_name {
                 pub fn to_field(self) -> Field {
                     match self {
                         #(#match_arms),*
@@ -188,7 +205,7 @@ impl WhereParams {
                 }
             }
             
-            impl From<Operator<Self>> for #name {
+            impl From<Operator<Self>> for #enum_name {
                 fn from(op: Operator<Self>) -> Self {
                     match op {
                         Operator::Not(value) => Self::Not(value),
@@ -197,11 +214,26 @@ impl WhereParams {
                     }
                 }
             }
+        
+            pub enum #unique_enum_name {
+                #(#unique_variants),*
+            }
+            
+            impl From<#unique_enum_name> for #enum_name {
+                fn from(op: #unique_enum_name) -> Self {
+                    match op {
+                        #(#from_unique_match_arms),*
+                    }
+                }
+            }
         }
     }
 
     pub fn get_enum_name(model_name: &str) -> Ident {
         format_ident!("{}WhereParam", model_name.to_case(Case::Pascal))
+    }
+    pub fn get_unique_enum_name(model_name: &str) -> Ident {
+        format_ident!("{}UniqueWhereParam", model_name.to_case(Case::Pascal))
     }
 }
 
@@ -541,8 +573,8 @@ impl OrderByParams {
 struct PaginationParams {
     pub cursor_enum_name: Ident,
     pub pagination_fns: TokenStream,
-    variants: Vec<TokenStream>,
-    match_arms: Vec<TokenStream>,
+    cursor_variants: Vec<TokenStream>,
+    cursor_match_arms: Vec<TokenStream>
 }
 
 impl PaginationParams {
@@ -579,32 +611,32 @@ impl PaginationParams {
             }
         };
         
-        let mut variants = vec![];
-        let mut match_arms = vec![];
+        let mut cursor_variants = vec![];
+        let mut cursor_match_arms = vec![];
         
         for f in model.fields.iter().filter(|f| !f.kind.is_relation()) {
             let variant_name = format_ident!("{}", f.name.to_case(Case::Pascal));
             let variant_type = format_ident!("{}", f.field_type.value());
             let field_name_string = &f.name;
             
-            variants.push(quote! {
+            cursor_variants.push(quote! {
                 #variant_name(#variant_type)
             });
             
-            match_arms.push(quote! {
-                Self::#variant_name(cursor) => Field {
+            cursor_match_arms.push(quote! {
+                Self::#variant_name(value) => Field {
                     name: #field_name_string.into(),
-                    value: Some(serde_json::to_value(cursor).unwrap()),
+                    value: Some(serde_json::to_value(value).unwrap()),
                     ..Default::default()
                 }
-            });
+            })
         }
         
         Self {
             cursor_enum_name,
             pagination_fns,
-            variants,
-            match_arms
+            cursor_variants,
+            cursor_match_arms
         }
     }
     
@@ -612,19 +644,19 @@ impl PaginationParams {
         let Self {
             cursor_enum_name,
             pagination_fns,
-            variants,
-            match_arms,
+            cursor_variants,
+            cursor_match_arms
         } = self;
         
         quote! {
             pub enum #cursor_enum_name {
-                #(#variants),*
+                #(#cursor_variants),*
             }
             
             impl #cursor_enum_name {
-                pub fn to_field(self) -> Field {
+                fn to_field(self) -> Field {
                     match self {
-                        #(#match_arms),*
+                        #(#cursor_match_arms),*
                     }
                 }
             }
@@ -650,6 +682,7 @@ impl QueryStructs {
 
         let model_set_param = &set_params.enum_name;
         let model_where_param = &where_params.enum_name;
+        let model_unique_where_param = &where_params.unique_enum_name;
 
         let methods = model
             .fields
@@ -703,48 +736,50 @@ impl QueryStructs {
                         .collect::<Vec<_>>()
 
                 } else {
-                    let read_types = match Document::read_types()
+                    match Document::read_types()
                         .into_iter()
-                        .find(|t| t.name == field.field_type.string())
-                    {
-                        Some(mut t) => Type {
-                            methods: {
-                                t.methods.append(&mut vec![Method {
-                                    name: "Equals".into(),
-                                    action: "equals".into(),
-                                }]);
-                                t.methods
-                            },
-                            ..t
-                        },
-                        None => Type {
-                            name: field.field_type.string().into(),
-                            methods: vec![Method {
-                                name: "Equals".into(),
-                                action: "equals".into(),
-                            }]
-                        },
-                    };
-
-                    read_types
-                        .methods
-                        .iter()
-                        .map(|m| {
-                            let variant_name = format_ident!(
-                                "{}{}",
-                                &field_name_pascal,
-                                m.name
-                            );
-                            let method_name = format_ident!("{}", &m.name.to_case(Case::Snake));
-
-                            quote! {
-                                pub fn #method_name(&self, value: #field_type) -> #model_where_param {
-                                    #model_where_param::#variant_name(value)
+                        .find(|t| t.name == field.field_type.string()) {
+                        Some(read_types) => 
+                        read_types
+                            .methods
+                            .iter()
+                            .map(|m| {
+                                let variant_name = format_ident!(
+                                    "{}{}",
+                                    &field_name_pascal,
+                                    m.name
+                                );
+                                let method_name = format_ident!("{}", &m.name.to_case(Case::Snake));
+                                
+                                quote! {
+                                    pub fn #method_name(&self, value: #field_type) -> #model_where_param {
+                                        #model_where_param::#variant_name(value)
+                                    }
                                 }
-                            }
-                        })
-                        .collect::<Vec<_>>()
+                            })
+                            .collect::<Vec<_>>(),
+                        None => vec![]
+                    }
                 };
+                
+                if !field.kind.is_relation() {
+                    let variant_name = format_ident!(
+                        "{}Equals",
+                        &field_name_pascal,
+                    );
+                    field_struct_fns.push(match (field.is_unique || field.is_id) {
+                       true => quote! {
+                            pub fn equals<T: From<#model_unique_where_param>>(&self, value: #field_type) -> T {
+                                #model_unique_where_param::#variant_name(value).into()
+                            }
+                        },
+                        false => quote! {
+                            pub fn equals(&self, value: #field_type) -> #model_where_param {
+                                #model_where_param::#variant_name(value).into()
+                            }
+                        }
+                    });
+                }
                 
                 let field_set_struct = if field.kind.is_relation() {
                     let relation_where_param = WhereParams::get_enum_name(&field.field_type.value());
@@ -1004,6 +1039,7 @@ struct Actions<'a> {
     model_name_pascal_string: String,
     data_struct_name: &'a Ident,
     where_param_enum: &'a Ident,
+    unique_where_param_enum: &'a Ident,
     set_param_enum: &'a Ident,
     order_by_enum: &'a Ident,
     outputs_fn_name: &'a Ident,
@@ -1096,6 +1132,7 @@ impl<'a> Actions<'a> {
             data_struct_name: &data_struct.name,
             model_name_pascal_string: model.name.to_case(Case::Pascal),
             where_param_enum: &where_params.enum_name,
+            unique_where_param_enum: &where_params.unique_enum_name,
             set_param_enum,
             order_by_enum: &order_by_params.enum_name,
             order_by_fn: &order_by_params.order_by_fn,
@@ -1115,6 +1152,7 @@ impl<'a> Actions<'a> {
             data_struct_name,
             model_name_pascal_string,
             where_param_enum,
+            unique_where_param_enum,
             set_param_enum,
             order_by_enum,
             order_by_fn,
@@ -1382,7 +1420,8 @@ impl<'a> Actions<'a> {
 
             impl<'a> #struct_name<'a> {
                 // TODO: Dedicated unique field
-                pub fn find_unique(&self, param: #where_param_enum) -> #model_find_unique {
+                pub fn find_unique(&self, param: #unique_where_param_enum) -> #model_find_unique {
+                    let param: #where_param_enum = param.into();
                     let fields = transform_equals(vec![param.to_field()]);
 
                     let query = Query {
