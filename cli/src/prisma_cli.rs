@@ -1,4 +1,4 @@
-use crate::binaries::{self, ENGINES, platform};
+use crate::binaries::{self, platform, ENGINES};
 use std::env;
 use std::process::Command;
 
@@ -17,6 +17,7 @@ pub fn main(args: &Vec<String>) {
 
     cmd.envs(env::vars());
     cmd.env("PRISMA_HIDE_UPDATE_MESSAGE", "true");
+    cmd.env("PRISMA_CLI_QUERY_ENGINE_TYPE", "binary");
 
     for e in ENGINES {
         match env::var(e.env) {
