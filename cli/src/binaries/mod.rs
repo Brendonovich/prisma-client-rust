@@ -61,10 +61,12 @@ pub fn fetch_native(to_dir: &PathBuf) -> Result<(), String> {
 
     download_cli(to_dir)?;
 
+    println!("Downloading binaries...");
+
     for e in &ENGINES {
         download_engine(&e.name, &to_dir)?;
     }
-    
+
     Ok(())
 }
 
@@ -86,7 +88,7 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
     match metadata(&to) {
         Err(_) => (),
         Ok(_) => {
-            // println!("{} is cached", to.to_string());
+            println!("{} is cached", to.to_string());
             return Ok(());
         }
     };
@@ -95,7 +97,6 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
 
     Ok(())
 }
-
 
 fn download_engine(engine_name: &str, to_dir: &PathBuf) -> Result<(), String> {
     let os_name = platform::binary_platform_name();
@@ -117,6 +118,8 @@ fn download_engine(engine_name: &str, to_dir: &PathBuf) -> Result<(), String> {
             ENGINE_VERSION, &os_name, engine_name
         ),
     );
+
+    println!("Downloading {} to {}", url, to);
 
     match metadata(&to) {
         Err(_) => {}

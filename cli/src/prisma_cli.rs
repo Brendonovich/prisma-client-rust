@@ -5,7 +5,7 @@ use std::process::Command;
 pub fn main(args: &Vec<String>) {
     let dir = binaries::global_cache_dir();
 
-    binaries::download_cli(&dir);
+    binaries::fetch_native(&dir).unwrap();
 
     let prisma = binaries::prisma_cli_name();
 
