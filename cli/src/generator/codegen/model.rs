@@ -483,6 +483,80 @@ impl SetParams {
     }
 }
 
+struct OrderByParams {
+    pub enum_name: Ident,
+    pub order_by_fn: TokenStream,
+    variants: Vec<TokenStream>,
+    match_arms: Vec<TokenStream>,
+}
+
+impl OrderByParams {
+    pub fn new(model: &Model) -> Self {
+        let model_name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
+        let enum_name = format_ident!("{}OrderByParam", model_name_pascal);
+        
+        let mut params = Self {
+            enum_name: enum_name.clone(),
+            order_by_fn: quote! {
+                pub fn order_by(mut self, param: #enum_name) -> Self {
+                    self.order_by_params.push(param);
+                    self
+                }
+            },
+            variants: vec![],
+            match_arms: vec![],
+        };
+        
+        for field in &model.fields {
+            if field.kind.is_relation() {
+                continue;
+            }
+            
+            let field_name_string = &field.name;
+            let variant_name = format_ident!("{}", field.name.to_case(Case::Pascal));
+            
+            params.add_variant(quote!(#variant_name(Direction)),
+            quote! {
+                Self::#variant_name(direction) => Field {
+                    name: #field_name_string,
+                    value: Some(direction.into()),
+                    ..Default::default()
+                }
+            });
+        }
+        
+        params
+    }
+    
+    fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
+        self.variants.push(variant);
+        self.match_arms.push(match_arm);
+    }
+    
+    pub fn quote(&self) -> TokenStream {
+        let Self {
+            variants,
+            match_arms,
+            enum_name,
+            ..
+        } = self;
+        
+        quote! {
+            pub enum #enum_name {
+                #(#variants),*
+            }
+            
+            impl #enum_name {
+                pub fn field(self) -> Field {
+                    match self {
+                        #(#match_arms),*
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct QueryStructs {
     pub name: Ident,
     methods: Vec<TokenStream>,
@@ -495,6 +569,7 @@ impl QueryStructs {
         set_params: &SetParams,
         where_params: &WhereParams,
         with_params: &WithParams,
+        order_by_params: &OrderByParams,
     ) -> Self {
         let model_name_pascal = format_ident!("{}", model.name.to_case(Case::Pascal));
 
@@ -679,6 +754,13 @@ impl QueryStructs {
                         }
                     }
                 };
+                
+                let order_by_enum = &order_by_params.enum_name;
+                field_struct_fns.push(quote! {
+                    pub fn order(&self, direction: Direction) -> #order_by_enum {
+                        #order_by_enum::#field_name_pascal(direction)
+                    }
+                });
 
                 quote! {
                     pub struct #field_struct_name {}
@@ -849,6 +931,8 @@ struct Actions<'a> {
     data_struct_name: &'a Ident,
     where_param_enum: &'a Ident,
     set_param_enum: &'a Ident,
+    order_by_enum: &'a Ident,
+    order_by_fn: &'a TokenStream,
     outputs_fn_name: &'a Ident,
     with_fn: &'a TokenStream,
     required_args: Vec<TokenStream>,
@@ -864,6 +948,7 @@ impl<'a> Actions<'a> {
         with_params: &'a WithParams,
         outputs: &'a Outputs,
         data_struct: &'a DataStruct,
+        order_by_params: &'a OrderByParams
     ) -> Self {
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
         let set_param_enum = &set_params.enum_name;
@@ -935,6 +1020,8 @@ impl<'a> Actions<'a> {
             model_name_pascal_string: model.name.to_case(Case::Pascal),
             where_param_enum: &where_params.enum_name,
             set_param_enum,
+            order_by_enum: &order_by_params.enum_name,
+            order_by_fn: &order_by_params.order_by_fn,
             outputs_fn_name: &outputs.fn_name,
             with_fn: &with_params.with_fn,
             required_args,
@@ -950,6 +1037,8 @@ impl<'a> Actions<'a> {
             model_name_pascal_string,
             where_param_enum,
             set_param_enum,
+            order_by_enum,
+            order_by_fn,
             outputs_fn_name,
             with_fn,
             required_args,
@@ -967,11 +1056,28 @@ impl<'a> Actions<'a> {
         
         quote! {
             pub struct #model_find_many<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                order_by_params: Vec<#order_by_enum>,
             }
 
             impl<'a> #model_find_many<'a> {
                 pub async fn exec(self) -> Vec<#data_struct_name> {
+                    let Self {
+                        mut query,
+                        order_by_params
+                    } = self;
+                    
+                    if self.order_by_params.len() > 0 {
+                        self.query.inputs.push(Input {
+                            name: "orderBy".into(),
+                            fields: self.order_by_params
+                                .into_iter()
+                                .map(|f| f.param.field())
+                                .collect(),
+                            ..Default::default()
+                        });
+                    }
+                    
                     self.query.perform::<Vec<#data_struct_name>>().await.unwrap()
                 }
 
@@ -1020,20 +1126,41 @@ impl<'a> Actions<'a> {
                         }
                     }
                 }
+                
+                #order_by_fn
 
                 #with_fn
             }
 
             pub struct #model_find_first<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                order_by_params: Vec<#order_by_enum>,
             }
 
             impl<'a> #model_find_first<'a> {
                 pub async fn exec(self) -> Option<#data_struct_name> {
+                    let Self {
+                        mut query,
+                        order_by_params
+                    } = self;
+                    
+                    if self.order_by_params.len() > 0 {
+                        self.query.inputs.push(Input {
+                            name: "orderBy".into(),
+                            fields: self.order_by_params
+                                .into_iter()
+                                .map(|f| f.param.field())
+                                .collect(),
+                            ..Default::default()
+                        });
+                    }
+                    
                     self.query.perform::<Option<#data_struct_name>>().await.unwrap()
                 }
 
                 #with_fn
+                
+                #order_by_fn
             }
 
             pub struct #model_find_unique<'a> {
@@ -1192,7 +1319,7 @@ impl<'a> Actions<'a> {
                         inputs
                     };
 
-                    #model_find_first { query }
+                    #model_find_first { query, order_by_params: vec![] }
                 }
 
                 pub fn find_many(&self, params: Vec<#where_param_enum>) -> #model_find_many {
@@ -1220,7 +1347,7 @@ impl<'a> Actions<'a> {
                         inputs
                     };
 
-                    #model_find_many { query }
+                    #model_find_many { query, order_by_params: vec![] }
                 }
 
                 pub fn create_one(&self, #(#required_args)* params: Vec<#set_param_enum>) -> #model_create_one {
@@ -1253,9 +1380,10 @@ pub fn generate(model: &Model) -> TokenStream {
     let data_struct = DataStruct::new(&model);
     let set_params = SetParams::new(&model);
     let where_params = WhereParams::new(&model);
+    let order_by_params = OrderByParams::new(&model);
     let outputs = Outputs::new(&model);
     let with_params = WithParams::new(&model, &outputs);
-    let query_structs = QueryStructs::new(&model, &set_params, &where_params, &with_params);
+    let query_structs = QueryStructs::new(&model, &set_params, &where_params, &with_params, &order_by_params);
     let actions = Actions::new(
         &model,
         &where_params,
@@ -1263,12 +1391,14 @@ pub fn generate(model: &Model) -> TokenStream {
         &with_params,
         &outputs,
         &data_struct,
+        &order_by_params
     );
 
     let data_struct = data_struct.quote();
     let where_params = where_params.quote();
     let with_params = with_params.quote();
     let set_params = set_params.quote();
+    let order_by_params = order_by_params.quote();
     let outputs_fn = outputs.quote();
     let query_structs = query_structs.quote();
     let actions = actions.quote();
@@ -1285,6 +1415,8 @@ pub fn generate(model: &Model) -> TokenStream {
         #with_params
 
         #set_params
+        
+        #order_by_params
 
         #actions
     }

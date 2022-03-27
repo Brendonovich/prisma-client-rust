@@ -1,5 +1,5 @@
-pub mod query;
 pub mod operator;
+pub mod query;
 
 pub use chrono;
 pub use datamodel;
@@ -13,6 +13,12 @@ pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 #[derive(serde::Deserialize)]
 pub struct DeleteResult {
     pub count: isize,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum Direction {
+    Asc,
+    Desc,
 }
 
 #[macro_export]
