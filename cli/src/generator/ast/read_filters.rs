@@ -1,9 +1,12 @@
-use convert_case::{Casing, Case};
+use convert_case::{Case, Casing};
 
-use crate::generator::ast::{filters::Filter, models::Field};
+use crate::generator::{
+    ast::{filters::Filter, models::Field},
+    GraphQLType,
+};
 
 use super::{
-    dmmf::{self, Document, FieldKind},
+    dmmf::{self, FieldKind},
     filters::Method,
     AST,
 };
@@ -14,10 +17,16 @@ impl<'a> AST<'a> {
     pub fn read_filters(&mut self) -> Vec<Filter> {
         let mut filters = vec![];
 
-        for scalar in self.scalars {
+        for scalar in &self.scalars {
             let combinations = vec![
-                vec![scalar + "ListFilter", scalar + "NullableListFilter"],
-                vec![scalar + "Filter", scalar + "NullableFilter"],
+                vec![
+                    scalar.to_string() + "ListFilter",
+                    scalar.to_string() + "NullableListFilter",
+                ],
+                vec![
+                    scalar.to_string() + "Filter",
+                    scalar.to_string() + "NullableFilter",
+                ],
             ];
             for c in combinations {
                 let p = match self.pick(c) {
@@ -27,16 +36,17 @@ impl<'a> AST<'a> {
 
                 let mut fields = vec![];
 
-                for field in p.fields {
+                for field in &p.fields {
                     if let Some(method) = convert_field(field) {
                         fields.push(method);
                     }
                 }
 
-                let mut s = String::new();
+                let mut s = scalar.clone();
                 if p.name.contains("ListFilter") {
-                    s += list
+                    s += LIST
                 }
+
                 filters.push(Filter {
                     name: s,
                     methods: fields,
@@ -44,7 +54,7 @@ impl<'a> AST<'a> {
             }
         }
 
-        for e in self.enums {
+        for e in &self.enums {
             let p = match self.pick(vec![
                 "Enum".to_string() + &e.name + "Filter",
                 "Enum".to_string() + &e.name + "NullableFilter",
@@ -55,7 +65,7 @@ impl<'a> AST<'a> {
 
             let mut fields = vec![];
 
-            for field in p.fields {
+            for field in &p.fields {
                 if let Some(method) = convert_field(field) {
                     fields.push(method);
                 }
@@ -67,7 +77,8 @@ impl<'a> AST<'a> {
             });
         }
 
-        for (i, m) in self.models.iter().enumerate() {
+        for i in 0..self.models.len() {
+            let m = &self.models[i];
             let p = match self.pick(vec![m.name.to_string() + "OrderByRelevanceInput"]) {
                 Some(p) => p,
                 None => continue,
@@ -75,7 +86,7 @@ impl<'a> AST<'a> {
 
             let mut methods = vec![];
 
-            for field in p.fields {
+            for field in &p.fields {
                 if let Some(method) = convert_field(field) {
                     methods.push(method);
                 }
@@ -86,12 +97,14 @@ impl<'a> AST<'a> {
                 methods,
             });
 
+            let field_type = GraphQLType(p.name.to_case(Case::Pascal));
+
             self.models[i].fields.push(Field {
                 prisma: true,
                 field: dmmf::Field {
                     name: "relevance".to_string(),
                     kind: FieldKind::Scalar,
-                    field_type: GraphQLType(p.name.to_case(Case::Pascal)),
+                    field_type,
                     ..Default::default()
                 },
             })
@@ -102,7 +115,7 @@ impl<'a> AST<'a> {
 
     pub fn read_filter(&self, scalar: &str, is_list: bool) -> Option<&Filter> {
         let scalar = scalar.replacen("NullableFilter", "", 1);
-        let scalar = scalar.replacen("ReadFilter", "", 1);
+        let mut scalar = scalar.replacen("ReadFilter", "", 1);
 
         if is_list {
             scalar += LIST;
@@ -142,11 +155,11 @@ impl<'a> AST<'a> {
         vec![
             Filter {
                 name: "Int".to_string(),
-                methods: numberFilters.clone(),
+                methods: number_filters.clone(),
             },
             Filter {
                 name: "Float".to_string(),
-                methods: numberFilters,
+                methods: number_filters.clone(),
             },
             Filter {
                 name: "String".to_string(),
@@ -198,24 +211,29 @@ impl<'a> AST<'a> {
     }
 }
 
-fn convert_field(field: dmmf::OuterInputType) -> Option<Method> {
+fn convert_field(field: &dmmf::OuterInputType) -> Option<Method> {
     if field.name == "equals" {
         return None;
     }
 
     if let Some((type_name, is_list)) = {
         let mut ret = None;
-        for input_type in field.input_types {
+        for input_type in &field.input_types {
             if (input_type.location == "scalar" || input_type.location == "enumTypes")
                 && input_type.typ.string() != "Null"
             {
-                ret = Some((input_type.typ, input_type.is_list))
+                ret = Some((input_type.typ.clone(), input_type.is_list))
             }
         }
         ret
     } {
         Some(Method {
-            name: field.name.to_case(Case::Pascal),
+            // 'in' is a reserved keyword in Rust
+            name: match field.name.as_str() {
+                "in" => "InVec".to_string(),
+                "notIn" => "NotInVec".to_string(),
+                name => name.to_case(Case::Pascal),
+            },
             action: field.name.clone(),
             typ: type_name,
             is_list,

@@ -311,7 +311,7 @@ pub struct Model {
     pub fields: Vec<Field>,
     pub is_generated: Option<bool>,
     pub documentation: Option<String>,
-    pub primary_key: PrimaryKey,
+    pub primary_key: Option<PrimaryKey>,
     pub unique_fields: Vec<Vec<String>>,
     pub unique_indexes: Vec<UniqueIndex>,
 }
@@ -330,7 +330,8 @@ pub struct Field {
     pub field_type: GraphQLType,
     pub has_default_value: bool,
     pub default: Option<serde_json::Value>,
-    pub relation_name: Option<String>,
+    #[serde(default)]
+    pub relation_name: String,
     pub relation_from_fields: Option<Vec<String>>,
     pub relation_to_fields: Option<Vec<String>>,
     pub relation_on_delete: Option<String>,
@@ -350,7 +351,7 @@ impl Field {
             return false;
         }
 
-        if self.relation_name.is_some() && self.is_list {
+        if &self.relation_name != "" && self.is_list {
             return false;
         }
 
@@ -372,7 +373,7 @@ impl Field {
         } else {
             vec![RelationMethod {
                 name: "Is".to_string(),
-                action: "where".to_string(),
+                action: "is".to_string(),
             }]
         }
     }
@@ -403,7 +404,9 @@ pub struct SchemaInputType {
     pub is_list: bool,
     #[serde(rename = "type")]
     pub typ: GraphQLType,
+    #[serde(default)]
     pub kind: FieldKind,
+    #[serde(default)]
     pub namespace: String,
     pub location: String,
 }
@@ -463,6 +466,7 @@ pub struct OutputObjectType {
 #[serde(rename_all = "camelCase")]
 pub struct EnumTypes {
     pub prisma: Vec<SchemaEnum>,
+    #[serde(default)]
     pub model: Vec<SchemaEnum>,
 }
 

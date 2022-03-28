@@ -1,7 +1,7 @@
-use convert_case::{Casing, Case};
+use convert_case::{Case, Casing};
 use serde::{Deserialize, Serialize};
 
-use super::dmmf::{self, Model};
+use super::dmmf::Model;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,14 +30,24 @@ impl Model {
             })
             .collect::<Vec<_>>();
 
-        if self.primary_key.fields.len() > 0 {
+        if self
+            .primary_key
+            .as_ref()
+            .map(|p| p.fields.clone())
+            .unwrap_or_default()
+            .len()
+            > 0
+        {
+            let primary_key_fields = self
+                .primary_key
+                .as_ref()
+                .map(|p| p.fields.clone())
+                .unwrap_or_default();
+
             idx.push(Index {
-                name: get_name(
-                    &self.primary_key.fields.join("_"),
-                    &self.primary_key.fields,
-                ),
-                internal_name: model.primary_key.fields.join("_"),
-                fields: model.primary_key.fields.clone(),
+                name: get_name(&primary_key_fields.join("_"), &primary_key_fields),
+                internal_name: primary_key_fields.join("_"),
+                fields: primary_key_fields,
             });
         }
 

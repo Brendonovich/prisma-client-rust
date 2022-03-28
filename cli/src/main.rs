@@ -10,6 +10,7 @@ use crate::{
         Request, Response,
     },
 };
+use generator::ast::AST;
 use serde_json;
 use serde_path_to_error;
 use std::{
@@ -73,7 +74,10 @@ fn invoke_prisma() -> Result<(), ()> {
 
                 match result {
                     Ok(mut params) => {
-                        generator::run(&mut params);
+                        let ast = AST::new(&params.dmmf);
+                        params.ast = Some(ast);
+
+                        generator::run(&params);
                     }
                     Err(err) => {
                         panic!("{}", err);

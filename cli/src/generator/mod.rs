@@ -9,7 +9,7 @@ use std::io::Write as IoWrite;
 use std::path::Path;
 use std::process::Command;
 
-pub fn run(input: &mut Root) {
+pub fn run(input: &Root) {
     let output = &input.generator.output.value;
 
     let output_file_path = Path::new(output);

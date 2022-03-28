@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use self::{dmmf::Document, enums::Enum};
 
 pub mod dmmf;
@@ -18,6 +16,8 @@ pub use models::*;
 pub use read_filters::*;
 pub use scalars::*;
 pub use write_filters::*;
+
+pub struct OrderBy;
 
 pub struct AST<'a> {
     dmmf: &'a Document,
@@ -44,20 +44,20 @@ impl<'a> AST<'a> {
 
         ast.scalars = ast.scalars();
         ast.enums = ast.enums();
-        
+
         ast.models = ast.models();
-        
+
         ast.read_filters = ast.read_filters();
         ast.write_filters = ast.write_filters();
-        
+
         for filter in ast.deprecated_read_filters() {
-            for (i, f) in ast.read_filters.iter().enumerate() {
+            for f in &mut ast.read_filters {
                 if f.name == filter.name {
-                    ast.read_filters[i].methods.extend(filter.methods);
+                    f.methods.extend(filter.methods.clone());
                 }
             }
         }
-        
+
         ast
     }
 
@@ -69,7 +69,7 @@ impl<'a> AST<'a> {
                 }
             }
         }
-        
+
         None
     }
 }

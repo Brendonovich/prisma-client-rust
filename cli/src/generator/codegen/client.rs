@@ -1,9 +1,9 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::{Root, ast::AST};
+use crate::generator::Root;
 
-pub fn generate(root: &AST) -> TokenStream {
+pub fn generate(root: &Root) -> TokenStream {
     let model_actions = root
         .dmmf
         .datamodel
@@ -25,9 +25,6 @@ pub fn generate(root: &AST) -> TokenStream {
         .collect::<Vec<_>>();
 
     let datamodel = &root.datamodel;
-
-    let schema_path_root = format!("./{}", &root.schema_path);
-    let schema_path_prisma_folder = format!("./prisma/{}", &root.schema_path);
 
     quote! {
         use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
@@ -151,7 +148,7 @@ pub fn generate(root: &AST) -> TokenStream {
 
                 query.perform().await.map(|result: i64| result)
             }
-            
+
             #(#model_actions)*
         }
     }

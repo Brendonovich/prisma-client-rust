@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{dmmf::Document, AST};
+use super::AST;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -11,9 +11,15 @@ pub struct Enum {
 
 impl<'a> AST<'a> {
     pub fn enums(&self) -> Vec<Enum> {
-        self.dmmf.schema.enum_types.model.iter().map(|e| Enum {
-            name: e.name.clone(),
-            values: e.values.clone(),
-        }).collect()
+        self.dmmf
+            .schema
+            .enum_types
+            .model
+            .iter()
+            .map(|e| Enum {
+                name: e.name.clone(),
+                values: e.values.clone(),
+            })
+            .collect()
     }
 }

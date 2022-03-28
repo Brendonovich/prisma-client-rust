@@ -1,6 +1,6 @@
 use crate::generator::GraphQLType;
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct Method {
     pub name: String,
     pub action: String,
@@ -9,6 +9,7 @@ pub struct Method {
     pub typ: GraphQLType,
 }
 
+#[derive(Debug)]
 pub struct Filter {
     pub name: String,
     pub methods: Vec<Method>
