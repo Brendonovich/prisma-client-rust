@@ -1,7 +1,7 @@
+pub mod ast;
 pub mod types;
 pub use types::*;
 pub mod codegen;
-pub mod dmmf;
 
 use std::fs;
 use std::fs::File;
@@ -9,7 +9,7 @@ use std::io::Write as IoWrite;
 use std::path::Path;
 use std::process::Command;
 
-pub fn run(input: &mut Root) {
+pub fn run(input: &Root) {
     let output = &input.generator.output.value;
 
     let output_file_path = Path::new(output);
@@ -30,5 +30,6 @@ pub fn run(input: &mut Root) {
     Command::new("rustfmt")
         .arg("--edition=2021")
         .arg(output)
-        .output();
+        .output()
+        .unwrap();
 }

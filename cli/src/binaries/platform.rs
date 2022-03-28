@@ -2,7 +2,6 @@ use regex::Regex;
 use std::env;
 use std::ops::Add;
 use std::process::Command;
-use std::sync::Mutex;
 
 pub fn binary_platform_name() -> String {
     let platform = name();

@@ -1,16 +1,19 @@
-use super::dmmf;
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+use super::ast::{dmmf, AST};
+
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct Root<'a> {
     pub generator: Generator,
     pub schema_path: String,
     pub dmmf: dmmf::Document,
     pub datamodel: String,
+    #[serde(skip)]
+    pub ast: Option<AST<'a>>
 }
 
 fn default_package() -> String {
@@ -79,7 +82,7 @@ pub struct BinaryPaths {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLType(String);
+pub struct GraphQLType(pub String);
 
 impl GraphQLType {
     pub fn string(&self) -> &str {
@@ -87,21 +90,10 @@ impl GraphQLType {
     }
 
     pub fn value(&self) -> String {
-        let string = self.string();
-
-        match string {
-            "Int" => "i32".to_string(),
-            "BigInt" => "i64".to_string(),
-            "Float" => "f64".to_string(),
-            "Boolean" => "bool".to_string(),
-            "Bytes" => "Vec<u8>".to_string(),
-            "DateTime" => "chrono::DateTime<chrono::Utc>".to_string(),
-            "Json" => "serde_json::Value".to_string(),
-            _ => string.to_case(Case::Pascal),
-        }
+        self.tokens().to_string()
     }
 
-    pub fn value_tokens(&self) -> TokenStream {
+    pub fn tokens(&self) -> TokenStream {
         let string = self.string();
 
         match string {

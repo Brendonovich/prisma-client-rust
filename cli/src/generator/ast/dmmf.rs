@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::GraphQLType;
+use crate::generator::GraphQLType;
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum FieldKind {
@@ -88,19 +89,19 @@ pub struct Type {
 }
 
 impl Document {
-    pub fn operators() -> [Operator; 3] {
-        [
+    pub fn operators() -> Vec<Operator> {
+        vec![
             Operator {
-                name: "Not".to_string(),
-                action: "NOT".to_string(),
+                name: "Not".into(),
+                action: "NOT".into(),
             },
             Operator {
-                name: "Or".to_string(),
-                action: "OR".to_string(),
+                name: "Or".into(),
+                action: "OR".into(),
             },
             Operator {
-                name: "And".to_string(),
-                action: "AND".to_string(),
+                name: "And".into(),
+                action: "AND".into(),
             },
         ]
     }
@@ -259,8 +260,10 @@ impl Document {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SchemaEnum {
-    name: String,
-    values: Vec<String>,
+    pub name: String,
+    pub values: Vec<String>,
+    #[serde(rename = "dBName")]
+    pub db_name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -288,18 +291,19 @@ pub struct Datamodel {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UniqueIndex {
-    pub name: Option<String>,
+    #[serde(default)]
+    pub internal_name: String,
     pub fields: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PrimaryKey {
     pub name: Option<String>,
     pub fields: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub name: String,
@@ -326,7 +330,8 @@ pub struct Field {
     pub field_type: GraphQLType,
     pub has_default_value: bool,
     pub default: Option<serde_json::Value>,
-    pub relation_name: Option<String>,
+    #[serde(default)]
+    pub relation_name: String,
     pub relation_from_fields: Option<Vec<String>>,
     pub relation_to_fields: Option<Vec<String>>,
     pub relation_on_delete: Option<String>,
@@ -346,7 +351,7 @@ impl Field {
             return false;
         }
 
-        if self.relation_name.is_some() && self.is_list {
+        if &self.relation_name != "" && self.is_list {
             return false;
         }
 
@@ -368,7 +373,7 @@ impl Field {
         } else {
             vec![RelationMethod {
                 name: "Is".to_string(),
-                action: "where".to_string(),
+                action: "is".to_string(),
             }]
         }
     }
@@ -395,9 +400,15 @@ impl Model {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SchemaInputType {
-    is_required: Option<bool>,
-    is_list: bool,
-    type_: String,
+    pub is_required: Option<bool>,
+    pub is_list: bool,
+    #[serde(rename = "type")]
+    pub typ: GraphQLType,
+    #[serde(default)]
+    pub kind: FieldKind,
+    #[serde(default)]
+    pub namespace: String,
+    pub location: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -417,6 +428,14 @@ pub struct SchemaField {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct OuterInputType {
+    pub name: String,
+    pub input_types: Vec<SchemaInputType>,
+    pub is_relation_filter: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct OutputType {
     name: String,
     fields: Vec<SchemaField>,
@@ -426,26 +445,15 @@ pub struct OutputType {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SchemaArg {
-    name: String,
-    input_types: Vec<SchemaInputType>,
-    is_relation_filter: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct InputType {
-    name: String,
-    is_where_type: Option<bool>,
-    is_order_type: Option<bool>,
-    at_least_one: Option<bool>,
-    at_most_one: Option<bool>,
-    fields: Vec<SchemaArg>,
+    pub name: String,
+    pub input_types: Vec<SchemaInputType>,
+    pub is_relation_filter: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct InputObjectType {
-    prisma: Vec<InputType>,
+    pub prisma: Vec<CoreType>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -456,8 +464,10 @@ pub struct OutputObjectType {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct EnumType {
-    prisma: Vec<SchemaEnum>,
+pub struct EnumTypes {
+    pub prisma: Vec<SchemaEnum>,
+    #[serde(default)]
+    pub model: Vec<SchemaEnum>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -465,7 +475,18 @@ pub struct EnumType {
 pub struct Schema {
     // root_query_type: String,
     // root_mutation_type: String,
-    input_object_types: InputObjectType,
-    output_object_types: OutputObjectType,
-    enum_types: EnumType,
+    pub input_object_types: InputObjectType,
+    pub output_object_types: OutputObjectType,
+    pub enum_types: EnumTypes,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CoreType {
+    pub name: String,
+    pub is_where_type: Option<bool>,
+    pub is_order_type: Option<bool>,
+    pub at_least_one: Option<bool>,
+    pub at_most_one: Option<bool>,
+    pub fields: Vec<OuterInputType>,
 }

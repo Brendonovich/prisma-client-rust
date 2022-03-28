@@ -10,6 +10,7 @@ use crate::{
         Request, Response,
     },
 };
+use generator::ast::AST;
 use serde_json;
 use serde_path_to_error;
 use std::{
@@ -45,13 +46,13 @@ fn main() {
         std::process::exit(1);
     }
 
-    invoke_prisma();
+    invoke_prisma().expect("failed to invoke prisma");
 }
 
 fn invoke_prisma() -> Result<(), ()> {
     loop {
         let mut content = String::new();
-        BufReader::new(stdin()).read_line(&mut content);
+        BufReader::new(stdin()).read_line(&mut content).expect("Failed to read prisma cli output");
 
         let input: Request = serde_json::from_str(&content).unwrap();
 
@@ -73,7 +74,10 @@ fn invoke_prisma() -> Result<(), ()> {
 
                 match result {
                     Ok(mut params) => {
-                        generator::run(&mut params);
+                        let ast = AST::new(&params.dmmf);
+                        params.ast = Some(ast);
+
+                        generator::run(&params);
                     }
                     Err(err) => {
                         panic!("{}", err);
