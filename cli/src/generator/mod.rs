@@ -1,5 +1,5 @@
-pub mod types;
 pub mod ast;
+pub mod types;
 pub use types::*;
 pub mod codegen;
 
@@ -30,5 +30,6 @@ pub fn run(input: &Root) {
     Command::new("rustfmt")
         .arg("--edition=2021")
         .arg(output)
-        .output();
+        .output()
+        .unwrap();
 }

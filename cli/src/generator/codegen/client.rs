@@ -30,7 +30,7 @@ pub fn generate(root: &Root) -> TokenStream {
         use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
-        use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor, CoreError};
+        use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
         use prisma_client_rust::{serde_json, chrono, Direction, operator::Operator, DeleteResult};
 
         use serde::{Serialize, Deserialize};
@@ -136,6 +136,7 @@ pub fn generate(root: &Root) -> TokenStream {
                             ..Default::default()
                         },
                         Input {
+                            // TODO: use correct value
                             name: "parameters".into(),
                             value: Some("[]".into()),
                             ..Default::default()

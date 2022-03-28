@@ -46,13 +46,13 @@ fn main() {
         std::process::exit(1);
     }
 
-    invoke_prisma();
+    invoke_prisma().expect("failed to invoke prisma");
 }
 
 fn invoke_prisma() -> Result<(), ()> {
     loop {
         let mut content = String::new();
-        BufReader::new(stdin()).read_line(&mut content);
+        BufReader::new(stdin()).read_line(&mut content).expect("Failed to read prisma cli output");
 
         let input: Request = serde_json::from_str(&content).unwrap();
 

@@ -1,4 +1,4 @@
-use crate::db::{Post, PrismaClient, User};
+use crate::db::{Post, User};
 
 pub mod db;
 
