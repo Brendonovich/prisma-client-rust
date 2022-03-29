@@ -6,9 +6,9 @@ use super::dmmf::Model;
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Index {
-    name: String,
-    internal_name: String,
-    fields: Vec<String>,
+    pub name: String,
+    pub internal_name: String,
+    pub fields: Vec<String>,
 }
 
 impl Model {

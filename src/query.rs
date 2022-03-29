@@ -64,10 +64,10 @@ pub struct Query<'a> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Internal Error - GraphQL Parsing: {0}")]
+    #[error("Internal error parsing GraphQL: {0}")]
     GraphQLParse(#[from] graphql_parser::query::ParseError),
 
-    #[error("Internal Error - GraphQL Conversion: {0}")]
+    #[error("Internal error converting GraphQL: {0}")]
     GraphQLConvert(#[from] request_handlers::HandlerError),
 
     #[error("Error executing query: {0}")]

@@ -27,12 +27,14 @@ pub fn generate(root: &Root) -> TokenStream {
     let datamodel = &root.datamodel;
 
     quote! {
+        #![allow(dead_code)]
+        
         use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
-        use prisma_client_rust::{serde_json, chrono, Direction, operator::Operator, DeleteResult};
-        
+        use prisma_client_rust::{chrono, operator::Operator, serde_json, DeleteResult, Direction, NewClientError};
+
         pub use prisma_client_rust::query::{Error as QueryError};
 
         use serde::{Serialize, Deserialize};
@@ -45,45 +47,43 @@ pub fn generate(root: &Root) -> TokenStream {
             query_schema: Arc<QuerySchema>,
         }
 
-        pub async fn new_client() -> PrismaClient {
+        pub async fn new_client() -> Result<PrismaClient, NewClientError> {
             let datamodel_str = #datamodel;
-            let config = parse_configuration(datamodel_str).unwrap().subject;
+            let config = parse_configuration(datamodel_str)?.subject;
             let source = config
                 .datasources
                 .first()
                 .expect("Pleasy supply a datasource in your schema.prisma file");
-            let url = if let Some(url) = source.load_shadow_database_url().unwrap() {
+            let url = if let Some(url) = source.load_shadow_database_url()? {
                 url
             } else {
-                source.load_url(|key| std::env::var(key).ok()).unwrap()
+                source.load_url(|key| std::env::var(key).ok())?
             };
-            // sqlite fix
-            let url = if url.starts_with("file:") {
-                let path = url.split(":").nth(1).unwrap();
-
-                if Path::new("./schema.prisma").exists() {
-                    url
-                } else if Path::new("./prisma/schema.prisma").exists() {
-                    format!("file:./prisma/{}", path)
-                } else {
-                    url
-                }
-            } else {
-                url
+            // TODO: fix this
+            let url = match url.split(":").collect::<Vec<_>>().as_slice() {
+                ["file", path] => {
+                    if Path::new("./schema.prisma").exists() {
+                        url
+                    } else if Path::new("./prisma/schema.prisma").exists() {
+                        format!("file:./prisma/{}", path)
+                    } else {
+                        url
+                    }
+                },
+                _ => url
             };
             new_client_with_url(&url).await
         }
 
         // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
-        pub async fn new_client_with_url(url: &str) -> PrismaClient {
+        pub async fn new_client_with_url(url: &str) -> Result<PrismaClient, NewClientError> {
             let datamodel_str = #datamodel;
-            let config = parse_configuration(datamodel_str).unwrap().subject;
+            let config = parse_configuration(datamodel_str)?.subject;
             let source = config
                 .datasources
                 .first()
                 .expect("Pleasy supply a datasource in your schema.prisma file");
-
-            let (db_name, executor) = executor::load(&source, &[], &url).await.unwrap();
+            let (db_name, executor) = executor::load(&source, &[], &url).await?;
             let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
             let query_schema = Arc::new(schema_builder::build(
                 internal_model,
@@ -93,11 +93,11 @@ pub fn generate(root: &Root) -> TokenStream {
                 vec![],
                 source.referential_integrity(),
             ));
-            executor.primary_connector().get_connection().await.unwrap();
-            PrismaClient {
+            executor.primary_connector().get_connection().await?;
+            Ok(PrismaClient {
                 executor,
                 query_schema,
-            }
+            })
         }
 
         impl PrismaClient {

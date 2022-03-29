@@ -4,7 +4,7 @@ pub mod db;
 
 #[tokio::main]
 pub async fn main() {
-    let client = db::new_client().await;
+    let client = db::new_client().await.unwrap();
 
     let user = client
         .user()
@@ -38,6 +38,7 @@ pub async fn main() {
         .with(Post::user().fetch())
         .exec()
         .await
+        .unwrap()
         .unwrap();
 
     println!("Post user: {:?}", post_with_user.user().unwrap());
@@ -48,6 +49,7 @@ pub async fn main() {
         .with(User::posts().fetch(vec![]))
         .exec()
         .await
+        .unwrap()
         .unwrap();
 
     println!("User posts: {:?}", user_with_posts.posts().unwrap());

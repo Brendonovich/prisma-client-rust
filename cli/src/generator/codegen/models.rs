@@ -311,19 +311,21 @@ struct QueryStructs {
 }
 
 impl QueryStructs {
-    pub fn new(
-        model: &Model,
-    ) -> Self {
+    pub fn new(model: &Model) -> Self {
         Self {
             name: format_ident!("{}", model.name.to_case(Case::Pascal)),
             accessors: vec![],
             field_structs: vec![],
         }
     }
-    
+
     pub fn add_field(&mut self, accessor: TokenStream, field_struct: FieldQueryStructs) {
         self.accessors.push(accessor);
         self.field_structs.push(field_struct.quote());
+    }
+
+    pub fn add_compound_field(&mut self, accessor: TokenStream) {
+        self.accessors.push(accessor);
     }
 
     pub fn quote(&self) -> TokenStream {
@@ -348,7 +350,7 @@ impl QueryStructs {
 struct FieldQueryStructs {
     pub struct_name: Ident,
     queries: Vec<TokenStream>,
-    query_structs: Vec<TokenStream>
+    query_structs: Vec<TokenStream>,
 }
 
 impl FieldQueryStructs {
@@ -367,7 +369,7 @@ impl FieldQueryStructs {
     pub fn push_query(&mut self, query: TokenStream) {
         self.queries.push(query);
     }
-    
+
     pub fn push_query_struct(&mut self, query_struct: TokenStream) {
         self.query_structs.push(query_struct);
     }
@@ -385,7 +387,7 @@ impl FieldQueryStructs {
             impl #struct_name {
                 #(#queries)*
             }
-            
+
             #(#query_structs)*
         }
     }
@@ -452,8 +454,8 @@ impl WhereParams {
             }
 
             impl #enum_name {
-                pub fn to_field(&self) -> Field {
-                    match &self {
+                pub fn to_field(self) -> Field {
+                    match self {
                         #(#to_field),*
                     }
                 }
@@ -516,7 +518,7 @@ impl DataStruct {
         } = self;
 
         quote! {
-            #[derive(Debug, Clone, Serialize, Deserialize)]
+            #[derive(Debug, Default, Clone, Serialize, Deserialize)]
             pub struct #name {
                 #(#fields),*
             }
@@ -606,16 +608,74 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         }
 
         // TODO: Compound indexes
-        // for unique in &model.indexes {
-        //     field_structs.push()
-        //     methods.push(quote! {
-        //         pub fn #unique(mut self, value: #unique_where_params_enum) -> Self {
-        //                 self.where_params.push(value.into());
-        //                 self
-        //             }
-        //         });
-        //     })
-        // }
+        for unique in &model.indexes {
+            let variant_name_string = unique.fields.iter().map(|f| f.to_case(Case::Pascal)).collect::<String>();
+            let variant_name = format_ident!("{}Equals", &variant_name_string);
+            let accessor_name = format_ident!("{}", &variant_name_string.to_case(Case::Snake));
+
+            let variant_data_as_args = unique.fields.iter().map(|f| {
+                let field_name = format_ident!("{}", f.to_case(Case::Snake));
+                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
+
+                let field_type = model_field.field_type.tokens();
+                let field_type = match model_field.is_list {
+                    true => quote!(Vec<#field_type>),
+                    false => field_type
+                };
+
+                quote!(#field_name: #field_type)
+            }).collect::<Vec<_>>();
+            let variant_data_as_destructured = unique.fields.iter().map(|f|
+                format_ident!("{}", f.to_case(Case::Snake))
+            ).collect::<Vec<_>>();
+            let variant_data_as_types = unique.fields.iter().map(|f| {
+                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
+
+                let field_type = model_field.field_type.tokens();
+                match model_field.is_list {
+                    true => quote!(Vec<#field_type>),
+                    false => field_type
+                }
+            }).collect::<Vec<_>>();
+            let field_name_string = unique.fields.join("_");
+
+            let variant_data_where_params = unique.fields.iter().map(|f| {
+                let field_name = format_ident!("{}", f.to_case(Case::Snake));
+                let equals_variant = format_ident!("{}Equals", f.to_case(Case::Pascal));
+
+                quote!(#where_params_enum::#equals_variant(#field_name))
+            }).collect::<Vec<_>>();
+
+            model_query_structs.add_compound_field(
+                quote! {
+                    pub fn #accessor_name<T: From<#unique_where_params_enum>>(#(#variant_data_as_args),*) -> T {
+                        #unique_where_params_enum::#variant_name(#(#variant_data_as_destructured),*).into()
+                    }
+                }
+            );
+
+            model_where_params.add_unique_variant(
+                quote!(#variant_name(#(#variant_data_as_types),*)),
+                quote! {
+                    Self::#variant_name(#(#variant_data_as_destructured),*) => {
+                        Field {
+                            name: #field_name_string.into(),
+                            fields: Some(transform_equals(vec![
+                                    #(#variant_data_where_params),*
+                                ]
+                                .into_iter()
+                                .map(|f| f.to_field())
+                                .collect()
+                            )),
+                            ..Default::default()
+                        }
+                    }
+                },
+                quote! {
+                    #unique_where_params_enum::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
+                }
+            );
+        }
 
         for field in &model.fields {
             let mut field_query_struct =
@@ -797,7 +857,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             #field_link_struct(value).into()
                         }
                     });
-                    
+
                     field_query_struct.push_query_struct(quote! {
                         pub struct #field_link_struct(#relation_where_unique_enum);
 
@@ -849,7 +909,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             },
                         );
                     }
-                    
+
                     model_with_params.add_variant(
                         quote!(#field_pascal),
                         quote! {
@@ -1023,7 +1083,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         let typ = if method.is_list {
                             quote!(Vec<#typ>)
                         } else { typ };
-                        
+
                         field_query_struct.push_query(quote! {
                             pub fn #method_name(&self, value: #typ) -> #set_params_enum {
                                 #set_params_enum::#field_set_variant(value)
@@ -1121,7 +1181,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             }
                         },
                     );
-                    
+
                     field_query_struct.push_query(quote! {
                         pub fn #method_name(&self, value: #typ) -> #where_params_enum {
                             #where_params_enum::#variant_name(value)
@@ -1137,7 +1197,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     pub fn #field_snake() -> #field_query_struct_name {
                         #field_query_struct_name {}
                     }
-                }, 
+                },
                 field_query_struct
             );
         }
@@ -1178,7 +1238,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             #pagination_params
 
             #where_params
-            
+
             pub struct #model_find_many<'a> {
                 query: Query<'a>,
                 order_by_params: Vec<#order_by_params_enum>,

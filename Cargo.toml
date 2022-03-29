@@ -21,9 +21,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 
-query-core = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
-request-handlers = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
-prisma-models = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
-datamodel = { git = "https://github.com/prisma/prisma-engines", tag = "3.11.0" }
+query-core = { git = "https://github.com/prisma/prisma-engines", rev = "43d8513e0b693f27692ab7f19c760f78003f2de2" }
+query-connector = { git = "https://github.com/prisma/prisma-engines", rev = "43d8513e0b693f27692ab7f19c760f78003f2de2" }
+request-handlers = { git = "https://github.com/prisma/prisma-engines", rev = "43d8513e0b693f27692ab7f19c760f78003f2de2" }
+prisma-models = { git = "https://github.com/prisma/prisma-engines", rev = "43d8513e0b693f27692ab7f19c760f78003f2de2" }
+datamodel = { git = "https://github.com/prisma/prisma-engines", rev = "43d8513e0b693f27692ab7f19c760f78003f2de2" }
 graphql-parser = { git = "https://github.com/prisma/graphql-parser" }
 thiserror = "1.0.30"
