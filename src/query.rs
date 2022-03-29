@@ -63,7 +63,7 @@ pub struct Query<'a> {
 }
 
 #[derive(Debug, Error)]
-pub enum QueryError {
+pub enum Error {
     #[error("Internal Error - GraphQL Parsing: {0}")]
     GraphQLParse(#[from] graphql_parser::query::ParseError),
 
@@ -77,7 +77,7 @@ pub enum QueryError {
     Parse(#[from] serde_json::Error),
 }
 
-pub type Result<T> = std::result::Result<T, QueryError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 impl<'a> Query<'a> {
     pub async fn perform<T: DeserializeOwned>(self) -> Result<T> {
