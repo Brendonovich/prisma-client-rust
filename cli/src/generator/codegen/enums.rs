@@ -23,7 +23,7 @@ pub fn generate(root: &Root) -> TokenStream {
 
         quote! {
             #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-            enum #name {
+            pub enum #name {
                 #(#variants),*
             }
         }
@@ -47,7 +47,7 @@ pub fn generate(root: &Root) -> TokenStream {
 
         quote! {
             #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-            enum #name {
+            pub enum #name {
                 #(#variants),*
             }
         }
