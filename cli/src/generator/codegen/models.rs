@@ -1275,7 +1275,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
 
             impl<'a> #model_find_first<'a> {
-                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                pub async fn exec(self) -> QueryResult<Option<#data_struct_name>> {
                     let Self {
                         mut query,
                         order_by_params,
@@ -1314,7 +1314,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
 
             impl<'a> #model_find_unique<'a> {
-                pub async fn exec(self) -> QueryResult<#data_struct_name> {
+                pub async fn exec(self) -> QueryResult<Option<#data_struct_name>> {
                     let Self {
                         mut query,
                         with_params
