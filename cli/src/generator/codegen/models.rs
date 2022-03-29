@@ -570,16 +570,15 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         let mut model_actions = Actions::new(&model.name);
 
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
-        let model_name_pascal = format_ident!("{}", &model_name_pascal_string);
 
-        let model_create_one = format_ident!("{}CreateOne", model_name_pascal_string);
-        let model_find_first = format_ident!("{}FindFirst", model_name_pascal_string);
-        let model_find_unique = format_ident!("{}FindUnique", model_name_pascal_string);
-        let model_find_many = format_ident!("{}FindMany", model_name_pascal_string);
-        let model_update_unique = format_ident!("{}UpdateUnique", model_name_pascal_string);
-        let model_update_many = format_ident!("{}UpdateMany", model_name_pascal_string);
-        let model_upsert_one = format_ident!("{}UpsertOne", model_name_pascal_string);
-        let model_delete = format_ident!("{}Delete", model_name_pascal_string);
+        let model_create_one = format_ident!("{}CreateOne", &model_name_pascal_string);
+        let model_find_first = format_ident!("{}FindFirst", &model_name_pascal_string);
+        let model_find_unique = format_ident!("{}FindUnique", &model_name_pascal_string);
+        let model_find_many = format_ident!("{}FindMany", &model_name_pascal_string);
+        let model_update_unique = format_ident!("{}UpdateUnique", &model_name_pascal_string);
+        let model_update_many = format_ident!("{}UpdateMany", &model_name_pascal_string);
+        let model_upsert_one = format_ident!("{}UpsertOne", &model_name_pascal_string);
+        let model_delete = format_ident!("{}Delete", &model_name_pascal_string);
 
         let set_params_enum = &model_set_params.enum_name.clone();
         let where_params_enum = &model_where_params.enum_name.clone();
@@ -587,7 +586,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         let with_params_enum = &model_with_params.enum_name.clone();
         let order_by_params_enum = &model_order_by_params.enum_name.clone();
         let pagination_params_enum = &model_pagination_params.cursor_enum_name.clone();
-        let outputs_fn = &model_outputs.fn_name.clone();
 
         for op in Document::operators() {
             let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
@@ -1451,7 +1449,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     self
                 }
 
-                pub fn update(mut self, params: Vec<UserSetParam>) -> Self {
+                pub fn update(mut self, params: Vec<#set_params_enum>) -> Self {
                     self.query.inputs.push(Input {
                         name: "update".into(),
                         fields: params
