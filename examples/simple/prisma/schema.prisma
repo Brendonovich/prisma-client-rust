@@ -10,7 +10,7 @@ generator client {
 }
 
 model User {
-    id          String   @id
+    id          String @id
     displayName String
 
     posts Post[]
@@ -22,4 +22,8 @@ model Post {
 
     user   User   @relation(fields: [userId], references: [id])
     userId String
+}
+
+model Prisma {
+    id String @id
 }

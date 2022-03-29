@@ -559,15 +559,15 @@ impl Actions {
 
 pub fn generate(root: &Root) -> Vec<TokenStream> {
     root.ast.as_ref().unwrap().models.iter().map(|model| {
-        let outputs = Outputs::new(&model);
-        let mut data_struct = DataStruct::new(&model);
-        let mut order_by_params = OrderByParams::new(&model);
-        let mut pagination_params = PaginationParams::new(&model);
-        let mut with_params = WithParams::new(&model);
-        let mut query_structs = QueryStructs::new(&model);
-        let mut set_params = SetParams::new(&model.name);
-        let mut where_params = WhereParams::new(&model.name);
-        let mut actions = Actions::new(&model.name);
+        let model_outputs = Outputs::new(&model);
+        let mut model_data_struct = DataStruct::new(&model);
+        let mut model_order_by_params = OrderByParams::new(&model);
+        let mut model_pagination_params = PaginationParams::new(&model);
+        let mut model_with_params = WithParams::new(&model);
+        let mut model_query_structs = QueryStructs::new(&model);
+        let mut model_set_params = SetParams::new(&model.name);
+        let mut model_where_params = WhereParams::new(&model.name);
+        let mut model_actions = Actions::new(&model.name);
 
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
         let model_name_pascal = format_ident!("{}", &model_name_pascal_string);
@@ -581,19 +581,19 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         let model_upsert_one = format_ident!("{}UpsertOne", model_name_pascal_string);
         let model_delete = format_ident!("{}Delete", model_name_pascal_string);
 
-        let set_params_enum = &set_params.enum_name.clone();
-        let where_params_enum = &where_params.enum_name.clone();
-        let unique_where_params_enum = &where_params.unique_enum_name.clone();
-        let with_params_enum = &with_params.enum_name.clone();
-        let order_by_params_enum = &order_by_params.enum_name.clone();
-        let pagination_params_enum = &pagination_params.cursor_enum_name.clone();
-        let outputs_fn = &outputs.fn_name.clone();
+        let set_params_enum = &model_set_params.enum_name.clone();
+        let where_params_enum = &model_where_params.enum_name.clone();
+        let unique_where_params_enum = &model_where_params.unique_enum_name.clone();
+        let with_params_enum = &model_with_params.enum_name.clone();
+        let order_by_params_enum = &model_order_by_params.enum_name.clone();
+        let pagination_params_enum = &model_pagination_params.cursor_enum_name.clone();
+        let outputs_fn = &model_outputs.fn_name.clone();
 
         for op in Document::operators() {
             let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
             let op_string = op.name;
 
-            where_params.add_variant(
+            model_where_params.add_variant(
                 quote!(#variant_name(Vec<#where_params_enum>)),
                 quote! {
                     Self::#variant_name(value) => Field {
@@ -630,8 +630,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             let field_type_string = field.field_type.value();
             let field_type = field.field_type.tokens();
 
-            let field_set_struct = set_params.field_set_struct(&field.name);
-            let field_link_struct = set_params.field_link_struct(&field.name);
+            let field_set_struct = model_set_params.field_set_struct(&field.name);
+            let field_link_struct = model_set_params.field_link_struct(&field.name);
 
             if field.kind.is_relation() {
                 let link_variant = SetParams::field_link_variant(&field.name);
@@ -655,7 +655,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         format_ident!("{}{}", &field_pascal, method.name.to_case(Case::Pascal));
                     let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                    where_params.add_variant(
+                    model_where_params.add_variant(
                         quote!(#variant_name(Vec<#relation_where_enum>)),
                         quote! {
                             Self::#variant_name(value) => Field {
@@ -703,7 +703,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     });
 
-                    set_params.add_variant(
+                    model_set_params.add_variant(
                         quote!(#link_variant(Vec<#relation_where_unique_enum>)),
                         quote! {
                             Self::#link_variant(where_params) => Field {
@@ -728,7 +728,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     );
 
-                    set_params.add_variant(
+                    model_set_params.add_variant(
                         quote!(#unlink_variant(Vec<#relation_where_unique_enum>)),
                         quote! {
                             Self::#unlink_variant(where_params) => Field {
@@ -753,7 +753,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         },
                     );
 
-                    with_params.add_variant(
+                    model_with_params.add_variant(
                         quote!(#field_pascal(Vec<#relation_where_enum>)),
                         quote! {
                             Self::#field_pascal(where_params) => Output {
@@ -775,7 +775,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         },
                     );
 
-                    data_struct.add_relation(
+                    model_data_struct.add_relation(
                         quote! {
                            #[serde(rename = #field_string)]
                            #field_snake: Option<Vec<#relation_data_struct>>
@@ -810,7 +810,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     });
 
-                    set_params.add_variant(
+                    model_set_params.add_variant(
                         quote!(#link_variant(#relation_where_unique_enum)),
                         quote! {
                             Self::#link_variant(where_param) => Field {
@@ -836,7 +836,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             }
                         });
 
-                        set_params.add_variant(
+                        model_set_params.add_variant(
                             quote!(#unlink_variant),
                             quote! {
                                 Self::#unlink_variant => Field {
@@ -852,7 +852,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         );
                     }
                     
-                    with_params.add_variant(
+                    model_with_params.add_variant(
                         quote!(#field_pascal),
                         quote! {
                             Self::#field_pascal => Output {
@@ -863,7 +863,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         },
                     );
 
-                    data_struct.add_relation(
+                    model_data_struct.add_relation(
                         quote! {
                             #[serde(rename = #field_string)]
                             #field_snake: Option<Box<#relation_data_struct>>
@@ -880,7 +880,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 };
 
                 if field.required_on_create() {
-                    actions.push_required_arg(
+                    model_actions.push_required_arg(
                         quote!(#field_snake: #field_link_struct,),
                         quote!(input_fields.push(#set_params_enum::from(#field_snake).to_field());),
                     );
@@ -888,10 +888,10 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
             // Scalar actions
             else {
-                let set_variant = SetParams::field_set_variant(&field.name);
+                let field_set_variant = SetParams::field_set_variant(&field.name);
 
                 if !field.prisma {
-                    let (set_variant_type, field_content) = if field.is_list {
+                    let (field_set_variant_type, field_content) = if field.is_list {
                         (
                             quote!(Vec<#field_type>),
                             quote!(fields: Some(value.iter().map(|f| f.to_field()).collect())),
@@ -904,24 +904,24 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     };
 
                     field_query_struct.push_query(quote! {
-                        pub fn set<T: From<#field_set_struct>>(&self, value: #set_variant_type) -> T {
+                        pub fn set<T: From<#field_set_struct>>(&self, value: #field_set_variant_type) -> T {
                             #field_set_struct(value).into()
                         }
                     });
 
                     field_query_struct.push_query_struct(quote! {
-                        pub struct #field_set_struct(#set_variant_type);
+                        pub struct #field_set_struct(#field_set_variant_type);
                         impl From<#field_set_struct> for #set_params_enum {
                             fn from(value: #field_set_struct) -> Self {
-                                Self::#set_variant(value.0)
+                                Self::#field_set_variant(value.0)
                             }
                         }
                     });
 
-                    set_params.add_variant(
-                        quote!(#set_variant(#field_type)),
+                    model_set_params.add_variant(
+                        quote!(#field_set_variant(#field_type)),
                         quote! {
-                            Self::#set_variant(value) => Field {
+                            Self::#field_set_variant(value) => Field {
                                 name: #field_string.into(),
                                 value: Some(serde_json::to_value(value).unwrap()),
                                 ..Default::default()
@@ -930,7 +930,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     );
 
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
-                    let equals_variant = quote!(#equals_variant_name(#set_variant_type));
+                    let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
 
                     let match_arm = quote! {
                         Self::#equals_variant_name(value) => Field {
@@ -946,7 +946,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
                     match field.is_unique || field.is_id {
                         true => {
-                            where_params.add_unique_variant(
+                            model_where_params.add_unique_variant(
                                 equals_variant,
                                 match_arm,
                                 quote! {
@@ -954,15 +954,15 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                                 }
                             );
                             field_query_struct.push_query(quote! {
-                                pub fn equals<T: From<#unique_where_params_enum>>(&self, value: #set_variant_type) -> T {
+                                pub fn equals<T: From<#unique_where_params_enum>>(&self, value: #field_set_variant_type) -> T {
                                     #unique_where_params_enum::#equals_variant_name(value).into()
                                 }
                             })
                         }
                         false => {
-                            where_params.add_variant(equals_variant, match_arm);
+                            model_where_params.add_variant(equals_variant, match_arm);
                             field_query_struct.push_query(quote! {
-                                pub fn equals(&self, value: #set_variant_type) -> #where_params_enum {
+                                pub fn equals(&self, value: #field_set_variant_type) -> #where_params_enum {
                                     #where_params_enum::#equals_variant_name(value).into()
                                 }
                             });
@@ -982,7 +982,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     });
 
-                    data_struct.add_field(match (field.is_list, field.is_required) {
+                    model_data_struct.add_field(match (field.is_list, field.is_required) {
                         (true, _) => quote! {
                             #[serde(rename = #field_string)]
                             pub #field_snake: Vec<#field_type>
@@ -1022,25 +1022,21 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
                         let method_name = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                        if method.is_list {
-                            field_query_struct.push_query(quote! {
-                                pub fn #method_name(&self, value: Vec<#typ>) -> #set_params_enum {
-                                    #set_params_enum::#field_pascal(value)
-                                }
-                            });
-                        } else {
-                            field_query_struct.push_query(quote! {
-                                pub fn #method_name(&self, value: #typ) -> #set_params_enum {
-                                    #set_params_enum::#field_pascal(value)
-                                }
-                            });
-                        }
+                        let typ = if method.is_list {
+                            quote!(Vec<#typ>)
+                        } else { typ };
+                        
+                        field_query_struct.push_query(quote! {
+                            pub fn #method_name(&self, value: #typ) -> #set_params_enum {
+                                #set_params_enum::#field_set_variant(value)
+                            }
+                        });
 
                         // TODO: IfPresent
                     }
                 }
 
-                order_by_params.add_variant(
+                model_order_by_params.add_variant(
                     quote!(#field_pascal(Direction)),
                     quote! {
                         Self::#field_pascal(direction) => Field {
@@ -1051,7 +1047,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     },
                 );
 
-                pagination_params.add_variant(
+                model_pagination_params.add_variant(
                     quote!(#field_pascal(#field_type)),
                     quote! {
                         Self::#field_pascal(value) => Field {
@@ -1063,7 +1059,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 );
 
                 if field.required_on_create() {
-                    actions.push_required_arg(
+                    model_actions.push_required_arg(
                         quote!(#field_snake: #field_set_struct,),
                         quote!(input_fields.push(#set_params_enum::from(#field_snake).to_field());),
                     );
@@ -1077,7 +1073,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 .read_filter(field.field_type.string(), field.is_list)
             {
                 for method in &read_type.methods {
-                    // TODO: Deprecated warning
                     let typ = match method.typ.string() {
                         "" => field.field_type.tokens(),
                         _ => method.typ.tokens(),
@@ -1114,7 +1109,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         )
                     };
 
-                    where_params.add_variant(
+                    model_where_params.add_variant(
                         quote!(#variant_name(#typ)),
                         quote! {
                             Self::#variant_name(value) => Field {
@@ -1128,7 +1123,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             }
                         },
                     );
-
+                    
                     field_query_struct.push_query(quote! {
                         pub fn #method_name(&self, value: #typ) -> #where_params_enum {
                             #where_params_enum::#variant_name(value)
@@ -1139,7 +1134,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 }
             }
 
-            query_structs.add_field(
+            model_query_structs.add_field(
                 quote! {
                     pub fn #field_snake() -> #field_query_struct_name {
                         #field_query_struct_name {}
@@ -1153,21 +1148,21 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             required_args,
             required_arg_pushes,
             struct_name: actions_struct,
-        } = &actions;
-        let DataStruct { name: data_struct_name, .. } = &data_struct;
-        let WithParams { with_fn, .. } = &with_params;
-        let OrderByParams { order_by_fn, .. } = &order_by_params;
-        let PaginationParams { pagination_fns, .. } = &pagination_params;
-        let Outputs { fn_name: outputs_fn_name, .. } = &outputs;
+        } = &model_actions;
+        let DataStruct { name: data_struct_name, .. } = &model_data_struct;
+        let WithParams { with_fn, .. } = &model_with_params;
+        let OrderByParams { order_by_fn, .. } = &model_order_by_params;
+        let PaginationParams { pagination_fns, .. } = &model_pagination_params;
+        let Outputs { fn_name: outputs_fn_name, .. } = &model_outputs;
 
-        let data_struct = data_struct.quote();
-        let with_params = with_params.quote();
-        let set_params = set_params.quote();
-        let order_by_params = order_by_params.quote();
-        let pagination_params = pagination_params.quote();
-        let outputs_fn = outputs.quote();
-        let query_structs = query_structs.quote();
-        let where_params = where_params.quote();
+        let data_struct = model_data_struct.quote();
+        let with_params = model_with_params.quote();
+        let set_params = model_set_params.quote();
+        let order_by_params = model_order_by_params.quote();
+        let pagination_params = model_pagination_params.quote();
+        let outputs_fn = model_outputs.quote();
+        let query_structs = model_query_structs.quote();
+        let where_params = model_where_params.quote();
 
         quote! {
             #outputs_fn

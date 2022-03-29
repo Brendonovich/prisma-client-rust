@@ -50,14 +50,6 @@ impl<'a> AST<'a> {
         ast.read_filters = ast.read_filters();
         ast.write_filters = ast.write_filters();
 
-        for filter in ast.deprecated_read_filters() {
-            for f in &mut ast.read_filters {
-                if f.name == filter.name {
-                    f.methods.extend(filter.methods.clone());
-                }
-            }
-        }
-
         ast
     }
 
