@@ -591,13 +591,13 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
         for op in Document::operators() {
             let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
-            let op_string = op.name;
+            let op_action = &op.action;
 
             model_where_params.add_variant(
                 quote!(#variant_name(Vec<#where_params_enum>)),
                 quote! {
                     Self::#variant_name(value) => Field {
-                        name: #op_string.into(),
+                        name: #op_action.into(),
                         list: true,
                         wrap_list: true,
                         fields: Some(value.into_iter().map(|f| f.to_field()).collect()),
