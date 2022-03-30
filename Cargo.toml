@@ -22,9 +22,9 @@ serde_json = "1.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "1.0.30"
 
-query-core = { git = "https://github.com/prisma/prisma-engines" }
-query-connector = { git = "https://github.com/prisma/prisma-engines" }
-request-handlers = { git = "https://github.com/prisma/prisma-engines" }
-prisma-models = { git = "https://github.com/prisma/prisma-engines" }
-datamodel = { git = "https://github.com/prisma/prisma-engines" }
-graphql-parser = { git = "https://github.com/prisma/graphql-parser" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
+graphql-parser = { git = "https://github.com/prisma/graphql-parser", rev = "6a3f58bd879065588e710cb02b5bd30c1ce182c3" }
