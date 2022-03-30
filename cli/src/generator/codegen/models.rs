@@ -518,7 +518,7 @@ impl DataStruct {
         } = self;
 
         quote! {
-            #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+            #[derive(Debug, Clone, Serialize, Deserialize)]
             pub struct #name {
                 #(#fields),*
             }
