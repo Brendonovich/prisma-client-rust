@@ -33,7 +33,7 @@ pub fn generate(root: &Root) -> TokenStream {
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
-        use prisma_client_rust::{chrono, operator::Operator, serde_json, DeleteResult, Direction, NewClientError};
+        use prisma_client_rust::{chrono, operator::Operator, serde_json, DeleteResult, Direction};
 
         pub use prisma_client_rust::{query::{Error as QueryError}, NewClientError};
 
