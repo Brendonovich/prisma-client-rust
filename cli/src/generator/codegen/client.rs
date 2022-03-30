@@ -28,14 +28,14 @@ pub fn generate(root: &Root) -> TokenStream {
 
     quote! {
         #![allow(dead_code)]
-        
+
         use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
         use prisma_client_rust::datamodel::parse_configuration;
         use prisma_client_rust::prisma_models::InternalDataModelBuilder;
         use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor};
         use prisma_client_rust::{chrono, operator::Operator, serde_json, DeleteResult, Direction, NewClientError};
 
-        pub use prisma_client_rust::query::{Error as QueryError};
+        pub use prisma_client_rust::{query::{Error as QueryError}, NewClientError};
 
         use serde::{Serialize, Deserialize};
 
