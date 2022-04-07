@@ -1,7 +1,7 @@
 # Prima Client Rust
 
 <a href="https://crates.io/crates/prisma-client-rust">
-    <img src="https://img.shields.io/static/v1?label=crate&message=v0.3.0&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.3.0">
+    <img src="https://img.shields.io/static/v1?label=crate&message=v0.3.1&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.3.1">
 </a>
 <a href="https://prisma.io">
     <img src="https://img.shields.io/static/v1?label=prisma&message=v3.10.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.10.0">
@@ -26,7 +26,7 @@ Primsa Client Rust is still under active development and is subject to change su
 3. Add `prisma-client-rust` and `serde` as dependencies in `Cargo.toml`
 
    ```
-   prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.3.0" }
+   prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.3.1" }
    serde = { version = "1.0", features = ["derive"] }
    ```
 
