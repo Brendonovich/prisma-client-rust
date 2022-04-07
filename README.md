@@ -1,7 +1,10 @@
 # Prisma Client Rust
 
-<a href="https://crates.io/crates/prisma-client-rust">
-    <img src="https://img.shields.io/static/v1?label=crate&message=v0.3.1&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.3.1">
+<a href="https://github.com/Brendonovich/prisma-client-rust">
+    <img src="https://img.shields.io/static/v1?label=lib&message=v0.3.1&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.3.1">
+</a>
+<a href="https://crates.io/crates/prisma-client-rust-cli">
+    <img src="https://img.shields.io/static/v1?label=cli&message=v0.3.1&color=blue&logo=rust&style=flat-square" alt="Latest crate version is 0.3.1">
 </a>
 <a href="https://prisma.io">
     <img src="https://img.shields.io/static/v1?label=prisma&message=v3.10.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.10.0">
