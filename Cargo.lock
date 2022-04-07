@@ -2394,7 +2394,7 @@ checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "datamodel",
@@ -2410,7 +2410,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "codegen",
  "convert_case",
