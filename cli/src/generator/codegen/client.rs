@@ -41,15 +41,16 @@ pub fn generate(root: &Root) -> TokenStream {
 
         use std::path::Path;
         use std::sync::Arc;
+        
+        static DATAMODEL_STR: &'static str = #datamodel;
 
         pub struct PrismaClient {
             executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
             query_schema: Arc<QuerySchema>,
         }
 
-        pub async fn new_client() -> Result<PrismaClient, NewClientError> {
-            let datamodel_str = #datamodel;
-            let config = parse_configuration(datamodel_str)?.subject;
+        pub async fn new_client() -> Result<PrismaClient, NewClientError> { 
+            let config = parse_configuration(DATAMODEL_STR)?.subject;
             let source = config
                 .datasources
                 .first()
@@ -59,32 +60,33 @@ pub fn generate(root: &Root) -> TokenStream {
             } else {
                 source.load_url(|key| std::env::var(key).ok())?
             };
-            // TODO: fix this
-            let url = match url.split(":").collect::<Vec<_>>().as_slice() {
-                ["file", path] => {
-                    if Path::new("./schema.prisma").exists() {
-                        url
-                    } else if Path::new("./prisma/schema.prisma").exists() {
-                        format!("file:./prisma/{}", path)
-                    } else {
-                        url
-                    }
-                },
-                _ => url
+            
+            // sqlite fix
+            let url = if url.starts_with("file:") {
+                let path = url.split(":").nth(1).unwrap();
+
+                if Path::new("./schema.prisma").exists() {
+                    url
+                } else if Path::new("./prisma/schema.prisma").exists() {
+                    format!("file:./prisma/{}", path)
+                } else {
+                    url
+                }
+            } else {
+                url
             };
             new_client_with_url(&url).await
         }
 
         // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
         pub async fn new_client_with_url(url: &str) -> Result<PrismaClient, NewClientError> {
-            let datamodel_str = #datamodel;
-            let config = parse_configuration(datamodel_str)?.subject;
+            let config = parse_configuration(DATAMODEL_STR)?.subject;
             let source = config
                 .datasources
                 .first()
                 .expect("Pleasy supply a datasource in your schema.prisma file");
             let (db_name, executor) = executor::load(&source, &[], &url).await?;
-            let internal_model = InternalDataModelBuilder::new(&datamodel_str).build(db_name);
+            let internal_model = InternalDataModelBuilder::new(DATAMODEL_STR).build(db_name);
             let query_schema = Arc::new(schema_builder::build(
                 internal_model,
                 BuildMode::Modern,

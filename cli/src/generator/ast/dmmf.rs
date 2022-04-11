@@ -362,19 +362,29 @@ impl Field {
         if self.is_list {
             vec![
                 RelationMethod {
-                    name: "Some".to_string(),
+                    name: "some".to_string(),
                     action: "some".to_string(),
                 },
                 RelationMethod {
-                    name: "Every".to_string(),
+                    name: "every".to_string(),
                     action: "every".to_string(),
+                },
+                RelationMethod {
+                    name: "none".to_string(),
+                    action: "none".to_string(),
                 },
             ]
         } else {
-            vec![RelationMethod {
-                name: "Is".to_string(),
-                action: "is".to_string(),
-            }]
+            vec![
+                RelationMethod {
+                    name: "is".to_string(),
+                    action: "is".to_string(),
+                },
+                RelationMethod {
+                    name: "is_not".to_string(),
+                    action: "isNot".to_string(),
+                },
+            ]
         }
     }
 }

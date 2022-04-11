@@ -400,6 +400,7 @@ struct WhereParams {
     pub to_field: Vec<TokenStream>,
     pub unique_variants: Vec<TokenStream>,
     pub from_unique_match_arms: Vec<TokenStream>,
+    pub from_optional_uniques: Vec<TokenStream>
 }
 
 impl WhereParams {
@@ -411,6 +412,7 @@ impl WhereParams {
             to_field: vec![],
             unique_variants: vec![],
             from_unique_match_arms: vec![],
+            from_optional_uniques: vec![]
         }
     }
 
@@ -424,10 +426,45 @@ impl WhereParams {
         variant: TokenStream,
         match_arm: TokenStream,
         from_unique_match_arm: TokenStream,
+        unique_variant: TokenStream
     ) {
-        self.add_variant(variant.clone(), match_arm);
-        self.unique_variants.push(variant);
+        self.add_variant(variant, match_arm);
+        self.unique_variants.push(unique_variant);
         self.from_unique_match_arms.push(from_unique_match_arm);
+    }
+    
+    pub fn add_optional_unique_variant(
+        &mut self,
+        variant: TokenStream,
+        match_arm: TokenStream,
+        from_unique_match_arm: TokenStream,
+        unique_variant: TokenStream,
+        struct_name: &Ident,
+        arg_type: &TokenStream,
+        variant_name: &Ident,
+    ) {
+        self.add_unique_variant(variant, match_arm, from_unique_match_arm, unique_variant);
+        
+        let enum_name = &self.enum_name;
+        let unique_enum_name = &self.unique_enum_name;
+
+        self.from_optional_uniques.push(quote!{
+            impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for #enum_name {
+                type Arg = Option<#arg_type>;
+                
+                fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
+                    Self::#variant_name(arg)
+                }
+            } 
+            
+            impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for #unique_enum_name {
+                type Arg = #arg_type;
+                
+                fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
+                    Self::#variant_name(arg)
+                }
+            }
+        });
     }
 
     pub fn get_enum_ident(name: &str) -> Ident {
@@ -446,6 +483,7 @@ impl WhereParams {
             to_field,
             unique_variants,
             from_unique_match_arms,
+            from_optional_uniques
         } = self;
 
         quote! {
@@ -472,6 +510,8 @@ impl WhereParams {
                     }
                 }
             }
+            
+            #(#from_optional_uniques)*
 
             impl From<Operator<Self>> for #enum_name {
                 fn from(op: Operator<Self>) -> Self {
@@ -573,7 +613,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
         let model_name_pascal_string = model.name.to_case(Case::Pascal);
 
-        let model_create_one = format_ident!("{}CreateOne", &model_name_pascal_string);
+        let model_create = format_ident!("{}CreateOne", &model_name_pascal_string);
         let model_find_first = format_ident!("{}FindFirst", &model_name_pascal_string);
         let model_find_unique = format_ident!("{}FindUnique", &model_name_pascal_string);
         let model_find_many = format_ident!("{}FindMany", &model_name_pascal_string);
@@ -673,7 +713,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 },
                 quote! {
                     #unique_where_params_enum::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
-                }
+                },
+                quote!(#variant_name(#(#variant_data_as_types),*)),
             );
         }
 
@@ -920,21 +961,63 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             }
                         },
                     );
-
-                    model_data_struct.add_relation(
+                    
+                    let accessor_type = if field.is_required {
+                        quote!(& #relation_data_struct)
+                    } else {
+                        quote!(Option<& #relation_data_struct>)
+                    };
+                    
+                    let struct_field_type = if field.is_required {
+                        quote!(Box<#relation_data_struct>)
+                    } else {
+                        quote!(Option<Box<#relation_data_struct>>)
+                    };
+                    
+                    let serde_attr = if field.is_required {
+                        quote!(#[serde(rename = #field_string)])
+                    } else {
                         quote! {
-                            #[serde(rename = #field_string)]
-                            #field_snake: Option<Box<#relation_data_struct>>
-                        },
-                        quote! {
-                            pub fn #field_snake(&self) -> Result<&#relation_data_struct, String> {
-                                match self.#field_snake.as_ref() {
-                                    Some(v) => Ok(v),
-                                    None => Err(#relation_data_access_error.to_string()),
+                           #[serde(
+                                rename = #field_string, 
+                                default, 
+                                skip_serializing_if = "Option::is_none", 
+                                with = "prisma_client_rust::serde::double_option"
+                            )]
+                        }
+                    };
+                    
+                    if field.is_required {
+                        model_data_struct.add_relation(
+                            quote! {
+                                #serde_attr
+                                #field_snake: Option<#struct_field_type>
+                            },
+                            quote! {
+                                pub fn #field_snake(&self) -> Result<#accessor_type, String> {
+                                    match self.#field_snake.as_ref() {
+                                        Some(v) => Ok(v),
+                                        None => Err(#relation_data_access_error.to_string()),
+                                    }
                                 }
-                            }
-                        },
-                    );
+                            } 
+                        );
+                    } else {
+                        model_data_struct.add_relation(
+                            quote! {
+                                #[serde(rename = #field_string)]
+                                #field_snake: Option<#struct_field_type>
+                            },
+                            quote! {
+                                pub fn #field_snake(&self) -> Result<#accessor_type, String> {
+                                    match self.#field_snake.as_ref() {
+                                        Some(v) => Ok(v.as_ref().map(|v| v.as_ref())),
+                                        None => Err(#relation_data_access_error.to_string()),
+                                    }
+                                }
+                            },
+                        );
+                    }
                 };
 
                 if field.required_on_create() {
@@ -955,8 +1038,14 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             quote!(fields: Some(value.iter().map(|f| f.to_field()).collect())),
                         )
                     } else {
+                        let typ = if field.is_required {
+                            quote!(#field_type)
+                        } else {
+                            quote!(Option<#field_type>)
+                        };
+                        
                         (
-                            field_type.clone(),
+                            typ,
                             quote!(value: Some(serde_json::to_value(value).unwrap())),
                         )
                     };
@@ -977,7 +1066,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     });
 
                     model_set_params.add_variant(
-                        quote!(#field_set_variant(#field_type)),
+                        quote!(#field_set_variant(#field_set_variant_type)),
                         quote! {
                             Self::#field_set_variant(value) => Field {
                                 name: #field_string.into(),
@@ -1002,22 +1091,41 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     };
 
-                    match field.is_unique || field.is_id {
-                        true => {
+                    match (field.is_id, field.is_unique, field.is_required)  {
+                        (true, _, _) | (_, true, true) => {
                             model_where_params.add_unique_variant(
-                                equals_variant,
+                                equals_variant.clone(),
                                 match_arm,
                                 quote! {
                                     #unique_where_params_enum::#equals_variant_name(value) => Self::#equals_variant_name(value)
-                                }
+                                },
+                                equals_variant
                             );
                             field_query_struct.push_query(quote! {
                                 pub fn equals<T: From<#unique_where_params_enum>>(&self, value: #field_set_variant_type) -> T {
                                     #unique_where_params_enum::#equals_variant_name(value).into()
                                 }
-                            })
+                            });
                         }
-                        false => {
+                        (_, true, false) => {
+                            model_where_params.add_optional_unique_variant(
+                                equals_variant,
+                                match_arm,
+                                quote! {
+                                    #unique_where_params_enum::#equals_variant_name(value) => Self::#equals_variant_name(Some(value))
+                                },
+                                quote!(#equals_variant_name(#field_type)),
+                                &field_query_struct_name,
+                                &field_type,
+                                &equals_variant_name,
+                            );
+                            field_query_struct.push_query(quote! {
+                                pub fn equals<A, T: prisma_client_rust::traits::FromOptionalUniqueArg<#field_query_struct_name, Arg = A>>(&self, value: A) -> T {
+                                    T::from_arg(value)
+                                }
+                            });
+                        },
+                        (_, _, _) => {
                             model_where_params.add_variant(equals_variant, match_arm);
                             field_query_struct.push_query(quote! {
                                 pub fn equals(&self, value: #field_set_variant_type) -> #where_params_enum {
@@ -1026,8 +1134,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             });
                         }
                     };
-
-                    // TODO: Optional Equals
 
                     // Pagination
                     field_query_struct.push_query(quote! {
@@ -1433,12 +1539,12 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 #with_fn
             }
 
-            pub struct #model_create_one<'a> {
+            pub struct #model_create<'a> {
                 query: Query<'a>,
                 with_params: Vec<#with_params_enum>
             }
 
-            impl<'a> #model_create_one<'a> {
+            impl<'a> #model_create<'a> {
                 pub async fn exec(self) -> QueryResult<#data_struct_name> {
                     let Self {
                         mut query,
@@ -1643,7 +1749,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     }
                 }
 
-                pub fn create_one(&self, #(#required_args)* params: Vec<#set_params_enum>) -> #model_create_one {
+                pub fn create(&self, #(#required_args)* params: Vec<#set_params_enum>) -> #model_create {
                     let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
 
                     #(#required_arg_pushes)*
@@ -1662,7 +1768,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }]
                     };
 
-                    #model_create_one {
+                    #model_create {
                         query,
                         with_params: vec![]
                     }

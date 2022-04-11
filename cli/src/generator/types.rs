@@ -100,6 +100,7 @@ impl GraphQLType {
             "Int" => quote!(i32),
             "BigInt" => quote!(i64),
             "Float" => quote!(f64),
+            "Decimal" => quote!(f64),
             "Boolean" => quote!(bool),
             "Bytes" => quote!(Vec<u8>),
             "DateTime" => quote!(chrono::DateTime<chrono::Utc>),

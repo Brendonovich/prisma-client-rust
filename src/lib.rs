@@ -1,24 +1,27 @@
 pub mod operator;
 pub mod query;
+pub mod serde;
+pub mod traits;
 
 pub use chrono;
 pub use datamodel;
-use datamodel::datamodel_connector::Diagnostics;
 pub use prisma_models;
 pub use query_core;
-use query_core::CoreError;
 pub use request_handlers;
 pub use serde_json;
+use datamodel::datamodel_connector::Diagnostics;
 use thiserror::Error;
+use query_core::CoreError;
+use ::serde::{Serialize, Deserialize};
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct DeleteResult {
     pub count: isize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub enum Direction {
     #[serde(rename = "asc")]
     Asc,
