@@ -81,7 +81,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 impl<'a> Query<'a> {
     pub async fn perform<T: DeserializeOwned>(self) -> Result<T> {
-        // TODO: check if engine running
         let query_string = self.build();
 
         let document = parse_query(&query_string)?;
@@ -93,7 +92,7 @@ impl<'a> Query<'a> {
             .execute(None, operation, self.ctx.schema, None)
             .await?;
 
-        let value = serde_json::to_value(data.data)?;
+        let value = serde_json::to_value(data.data)?; // TODO: serialize without json conversion
         let ret = serde_json::from_value(value)?;
 
         Ok(ret)

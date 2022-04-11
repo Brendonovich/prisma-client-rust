@@ -1373,6 +1373,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration-tests"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "ipconfig"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2402,6 +2411,7 @@ dependencies = [
  "prisma-models",
  "query-connector",
  "query-core",
+ "rand 0.8.5",
  "request-handlers",
  "serde",
  "serde_json",

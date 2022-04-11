@@ -619,8 +619,9 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         let model_find_many = format_ident!("{}FindMany", &model_name_pascal_string);
         let model_update_unique = format_ident!("{}UpdateUnique", &model_name_pascal_string);
         let model_update_many = format_ident!("{}UpdateMany", &model_name_pascal_string);
-        let model_upsert_one = format_ident!("{}UpsertOne", &model_name_pascal_string);
+        let model_upsert = format_ident!("{}UpsertOne", &model_name_pascal_string);
         let model_delete = format_ident!("{}Delete", &model_name_pascal_string);
+        let model_delete_many = format_ident!("{}DeleteMany", &model_name_pascal_string);
 
         let set_params_enum = &model_set_params.enum_name.clone();
         let where_params_enum = &model_where_params.enum_name.clone();
@@ -726,7 +727,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             let field_string = &field.name;
             let field_snake = format_ident!("{}", field.name.to_case(Case::Snake));
             let field_pascal = format_ident!("{}", field.name.to_case(Case::Pascal));
-            let field_type_string = field.field_type.value();
+            let field_type_tokens_string = field.field_type.value();
             let field_type = field.field_type.tokens();
 
             let field_set_struct = model_set_params.field_set_struct(&field.name);
@@ -736,8 +737,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 let link_variant = SetParams::field_link_variant(&field.name);
                 let unlink_variant = SetParams::field_unlink_variant(&field.name);
 
-                let relation_outputs_fn = Outputs::get_fn_name(&field_type_string);
-                let relation_data_struct = DataStruct::get_struct_name(&field_type_string);
+                let relation_outputs_fn = Outputs::get_fn_name(&field_type_tokens_string);
+                let relation_data_struct = DataStruct::get_struct_name(&field_type_tokens_string);
                 let relation_where_enum = WhereParams::get_enum_ident(&field.field_type.value());
                 let relation_where_unique_enum =
                     WhereParams::get_unique_enum_ident(&field.field_type.value());
@@ -1184,17 +1185,35 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             _ => method.typ.tokens(),
                         };
 
-                        let method_name = format_ident!("{}", method.name.to_case(Case::Snake));
+                        let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
                         let typ = if method.is_list {
                             quote!(Vec<#typ>)
                         } else { typ };
 
+                        let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_pascal);
+
                         field_query_struct.push_query(quote! {
-                            pub fn #method_name(&self, value: #typ) -> #set_params_enum {
-                                #set_params_enum::#field_set_variant(value)
+                            pub fn #method_name_snake(&self, value: #typ) -> #set_params_enum {
+                                #set_params_enum::#variant_name(value)
                             }
                         });
+                        
+                        let method_action = &method.action;
+                        model_set_params.add_variant(
+                            quote!(#variant_name(#typ)),
+                            quote! {
+                                Self::#variant_name(value) => Field {
+                                    name: #field_string.into(),
+                                    fields: Some(vec![Field{
+                                        name: #method_action.into(),
+                                        value: Some(serde_json::to_value(value).unwrap()),
+                                        ..Default::default()
+                                    }]),
+                                    ..Default::default()
+                                }
+                            }
+                        );
 
                         // TODO: IfPresent
                     }
@@ -1378,8 +1397,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     query.perform().await
                 }
 
-                pub fn delete(self) -> #model_delete<'a> {
-                    #model_delete {
+                pub fn delete(self) -> #model_delete_many<'a> {
+                    #model_delete_many {
                         query: Query {
                             operation: "mutation".into(),
                             method: "deleteMany".into(),
@@ -1419,9 +1438,11 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         query: Query {
                             operation: "mutation".into(),
                             method: "updateMany".into(),
+                            outputs: vec! [
+                                Output::new("count"),
+                            ],
                             ..self.query
-                        },
-                        with_params: vec![]
+                        }
                     }
                 }
 
@@ -1499,7 +1520,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             method: "deleteOne".into(),
                             model: #model_name_pascal_string.into(),
                             ..self.query
-                        }
+                        },
+                        with_params: vec![]
                     }
                 }
 
@@ -1568,31 +1590,54 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
 
             impl<'a> #model_update_unique<'a> {
-                pub async fn exec(self) -> QueryResult<#data_struct_name> {
-                    self.query.perform().await
+                pub async fn exec(self) -> QueryResult<Option<#data_struct_name>> {
+                    let Self {
+                        mut query,
+                        with_params,
+                    } = self;
+                    
+                    query.outputs.extend(
+                        with_params
+                            .into_iter()
+                            .map(|f| f.to_output())
+                            .collect::<Vec<_>>(),
+                    );
+                    
+                    match query.perform().await {
+                        Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
+                            msg,
+                            Some(interpreter_error),
+                        )))) => match *interpreter_error {
+                            InterpreterError::QueryGraphBuilderError(
+                                QueryGraphBuilderError::RecordNotFound(_),
+                            ) => Ok(None),
+                            res => Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
+                                msg,
+                                Some(Box::new(res)),
+                            )))),
+                        },
+                        res => res,
+                    }
                 }
 
                 #with_fn
             }
 
             pub struct #model_update_many<'a> {
-                query: Query<'a>,
-                with_params: Vec<#with_params_enum>
+                query: Query<'a>
             }
 
             impl<'a> #model_update_many<'a> {
-                pub async fn exec(self) -> QueryResult<Vec<#data_struct_name>> {
-                    self.query.perform().await
+                pub async fn exec(self) -> QueryResult<usize> {
+                    self.query.perform().await.map(|res: CountResult| res.count)
                 }
-
-                #with_fn
             }
 
-            pub struct #model_upsert_one<'a> {
+            pub struct #model_upsert<'a> {
                 query: Query<'a>,
             }
 
-            impl<'a> #model_upsert_one<'a> {
+            impl<'a> #model_upsert<'a> {
                 pub async fn exec(self) -> QueryResult<#data_struct_name> {
                     self.query.perform().await
                 }
@@ -1640,12 +1685,49 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
 
             pub struct #model_delete<'a> {
-                query: Query<'a>
+                query: Query<'a>,
+                with_params: Vec<#with_params_enum>
             }
 
             impl<'a> #model_delete<'a> {
-                pub async fn exec(self) -> QueryResult<isize> {
-                    self.query.perform::<DeleteResult>().await.map(|r| r.count)
+                pub async fn exec(self) -> QueryResult<Option<#data_struct_name>> {
+                    let Self {
+                        mut query,
+                        with_params
+                    } = self;
+
+                    query.outputs.extend(with_params
+                        .into_iter()
+                        .map(|f| f.to_output())
+                        .collect::<Vec<_>>());
+
+                    match query.perform().await {
+                        Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
+                            msg,
+                            Some(interpreter_error),
+                        )))) => match *interpreter_error {
+                            InterpreterError::QueryGraphBuilderError(
+                                QueryGraphBuilderError::RecordNotFound(_),
+                            ) => Ok(None),
+                            res => Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
+                                msg,
+                                Some(Box::new(res)),
+                            )))),
+                        },
+                        res => res,
+                    }
+                }
+                
+                #with_fn
+            }
+            
+            pub struct #model_delete_many<'a> {
+                query: Query<'a>
+            }
+
+            impl<'a> #model_delete_many<'a> {
+                pub async fn exec(self) -> QueryResult<usize> {
+                    self.query.perform().await.map(|res: CountResult| res.count)
                 }
             }
 
@@ -1654,7 +1736,31 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             }
 
             impl<'a> #actions_struct<'a> {
-                // TODO: Dedicated unique field
+                pub fn create(&self, #(#required_args)* params: Vec<#set_params_enum>) -> #model_create {
+                    let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
+
+                    #(#required_arg_pushes)*
+
+                    let query = Query {
+                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                        name: String::new(),
+                        operation: "mutation".into(),
+                        method: "createOne".into(),
+                        model: #model_name_pascal_string.into(),
+                        outputs: #outputs_fn_name(),
+                        inputs: vec![Input {
+                            name: "data".into(),
+                            fields: input_fields,
+                            ..Default::default()
+                        }]
+                    };
+
+                    #model_create {
+                        query,
+                        with_params: vec![]
+                    }
+                }
+
                 pub fn find_unique(&self, param: #unique_where_params_enum) -> #model_find_unique {
                     let param: #where_params_enum = param.into();
                     let fields = transform_equals(vec![param.to_field()]);
@@ -1749,32 +1855,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     }
                 }
 
-                pub fn create(&self, #(#required_args)* params: Vec<#set_params_enum>) -> #model_create {
-                    let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
-
-                    #(#required_arg_pushes)*
-
-                    let query = Query {
-                        ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                        name: String::new(),
-                        operation: "mutation".into(),
-                        method: "createOne".into(),
-                        model: #model_name_pascal_string.into(),
-                        outputs: #outputs_fn_name(),
-                        inputs: vec![Input {
-                            name: "data".into(),
-                            fields: input_fields,
-                            ..Default::default()
-                        }]
-                    };
-
-                    #model_create {
-                        query,
-                        with_params: vec![]
-                    }
-                }
-
-                pub fn upsert_one(&self, param: #unique_where_params_enum) -> #model_upsert_one {
+                pub fn upsert(&self, param: #unique_where_params_enum) -> #model_upsert {
                     let param: #where_params_enum = param.into();
                     let fields = transform_equals(vec![param.to_field()]);
 
@@ -1792,7 +1873,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }]
                     };
 
-                    #model_upsert_one { query }
+                    #model_upsert { query }
                 }
             }
         }

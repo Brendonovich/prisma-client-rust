@@ -13,7 +13,8 @@ exclude = [
 [workspace]
 members = [
     "cli",
-    "examples/*"
+    "examples/*",
+    "integration-tests"
 ]
 
 [dependencies]
@@ -28,3 +29,6 @@ request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev
 prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
 datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
 graphql-parser = { git = "https://github.com/prisma/graphql-parser", rev = "6a3f58bd879065588e710cb02b5bd30c1ce182c3" }
+
+[dev-dependencies]
+rand = "0.8.5"

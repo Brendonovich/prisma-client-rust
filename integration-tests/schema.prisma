@@ -1,0 +1,60 @@
+datasource db {
+    provider = "sqlite"
+    url      = "file:dev.db"
+}
+
+generator client {
+    provider = "prisma-client-rust"
+    output   = "tests/prisma.rs"
+}
+
+model Post {
+    id         String     @id @default(cuid())
+    created_at DateTime   @default(now())
+    updated_at DateTime   @updatedAt
+    title      String
+    published  Boolean
+    views      Int        @default(0)
+    desc       String?
+    author     User?      @relation(fields: [author_id], references: [id])
+    author_id  String?
+    categories Category[] @relation(references: [id])
+}
+
+model User {
+    id         String   @id @default(cuid())
+    name       String
+    email      String?  @unique
+    created_at DateTime @default(now())
+    posts      Post[]
+    profile    Profile?
+}
+
+model Category {
+    id    Int    @id @default(autoincrement())
+    posts Post[] @relation(references: [id])
+    name  String
+}
+
+model Profile {
+    id      Int     @id @default(autoincrement())
+    user    User    @relation(fields: [user_id], references: [id])
+    user_id String  @unique
+    bio     String
+    city    String?
+    country String
+    views   Int     @default(0)
+}
+
+// model that just exists for testing different schema types
+model Types {
+    id       Int      @id @default(autoincrement())
+    bool_    Boolean  @default(false)
+    string   String   @default("")
+    integer  Int      @default(0)
+    datetime DateTime @default(now())
+    // TODO: Figure out how to deserialize these
+    // bigint   BigInt   @default(0) 
+    // float_   Float    @default(0)
+    // decimal  Decimal  @default(1)
+}

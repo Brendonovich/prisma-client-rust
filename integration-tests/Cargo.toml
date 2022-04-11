@@ -1,0 +1,19 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+authors = ["Brendan Allan <brendonovich@outlook.com>"]
+autotests = false
+autobenches = false
+edition = "2021"
+
+[dependencies]
+prisma-client-rust = {path = ".."}
+
+[[test]]
+name = "integration_tests"
+path = "tests/lib.rs"
+harness = true
+
+[dev-dependencies]
+tokio = {version = "1.17.0", features= ["rt", "macros"]}
+serde = { version = "1.0", features = ["derive"] }
