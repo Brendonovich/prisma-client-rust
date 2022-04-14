@@ -1,4 +1,4 @@
-use crate::generator::GraphQLType;
+use crate::cli::generator::GraphQLType;
 
 #[derive(Default, Clone, Debug)]
 pub struct Method {
@@ -12,5 +12,5 @@ pub struct Method {
 #[derive(Debug)]
 pub struct Filter {
     pub name: String,
-    pub methods: Vec<Method>
+    pub methods: Vec<Method>,
 }

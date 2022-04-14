@@ -1,4 +1,4 @@
-use crate::binaries::{self, platform, ENGINES};
+use crate::cli::binaries::{self, platform, ENGINES};
 use std::env;
 use std::process::Command;
 
