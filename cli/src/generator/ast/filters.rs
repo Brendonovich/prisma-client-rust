@@ -1,4 +1,4 @@
-use crate::cli::generator::GraphQLType;
+use crate::generator::GraphQLType;
 
 #[derive(Default, Clone, Debug)]
 pub struct Method {

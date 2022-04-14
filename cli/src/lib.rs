@@ -3,7 +3,7 @@ pub mod generator;
 pub mod jsonrpc;
 pub mod prisma_cli;
 
-use crate::cli::{
+use crate::{
     generator::Root,
     jsonrpc::{
         methods::{Manifest, ManifestResponse},

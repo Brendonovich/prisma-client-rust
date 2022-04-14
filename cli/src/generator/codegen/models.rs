@@ -2,7 +2,7 @@ use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
 
-use crate::cli::generator::{
+use crate::generator::{
     ast::{dmmf::Document, Model},
     Root,
 };

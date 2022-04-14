@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::cli::generator::Root;
+use crate::generator::Root;
 
 pub fn generate(root: &Root) -> TokenStream {
     let model_actions = root
