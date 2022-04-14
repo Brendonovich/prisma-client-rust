@@ -1,9 +1,4 @@
-use prisma_client_rust::{or, Direction};
-
-use crate::{
-    db::{Post, Profile, User},
-    utils::*,
-};
+use crate::{db::User, utils::*};
 
 #[tokio::test]
 async fn upsert() -> TestResult {

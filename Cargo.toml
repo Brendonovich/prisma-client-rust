@@ -7,14 +7,15 @@ description = "A prisma client for Rust"
 license = "MIT"
 
 exclude = [
-    "examples"
+    "examples",
+    "integration-tests"
 ]
 
 [workspace]
 members = [
-    "cli",
     "examples/*",
-    "integration-tests"
+    "integration-tests",
+    "cli"
 ]
 
 [profile.test]
@@ -25,6 +26,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "1.0.30"
+cli = { path = "cli", optional = true }
 
 query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }
 query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8c1da2fdc058b7af8905a61491856cade06f952f" }

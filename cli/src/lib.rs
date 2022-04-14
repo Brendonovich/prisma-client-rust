@@ -3,7 +3,7 @@ pub mod generator;
 pub mod jsonrpc;
 pub mod prisma_cli;
 
-use crate::{
+use crate::cli::{
     generator::Root,
     jsonrpc::{
         methods::{Manifest, ManifestResponse},
@@ -19,24 +19,20 @@ use std::{
     io::{stderr, stdin, BufRead, BufReader, Write},
 };
 
-fn main() {
+pub fn run() {
     let args = env::args();
 
-    if args.len() > 1 {
-        let args = args.skip(1).collect::<Vec<_>>();
-        let command: &str = &args[0];
+    let args = args.skip(1).collect::<Vec<_>>();
 
-        match command {
-            "prefetch" => {
-                prisma_cli::main(&vec!["-v".into()]);
-                return;
-            }
-            _ => prisma_cli::main(&args),
-        }
+    execute(&args);
+}
 
+pub fn execute(args: &Vec<String>) {
+    if args.len() > 0 {
+        prisma_cli::main(args);
         return;
     }
-
+    
     if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
         println!("This command is only meant to be invoked internally. Please run the following instead:");
         println!("`prisma-client-rust <command>`");
@@ -46,13 +42,11 @@ fn main() {
         std::process::exit(1);
     }
 
-    invoke_prisma().expect("failed to invoke prisma");
-}
-
-fn invoke_prisma() -> Result<(), ()> {
     loop {
         let mut content = String::new();
-        BufReader::new(stdin()).read_line(&mut content).expect("Failed to read prisma cli output");
+        BufReader::new(stdin())
+            .read_line(&mut content)
+            .expect("Failed to read prisma cli output");
 
         let input: Request = serde_json::from_str(&content).unwrap();
 
@@ -104,8 +98,8 @@ fn invoke_prisma() -> Result<(), ()> {
 
         stderr().by_ref().write(bytes_arr).unwrap();
 
-        return match input.method.as_str() {
-            "generate" => Ok(()),
+        match input.method.as_str() {
+            "generate" => break,
             _ => continue,
         };
     }

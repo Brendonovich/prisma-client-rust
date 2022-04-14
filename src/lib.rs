@@ -5,6 +5,8 @@ pub mod traits;
 
 use ::serde::{Deserialize, Serialize};
 pub use chrono;
+#[cfg(feature = "cli")]
+pub use cli;
 pub use datamodel;
 use datamodel::datamodel_connector::Diagnostics;
 pub use prisma_models;
