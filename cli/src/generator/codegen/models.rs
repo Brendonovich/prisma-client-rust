@@ -648,36 +648,32 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             );
         }
 
-        // TODO: Compound indexes
         for unique in &model.indexes {
             let variant_name_string = unique.fields.iter().map(|f| f.to_case(Case::Pascal)).collect::<String>();
             let variant_name = format_ident!("{}Equals", &variant_name_string);
             let accessor_name = format_ident!("{}", &variant_name_string.to_case(Case::Snake));
-
-            let variant_data_as_args = unique.fields.iter().map(|f| {
-                let field_name = format_ident!("{}", f.to_case(Case::Snake));
-                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
-
+            
+            let mut variant_data_as_types = vec![];
+            let mut variant_data_as_args = vec![];
+            let mut variant_data_as_destructured = vec![];
+            
+            for field in &unique.fields {
+                let model_field = model.fields.iter().find(|mf| &mf.name == field).unwrap();
                 let field_type = model_field.field_type.tokens();
-                let field_type = match model_field.is_list {
-                    true => quote!(Vec<#field_type>),
-                    false => field_type
+                
+                let field_name_snake = format_ident!("{}", field.to_case(Case::Snake));
+                
+                let field_type = match (model_field.is_list, model_field.is_required) {
+                    (true, _) => quote!(Vec<#field_type>),
+                    (_, true) => quote!(#field_type),
+                    (_, false) => quote!(Option<#field_type>),
                 };
+                
+                variant_data_as_args.push(quote!(#field_name_snake: #field_type));
+                variant_data_as_types.push(field_type);
+                variant_data_as_destructured.push(quote!(#field_name_snake));
+            }
 
-                quote!(#field_name: #field_type)
-            }).collect::<Vec<_>>();
-            let variant_data_as_destructured = unique.fields.iter().map(|f|
-                format_ident!("{}", f.to_case(Case::Snake))
-            ).collect::<Vec<_>>();
-            let variant_data_as_types = unique.fields.iter().map(|f| {
-                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
-
-                let field_type = model_field.field_type.tokens();
-                match model_field.is_list {
-                    true => quote!(Vec<#field_type>),
-                    false => field_type
-                }
-            }).collect::<Vec<_>>();
             let field_name_string = unique.fields.join("_");
 
             let variant_data_where_params = unique.fields.iter().map(|f| {
@@ -1162,16 +1158,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         },
                     });
                 }
-
-                // TODO: Optionals
-                // if !field.is_required && !field.is_list && !field.prisma {
-                //     field_struct_methods.push(quote!{
-                //         pub fn set_optional(&self, value: Option<#field_set_arg>) -> #model_set_param {
-                //             #model_set_param::#field_name_pascal()
-                //         }
-                //     })
-                // }
-
+                
                 let write_type = root
                     .ast
                     .as_ref()
@@ -1214,8 +1201,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                                 }
                             }
                         );
-
-                        // TODO: IfPresent
                     }
                 }
 
@@ -1312,8 +1297,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             #where_params_enum::#variant_name(value)
                         }
                     });
-
-                    // TODO: IfPresent
                 }
             }
 
