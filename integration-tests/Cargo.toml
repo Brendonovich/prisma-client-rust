@@ -8,7 +8,6 @@ edition = "2021"
 
 [dependencies]
 prisma-client-rust-cli = {path ="../cli"}
-prisma-client-rust = {path = ".."}
 
 [[test]]
 name = "integration_tests"
@@ -18,3 +17,4 @@ harness = true
 [dev-dependencies]
 tokio = {version = "1.17.0", features= ["rt", "macros"]}
 serde = { version = "1.0", features = ["derive"] }
+prisma-client-rust = {path = ".."}
