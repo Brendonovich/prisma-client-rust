@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 
-use crate::generator::{
+use crate::cli::generator::{
     ast::{filters::Filter, models::Field},
     GraphQLType,
 };

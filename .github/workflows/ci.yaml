@@ -58,12 +58,11 @@ jobs:
       
     - name: Setup Test Database
       working-directory: integration-tests
-      run: prisma-client-rust db push
+      run: cargo prisma db push
 
     - name: Compile
       working-directory: integration-tests
       run: cargo test --no-run --locked
 
     - name: Test
-      working-directory: integration-tests
-      run: cargo test -- --nocapture --quiet --test-threads 1
+      run: cargo run-tests

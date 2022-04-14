@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::Root;
+use crate::cli::generator::Root;
 
 pub fn generate(root: &Root) -> TokenStream {
     let enums = root.dmmf.datamodel.enums.iter().map(|e| {
