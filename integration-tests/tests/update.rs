@@ -72,7 +72,7 @@ async fn update() -> TestResult {
 // TODO: update with nested create & delete/unlink
 
 #[tokio::test]
-async fn update_and_disconnect() -> TestResult {
+async fn update_and_unlink() -> TestResult {
     let client = client().await;
 
     let user_id = create_user(&client).await?;
@@ -284,6 +284,8 @@ async fn update_many() -> TestResult {
             .exec()
             .await?,
     ];
+    
+    // let user_id = create_user(&client).await?;
 
     let count = client
         .post()
@@ -362,6 +364,15 @@ async fn update_many() -> TestResult {
         .exec()
         .await?;
     assert!(post.is_none());
+
+    // THIS SHOULDN'T BE ALLOWED
+    // let posts = client
+    //     .post()
+    //     .find_many(vec![])
+    //     .update(vec![Post::author().link(User::id().equals(user_id.clone()))])
+    //     .exec()
+    //     .await?;
+    // assert_eq!(posts, 5);
 
     cleanup(client).await
 }
