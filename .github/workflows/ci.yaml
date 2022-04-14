@@ -16,8 +16,6 @@ jobs:
   rust:
     name: Rust
     runs-on: ${{ matrix.os }}
-    env:
-      CC: deny_c
 
     strategy:
       fail-fast: false
