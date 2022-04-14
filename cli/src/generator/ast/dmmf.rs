@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::cli::generator::GraphQLType;
+use crate::generator::GraphQLType;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
