@@ -38,7 +38,11 @@ jobs:
     - name: Rename existing rust toolchain (Windows)
       if: matrix.os == 'windows-latest'
       run: Rename-Item C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc.old
-
+    
+    - name: Instal libssl (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install libssl-dev
+    
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -55,7 +59,7 @@ jobs:
       
     - name: Setup Test Database
       working-directory: integration-tests
-      run: prisma-client-rust migrate push
+      run: prisma-client-rust db push
 
     - name: Compile
       working-directory: integration-tests
