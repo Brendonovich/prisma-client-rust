@@ -27,7 +27,7 @@ pub fn generate(root: &Root) -> TokenStream {
     let datamodel = &root.datamodel;
 
     quote! {
-        #![allow(dead_code)]
+        #![allow(warnings, unused)]
 
         use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
         use prisma_client_rust::datamodel::parse_configuration;
