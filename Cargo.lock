@@ -335,23 +335,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "convert_case",
- "directories",
- "flate2",
- "http",
- "quote",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "syn",
-]
-
-[[package]]
 name = "cloudabi"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1385,6 +1368,7 @@ name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "prisma-client-rust",
+ "prisma-client-rust-cli",
  "serde",
  "tokio",
 ]
@@ -2423,7 +2407,6 @@ name = "prisma-client-rust"
 version = "0.3.1"
 dependencies = [
  "chrono",
- "cli",
  "datamodel",
  "graphql-parser",
  "prisma-models",
@@ -2434,6 +2417,23 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "prisma-client-rust-cli"
+version = "0.1.0"
+dependencies = [
+ "convert_case",
+ "directories",
+ "flate2",
+ "http",
+ "quote",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "syn",
 ]
 
 [[package]]
@@ -3152,6 +3152,7 @@ name = "simple"
 version = "0.1.0"
 dependencies = [
  "prisma-client-rust",
+ "prisma-client-rust-cli",
  "serde",
  "tokio",
 ]

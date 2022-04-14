@@ -7,6 +7,7 @@ autobenches = false
 edition = "2021"
 
 [dependencies]
+prisma-client-rust-cli = {path ="../cli"}
 prisma-client-rust = {path = ".."}
 
 [[test]]
