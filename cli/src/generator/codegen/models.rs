@@ -566,10 +566,9 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 
                 let field_name_snake = format_ident!("{}", field.to_case(Case::Snake));
                 
-                let field_type = match (model_field.is_list, model_field.is_required) {
-                    (true, _) => quote!(Vec<#field_type>),
-                    (_, true) => quote!(#field_type),
-                    (_, false) => quote!(Option<#field_type>),
+                let field_type = match model_field.is_list {
+                    true => quote!(Vec<#field_type>),
+                    false => quote!(#field_type),
                 };
                 
                 variant_data_as_args.push(quote!(#field_name_snake: #field_type));
@@ -580,10 +579,17 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             let field_name_string = unique.fields.join("_");
 
             let variant_data_where_params = unique.fields.iter().map(|f| {
+                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
+                
                 let field_name = format_ident!("{}", f.to_case(Case::Snake));
                 let equals_variant = format_ident!("{}Equals", f.to_case(Case::Pascal));
+                
+                let field_name = match model_field.is_required {
+                    true => quote!(#field_name),
+                    false => quote!(Some(#field_name))
+                };
 
-                quote!(super::WhereParam::#equals_variant(#field_name))
+                quote!(WhereParam::#equals_variant(#field_name))
             }).collect::<Vec<_>>();
 
             model_query_module.add_compound_field(
