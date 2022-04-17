@@ -1,14 +1,14 @@
 use prisma_client_rust::{or, query::Error};
 
 use crate::{
-    db::{Category, Post, PrismaClient, User},
+    db::*,
     utils::*,
 };
 
 async fn setup(client: &PrismaClient) -> Result<String, Error> {
     let user = client
         .user()
-        .create(User::name().set("Brendan".to_string()), vec![])
+        .create(user::name::set("Brendan".to_string()), vec![])
         .exec()
         .await?;
 
@@ -16,36 +16,36 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                Post::title().set("Post 1".to_string()),
-                Post::published().set(false),
-                vec![Post::author().link(User::id().equals(user.id.clone()))],
+                post::title::set("post 1".to_string()),
+                post::published::set(false),
+                vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                Post::title().set("Post 2".to_string()),
-                Post::published().set(true),
-                vec![Post::author().link(User::id().equals(user.id.clone()))],
+                post::title::set("post 2".to_string()),
+                post::published::set(true),
+                vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                Post::title().set("Post 3".to_string()),
-                Post::published().set(true),
-                vec![Post::author().link(User::id().equals(user.id.clone()))],
+                post::title::set("post 3".to_string()),
+                post::published::set(true),
+                vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                Post::title().set("Post 4".to_string()),
-                Post::published().set(false),
-                vec![Post::author().link(User::id().equals(user.id.clone()))],
+                post::title::set("post 4".to_string()),
+                post::published::set(false),
+                vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -54,10 +54,10 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
     client
         .category()
         .create(
-            Category::name().set("My Category".to_string()),
-            vec![Category::posts().link(vec![
-                Post::id().equals(posts[0].id.clone()),
-                Post::id().equals(posts[1].id.clone()),
+            category::name::set("My category".to_string()),
+            vec![category::posts::link(vec![
+                post::id::equals(posts[0].id.clone()),
+                post::id::equals(posts[1].id.clone()),
             ])],
         )
         .exec()
@@ -74,8 +74,8 @@ async fn find_unique_with() -> TestResult {
 
     let user = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
-        .with(User::posts().fetch(vec![]))
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
@@ -86,7 +86,7 @@ async fn find_unique_with() -> TestResult {
     for (i, post) in posts.iter().enumerate().collect::<Vec<_>>() {
         assert!(post.author().is_err());
         assert_eq!(post.author_id, Some(user.id.clone()));
-        assert_eq!(post.title, format!("Post {}", i + 1));
+        assert_eq!(post.title, format!("post {}", i + 1));
     }
 
     cleanup(client).await
@@ -102,8 +102,8 @@ async fn find_unique_with_where() -> TestResult {
 
     let user = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
-        .with(User::posts().fetch(vec![Post::created_at().equals(posts[0].created_at)]))
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![post::created_at::equals(posts[0].created_at)]))
         .exec()
         .await?
         .unwrap();
@@ -125,10 +125,10 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 
     let user = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
-        .with(User::posts().fetch(vec![or![
-            Post::published().equals(true),
-            Post::id().equals(posts[0].id.clone()),
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![or![
+            post::published::equals(true),
+            post::id::equals(posts[0].id.clone()),
         ]]))
         .exec()
         .await?
@@ -158,8 +158,8 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 
 //     let user = client
 //         .user()
-//         .find_unique(User::id().equals(user_id.clone()))
-//         .with(User::posts().fetch(vec![]).take(1))
+//         .find_unique(user::id().equals(user_id.clone()))
+//         .with(user::posts().fetch(vec![]).take(1))
 //         .exec()
 //         .await?
 //         .unwrap();
@@ -178,8 +178,8 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 
 //     let user = client
 //         .user()
-//         .find_unique(User::id().equals(user_id.clone()))
-//         .with(User::posts().fetch(vec![]).cursor(posts[0].id).take(1).skip(1))
+//         .find_unique(user::id().equals(user_id.clone()))
+//         .with(user::posts().fetch(vec![]).cursor(posts[0].id).take(1).skip(1))
 //         .exec()
 //         .await?
 //         .unwrap();
@@ -188,8 +188,8 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 
 //     let user = client
 //         .user()
-//         .find_unique(User::id().equals(user_id.clone()))
-//         .with(User::posts().fetch(vec![]).cursor(posts[0].id).take(-1).skip(1))
+//         .find_unique(user::id().equals(user_id.clone()))
+//         .with(user::posts().fetch(vec![]).cursor(posts[0].id).take(-1).skip(1))
 //         .exec()
 //         .await?
 //         .unwrap();
@@ -209,12 +209,12 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 
 //     let user = client
 //         .user()
-//         .find_unique(User::id().equals(user_id.clone()))
+//         .find_unique(user::id().equals(user_id.clone()))
 //         .with(
-//             User::posts().fetch(vec![]).with(
-//                 Post::categories()
+//             user::posts().fetch(vec![]).with(
+//                 post::categories()
 //                     .fetch(vec![])
-//                     .with(Category::posts().fetch(vec![])),
+//                     .with(category::posts().fetch(vec![])),
 //             ),
 //         )
 //         .exec()
@@ -238,11 +238,11 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 //     let post = client
 //         .post()
 //         .create(
-//             Post::title().set("Post 4".to_string()),
-//             Post::published().set(false),
-//             vec![Post::author().create(User::name().set("Brendan".to_string()))],
+//             post::title().set("post 4".to_string()),
+//             post::published().set(false),
+//             vec![post::author().create(user::name().set("Brendan".to_string()))],
 //         )
-//         .with(Post::author().fetch())
+//         .with(post::author().fetch())
 //         .exec()
 //         .await?;
 //     assert_eq!(post.author().unwrap(), Some("Brendan".to_string()));

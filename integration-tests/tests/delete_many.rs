@@ -1,4 +1,4 @@
-use crate::{db::Post, utils::*};
+use crate::{db::*, utils::*};
 
 #[tokio::test]
 async fn delete_many() -> TestResult {
@@ -8,8 +8,8 @@ async fn delete_many() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Foo post".to_string()),
-                Post::published().set(false),
+                post::title::set("Foo post".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -17,8 +17,8 @@ async fn delete_many() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Bar post".to_string()),
-                Post::published().set(false),
+                post::title::set("Bar post".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -31,7 +31,7 @@ async fn delete_many() -> TestResult {
     for post in posts {
         let found = client
             .post()
-            .find_unique(Post::id().equals(post.id.clone()))
+            .find_unique(post::id::equals(post.id.clone()))
             .exec()
             .await?;
         assert!(found.is_none());

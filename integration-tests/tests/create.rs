@@ -1,4 +1,4 @@
-use crate::db::{Post, User};
+use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
@@ -8,9 +8,9 @@ async fn test_create() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Hi from Prisma!".to_string()),
-            Post::published().set(true),
-            vec![Post::desc().set(Some(
+            post::title::set("Hi from Prisma!".to_string()),
+            post::published::set(true),
+            vec![post::desc::set(Some(
                 "Prisma is a database toolkit that makes databases easy.".to_string(),
             ))],
         )
@@ -26,7 +26,7 @@ async fn test_create() -> TestResult {
 
     let user = client
         .user()
-        .create(User::name().set("Brendan".to_string()), vec![])
+        .create(user::name::set("Brendan".to_string()), vec![])
         .exec()
         .await?;
 
@@ -42,8 +42,8 @@ async fn test_create_unique_violation() -> TestResult {
     let user = client
         .user()
         .create(
-            User::name().set("Brendan".to_string()),
-            vec![User::id().set("user-1".to_string())],
+            user::name::set("Brendan".to_string()),
+            vec![user::id::set("user-1".to_string())],
         )
         .exec()
         .await?;
@@ -54,8 +54,8 @@ async fn test_create_unique_violation() -> TestResult {
     let user = client
         .user()
         .create(
-            User::name().set("Brendan".to_string()),
-            vec![User::id().set("user-1".to_string())],
+            user::name::set("Brendan".to_string()),
+            vec![user::id::set("user-1".to_string())],
         )
         .exec()
         .await;
@@ -72,9 +72,9 @@ async fn test_setting_field_to_null() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Post".to_string()),
-            Post::published().set(false),
-            vec![Post::desc().set(None)],
+            post::title::set("Post".to_string()),
+            post::published::set(false),
+            vec![post::desc::set(None)],
         )
         .exec()
         .await?;

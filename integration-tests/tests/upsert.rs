@@ -1,4 +1,4 @@
-use crate::{db::User, utils::*};
+use crate::{db::*, utils::*};
 
 #[tokio::test]
 async fn upsert() -> TestResult {
@@ -8,19 +8,19 @@ async fn upsert() -> TestResult {
 
     assert!(client
         .user()
-        .find_unique(User::id().equals(user_id.to_string()))
+        .find_unique(user::id::equals(user_id.to_string()))
         .exec()
         .await?
         .is_none());
 
     let user = client
         .user()
-        .upsert(User::id().equals(user_id.to_string()))
+        .upsert(user::id::equals(user_id.to_string()))
         .create(
-            User::name().set("Brendan".to_string()),
-            vec![User::id().set(user_id.to_string())],
+            user::name::set("Brendan".to_string()),
+            vec![user::id::set(user_id.to_string())],
         )
-        .update(vec![User::name().set("Brendan".to_string())])
+        .update(vec![user::name::set("Brendan".to_string())])
         .exec()
         .await?;
     assert_eq!(user.id, user_id);
@@ -28,12 +28,12 @@ async fn upsert() -> TestResult {
 
     let user = client
         .user()
-        .upsert(User::id().equals(user_id.to_string()))
+        .upsert(user::id::equals(user_id.to_string()))
         .create(
-            User::name().set("Oscar".to_string()),
-            vec![User::id().set(user_id.to_string())],
+            user::name::set("Oscar".to_string()),
+            vec![user::id::set(user_id.to_string())],
         )
-        .update(vec![User::name().set("Oscar".to_string())])
+        .update(vec![user::name::set("Oscar".to_string())])
         .exec()
         .await?;
     assert_eq!(user.id, user_id);
