@@ -19,6 +19,8 @@ model Post {
     author     User?      @relation(fields: [author_id], references: [id])
     author_id  String?
     categories Category[] @relation(references: [id])
+    
+    @@unique([title, author_id])
 }
 
 model User {

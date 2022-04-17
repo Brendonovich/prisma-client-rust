@@ -1,7 +1,4 @@
-use crate::{
-    db::*,
-    utils::*,
-};
+use crate::{db::*, utils::*};
 
 #[tokio::test]
 async fn find_unique_id_field() -> TestResult {
@@ -49,7 +46,9 @@ async fn find_unique_by_unique_field() -> TestResult {
         .user()
         .create(
             user::name::set("Brendan".to_string()),
-            vec![user::email::set(Some("brendonovich@outlook.com".to_string()))],
+            vec![user::email::set(Some(
+                "brendonovich@outlook.com".to_string(),
+            ))],
         )
         .exec()
         .await?;
@@ -68,6 +67,41 @@ async fn find_unique_by_unique_field() -> TestResult {
         .exec()
         .await?;
     assert!(found.is_none());
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn find_unique_compound() -> TestResult {
+    let client = client().await;
+
+    let user = client
+        .user()
+        .create(
+            user::name::set("Brendan".to_string()),
+            vec![user::email::set(Some(
+                "brendonovich@outlook.com".to_string(),
+            ))],
+        )
+        .exec()
+        .await?;
+
+    let post = client
+        .post()
+        .create(
+            post::title::set("Title".to_string()),
+            post::published::set(false),
+            vec![post::author::link(user::id::equals(user.id.clone()))],
+        )
+        .exec()
+        .await?;
+
+    let found = client
+        .post()
+        .find_unique(post::title_author_id(post.title, user.id))
+        .exec()
+        .await?;
+    assert!(found.is_some());
 
     cleanup(client).await
 }
