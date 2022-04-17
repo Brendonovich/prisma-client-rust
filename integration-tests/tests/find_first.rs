@@ -1,7 +1,7 @@
 use prisma_client_rust::{and, not, or, Direction};
 
 use crate::{
-    db::{Post, Profile, User},
+    db::{post, profile, user},
     utils::*,
 };
 
@@ -13,17 +13,17 @@ async fn find_first() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 1".to_string()),
-                Post::published().set(false),
-                vec![Post::views().set(100)],
+                post::title::set("Test post 1".to_string()),
+                post::published::set(false),
+                vec![post::views::set(100)],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                Post::title().set("Test post 2".to_string()),
-                Post::published().set(false),
+                post::title::set("Test post 2".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -31,8 +31,8 @@ async fn find_first() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 3".to_string()),
-                Post::published().set(false),
+                post::title::set("Test post 3".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -40,17 +40,17 @@ async fn find_first() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 4".to_string()),
-                Post::published().set(true),
-                vec![Post::views().set(500)],
+                post::title::set("Test post 4".to_string()),
+                post::published::set(true),
+                vec![post::views::set(500)],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                Post::title().set("Test post 5".to_string()),
-                Post::published().set(false),
+                post::title::set("Test post 5".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -58,8 +58,8 @@ async fn find_first() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 6".to_string()),
-                Post::published().set(true),
+                post::title::set("Test post 6".to_string()),
+                post::published::set(true),
                 vec![],
             )
             .exec()
@@ -68,7 +68,7 @@ async fn find_first() -> TestResult {
 
     let post = client
         .post()
-        .find_first(vec![Post::published().equals(true)])
+        .find_first(vec![post::published::equals(true)])
         .exec()
         .await?
         .unwrap();
@@ -78,14 +78,14 @@ async fn find_first() -> TestResult {
 
     let post = client
         .post()
-        .find_first(vec![Post::title().contains("not found".to_string())])
+        .find_first(vec![post::title::contains("not found".to_string())])
         .exec()
         .await?;
     assert!(post.is_none());
 
     let post = client
         .post()
-        .find_first(vec![Post::published().equals(true)])
+        .find_first(vec![post::published::equals(true)])
         .skip(1)
         .exec()
         .await?
@@ -96,7 +96,7 @@ async fn find_first() -> TestResult {
 
     let post = client
         .post()
-        .find_first(vec![not!(Post::published().equals(true))])
+        .find_first(vec![not!(post::published::equals(true))])
         .exec()
         .await?
         .unwrap();
@@ -105,8 +105,8 @@ async fn find_first() -> TestResult {
     let post = client
         .post()
         .find_first(vec![
-            Post::title().contains("Test".to_string()),
-            and!(Post::published().equals(true)),
+            post::title::contains("Test".to_string()),
+            and!(post::published::equals(true)),
         ])
         .exec()
         .await?
@@ -116,8 +116,8 @@ async fn find_first() -> TestResult {
     let post = client
         .post()
         .find_first(vec![and! {
-            Post::published().equals(true),
-            Post::title().contains("Test".to_string()),
+            post::published::equals(true),
+            post::title::contains("Test".to_string()),
         }])
         .exec()
         .await?
@@ -127,8 +127,8 @@ async fn find_first() -> TestResult {
     let post = client
         .post()
         .find_first(vec![or! {
-            Post::views().gt(100),
-            Post::published().equals(false)
+            post::views::gt(100),
+            post::published::equals(false)
         }])
         .exec()
         .await?
@@ -138,7 +138,7 @@ async fn find_first() -> TestResult {
     let post = client
         .post()
         .find_first(vec![or! {
-            Post::views().gt(100),
+            post::views::gt(100),
         }])
         .exec()
         .await?
@@ -155,18 +155,18 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            Profile::user().link(
-                User::id().equals(
+            profile::user::link(
+                user::id::equals(
                     client
                         .user()
-                        .create(User::name().set("Brendan".to_string()), vec![])
+                        .create(user::name::set("Brendan".to_string()), vec![])
                         .exec()
                         .await?
                         .id,
                 ),
             ),
-            Profile::bio().set("My very cool bio.".to_string()),
-            Profile::country().set("Australia".to_string()),
+            profile::bio::set("My very cool bio.".to_string()),
+            profile::country::set("Australia".to_string()),
             vec![],
         )
         .exec()
@@ -175,18 +175,18 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            Profile::user().link(
-                User::id().equals(
+            profile::user::link(
+                user::id::equals(
                     client
                         .user()
-                        .create(User::name().set("Oscar".to_string()), vec![])
+                        .create(user::name::set("Oscar".to_string()), vec![])
                         .exec()
                         .await?
                         .id,
                 ),
             ),
-            Profile::bio().set("Hello world, this is my bio.".to_string()),
-            Profile::country().set("Australia".to_string()),
+            profile::bio::set("Hello world, this is my bio.".to_string()),
+            profile::country::set("Australia".to_string()),
             vec![],
         )
         .exec()
@@ -194,14 +194,14 @@ async fn filtering_one_to_one_relation() -> TestResult {
 
     client
         .user()
-        .create(User::name().set("Jamie".to_string()), vec![])
+        .create(user::name::set("Jamie".to_string()), vec![])
         .exec()
         .await?;
 
     let user = client
         .user()
         .find_first(vec![
-            User::profile().is(vec![Profile::bio().contains("cool".to_string())])
+            user::profile::is(vec![profile::bio::contains("cool".to_string())])
         ])
         .exec()
         .await?
@@ -212,7 +212,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
     let user = client
         .user()
         .find_first(vec![
-            User::profile().is_not(vec![Profile::bio().contains("bio".to_string())])
+            user::profile::is_not(vec![profile::bio::contains("bio".to_string())])
         ])
         .exec()
         .await?
@@ -229,16 +229,16 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
 
     let user = client
         .user()
-        .create(User::name().set("Brendan".to_string()), vec![])
+        .create(user::name::set("Brendan".to_string()), vec![])
         .exec()
         .await?;
 
     client
         .post()
         .create(
-            Post::title().set("My first post".to_string()),
-            Post::published().set(true),
-            vec![Post::author_id().set(Some(user.id.clone()))],
+            post::title::set("My first post".to_string()),
+            post::published::set(true),
+            vec![post::author_id::set(Some(user.id.clone()))],
         )
         .exec()
         .await?;
@@ -246,25 +246,25 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     client
         .post()
         .create(
-            Post::title().set("My second post".to_string()),
-            Post::published().set(false),
-            vec![Post::author().link(User::id().equals(user.id.clone()))],
+            post::title::set("My second post".to_string()),
+            post::published::set(false),
+            vec![post::author::link(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
 
     let user = client
         .user()
-        .create(User::name().set("Oscar".to_string()), vec![])
+        .create(user::name::set("Oscar".to_string()), vec![])
         .exec()
         .await?;
 
     client
         .post()
         .create(
-            Post::title().set("Hello, world!".to_string()),
-            Post::published().set(true),
-            vec![Post::author_id().set(Some(user.id.clone()))],
+            post::title::set("Hello, world!".to_string()),
+            post::published::set(true),
+            vec![post::author_id::set(Some(user.id.clone()))],
         )
         .exec()
         .await?;
@@ -272,23 +272,23 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     client
         .post()
         .create(
-            Post::title().set("My test post".to_string()),
-            Post::published().set(false),
-            vec![Post::author().link(User::id().equals(user.id.clone()))],
+            post::title::set("My test post".to_string()),
+            post::published::set(false),
+            vec![post::author::link(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
 
     client
         .user()
-        .create(User::name().set("Jamie".to_string()), vec![])
+        .create(user::name::set("Jamie".to_string()), vec![])
         .exec()
         .await?;
 
     let user = client
         .user()
         .find_first(vec![
-            User::posts().every(vec![Post::title().contains("post".to_string())])
+            user::posts::every(vec![post::title::contains("post".to_string())])
         ])
         .exec()
         .await?
@@ -298,7 +298,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     let user = client
         .user()
         .find_first(vec![
-            User::posts().none(vec![Post::title().contains("Post".to_string())])
+            user::posts::none(vec![post::title::contains("post".to_string())])
         ])
         .exec()
         .await?
@@ -308,7 +308,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     let user = client
         .user()
         .find_first(vec![
-            User::posts().some(vec![Post::title().equals("foo".to_string())])
+            user::posts::some(vec![post::title::equals("foo".to_string())])
         ])
         .exec()
         .await?;
@@ -319,9 +319,9 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     let user = client
         .user()
         .find_first(vec![
-            User::posts().some(vec![Post::title().contains("Post".to_string())])
+            user::posts::some(vec![post::title::contains("post".to_string())])
         ])
-        .order_by(User::name().order(Direction::Asc))
+        .order_by(user::name::order(Direction::Asc))
         .exec()
         .await?
         .unwrap();
@@ -330,9 +330,9 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
     let user = client
         .user()
         .find_first(vec![
-            User::posts().some(vec![Post::title().contains("Post".to_string())])
+            user::posts::some(vec![post::title::contains("post".to_string())])
         ])
-        .order_by(User::name().order(Direction::Desc))
+        .order_by(user::name::order(Direction::Desc))
         .exec()
         .await?
         .unwrap();
@@ -347,15 +347,15 @@ async fn list_wrapper_query_transformation() -> TestResult {
 
     client
         .user()
-        .create(User::name().set("Brendan house".to_string()), vec![])
+        .create(user::name::set("Brendan house".to_string()), vec![])
         .exec()
         .await?;
     let user = client
         .user()
         .find_first(vec![or![
-            User::name().starts_with("40".to_string()),
-            User::name().contains("40".to_string()),
-            User::name().contains("house".to_string())
+            user::name::starts_with("40".to_string()),
+            user::name::contains("40".to_string()),
+            user::name::contains("house".to_string())
         ]])
         .exec()
         .await?
@@ -364,17 +364,17 @@ async fn list_wrapper_query_transformation() -> TestResult {
 
     client
         .user()
-        .create(User::name().set("40 brendan".to_string()), vec![])
+        .create(user::name::set("40 brendan".to_string()), vec![])
         .exec()
         .await?;
     let user = client
         .user()
         .find_first(vec![or![
-            User::name().starts_with("40".to_string()),
-            User::name().contains("40".to_string()),
-            User::name().contains("house".to_string())
+            user::name::starts_with("40".to_string()),
+            user::name::contains("40".to_string()),
+            user::name::contains("house".to_string())
         ]])
-        .order_by(User::created_at().order(Direction::Asc))
+        .order_by(user::created_at::order(Direction::Asc))
         .skip(1)
         .exec()
         .await?

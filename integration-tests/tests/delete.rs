@@ -1,5 +1,5 @@
 use crate::{
-    db::{Post, User},
+    db::*,
     utils::*,
 };
 
@@ -10,7 +10,7 @@ async fn delete() -> TestResult {
     let author = client
         .user()
         .create(
-            User::name().set("Brendan".to_string()),
+            user::name::set("Brendan".to_string()),
             vec![]
         )
         .exec()
@@ -19,11 +19,11 @@ async fn delete() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Hi from Prisma!".to_string()),
-            Post::published().set(false),
-            vec![Post::author_id().set(Some(author.id.clone()))],
+            post::title::set("Hi from Prisma!".to_string()),
+            post::published::set(false),
+            vec![post::author_id::set(Some(author.id.clone()))],
         )
-        .with(Post::author().fetch())
+        .with(post::author::fetch())
         .exec()
         .await?;
     assert_eq!(post.title, "Hi from Prisma!");
@@ -32,19 +32,19 @@ async fn delete() -> TestResult {
     
     let deleted = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
+        .find_unique(post::id::equals(post.id.clone()))
         .delete()
-        .with(Post::author().fetch())
+        .with(post::author::fetch())
         .exec()
         .await?.unwrap();
     assert_eq!(deleted.title, "Hi from Prisma!");
     let author = deleted.author().unwrap().unwrap();
     assert_eq!(author.name, "Brendan");
     
-    let found = client.post().find_unique(Post::id().equals(post.id.clone())).exec().await?;
+    let found = client.post().find_unique(post::id::equals(post.id.clone())).exec().await?;
     assert!(found.is_none());
     
-    let user = client.user().find_unique(User::id().equals(author.id.clone())).exec().await?;
+    let user = client.user().find_unique(user::id::equals(author.id.clone())).exec().await?;
     assert_eq!(user.unwrap().name, "Brendan");
     
     cleanup(client).await
@@ -56,7 +56,7 @@ async fn delete_record_not_found() -> TestResult {
     
     let deleted = client
         .post()
-        .find_unique(Post::id().equals("sdlfskdf".to_string()))
+        .find_unique(post::id::equals("sdlfskdf".to_string()))
         .delete()
         .exec()
         .await?;

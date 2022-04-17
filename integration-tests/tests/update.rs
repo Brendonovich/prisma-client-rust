@@ -1,14 +1,14 @@
 use prisma_client_rust::query::Error;
 
 use crate::{
-    db::{Post, PrismaClient, Types, User},
+    db::*,
     utils::*,
 };
 
 async fn create_user(client: &PrismaClient) -> Result<String, Error> {
     client
         .user()
-        .create(User::name().set("Brendan".to_string()), vec![])
+        .create(user::name::set("Brendan".to_string()), vec![])
         .exec()
         .await
         .map(|user| user.id)
@@ -23,13 +23,13 @@ async fn update() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Hi from Create!".to_string()),
-            Post::published().set(true),
+            post::title::set("Hi from Create!".to_string()),
+            post::published::set(true),
             vec![
-                Post::desc().set(Some(
+                post::desc::set(Some(
                     "Prisma is a database toolkit that makes databases easy.".to_string(),
                 )),
-                Post::author_id().set(Some(user_id.clone())),
+                post::author_id::set(Some(user_id.clone())),
             ],
         )
         .exec()
@@ -39,10 +39,10 @@ async fn update() -> TestResult {
 
     let updated = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
+        .find_unique(post::id::equals(post.id.clone()))
         .update(vec![
-            Post::title().set("Hi from Update!".to_string()),
-            Post::published().set(false),
+            post::title::set("Hi from Update!".to_string()),
+            post::published::set(false),
         ])
         .exec()
         .await?
@@ -53,12 +53,12 @@ async fn update() -> TestResult {
 
     let updated = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
+        .find_unique(post::id::equals(post.id.clone()))
         .update(vec![
-            Post::published().set(false),
-            Post::desc().set(Some("Updated desc.".to_string())),
+            post::published::set(false),
+            post::desc::set(Some("Updated desc.".to_string())),
         ])
-        .with(Post::author().fetch())
+        .with(post::author::fetch())
         .exec()
         .await?
         .unwrap();
@@ -79,8 +79,8 @@ async fn update_and_unlink() -> TestResult {
 
     let user = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
-        .with(User::posts().fetch(vec![]))
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
@@ -89,8 +89,8 @@ async fn update_and_unlink() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("My post".to_string()),
-            Post::published().set(true),
+            post::title::set("My post".to_string()),
+            post::published::set(true),
             vec![],
         )
         .exec()
@@ -98,11 +98,11 @@ async fn update_and_unlink() -> TestResult {
 
     let updated = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
+        .find_unique(user::id::equals(user_id.clone()))
         .update(vec![
-            User::posts().link(vec![Post::id().equals(post.id.clone())])
+            user::posts::link(vec![post::id::equals(post.id.clone())])
         ])
-        .with(User::posts().fetch(vec![]))
+        .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
@@ -110,11 +110,11 @@ async fn update_and_unlink() -> TestResult {
 
     let updated = client
         .user()
-        .find_unique(User::id().equals(user_id.clone()))
+        .find_unique(user::id::equals(user_id.clone()))
         .update(vec![
-            User::posts().unlink(vec![Post::id().equals(post.id.clone())])
+            user::posts::unlink(vec![post::id::equals(post.id.clone())])
         ])
-        .with(User::posts().fetch(vec![]))
+        .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
@@ -130,19 +130,19 @@ async fn atomic_update() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("My Post".to_string()),
-            Post::published().set(false),
+            post::title::set("My post".to_string()),
+            post::published::set(false),
             vec![],
         )
         .exec()
         .await?;
-    assert_eq!(post.title, "My Post");
+    assert_eq!(post.title, "My post");
     assert_eq!(post.views, 0);
 
     let updated = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
-        .update(vec![Post::views().increment(1)])
+        .find_unique(post::id::equals(post.id.clone()))
+        .update(vec![post::views::increment(1)])
         .exec()
         .await?
         .unwrap();
@@ -157,8 +157,8 @@ async fn update_record_not_found() -> TestResult {
 
     let post = client
         .post()
-        .find_unique(Post::id().equals("wow".to_string()))
-        .update(vec![Post::title().set("My Post".to_string())])
+        .find_unique(post::id::equals("wow".to_string()))
+        .update(vec![post::title::set("My post".to_string())])
         .exec()
         .await?;
     assert!(post.is_none());
@@ -173,9 +173,9 @@ async fn setting_field_to_null() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Post".to_string()),
-            Post::published().set(false),
-            vec![Post::desc().set(Some("My description".to_string()))],
+            post::title::set("post".to_string()),
+            post::published::set(false),
+            vec![post::desc::set(Some("My description".to_string()))],
         )
         .exec()
         .await?;
@@ -183,8 +183,8 @@ async fn setting_field_to_null() -> TestResult {
 
     let updated = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
-        .update(vec![Post::desc().set(None)])
+        .find_unique(post::id::equals(post.id.clone()))
+        .update(vec![post::desc::set(None)])
         .exec()
         .await?
         .unwrap();
@@ -200,14 +200,14 @@ async fn update_id_field() -> TestResult {
 
     let user = client
         .user()
-        .create(User::name().set("Brendan".to_string()), vec![])
+        .create(user::name::set("Brendan".to_string()), vec![])
         .exec()
         .await?;
 
     let updated = client
         .user()
-        .find_unique(User::id().equals(user.id.clone()))
-        .update(vec![User::id().set("new_id".to_string())])
+        .find_unique(user::id::equals(user.id.clone()))
+        .update(vec![user::id::set("new_id".to_string())])
         .exec()
         .await?
         .unwrap();
@@ -223,8 +223,8 @@ async fn update_id_field_atomic() -> TestResult {
     let record = client.types().create(vec![]).exec().await?;
     let updated = client
         .types()
-        .find_unique(Types::id().equals(record.id))
-        .update(vec![Types::id().increment(500)])
+        .find_unique(types::id::equals(record.id))
+        .update(vec![types::id::increment(500)])
         .exec()
         .await?
         .unwrap();
@@ -240,8 +240,8 @@ async fn update_unique_field() -> TestResult {
     let user = client
         .user()
         .create(
-            User::name().set("Brendan".to_string()),
-            vec![User::email().set(Some("brendonovich@outlook.com".to_string()))],
+            user::name::set("Brendan".to_string()),
+            vec![user::email::set(Some("brendonovich@outlook.com".to_string()))],
         )
         .exec()
         .await?;
@@ -249,8 +249,8 @@ async fn update_unique_field() -> TestResult {
 
     let updated = client
         .user()
-        .find_unique(User::email().equals(email))
-        .update(vec![User::email().set(Some("foo@gmail.com".to_string()))])
+        .find_unique(user::email::equals(email))
+        .update(vec![user::email::set(Some("foo@gmail.com".to_string()))])
         .exec()
         .await?
         .unwrap();
@@ -268,8 +268,8 @@ async fn update_many() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 1".to_string()),
-                Post::published().set(false),
+                post::title::set("Test post 1".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -277,8 +277,8 @@ async fn update_many() -> TestResult {
         client
             .post()
             .create(
-                Post::title().set("Test post 2".to_string()),
-                Post::published().set(false),
+                post::title::set("Test post 2".to_string()),
+                post::published::set(false),
                 vec![],
             )
             .exec()
@@ -289,15 +289,15 @@ async fn update_many() -> TestResult {
 
     let count = client
         .post()
-        .find_many(vec![Post::published().equals(false)])
-        .update(vec![Post::published().set(true)])
+        .find_many(vec![post::published::equals(false)])
+        .update(vec![post::published::set(true)])
         .exec()
         .await?;
     assert_eq!(count, 2);
 
     let post = client
         .post()
-        .find_unique(Post::id().equals(posts[0].id.clone()))
+        .find_unique(post::id::equals(posts[0].id.clone()))
         .exec()
         .await?
         .unwrap();
@@ -305,23 +305,23 @@ async fn update_many() -> TestResult {
 
     let count = client
         .post()
-        .find_many(vec![Post::published().equals(false)])
-        .update(vec![Post::published().set(true)])
+        .find_many(vec![post::published::equals(false)])
+        .update(vec![post::published::set(true)])
         .exec()
         .await?;
     assert_eq!(count, 0);
 
     let count = client
         .post()
-        .find_many(vec![Post::id().equals(posts[0].id.clone())])
-        .update(vec![Post::published().set(false)])
+        .find_many(vec![post::id::equals(posts[0].id.clone())])
+        .update(vec![post::published::set(false)])
         .exec()
         .await?;
     assert_eq!(count, 1);
 
     let post = client
         .post()
-        .find_unique(Post::id().equals(posts[0].id.clone()))
+        .find_unique(post::id::equals(posts[0].id.clone()))
         .exec()
         .await?
         .unwrap();
@@ -329,15 +329,15 @@ async fn update_many() -> TestResult {
 
     let count = client
         .post()
-        .find_many(vec![Post::published().equals(false)])
-        .update(vec![Post::views().set(10)])
+        .find_many(vec![post::published::equals(false)])
+        .update(vec![post::views::set(10)])
         .exec()
         .await?;
     assert_eq!(count, 1);
 
     let post = client
         .post()
-        .find_unique(Post::id().equals(posts[0].id.clone()))
+        .find_unique(post::id::equals(posts[0].id.clone()))
         .exec()
         .await?
         .unwrap();
@@ -345,22 +345,22 @@ async fn update_many() -> TestResult {
 
     let count = client
         .post()
-        .find_many(vec![Post::id().equals(posts[0].id.clone())])
-        .update(vec![Post::id().set("sdlfkjs".to_string())])
+        .find_many(vec![post::id::equals(posts[0].id.clone())])
+        .update(vec![post::id::set("sdlfkjs".to_string())])
         .exec()
         .await?;
     assert_eq!(count, 1);
 
     let post = client
         .post()
-        .find_unique(Post::id().equals("sdlfkjs".to_string()))
+        .find_unique(post::id::equals("sdlfkjs".to_string()))
         .exec()
         .await?;
     assert!(post.is_some());
 
     let post = client
         .post()
-        .find_unique(Post::id().equals(posts[0].id.clone()))
+        .find_unique(post::id::equals(posts[0].id.clone()))
         .exec()
         .await?;
     assert!(post.is_none());
@@ -369,7 +369,7 @@ async fn update_many() -> TestResult {
     // let posts = client
     //     .post()
     //     .find_many(vec![])
-    //     .update(vec![Post::author().link(User::id().equals(user_id.clone()))])
+    //     .update(vec![post::author().link(user::id().equals(user_id.clone()))])
     //     .exec()
     //     .await?;
     // assert_eq!(posts, 5);
@@ -384,9 +384,9 @@ async fn setting_many_to_null() -> TestResult {
     let post = client
         .post()
         .create(
-            Post::title().set("Foo".to_string()),
-            Post::published().set(true),
-            vec![Post::desc().set(Some("Description".to_string()))],
+            post::title::set("Foo".to_string()),
+            post::published::set(true),
+            vec![post::desc::set(Some("Description".to_string()))],
         )
         .exec()
         .await?;
@@ -395,14 +395,14 @@ async fn setting_many_to_null() -> TestResult {
     let count = client
         .post()
         .find_many(vec![])
-        .update(vec![Post::desc().set(None)])
+        .update(vec![post::desc::set(None)])
         .exec()
         .await?;
     assert_eq!(count, 1);
 
     let found = client
         .post()
-        .find_unique(Post::id().equals(post.id.clone()))
+        .find_unique(post::id::equals(post.id.clone()))
         .exec()
         .await?
         .unwrap();

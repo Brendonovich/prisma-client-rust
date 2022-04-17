@@ -11,12 +11,10 @@ pub fn generate(root: &Root) -> TokenStream {
         .iter()
         .map(|model| {
             let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
-            let model_actions_struct_name =
-                format_ident!("{}Actions", model.name.to_case(Case::Pascal));
 
             quote! {
-                pub fn #model_name_snake(&self) -> #model_actions_struct_name {
-                    #model_actions_struct_name {
+                pub fn #model_name_snake(&self) -> #model_name_snake::Actions {
+                    #model_name_snake::Actions {
                         client: &self,
                     }
                 }

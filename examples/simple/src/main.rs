@@ -1,4 +1,4 @@
-use crate::db::{Post, User};
+use crate::db::*;
 
 pub mod db;
 
@@ -9,8 +9,8 @@ pub async fn main() {
     let user = client
         .user()
         .create(
-            User::id().set("user0".to_string()),
-            User::display_name().set("User 0".to_string()),
+            user::id::set("user0".to_string()),
+            user::display_name::set("User 0".to_string()),
             vec![],
         )
         .exec()
@@ -20,9 +20,9 @@ pub async fn main() {
     let post = client
         .post()
         .create(
-            Post::id().set("post0".to_string()),
-            Post::content().set("Some post content".to_string()),
-            Post::user().link(User::id().equals(user.id.to_string())),
+            post::id::set("post0".to_string()),
+            post::content::set("Some post content".to_string()),
+            post::user::link(user::id::equals(user.id.to_string())),
             vec![],
         )
         .exec()
@@ -34,8 +34,8 @@ pub async fn main() {
 
     let post_with_user = client
         .post()
-        .find_unique(Post::id().equals("post0".to_string()))
-        .with(Post::user().fetch())
+        .find_unique(post::id::equals("post0".to_string()))
+        .with(post::user::fetch())
         .exec()
         .await
         .unwrap()
@@ -45,8 +45,8 @@ pub async fn main() {
 
     let user_with_posts = client
         .user()
-        .find_unique(User::id().equals("user0".to_string()))
-        .with(User::posts().fetch(vec![]))
+        .find_unique(user::id::equals("user0".to_string()))
+        .with(user::posts::fetch(vec![]))
         .exec()
         .await
         .unwrap()

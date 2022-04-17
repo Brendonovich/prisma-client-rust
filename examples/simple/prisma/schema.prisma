@@ -4,7 +4,7 @@ datasource db {
 }
 
 generator client {
-    provider      = "prisma-client-rust"
+    provider      = "cargo prisma"
     binaryTargets = ["native"]
     output        = "../src/db.rs"
 }
