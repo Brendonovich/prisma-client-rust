@@ -10,8 +10,8 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "3.10.0";
-pub static ENGINE_VERSION: &str = "73e60b76d394f8d37d8ebd1f8918c79029f0db86";
+pub static PRISMA_CLI_VERSION: &str = "3.12.0";
+pub static ENGINE_VERSION: &str = "22b822189f46ef0dc5c5b503368d1bee01213980";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
 
 pub struct Engine<'a> {
@@ -89,6 +89,8 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
             return Ok(());
         }
     };
+    
+    println!("Downloading {} to {}", url, to);
 
     download(url.clone(), to.clone()).expect(&format!("could not download {} to {}", url, to));
 

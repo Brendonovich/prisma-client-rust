@@ -34,10 +34,7 @@ pub fn execute(args: &Vec<String>) {
     }
     
     if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
-        println!("This command is only meant to be invoked internally. Please run the following instead:");
-        println!("`prisma-client-rust <command>`");
-        println!("e.g.");
-        println!("`prisma-client-rust generate`");
+        println!("This command is only meant to be invoked internally. Please specify a command to run.");
 
         std::process::exit(1);
     }
