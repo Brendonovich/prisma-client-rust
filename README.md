@@ -25,7 +25,7 @@ Also - perhaps for the first time - using Prisma in a frontend application is ea
 
 ## Getting Started
 
-Read the [installation instructions]() to get started and setup the CLI with your Prisma schema.
+Read the [installation instructions]() to get started and setup the CLI.
 
 ## Acknowledgements
 
