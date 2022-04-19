@@ -30,6 +30,26 @@ Also - perhaps for the first time - using Prisma in a frontend application is ea
 
 Read the [installation instructions](docs/01-installation.md) to get started and setup the CLI.
 
+For more general information about Prisma and its CLI, check out the [official Prisma docs](https://www.prisma.io/docs/).
+
+## Support
+
+If you have any questions, feel free to ask in a [new discussion](https://github.com/RobertCraigie/prisma-client-py/discussions/new) or ping me in the [Prisma Slack](https://slack.prisma.io/) `@Brendan Allan`
+
+## Versioning
+
+Prisma Client Rust is not stable.
+
+Breaking changes will be documented and released under a new MINOR version following this format.
+
+`MAJOR`.`MINOR`.`PATCH`
+
+There is no release schedule, as I work on this alone and can't guarantee updates.
+
+## Affiliation
+
+Pirsma Client Rust is not an official Prisma product, only a community made layer on top of Prisma's engines.
+
 ## Acknowledgements
 
 - [steebchen](https://github.com/steebchen) and all other contributors to [Prisma Client Go](https://github.com/prisma/prisma-client-go) for writing a lot of code and documentation that Prisma Client Rust basically copies. Without Prisma Client Go, this project would not have even been attempted.
