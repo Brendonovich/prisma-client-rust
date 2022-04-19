@@ -1,10 +1,10 @@
 # Prisma Client Rust
 
 <a href="https://github.com/Brendonovich/prisma-client-rust">
-    <img src="https://img.shields.io/static/v1?label=lib&message=v0.4.0&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.4.0">
+    <img src="https://img.shields.io/static/v1?label=lib&message=v0.3.0&color=blue&logo=github&style=flat-square" alt="Latest crate version is 0.3.0">
 </a>
 <a href="https://crates.io/crates/prisma-client-rust-cli">
-    <img src="https://img.shields.io/static/v1?label=cli&message=v0.4.0&color=blue&logo=rust&style=flat-square" alt="Latest crate version is 0.4.0">
+    <img src="https://img.shields.io/static/v1?label=cli&message=v0.3.0&color=blue&logo=rust&style=flat-square" alt="Latest crate version is 0.3.0">
 </a>
 <a href="https://prisma.io">
     <img src="https://img.shields.io/static/v1?label=prisma&message=v3.10.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.10.0">
@@ -29,7 +29,7 @@ Prisma Client Rust is still under active development and is subject to change su
 3. Add `prisma-client-rust` and `serde` as dependencies in `Cargo.toml`
 
    ```toml
-   prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.4.0" }
+   prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.3.0" }
    serde = { version = "1.0", features = ["derive"] }
    ```
 
