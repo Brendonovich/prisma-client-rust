@@ -1039,11 +1039,15 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         pub fn order(direction: Direction) -> OrderByParam {
                             OrderByParam::#field_pascal(direction)
                         }
-
-                        pub fn cursor(cursor: #field_type) -> Cursor {
-                            Cursor::#field_pascal(cursor)
-                        }
                     });
+                    
+                    if field.is_unique {
+                        field_query_module.add_method(quote! {
+                            pub fn cursor(cursor: #field_type) -> Cursor {
+                                Cursor::#field_pascal(cursor)
+                            }
+                        });
+                    }
 
                     model_data_struct.add_field(match (field.is_list, field.is_required) {
                         (true, _) => quote! {

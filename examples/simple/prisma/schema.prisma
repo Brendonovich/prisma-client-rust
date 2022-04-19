@@ -4,16 +4,15 @@ datasource db {
 }
 
 generator client {
-    provider      = "cargo prisma"
-    binaryTargets = ["native"]
-    output        = "../src/db.rs"
+    provider = "cargo prisma"
+    output   = "../src/db.rs"
 }
 
 model User {
-    id          String  @id
+    id          String @id
     displayName String
 
-    profileId String? @unique
+    profileId String?  @unique
     profile   Profile?
 
     posts Post[]

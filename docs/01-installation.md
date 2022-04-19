@@ -62,3 +62,7 @@ For the above example, `Cargo.toml` would include `prisma-client-rust` as a depe
 In older versions of Prisma Client Rust, it was possible to `cargo install prisma-client-rust-cli` and have a global install of the CLI available to use at any time. This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly, plus it went against the recommmended installation instructions of Prisma Client [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres), [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md), and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).
 
 Unlike these three languages, Rust (or more specifically Cargo) does not provide a method for executing binaries available inside dependencies. Since installing a globally available binary was ruled out, providing the CLI as a library was seen as the only other option, plus personally I think that being able to run `cargo prisma <command>` is quite a nice experience and matches with clients in other languages.
+
+## Up Next
+
+Next, learn how to [setup your schema](02-setup.md) to generate the client.
