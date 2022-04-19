@@ -1,7 +1,5 @@
 # Documentation
 
-Contents
-
 -  [Installation](01-installation.md)
 -  [Setup](02-setup.md)
 -  [Overview](03-overview.md)
