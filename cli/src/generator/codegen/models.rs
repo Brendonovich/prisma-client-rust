@@ -1041,7 +1041,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         }
                     });
                     
-                    if field.is_unique {
+                    if field.is_id || field.is_unique {
                         field_query_module.add_method(quote! {
                             pub fn cursor(cursor: #field_type) -> Cursor {
                                 Cursor::#field_pascal(cursor)

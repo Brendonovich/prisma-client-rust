@@ -89,6 +89,8 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
             return Ok(());
         }
     };
+    
+    println!("Downloading {} to {}", url, to);
 
     download(url.clone(), to.clone()).expect(&format!("could not download {} to {}", url, to));
 
