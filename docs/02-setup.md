@@ -19,6 +19,24 @@ model User {
 }
 ```
 
+### Creating the Client
+
+First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime. Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
+
+Using the above schema for reference, this is how to create an instance of the Primsma client in a `main.rs` file right next to `prisma.rs`:
+
+```rust
+mod prisma;
+
+use prisma::PrismaClient;
+use prisma_client_rust::NewClientError;
+
+#[tokio::main]
+async fn main() {
+    let client: Result<PrismaClient, NewClientError> = prisma::new_client().await;
+}
+```
+
 ### Naming Clashes
 
 Rust has a [reserved set of keywords](https://doc.rust-lang.org/reference/keywords.html) that cannot be used as names in your code. If you name a model or field something that after conversion to `snake_case` will be a restricted keyword, you will almost assuredly not be able to compile your project.
