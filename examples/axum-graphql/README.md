@@ -2,6 +2,20 @@
 
 This is an example of how you could use Prisma Client Rust in a GraphQL backend, written by [Aaron Leopold](https://github.com/aaronleopold). 
 
+## Running
+
+First generate the Prisma client:
+
+```
+$ cargo prisma generate
+```
+
+Then run the server:
+
+```
+$ cargo run
+```
+
 ## Notes
 
 The simple use of `async_graphql` means that queries are done in a less efficient manner than could be, since `with` is never utilised and relations are loaded separately. Additionally, dataloader is not utilised because I can't be bothered.
