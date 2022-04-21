@@ -15,7 +15,8 @@ exclude = [
 members = [
     "examples/*",
     "integration-tests",
-    "cli"
+    "cli",
+    "prisma-cli"
 ]
 
 [profile.test]
