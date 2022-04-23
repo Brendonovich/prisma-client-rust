@@ -168,4 +168,4 @@ Note that an operator macro must still be within a `vec!`, since it still resolv
 
 ## Up Next
 
-Next, check out how to [fetch relations with your queries](05-fetch).
+Next, check out how to [fetch relations with your queries](05-fetch.md).
