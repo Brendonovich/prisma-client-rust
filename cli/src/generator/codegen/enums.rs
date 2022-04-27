@@ -21,10 +21,29 @@ pub fn generate(root: &Root) -> TokenStream {
             })
             .collect::<Vec<_>>();
 
+        let match_arms = e
+            .values
+            .iter()
+            .map(|v| {
+                let name = &v.name;
+                let variant_name = format_ident!("{}", v.name.to_case(Case::Pascal));
+
+                quote!(Self::#variant_name => #name.to_string())
+            })
+            .collect::<Vec<_>>();
+
         quote! {
             #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
             pub enum #name {
                 #(#variants),*
+            }
+
+            impl ToString for #name {
+                fn to_string(&self) -> String {
+                    match self {
+                        #(#match_arms),*
+                    }
+                }
             }
         }
     });
@@ -45,10 +64,28 @@ pub fn generate(root: &Root) -> TokenStream {
             })
             .collect::<Vec<_>>();
 
+        let match_arms = e
+            .values
+            .iter()
+            .map(|name| {
+                let variant_name = format_ident!("{}", name.to_case(Case::Pascal));
+
+                quote!(Self::#variant_name => #name.to_string())
+            })
+            .collect::<Vec<_>>();
+
         quote! {
             #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
             pub enum #name {
                 #(#variants),*
+            }
+
+            impl ToString for #name {
+                fn to_string(&self) -> String {
+                    match self {
+                        #(#match_arms),*
+                    }
+                }
             }
         }
     });

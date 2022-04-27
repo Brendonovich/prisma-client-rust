@@ -4,11 +4,11 @@ use syn::Ident;
 
 use crate::generator::{
     ast::{dmmf::Document, Model, Field},
-    Root,
+    Root, GraphQLType,
 };
 
 struct Outputs {
-    outputs: Vec<TokenStream>,
+    outputs: Vec<String>
 }
 
 impl Outputs {
@@ -18,11 +18,8 @@ impl Outputs {
                 .fields
                 .iter()
                 .filter(|f| f.kind.include_in_struct())
-                .map(|field| {
-                    let field_name_string = &field.name;
-                    quote!(Output::new(#field_name_string))
-                })
-                .collect(),
+                .map(|f| f.name.to_string())
+                .collect()
         }
     }
 
@@ -30,10 +27,14 @@ impl Outputs {
         let Self { outputs } = self;
 
         quote! {
-            pub fn _outputs() -> Vec<Output> {
-                vec![
-                    #(#outputs),*
-                ]
+            pub fn _outputs() -> Vec<Selection> {
+                [#(#outputs),*]
+                    .into_iter()
+                    .map(|o| {
+                        let builder = Selection::builder(o);
+                        builder.build()
+                    })
+                    .collect()
             }
         }
     }
@@ -43,32 +44,75 @@ struct WithParams {
     pub with_fn: TokenStream,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
+    from_args: Vec<TokenStream>
 }
 
 impl WithParams {
     pub fn new() -> Self {
-
         Self {
             with_fn: quote! {
-                pub fn with(mut self, param: WithParam) -> Self {
-                    self.with_params.push(param);
+                pub fn with(mut self, params: impl Into<WithParam>) -> Self {
+                    self.args = self.args.with(params.into());
                     self
                 }
             },
             variants: vec![],
             match_arms: vec![],
+            from_args: vec![]
         }
     }
-
-    fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
-        self.variants.push(variant);
-        self.match_arms.push(match_arm);
+    
+    fn add_single_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
+        self.variants.push(quote!(#variant_name(super::#model_module::Args)));
+        self.match_arms.push(quote! {
+            Self::#variant_name(args) => {
+                let mut selections = super::#model_module::_outputs();
+                selections.extend(args.with_params.into_iter().map(Into::<Selection>::into));
+                
+                let mut builder = Selection::builder(#field_name);
+                builder.nested_selections(selections);
+                builder.build()
+            }
+        });
+        self.from_args.push(quote! {
+            impl From<super::#model_module::Args> for WithParam {
+                fn from(args: super::#model_module::Args) -> Self {
+                    Self::#variant_name(args)
+                }
+            }
+        });
+    }
+    
+    fn add_many_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
+        self.variants.push(quote!(#variant_name(super::#model_module::FindManyArgs)));
+        self.match_arms.push(quote! {
+            Self::#variant_name(args) => {
+                let FindManySelectionArgs {
+                    mut nested_selections,
+                    arguments
+                } = args.into();
+                nested_selections.extend(super::#model_module::_outputs());
+                
+                let mut builder = Selection::builder(#field_name);
+                builder.nested_selections(nested_selections)
+                    .set_arguments(arguments);
+                builder.build()
+            }
+        });
+        self.from_args.push(quote! {
+            impl From<super::#model_module::FindManyArgs> for WithParam {
+                fn from(args: super::#model_module::FindManyArgs) -> Self {
+                    Self::#variant_name(args)
+                }
+            }
+        });
     }
 
     pub fn quote(&self) -> TokenStream {
         let Self {
             variants,
             match_arms,
+            from_args,
             ..
         } = self;
 
@@ -76,14 +120,16 @@ impl WithParams {
             pub enum WithParam {
                 #(#variants),*
             }
-
-            impl WithParam {
-                pub fn to_output(self) -> Output {
+            
+            impl Into<Selection> for WithParam {
+                fn into(self) -> Selection {
                     match self {
                         #(#match_arms),*
                     }
                 }
             }
+            
+            #(#from_args)*
         }
     }
 }
@@ -117,9 +163,9 @@ impl SetParams {
             pub enum SetParam {
                 #(#variants),*
             }
-
-            impl SetParam {
-                pub fn to_field(self) -> Field {
+            
+            impl Into<(String, QueryValue)> for SetParam {
+                fn into(self) -> (String, QueryValue) {
                     match self {
                         #(#match_arms),*
                     }
@@ -152,7 +198,7 @@ impl OrderByParams {
         Self {
             order_by_fn: quote! {
                 pub fn order_by(mut self, param: OrderByParam) -> Self {
-                    self.order_by_params.push(param);
+                    self.args = self.args.order_by(param);
                     self
                 }
             },
@@ -161,9 +207,14 @@ impl OrderByParams {
         }
     }
 
-    fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
-        self.variants.push(variant);
-        self.match_arms.push(match_arm);
+    fn add_variant(&mut self, field_name: &str, variant_name: &Ident) {
+        self.variants.push(quote!(#variant_name(Direction)));
+        self.match_arms.push(quote! {
+            Self::#variant_name(direction) => (
+                #field_name.to_string(), 
+                QueryValue::String(direction.to_string())
+            ) 
+        });
     }
 
     pub fn quote(&self) -> TokenStream {
@@ -177,9 +228,9 @@ impl OrderByParams {
             pub enum OrderByParam {
                 #(#variants),*
             }
-
-            impl OrderByParam {
-                pub fn to_field(self) -> Field {
+            
+            impl Into<(String, QueryValue)> for OrderByParam {
+                fn into(self) -> (String, QueryValue) {
                     match self {
                         #(#match_arms),*
                     }
@@ -198,30 +249,18 @@ struct PaginationParams {
 impl PaginationParams {
     pub fn new() -> Self {
         let pagination_fns = quote! {
-            pub fn skip(mut self, skip: usize) -> Self {
-                self.query.inputs.push(Input {
-                    name: "skip".into(),
-                    value: Some(serde_json::to_value(skip).unwrap()),
-                    ..Default::default()
-                });
+            pub fn skip(mut self, value: i64) -> Self {
+                self.args = self.args.skip(value);
                 self
             }
 
-            pub fn take(mut self, take: usize) -> Self {
-                self.query.inputs.push(Input {
-                    name: "take".into(),
-                    value: Some(serde_json::to_value(take).unwrap()),
-                    ..Default::default()
-                });
+            pub fn take(mut self, value: i64) -> Self {
+                self.args = self.args.take(value);
                 self
             }
 
-            pub fn cursor(mut self, cursor: Cursor) -> Self {
-                self.query.inputs.push(Input {
-                    name: "cursor".into(),
-                    fields: vec![cursor.to_field()],
-                    ..Default::default()
-                });
+            pub fn cursor(mut self, value: impl Into<Cursor>) -> Self {
+                self.args = self.args.cursor(value.into());
                 self
             }
         };
@@ -233,9 +272,17 @@ impl PaginationParams {
         }
     }
 
-    pub fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
-        self.cursor_variants.push(variant);
-        self.cursor_match_arms.push(match_arm);
+    pub fn add_variant(&mut self, field_name: &str, variant_name: &Ident, cursor_type: &GraphQLType) {
+        let rust_type = cursor_type.tokens();
+        self.cursor_variants.push(quote!(#variant_name(#rust_type)));
+        
+        let prisma_value = cursor_type.to_prisma_value(&format_ident!("cursor"));
+        self.cursor_match_arms.push(quote! {
+            Self::#variant_name(cursor) => (
+                #field_name.to_string(),
+                #prisma_value.into()
+            )
+        });
     }
 
     pub fn quote(&self) -> TokenStream {
@@ -249,9 +296,9 @@ impl PaginationParams {
             pub enum Cursor {
                 #(#cursor_variants),*
             }
-
-            impl Cursor {
-                fn to_field(self) -> Field {
+            
+            impl Into<(String, QueryValue)> for Cursor {
+                fn into(self) -> (String, QueryValue) {
                     match self {
                         #(#cursor_match_arms),*
                     }
@@ -344,7 +391,7 @@ impl ModelQueryModules {
 
 struct WhereParams {
     pub variants: Vec<TokenStream>,
-    pub to_field: Vec<TokenStream>,
+    pub to_query_value: Vec<TokenStream>,
     pub unique_variants: Vec<TokenStream>,
     pub from_unique_match_arms: Vec<TokenStream>,
     pub from_optional_uniques: Vec<TokenStream>
@@ -354,7 +401,7 @@ impl WhereParams {
     pub fn new() -> Self {
         Self {
             variants: vec![],
-            to_field: vec![],
+            to_query_value: vec![],
             unique_variants: vec![],
             from_unique_match_arms: vec![],
             from_optional_uniques: vec![]
@@ -363,7 +410,7 @@ impl WhereParams {
 
     pub fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
         self.variants.push(variant);
-        self.to_field.push(match_arm);
+        self.to_query_value.push(match_arm);
     }
 
     pub fn add_unique_variant(
@@ -412,7 +459,7 @@ impl WhereParams {
     pub fn quote(&self) -> TokenStream {
         let Self {
             variants,
-            to_field,
+            to_query_value,
             unique_variants,
             from_unique_match_arms,
             from_optional_uniques
@@ -422,11 +469,11 @@ impl WhereParams {
             pub enum WhereParam {
                 #(#variants),*
             }
-
-            impl WhereParam {
-                pub fn to_field(self) -> Field {
+            
+            impl Into<SerializedWhere> for WhereParam {
+                fn into(self) -> SerializedWhere {
                     match self {
-                        #(#to_field),*
+                        #(#to_query_value),*
                     }
                 }
             }
@@ -529,8 +576,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
         let mut model_set_params = SetParams::new();
         let mut model_where_params = WhereParams::new();
         let mut model_actions = Actions::new();
-
-        let model_name_pascal_string = model.name.to_case(Case::Pascal);
+        
+        let model_name_string = &model.name;
         let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
  
         for op in Document::operators() {
@@ -540,13 +587,23 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             model_where_params.add_variant(
                 quote!(#variant_name(Vec<WhereParam>)),
                 quote! {
-                    Self::#variant_name(value) => Field {
-                        name: #op_action.into(),
-                        list: true,
-                        wrap_list: true,
-                        fields: Some(value.into_iter().map(|f| f.to_field()).collect()),
-                        ..Default::default()
-                    }
+                    Self::#variant_name(value) => (
+                        #op_action.to_string(),
+                        SerializedWhereValue::List(
+                            value
+                                .into_iter()
+                                .map(|v| {
+                                    QueryValue::Object(
+                                        transform_equals(
+                                            vec![Into::<SerializedWhere>::into(v)].into_iter(),
+                                        )
+                                        .into_iter()
+                                        .collect(),
+                                    )
+                                })
+                                .collect(),
+                        ),
+                    )
                 },
             );
         }
@@ -559,6 +616,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             let mut variant_data_as_types = vec![];
             let mut variant_data_as_args = vec![];
             let mut variant_data_as_destructured = vec![];
+            let mut variant_data_as_query_values = vec![];
+            let variant_data_names = unique.fields.iter().map(ToString::to_string).collect::<Vec<_>>();
             
             for field in &unique.fields {
                 let model_field = model.fields.iter().find(|mf| &mf.name == field).unwrap();
@@ -574,23 +633,10 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                 variant_data_as_types.push(field_type);
                 variant_data_as_destructured.push(quote!(#field_name_snake));
+                variant_data_as_query_values.push(model_field.type_as_query_value(&field_name_snake));
             }
 
             let field_name_string = unique.fields.join("_");
-
-            let variant_data_where_params = unique.fields.iter().map(|f| {
-                let model_field = model.fields.iter().find(|mf| &mf.name == f).unwrap();
-                
-                let field_name = format_ident!("{}", f.to_case(Case::Snake));
-                let equals_variant = format_ident!("{}Equals", f.to_case(Case::Pascal));
-                
-                let field_name = match model_field.is_required {
-                    true => quote!(#field_name),
-                    false => quote!(Some(#field_name))
-                };
-
-                quote!(WhereParam::#equals_variant(#field_name))
-            }).collect::<Vec<_>>();
 
             model_query_module.add_compound_field(
                 quote! {
@@ -603,19 +649,10 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             model_where_params.add_unique_variant(
                 quote!(#variant_name(#(#variant_data_as_types),*)),
                 quote! {
-                    Self::#variant_name(#(#variant_data_as_destructured),*) => {
-                        Field {
-                            name: #field_name_string.into(),
-                            fields: Some(transform_equals(vec![
-                                    #(#variant_data_where_params),*
-                                ]
-                                .into_iter()
-                                .map(|f| f.to_field())
-                                .collect()
-                            )),
-                            ..Default::default()
-                        }
-                    }
+                    Self::#variant_name(#(#variant_data_as_destructured),*) => (
+                        #field_name_string.to_string(),
+                        SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_query_values)),*])
+                    )
                 },
                 quote! {
                     UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
@@ -655,15 +692,21 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     model_where_params.add_variant(
                         quote!(#variant_name(Vec<super::#relation_type_snake::WhereParam>)),
                         quote! {
-                            Self::#variant_name(value) => Field {
-                                name: #field_string.into(),
-                                fields: Some(vec![Field {
-                                    name: #method_action_string.into(),
-                                    fields: Some(value.into_iter().map(|f| f.to_field()).collect()),
-                                    ..Default::default()
-                                }]),
-                                ..Default::default()
-                            }
+                            Self::#variant_name(value) => (
+                                #field_string.to_string(),
+                                SerializedWhereValue::Object(vec![(
+                                    #method_action_string.to_string(),
+                                    QueryValue::Object(
+                                        transform_equals(
+                                            value
+                                                .into_iter()
+                                                .map(Into::<SerializedWhere>::into)    
+                                        )
+                                        .into_iter()
+                                        .collect()
+                                    ),
+                                )])
+                            )
                         },
                     );
 
@@ -677,8 +720,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 // Relation actions eg. Fetch, Link, Unlink
                 if field.is_list {
                     field_query_module.add_method(quote! {
-                        pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> WithParam {
-                            WithParam::#field_pascal(params)
+                        pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> #relation_type_snake::FindManyArgs {
+                            #relation_type_snake::FindManyArgs::new(params)
                         }
 
                         pub fn link<T: From<Link>>(params: Vec<#relation_type_snake::UniqueWhereParam>) -> T {
@@ -703,73 +746,59 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     model_set_params.add_variant(
                         quote!(#link_variant(Vec<super::#relation_type_snake::UniqueWhereParam>)),
                         quote! {
-                            Self::#link_variant(where_params) => Field {
-                                name: #field_string.into(),
-                                fields: Some(vec![
-                                    Field {
-                                        name: "connect".into(),
-                                        fields: Some(transform_equals(
-                                            where_params
-                                                .into_iter()
-                                                .map(|param| Into::<super::#relation_type_snake::WhereParam>::into(param)
-                                                    .to_field())
-                                                .collect()
-                                        )),
-                                        list: true,
-                                        wrap_list: true,
-                                        ..Default::default()
-                                    }
-                                ]),
-                                ..Default::default()
-                            }
+                            SetParam::#link_variant(where_params) => (
+                                #field_string.to_string(),
+                                QueryValue::Object(
+                                    vec![(
+                                        "connect".to_string(),
+                                        QueryValue::Object(
+                                            transform_equals(
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::into)
+                                            )
+                                            .into_iter()
+                                            .collect()
+                                        )
+                                    )]
+                                    .into_iter()
+                                    .collect()
+                                )
+                            )
                         }
                     );
 
                     model_set_params.add_variant(
                         quote!(#unlink_variant(Vec<super::#relation_type_snake::UniqueWhereParam>)),
                         quote! {
-                            Self::#unlink_variant(where_params) => Field {
-                                name: #field_string.into(),
-                                fields: Some(vec![
-                                    Field {
-                                        name: "disconnect".into(),
-                                        list: true,
-                                        wrap_list: true,
-                                        fields: Some(transform_equals(
-                                            where_params
-                                                .into_iter()
-                                                .map(|param| Into::<super::#relation_type_snake::WhereParam>::into(param)
-                                                    .to_field())
-                                                .collect()
-                                        )),
-                                        ..Default::default()
-                                    }
-                                ]),
-                                ..Default::default()
-                            }
+                            SetParam::#unlink_variant(where_params) => (
+                                #field_string.to_string(),
+                                QueryValue::Object(
+                                    vec![(
+                                        "disconnect".to_string(),
+                                        QueryValue::Object(
+                                            transform_equals( 
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::into)
+                                            )
+                                            .into_iter()
+                                            .collect()
+                                        )
+                                    )]
+                                    .into_iter()
+                                    .collect()
+                                )
+                            )
                         },
                     );
-
-                    model_with_params.add_variant(
-                        quote!(#field_pascal(Vec<super::#relation_type_snake::WhereParam>)),
-                        quote! {
-                            Self::#field_pascal(where_params) => Output {
-                                name: #field_string.into(),
-                                outputs: super::#relation_type_snake::_outputs(),
-                                inputs: if where_params.len() > 0 {
-                                    vec![Input {
-                                        name: "where".into(),
-                                        fields: where_params
-                                            .into_iter()
-                                            .map(|param| Into::<super::#relation_type_snake::WhereParam>::into(param)
-                                                .to_field())
-                                            .collect(),
-                                        ..Default::default()
-                                    }]
-                                } else { vec![] },
-                                ..Default::default()
-                            }
-                        },
+                    
+                    model_with_params.add_many_variant(
+                        field_string,
+                        &relation_type_snake,
+                        &field_pascal
                     );
 
                     model_data_struct.add_relation(
@@ -788,8 +817,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     );
                 } else {
                     field_query_module.add_method(quote! {
-                        pub fn fetch() -> WithParam {
-                            WithParam::#field_pascal
+                        pub fn fetch() -> #relation_type_snake::Args {
+                            #relation_type_snake::Args::new()
                         }
 
                         pub fn link<T: From<Link>>(value: #relation_type_snake::UniqueWhereParam) -> T {
@@ -810,19 +839,26 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     model_set_params.add_variant(
                         quote!(#link_variant(super::#relation_type_snake::UniqueWhereParam)),
                         quote! {
-                            Self::#link_variant(where_param) => Field {
-                                name: #field_string.into(),
-                                fields: Some(vec![
-                                    Field {
-                                        name: "connect".into(),
-                                        fields: Some(transform_equals(vec![
-                                            Into::<super::#relation_type_snake::WhereParam>::into(where_param).to_field()
-                                        ])),
-                                        ..Default::default()
-                                    }
-                                ]),
-                                ..Default::default()
-                            }
+                            SetParam::#link_variant(where_param) => (
+                                #field_string.to_string(),
+                                QueryValue::Object(
+                                    vec![(
+                                        "connect".to_string(),
+                                        QueryValue::Object(
+                                            transform_equals(
+                                                vec![where_param]
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::into)
+                                            )
+                                            .into_iter()
+                                            .collect()
+                                        )
+                                    )]
+                                    .into_iter()
+                                    .collect()
+                                )
+                            )
                         }
                     );
 
@@ -836,28 +872,25 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         model_set_params.add_variant(
                             quote!(#unlink_variant),
                             quote! {
-                                Self::#unlink_variant => Field {
-                                    name: #field_string.into(),
-                                    fields: Some(vec![Field {
-                                        name: "disconnect".into(),
-                                        value: Some(true.into()),
-                                        ..Default::default()
-                                    }]),
-                                    ..Default::default()
-                                }
+                                SetParam::#unlink_variant => (
+                                    #field_string.to_string(),
+                                    QueryValue::Object(
+                                        vec![(
+                                            "disconnect".to_string(),
+                                            QueryValue::Boolean(true)
+                                        )]
+                                        .into_iter()
+                                        .collect()
+                                    )
+                                )
                             },
                         );
                     }
 
-                    model_with_params.add_variant(
-                        quote!(#field_pascal),
-                        quote! {
-                            Self::#field_pascal => Output {
-                                name: #field_string.into(),
-                                outputs: super::#relation_type_snake::_outputs(),
-                                ..Default::default()
-                            }
-                        },
+                    model_with_params.add_single_variant(
+                        field_string,
+                        &relation_type_snake,
+                        &field_pascal
                     );
                     
                     let accessor_type = if field.is_required {
@@ -921,7 +954,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 if field.required_on_create() {
                     model_actions.push_required_arg(
                         quote!(#field_snake: #field_snake::Link,),
-                        quote!(input_fields.push(SetParam::from(#field_snake).to_field());),
+                        quote!(params.push(#field_snake.into());),
                    );
                 }
             }
@@ -930,22 +963,18 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 let field_set_variant = SetParams::field_set_variant(&field.name);
 
                 if !field.prisma {
+                    let converter = field.type_as_query_value(&format_ident!("value"));
                     let (field_set_variant_type, field_content) = if field.is_list {
                         (
                             quote!(Vec<#field_type>),
-                            quote!(fields: Some(value.iter().map(|f| f.to_field()).collect())),
+                            quote!(converter),
                         )
                     } else {
-                        let typ = if field.is_required {
-                            quote!(#field_type)
+                        if field.is_required {
+                            (quote!(#field_type), converter)
                         } else {
-                            quote!(Option<#field_type>)
-                        };
-                        
-                        (
-                            typ,
-                            quote!(value: Some(serde_json::to_value(value).unwrap())),
-                        )
+                            (quote!(Option<#field_type>), quote!(value.map(|value| #converter).unwrap_or(QueryValue::Null)))
+                        }
                     };
 
                     field_query_module.add_method(quote! {
@@ -962,31 +991,33 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             }
                         }
                     });
-
+                    
+                    
                     model_set_params.add_variant(
                         quote!(#field_set_variant(#field_set_variant_type)),
                         quote! {
-                            Self::#field_set_variant(value) => Field {
-                                name: #field_string.into(),
-                                value: Some(serde_json::to_value(value).unwrap()),
-                                ..Default::default()
-                            }
+                            SetParam::#field_set_variant(value) => (
+                                #field_string.to_string(),
+                                #field_content
+                            )
                         },
                     );
 
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
                     let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
+                    let type_as_query_value = field.type_as_query_value(&format_ident!("value"));
+                    
+                    let type_as_query_value = if field.is_required {
+                        type_as_query_value
+                    } else {
+                        quote!(value.map(|value| #type_as_query_value).unwrap_or(QueryValue::Null))
+                    };
 
                     let match_arm = quote! {
-                        Self::#equals_variant_name(value) => Field {
-                            name: #field_string.into(),
-                            fields: Some(vec![Field {
-                                name: "equals".into(),
-                                #field_content,
-                                ..Default::default()
-                            }]),
-                            ..Default::default()
-                        }
+                        Self::#equals_variant_name(value) => (
+                            #field_string.to_string(),
+                            SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_query_value)])
+                        )
                     };
 
                     match (field.is_id, field.is_unique, field.is_required)  {
@@ -1083,6 +1114,8 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         let typ = if method.is_list {
                             quote!(Vec<#typ>)
                         } else { typ };
+                        
+                        let prisma_value_type = method.typ.to_prisma_value(&format_ident!("value"));
 
                         let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_pascal);
 
@@ -1096,46 +1129,34 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         model_set_params.add_variant(
                             quote!(#variant_name(#typ)),
                             quote! {
-                                Self::#variant_name(value) => Field {
-                                    name: #field_string.into(),
-                                    fields: Some(vec![Field{
-                                        name: #method_action.into(),
-                                        value: Some(serde_json::to_value(value).unwrap()),
-                                        ..Default::default()
-                                    }]),
-                                    ..Default::default()
-                                }
+                                SetParam::#variant_name(value) => (
+                                    #field_string.to_string(),
+                                    QueryValue::Object(
+                                        vec![(
+                                            #method_action.to_string(),
+                                            #prisma_value_type.into()
+                                        )]
+                                            .into_iter()
+                                            .collect()
+                                    )
+                                )
                             }
                         );
                     }
                 }
 
-                model_order_by_params.add_variant(
-                    quote!(#field_pascal(Direction)),
-                    quote! {
-                        Self::#field_pascal(direction) => Field {
-                            name: #field_string.into(),
-                            value: Some(serde_json::to_value(direction).unwrap()),
-                            ..Default::default()
-                        }
-                    },
-                );
+                model_order_by_params.add_variant(field_string, &field_pascal);
 
                 model_pagination_params.add_variant(
-                    quote!(#field_pascal(#field_type)),
-                    quote! {
-                        Self::#field_pascal(value) => Field {
-                            name: #field_string.into(),
-                            value: Some(serde_json::to_value(value).unwrap()),
-                            ..Default::default()
-                        }
-                    },
+                    field_string,
+                    &field_pascal,
+                    &field.field_type
                 );
 
                 if field.required_on_create() {
                     model_actions.push_required_arg(
                         quote!(#field_snake: #field_snake::Set,),
-                        quote!(input_fields.push(SetParam::from(#field_snake).to_field());),
+                        quote!(params.push(#field_snake.into());),
                     );
                 }
             }
@@ -1163,38 +1184,35 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         field.name.to_string()
                     };
 
-                    let (typ, field_contents) = if method.is_list {
+                    let (typ, value_as_query_value) = if method.is_list {
+                        let prisma_value_converter = method.typ.to_prisma_value(&format_ident!("v"));
+                        
                         (
                             quote!(Vec<#typ>),
                             quote! {
-                                list: true,
-                                fields: Some(value.iter().map(|v| Field {
-                                    value: Some(serde_json::to_value(v).unwrap()),
-                                    ..Default::default()
-                                }).collect()),
+                                QueryValue::List(
+                                    value
+                                        .into_iter()
+                                        .map(|v| #prisma_value_converter.into())
+                                        .collect()
+                                )
                             },
                         )
                     } else {
+                        let as_prisma_value = method.typ.to_prisma_value(&format_ident!("value"));
                         (
                             typ,
-                            quote! {
-                                value: Some(serde_json::to_value(value).unwrap()),
-                            },
+                            quote!(#as_prisma_value.into()),
                         )
                     };
 
                     model_where_params.add_variant(
                         quote!(#variant_name(#typ)),
                         quote! {
-                            Self::#variant_name(value) => Field {
-                                name: #field_name.into(),
-                                fields: Some(vec![Field {
-                                    name: #method_action_string.into(),
-                                    #field_contents
-                                    ..Default::default()
-                                }]),
-                                ..Default::default()
-                            }
+                            Self::#variant_name(value) => (
+                                #field_name.to_string(),
+                                SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_query_value)])
+                            )
                         },
                     );
 
@@ -1247,126 +1265,63 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
                 #where_params
 
+                pub type FindManyArgs = prisma_client_rust::FindManyArgs<WhereParam, WithParam, OrderByParam, Cursor>;
+                    
                 pub struct FindMany<'a> {
-                    query: Query<'a>,
-                    order_by_params: Vec<OrderByParam>,
-                    with_params: Vec<WithParam>
+                    ctx: QueryContext<'a>,
+                    args: FindManyArgs,
                 }
 
                 impl<'a> FindMany<'a> {
                     pub async fn exec(self) -> QueryResult<Vec<Data>> {
-                        let Self {
-                            mut query,
-                            order_by_params,
-                            with_params
-                        } = self;
-
-                        if order_by_params.len() > 0 {
-                            query.inputs.push(Input {
-                                name: "orderBy".into(),
-                                fields: order_by_params
-                                    .into_iter()
-                                    .map(|f| f.to_field())
-                                    .collect(),
-                                ..Default::default()
-                            });
-                        }
-
-                        query.outputs.extend(with_params
-                            .into_iter()
-                            .map(|f| f.to_output())
-                            .collect::<Vec<_>>());
-
-                        query.perform().await
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await
                     }
 
                     pub fn delete(self) -> DeleteMany<'a> {
+                        let Self {
+                            ctx,
+                            args
+                        } = self;
+                        
                         DeleteMany {
-                            query: Query {
-                                operation: "mutation".into(),
-                                method: "deleteMany".into(),
-                                model: #model_name_pascal_string.into(),
-                                outputs: vec! [
-                                    Output::new("count"),
-                                ],
-                                ..self.query
-                            }
+                            ctx,
+                            args: DeleteManyArgs::new(args.where_params),
                         }
                     }
 
                     pub fn update(mut self, params: Vec<SetParam>) -> UpdateMany<'a> {
-                        self.query.inputs.push(Input {
-                            name: "data".into(),
-                            fields: params
-                                .into_iter()
-                                .map(|param| {
-                                    let mut field = param.to_field();
-
-                                    if let Some(value) = field.value {
-                                        field.fields = Some(vec![Field {
-                                            name: "set".into(),
-                                            value: Some(value),
-                                            ..Default::default()
-                                        }]);
-                                        field.value = None;
-                                    }
-
-                                    field
-                                })
-                                .collect(),
-                            ..Default::default()
-                        });
-
+                        let Self {
+                            ctx,
+                            args
+                        } = self;
+                        
                         UpdateMany {
-                            query: Query {
-                                operation: "mutation".into(),
-                                method: "updateMany".into(),
-                                outputs: vec! [
-                                    Output::new("count"),
-                                ],
-                                ..self.query
-                            }
+                            ctx,
+                            args: UpdateManyArgs::new(args.where_params, params),
                         }
                     }
 
-                    #order_by_fn
-
                     #with_fn
+
+                    #order_by_fn
 
                     #pagination_fns
                 }
+                
+                pub type FindFirstArgs = prisma_client_rust::FindFirstArgs<WhereParam, WithParam, OrderByParam, Cursor>;
 
                 pub struct FindFirst<'a> {
-                    query: Query<'a>,
-                    order_by_params: Vec<OrderByParam>,
-                    with_params: Vec<WithParam>
+                    ctx: QueryContext<'a>,
+                    args: FindFirstArgs,
                 }
 
                 impl<'a> FindFirst<'a> {
                     pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self {
-                            mut query,
-                            order_by_params,
-                            with_params
-                        } = self;
-
-                        if order_by_params.len() > 0 {
-                            query.inputs.push(Input {
-                                name: "orderBy".into(),
-                                fields: order_by_params
-                                    .into_iter()
-                                    .map(|f| f.to_field())
-                                    .collect(),
-                                ..Default::default()
-                            });
-                        }
-
-                        query.outputs.extend(with_params
-                            .into_iter()
-                            .map(|f| f.to_output())
-                            .collect::<Vec<_>>());
-
-                        query.perform().await
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await
                     }
 
                     #with_fn
@@ -1375,118 +1330,91 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
                     #pagination_fns
                 }
-
+                
+                pub type Args = prisma_client_rust::Args<WithParam>;
+                pub type FindUniqueArgs = prisma_client_rust::FindUniqueArgs<WhereParam, WithParam>;
+                
                 pub struct FindUnique<'a> {
-                    query: Query<'a>,
-                    with_params: Vec<WithParam>
+                    ctx: QueryContext<'a>,
+                    args: FindUniqueArgs,
                 }
 
                 impl<'a> FindUnique<'a> {
                     pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self {
-                            mut query,
-                            with_params
-                        } = self;
-
-                        query.outputs.extend(with_params
-                            .into_iter()
-                            .map(|f| f.to_output())
-                            .collect::<Vec<_>>());
-
-                        query.perform().await
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await
                     }
 
                     pub fn delete(self) -> Delete<'a> {
-                        Delete {
-                            query: Query {
-                                operation: "mutation".into(),
-                                method: "deleteOne".into(),
-                                model: #model_name_pascal_string.into(),
-                                ..self.query
-                            },
-                            with_params: vec![]
-                        }
-                    }
-
-                    pub fn update(mut self, params: Vec<SetParam>) -> UpdateUnique<'a> {
-                        self.query.inputs.push(Input {
-                            name: "data".into(),
-                            fields: params
-                                .into_iter()
-                                .map(|param| {
-                                    let mut field = param.to_field();
-
-                                    if let Some(value) = field.value {
-                                        field.fields = Some(vec![Field {
-                                            name: "set".into(),
-                                            value: Some(value),
-                                            ..Default::default()
-                                        }]);
-                                        field.value = None;
-                                    }
-
-                                    field
-                                })
-                                .collect(),
-                            ..Default::default()
-                        });
-
-                        UpdateUnique {
-                            query: Query {
-                                operation: "mutation".into(),
-                                method: "updateOne".into(),
-                                ..self.query
-                            },
-                            with_params: vec![]
-                        }
+                        let Self {
+                            ctx,
+                            args
+                        } = self;
+                        
+                        let FindUniqueArgs {
+                            where_param,
+                            with_params
+                        } = args;
+                        
+                        Delete { ctx, args: DeleteArgs::new(where_param, with_params) }
                     }
 
                     #with_fn
+
+                    pub fn update(mut self, params: Vec<SetParam>) -> Update<'a> {
+                        let Self {
+                            ctx,
+                            args
+                        } = self;
+                        
+                        let FindUniqueArgs {
+                            where_param,
+                            with_params
+                        } = args;
+                        
+                        Update {
+                            ctx,
+                            args: UpdateArgs::new(where_param, params, with_params)
+                        }
+                    }
                 }
+                
+                pub type CreateArgs = prisma_client_rust::CreateArgs<SetParam, WithParam>;
 
                 pub struct Create<'a> {
-                    query: Query<'a>,
-                    with_params: Vec<WithParam>
+                    ctx: QueryContext<'a>,
+                    args: CreateArgs,
                 }
 
                 impl<'a> Create<'a> {
                     pub async fn exec(self) -> QueryResult<Data> {
-                        let Self {
-                            mut query,
-                            with_params
-                        } = self;
-
-                        query.outputs.extend(with_params
-                            .into_iter()
-                            .map(|f| f.to_output())
-                            .collect::<Vec<_>>());
-
-                        query.perform().await
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await
                     }
 
                     #with_fn
                 }
 
-                pub struct UpdateUnique<'a> {
-                    query: Query<'a>,
-                    with_params: Vec<WithParam>
+                pub type UpdateArgs = prisma_client_rust::UpdateArgs<WhereParam, SetParam, WithParam>;
+
+                pub struct Update<'a> {
+                    ctx: QueryContext<'a>,
+                    args: UpdateArgs
                 }
 
-                impl<'a> UpdateUnique<'a> {
+                impl<'a> Update<'a> {
                     pub async fn exec(self) -> QueryResult<Option<Data>> {
                         let Self {
-                            mut query,
-                            with_params,
+                            ctx,
+                            args,
                         } = self;
                         
-                        query.outputs.extend(
-                            with_params
-                                .into_iter()
-                                .map(|f| f.to_output())
-                                .collect::<Vec<_>>(),
-                        );
+                        let result = ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await;
                         
-                        match query.perform().await {
+                        match result {
                             Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
                                 msg,
                                 Some(interpreter_error),
@@ -1504,87 +1432,70 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     }
 
                     #with_fn
+                    
                 }
+                
+                pub type UpdateManyArgs = prisma_client_rust::UpdateManyArgs<WhereParam, SetParam>;
 
                 pub struct UpdateMany<'a> {
-                    query: Query<'a>
+                    ctx: QueryContext<'a>,
+                    args: UpdateManyArgs
                 }
 
                 impl<'a> UpdateMany<'a> {
-                    pub async fn exec(self) -> QueryResult<usize> {
-                        self.query.perform().await.map(|res: CountResult| res.count)
+                    pub async fn exec(self) -> QueryResult<i64> {
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string)).await.map(|res: BatchResult| res.count)
                     }
                 }
+                
+                pub type UpsertArgs = prisma_client_rust::UpsertArgs<WhereParam, SetParam, WithParam>;
 
                 pub struct Upsert<'a> {
-                    query: Query<'a>,
+                    ctx: QueryContext<'a>,
+                    args: UpsertArgs
                 }
 
                 impl<'a> Upsert<'a> {
                     pub async fn exec(self) -> QueryResult<Data> {
-                        self.query.perform().await
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
+                            .await
                     }
 
                     pub fn create(
                         mut self,
                         #(#required_args)*
-                        params: Vec<SetParam>
+                        mut params: Vec<SetParam>
                     ) -> Self {
-                        let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
-
                         #(#required_arg_pushes)*
 
-                        self.query.inputs.push(Input {
-                            name: "create".into(),
-                            fields: input_fields,
-                            ..Default::default()
-                        });
+                        self.args = self.args.create(params);
 
                         self
                     }
 
                     pub fn update(mut self, params: Vec<SetParam>) -> Self {
-                        self.query.inputs.push(Input {
-                            name: "update".into(),
-                            fields: params
-                                .into_iter()
-                                .map(|param| {
-                                    let mut field = param.to_field();
-                                    if let Some(value) = field.value {
-                                        field.fields = Some(vec![Field {
-                                            name: "set".into(),
-                                            value: Some(value),
-                                            ..Default::default()
-                                        }]);
-                                        field.value = None;
-                                    }
-                                    field
-                                })
-                                .collect(),
-                            ..Default::default()
-                        });
+                        self.args = self.args.update(params);
+                        
                         self
                     }
                 }
-
+                
+                pub type DeleteArgs = prisma_client_rust::DeleteArgs<WhereParam, WithParam>;
+                
                 pub struct Delete<'a> {
-                    query: Query<'a>,
-                    with_params: Vec<WithParam>
+                    ctx: QueryContext<'a>,
+                    args: DeleteArgs
                 }
 
                 impl<'a> Delete<'a> {
                     pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self {
-                            mut query,
-                            with_params
-                        } = self;
-
-                        query.outputs.extend(with_params
-                            .into_iter()
-                            .map(|f| f.to_output())
-                            .collect::<Vec<_>>());
-
-                        match query.perform().await {
+                        let Self { ctx, args } = self;
+                        
+                        let result = ctx.execute(args.to_operation(#model_name_string, _outputs())).await;
+                        
+                        match result {
                             Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
                                 msg,
                                 Some(interpreter_error),
@@ -1604,13 +1515,17 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     #with_fn
                 }
                 
+                pub type DeleteManyArgs = prisma_client_rust::DeleteManyArgs<WhereParam>;
+                
                 pub struct DeleteMany<'a> {
-                    query: Query<'a>
+                    ctx: QueryContext<'a>,
+                    args: DeleteManyArgs
                 }
 
                 impl<'a> DeleteMany<'a> {
-                    pub async fn exec(self) -> QueryResult<usize> {
-                        self.query.perform().await.map(|res: CountResult| res.count)
+                    pub async fn exec(self) -> QueryResult<i64> {
+                        let Self { ctx, args } = self;
+                        ctx.execute(args.to_operation(#model_name_string)).await.map(|res: BatchResult| res.count)
                     }
                 }
 
@@ -1619,144 +1534,41 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 }
 
                 impl<'a> Actions<'a> {
-                    pub fn create(&self, #(#required_args)* params: Vec<SetParam>) -> Create {
-                        let mut input_fields = params.into_iter().map(|p| p.to_field()).collect::<Vec<_>>();
-
+                    pub fn create(&self, #(#required_args)* mut params: Vec<SetParam>) -> Create {
                         #(#required_arg_pushes)*
 
-                        let query = Query {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                            name: String::new(),
-                            operation: "mutation".into(),
-                            method: "createOne".into(),
-                            model: #model_name_pascal_string.into(),
-                            outputs: _outputs(),
-                            inputs: vec![Input {
-                                name: "data".into(),
-                                fields: input_fields,
-                                ..Default::default()
-                            }]
-                        };
-
                         Create {
-                            query,
-                            with_params: vec![]
+                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            args: CreateArgs::new(params)
                         }
                     }
 
                     pub fn find_unique(&self, param: UniqueWhereParam) -> FindUnique {
-                        let param: WhereParam = param.into();
-                        let fields = transform_equals(vec![param.to_field()]);
-
-                        let query = Query {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                            name: String::new(),
-                            operation: "query".into(),
-                            method: "findUnique".into(),
-                            model: #model_name_pascal_string.into(),
-                            outputs: _outputs(),
-                            inputs: vec![Input {
-                                name: "where".into(),
-                                fields,
-                                ..Default::default()
-                            }]
-                        };
-
                         FindUnique {
-                            query,
-                            with_params: vec![]
+                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            args: FindUniqueArgs::new(param.into()),
                         }
                     }
 
                     pub fn find_first(&self, params: Vec<WhereParam>) -> FindFirst {
-                        let where_fields: Vec<Field> = params.into_iter().map(|param|
-                            param.to_field()
-                        ).collect();
-
-                        let inputs = if where_fields.len() > 0 {
-                            vec![Input {
-                                name: "where".into(),
-                                fields: vec![Field {
-                                    name: "AND".into(),
-                                    list: true,
-                                    wrap_list: true,
-                                    fields: Some(where_fields),
-                                    ..Default::default()
-                                }],
-                                ..Default::default()
-                            }]
-                        } else {
-                            Vec::new()
-                        };
-
-                        let query = Query {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                            name: String::new(),
-                            operation: "query".into(),
-                            method: "findFirst".into(),
-                            model: #model_name_pascal_string.into(),
-                            outputs: _outputs(),
-                            inputs
-                        };
-
                         FindFirst {
-                            query,
-                            order_by_params: vec![],
-                            with_params: vec![]
+                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            args: FindFirstArgs::new(params),
                         }
                     }
 
                     pub fn find_many(&self, params: Vec<WhereParam>) -> FindMany {
-                        let where_fields: Vec<Field> = params.into_iter().map(|param|
-                            param.to_field()
-                        ).collect();
-
-                        let inputs = if where_fields.len() > 0 {
-                            vec![Input {
-                                name: "where".into(),
-                                fields: where_fields,
-                                ..Default::default()
-                            }]
-                        } else {
-                            Vec::new()
-                        };
-
-                        let query = Query {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                            name: String::new(),
-                            operation: "query".into(),
-                            method: "findMany".into(),
-                            model: #model_name_pascal_string.into(),
-                            outputs: _outputs(),
-                            inputs
-                        };
-
                         FindMany {
-                            query,
-                            order_by_params: vec![],
-                            with_params: vec![]
+                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            args: FindManyArgs::new(params),
                         }
                     }
 
                     pub fn upsert(&self, param: UniqueWhereParam) -> Upsert {
-                        let param: WhereParam = param.into();
-                        let fields = transform_equals(vec![param.to_field()]);
-
-                        let query = Query {
+                        Upsert { 
                             ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
-                            name: String::new(),
-                            operation: "mutation".into(),
-                            method: "upsertOne".into(),
-                            model: #model_name_pascal_string.into(),
-                            outputs: _outputs(),
-                            inputs: vec![Input {
-                                name: "where".into(),
-                                fields,
-                                ..Default::default()
-                            }]
-                        };
-
-                        Upsert { query }
+                            args: UpsertArgs::new(param.into()),
+                        }
                     }
                 }
             }

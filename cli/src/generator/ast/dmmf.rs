@@ -1,4 +1,6 @@
+use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
+use syn::Ident;
 
 use crate::generator::GraphQLType;
 
@@ -385,6 +387,17 @@ impl Field {
                     action: "isNot".to_string(),
                 },
             ]
+        }
+    }
+
+    pub fn type_as_query_value(&self, var: &Ident) -> TokenStream {
+        if self.is_list {
+            let converter = self.field_type.to_prisma_value(&format_ident!("v"));
+            quote!(QueryValue::List(#var.into_iter().map(|v| #converter).collect()))
+        } else {
+            let t = self.field_type.to_prisma_value(var);
+
+            quote!(#t.into())
         }
     }
 }

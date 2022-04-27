@@ -1,6 +1,6 @@
 # Fetch
 
-The `fetch` method on relation fields allows you to include relation data in your queries, in addition to the original records. Without this you would need 2 separate queries, but `with` and `fetch` allow for it to be done in one.
+The `fetch` method on relation fields allows you to include relation data in your queries, in addition to the original records. Without this you would need 2 separate queries, but `with` and `fetch` allow for it to be done in one. Loading multiple relations can be done by calling `with` multiple times, each calling `fetch` for a different relation.
 
 Accessing a relation field on a model's data cannot be done like regular fields. Instead, an accessor function is available that wraps the relation data inside a `Result` which will be an `Err` if the relation has not been fetched using a `with` call.
 
@@ -65,7 +65,7 @@ use prisma::{comment, post};
 
 let post: Option<post::Data> = client
     .post()
-    .find_unique(post::id().equals("0".to_string()))
+    .find_unique(post::id::equals("0".to_string()))
     .with(post::comments::fetch())
     .exec()
     .await
@@ -74,6 +74,33 @@ let post: Option<post::Data> = client
 // Since the above query includes a with() call,
 // the result will be an Ok()
 let comments: Result<Vec<comment::Data>, String> = post.comments();
+```
+
+## Nested Relations
+
+Starting with Prisma Client Rust v0.4.1, relations can be fetched to an unlimited depth.
+
+In this example, a post is loaded with its comments, and each comment is loaded with the original post.
+
+```rust
+use prisam::{comment, post};
+
+let post: post::Data = client
+    .post()
+    .find_unique(post::id::equals("0".to_string()))
+    .with(post::comments::fetch().with(comment::post::fetch()))
+    .exec()
+    .await
+    .unwrap()
+    .unwrap();
+
+// Safe since post::comments::fetch() has been used
+for comment in post.comments().unwrap() {
+    // Safe since comment::post::fetch() has been used
+    let post = comment.post().unwrap();
+
+    assert_eq!(post.id, "0");
+}
 ```
 
 ## Up Next

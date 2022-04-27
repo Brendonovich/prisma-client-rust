@@ -1,9 +1,6 @@
 use prisma_client_rust::{or, query::Error};
 
-use crate::{
-    db::*,
-    utils::*,
-};
+use crate::{db::*, utils::*};
 
 async fn setup(client: &PrismaClient) -> Result<String, Error> {
     let user = client
@@ -93,6 +90,24 @@ async fn find_unique_with() -> TestResult {
 }
 
 #[tokio::test]
+async fn find_unique_with_take() -> TestResult {
+    let client = client().await;
+
+    let user_id = setup(&client).await?;
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![]).take(1))
+        .exec()
+        .await?
+        .unwrap();
+    assert_eq!(user.posts().unwrap().len(), 1);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
 async fn find_unique_with_where() -> TestResult {
     let client = client().await;
 
@@ -103,7 +118,9 @@ async fn find_unique_with_where() -> TestResult {
     let user = client
         .user()
         .find_unique(user::id::equals(user_id.clone()))
-        .with(user::posts::fetch(vec![post::created_at::equals(posts[0].created_at)]))
+        .with(user::posts::fetch(vec![post::created_at::equals(
+            posts[0].created_at,
+        )]))
         .exec()
         .await?
         .unwrap();
@@ -111,6 +128,47 @@ async fn find_unique_with_where() -> TestResult {
 
     assert_eq!(user_posts.len(), 1);
     assert_eq!(user_posts[0].id, posts[0].id);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn find_unique_with_pagination() -> TestResult {
+    let client = client().await;
+
+    let user_id = setup(&client).await?;
+
+    let posts = client.post().find_many(vec![]).exec().await?;
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(
+            user::posts::fetch(vec![])
+                .cursor(post::id::cursor(posts[0].id.clone()))
+                .take(1)
+                .skip(1),
+        )
+        .exec()
+        .await?
+        .unwrap();
+    assert_eq!(user.posts().unwrap().len(), 1);
+    assert_eq!(user.posts().unwrap()[0].id, posts[1].id);
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(
+            user::posts::fetch(vec![])
+                .cursor(post::id::cursor(posts[1].id.clone()))
+                .take(-1)
+                .skip(1),
+        )
+        .exec()
+        .await?
+        .unwrap();
+    assert_eq!(user.posts().unwrap().len(), 1);
+    assert_eq!(user.posts().unwrap()[0].id, posts[0].id);
 
     cleanup(client).await
 }
@@ -149,87 +207,36 @@ async fn find_unique_with_nested_where_or() -> TestResult {
     cleanup(client).await
 }
 
-// TODO: Nested pagination
-// #[tokio::test]
-// async fn find_unique_with_take() -> TestResult {
-//     let client = client().await;
+#[tokio::test]
+async fn find_unique_with_nested_with() -> TestResult {
+    let client = client().await;
 
-//     let user_id = setup(&client).await?;
+    let user_id = setup(&client).await?;
 
-//     let user = client
-//         .user()
-//         .find_unique(user::id().equals(user_id.clone()))
-//         .with(user::posts().fetch(vec![]).take(1))
-//         .exec()
-//         .await?
-//         .unwrap();
-//     assert_eq!(user.posts().unwrap().len(), 1);
+    let posts = client.post().find_many(vec![]).exec().await?;
 
-//     cleanup(client).await
-// }
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(
+            user::posts::fetch(vec![])
+                .with(post::categories::fetch(vec![]).with(category::posts::fetch(vec![]))),
+        )
+        .exec()
+        .await?
+        .unwrap();
+    assert!(user.profile().is_err());
 
-// #[tokio::test]
-// async fn find_unique_with_pagination() -> TestResult {
-//     let client = client().await;
+    for post in user.posts().unwrap() {
+        for category in post.categories().unwrap() {
+            assert!(category.posts().is_ok())
+        }
+    }
 
-//     let user_id = setup(&client).await?
+    cleanup(client).await
+}
 
-//     let posts = client.post().find_many(vec![]).exec().await?;;
-
-//     let user = client
-//         .user()
-//         .find_unique(user::id().equals(user_id.clone()))
-//         .with(user::posts().fetch(vec![]).cursor(posts[0].id).take(1).skip(1))
-//         .exec()
-//         .await?
-//         .unwrap();
-//     assert_eq!(user.posts().unwrap().len(), 1);
-//     assert_eq!(user.posts().unwrap()[0].id, posts[1].id);
-
-//     let user = client
-//         .user()
-//         .find_unique(user::id().equals(user_id.clone()))
-//         .with(user::posts().fetch(vec![]).cursor(posts[0].id).take(-1).skip(1))
-//         .exec()
-//         .await?
-//         .unwrap();
-//     assert_eq!(user.posts().unwrap().len(), 1);
-//     assert_eq!(user.posts().unwrap()[0].id, posts[0].id);
-
-//     cleanup(client).await
-// }
-
-// #[tokio::test]
-// async fn find_unique_with_where() -> TestResult {
-//     let client = client().await;
-
-//     let user_id = setup(&client).await?;
-
-//     let posts = client.post().find_many(vec![]).exec().await?;
-
-//     let user = client
-//         .user()
-//         .find_unique(user::id().equals(user_id.clone()))
-//         .with(
-//             user::posts().fetch(vec![]).with(
-//                 post::categories()
-//                     .fetch(vec![])
-//                     .with(category::posts().fetch(vec![])),
-//             ),
-//         )
-//         .exec()
-//         .await?
-//         .unwrap();
-//     assert!(user.profile().is_err());
-
-//     for post in user.posts().unwrap() {
-//         for category in post.categories().unwrap() {
-//             assert!(category.posts().is_ok())
-//         }
-//     }
-
-//     cleanup(client).await
-// }
+// TODO: Nested create
 
 // #[tokio::test]
 // async fn create_with() -> TestResult {

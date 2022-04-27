@@ -19,8 +19,10 @@ members = [
     "prisma-cli"
 ]
 
-[profile.test]
-debug = 0
+[features]
+default = ["sql", "mongodb"]
+sql = ["query-core/sql"]
+mongodb = ["query-core/mongodb"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -28,7 +30,7 @@ serde_json = "1.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "1.0.30"
 
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8b94a80a2d8f12a2916fe28e3218162aa71e8539" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", default-features = false, rev = "8b94a80a2d8f12a2916fe28e3218162aa71e8539" }
 query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8b94a80a2d8f12a2916fe28e3218162aa71e8539" }
 request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8b94a80a2d8f12a2916fe28e3218162aa71e8539" }
 prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "8b94a80a2d8f12a2916fe28e3218162aa71e8539" }
@@ -37,3 +39,6 @@ graphql-parser = { git = "https://github.com/prisma/graphql-parser", rev = "6a3f
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[profile.test]
+debug = 0
