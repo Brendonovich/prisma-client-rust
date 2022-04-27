@@ -3,6 +3,7 @@
 Ordering can be performed on any field, though it is recommended to only order by indexed fields for improved performance.
 
 Order is defined using a field module's `order` function, which takes a `Direction` enum provided by `prisma_client_rust`.
+It can be performed on `find_first` and `find_many` queries, as well as being chained onto `fetch` calls for many relations in a similar manner [relation pagination](06-pagination.md#relation-pagination).
 
 The examples use the following schema:
 

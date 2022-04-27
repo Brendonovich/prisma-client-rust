@@ -1,6 +1,6 @@
 # Pagination
 
-Pagination allows you to alter which records are returned from `find_first` and `find_many` queries.
+Pagination allows you to alter which records are returned from `find_first` and `find_many` queries, and on many relations.
 
 All of these methods can used together, and the order they are used in does not matter.
 
@@ -47,7 +47,7 @@ let posts: Vec<post::Data> = client
     .take(5) // query will return the first 5 records, instead of every record
     .exec()
     .await
-    .unwrap()
+    .unwrap();
 
 ```
 
@@ -64,7 +64,7 @@ let posts: Vec<post::Data> = client
     .skip(2) // query will skip the first two records, returning the rest
     .exec()
     .await
-    .unwrap()
+    .unwrap();
 
 ```
 
@@ -81,10 +81,31 @@ let posts: Vec<post::Data> = client
     .cursor(post::id::cursor("abc".to_string()))
     .exec()
     .await
-    .unwrap()
+    .unwrap();
 ```
 
 The [`order_by` method](07-order-by.md) can be very useful when combined with cursor pagination.
+
+## Relation Pagination
+
+The above methods can be chained to `fetch` calls for many relations.
+
+```rust
+use prisma::post;
+
+let posts: Vec<post::Data> = client
+    .post()
+    .find_many(vec![])
+    .with(
+        post::comments::fetch(vec![])
+            .skip(10)
+            .take(5)
+            .cursor("abc".to_string()),
+    )
+    .exec()
+    .await
+    .unwrap();
+```
 
 ## Up Next
 
