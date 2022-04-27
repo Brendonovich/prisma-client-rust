@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust-cli"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 
