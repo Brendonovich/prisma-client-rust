@@ -10,7 +10,6 @@ use datamodel::datamodel_connector::Diagnostics;
 pub use prisma_models;
 pub use query_core;
 use query_core::{CoreError, Operation, QueryValue, Selection};
-pub use request_handlers;
 pub use serde_json;
 use thiserror::Error;
 
