@@ -8,4 +8,4 @@ default-run = "simple"
 prisma-client-rust = { path="../../" }
 prisma-client-rust-cli = {path ="../../cli"}
 serde = { version = "1.0", features = ["derive"] }
-tokio = {features=["macros"], version = "1.17.0"}
+tokio = {features=["macros","rt-multi-thread"], version = "1.17.0"}

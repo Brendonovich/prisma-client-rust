@@ -27,19 +27,25 @@ pub fn generate(root: &Root) -> TokenStream {
     quote! {
         #![allow(warnings, unused)]
 
-        use prisma_client_rust::query::{Query, Input, Output, Field, QueryContext, transform_equals, Result as QueryResult};
-        use prisma_client_rust::datamodel::parse_configuration;
-        use prisma_client_rust::prisma_models::InternalDataModelBuilder;
-        use prisma_client_rust::query_core::{schema_builder, executor, BuildMode, QuerySchema, QueryExecutor, CoreError, InterpreterError, QueryGraphBuilderError};
-        use prisma_client_rust::{chrono, operator::Operator, serde_json, CountResult, Direction};
-
-        pub use prisma_client_rust::{query::{Error as QueryError}, NewClientError};
-
-        use serde::{Serialize, Deserialize};
-
+        use prisma_client_rust::{
+            chrono,
+            datamodel::parse_configuration,
+            operator::Operator,
+            prisma_models::{InternalDataModelBuilder, PrismaValue},
+            query::{QueryContext, Result as QueryResult},
+            query_core::{
+                executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
+                QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
+            },
+            serde_json, transform_equals, Args, BatchResult, Direction, FindManyArgs,
+            FindManySelectionArgs, SerializedWhere, SerializedWhereValue,
+        };
+        pub use prisma_client_rust::{query::Error as QueryError, NewClientError};
+        use serde::{Deserialize, Serialize};
+        use std::ops::Deref;
         use std::path::Path;
         use std::sync::Arc;
-        
+
         static DATAMODEL_STR: &'static str = #datamodel;
 
         pub struct PrismaClient {
@@ -47,7 +53,7 @@ pub fn generate(root: &Root) -> TokenStream {
             query_schema: Arc<QuerySchema>,
         }
 
-        pub async fn new_client() -> Result<PrismaClient, NewClientError> { 
+        pub async fn new_client() -> Result<PrismaClient, NewClientError> {
             let config = parse_configuration(DATAMODEL_STR)?.subject;
             let source = config
                 .datasources
@@ -58,7 +64,7 @@ pub fn generate(root: &Root) -> TokenStream {
             } else {
                 source.load_url(|key| std::env::var(key).ok())?
             };
-            
+
             // sqlite fix
             let url = if url.starts_with("file:") {
                 let path = url.split(":").nth(1).unwrap();
@@ -101,56 +107,56 @@ pub fn generate(root: &Root) -> TokenStream {
         }
 
         impl PrismaClient {
-            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> QueryResult<Vec<T>> {
-                let query = Query {
-                    ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
-                    operation: "mutation".into(),
-                    method: "queryRaw".into(),
-                    inputs: vec![
-                        Input {
-                            name: "query".into(),
-                            value: Some(query.into()),
-                            ..Default::default()
-                        },
-                        Input {
-                            name: "parameters".into(),
-                            value: Some("[]".into()),
-                            ..Default::default()
-                        }
-                    ],
-                    name: "".into(),
-                    model: "".into(),
-                    outputs: vec![]
-                };
+            // pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> QueryResult<Vec<T>> {
+            //     let query = Query {
+            //         ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
+            //         operation: "mutation".into(),
+            //         method: "queryRaw".into(),
+            //         inputs: vec![
+            //             Input {
+            //                 name: "query".into(),
+            //                 value: Some(query.into()),
+            //                 ..Default::default()
+            //             },
+            //             Input {
+            //                 name: "parameters".into(),
+            //                 value: Some("[]".into()),
+            //                 ..Default::default()
+            //             }
+            //         ],
+            //         name: "".into(),
+            //         model: "".into(),
+            //         outputs: vec![]
+            //     };
 
-                query.perform().await
-            }
+            //     query.perform().await
+            // }
 
-            pub async fn _execute_raw(&self, query: &str) -> QueryResult<i64> {
-                let query = Query {
-                    ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
-                    operation: "mutation".into(),
-                    method: "executeRaw".into(),
-                    inputs: vec![
-                        Input {
-                            name: "query".into(),
-                            value: Some(query.into()),
-                            ..Default::default()
-                        },
-                        Input {
-                            // TODO: use correct value
-                            name: "parameters".into(),
-                            value: Some("[]".into()),
-                            ..Default::default()
-                        },
-                    ],
-                    name: "".into(),
-                    model: "".into(),
-                    outputs: vec![]
-                };
+            // pub async fn _execute_raw(&self, query: &str) -> QueryResult<i64> {
+            //     let query = Query {
+            //         ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
+            //         operation: "mutation".into(),
+            //         method: "executeRaw".into(),
+            //         inputs: vec![
+            //             Input {
+            //                 name: "query".into(),
+            //                 value: Some(query.into()),
+            //                 ..Default::default()
+            //             },
+            //             Input {
+            //                 // TODO: use correct value
+            //                 name: "parameters".into(),
+            //                 value: Some("[]".into()),
+            //                 ..Default::default()
+            //             },
+            //         ],
+            //         name: "".into(),
+            //         model: "".into(),
+            //         outputs: vec![]
+            //     };
 
-                query.perform().await.map(|result: i64| result)
-            }
+            //     query.perform().await.map(|result: i64| result)
+            // }
 
             #(#model_actions)*
         }

@@ -1,6 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
+use syn::Ident;
 use std::collections::HashMap;
 
 use super::ast::{dmmf, AST};
@@ -13,7 +14,7 @@ pub struct Root<'a> {
     pub dmmf: dmmf::Document,
     pub datamodel: String,
     #[serde(skip)]
-    pub ast: Option<AST<'a>>
+    pub ast: Option<AST<'a>>,
 }
 
 fn default_package() -> String {
@@ -81,7 +82,6 @@ pub struct BinaryPaths {
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct GraphQLType(pub String);
 
 impl GraphQLType {
@@ -99,16 +99,33 @@ impl GraphQLType {
         match string {
             "Int" => quote!(i32),
             "BigInt" => quote!(i64),
-            "Float" => quote!(f64),
-            "Decimal" => quote!(f64),
+            "Float" | "Decimal" => quote!(f64),
             "Boolean" => quote!(bool),
             "Bytes" => quote!(Vec<u8>),
-            "DateTime" => quote!(chrono::DateTime<chrono::Utc>),
+            "DateTime" => quote!(chrono::DateTime<chrono::FixedOffset>),
             "Json" => quote!(serde_json::Value),
+            "String" => quote!(String),
             _ => {
                 let ident = format_ident!("{}", string.to_case(Case::Pascal));
                 quote!(#ident)
             }
+        }
+    }
+
+    pub fn to_prisma_value(&self, var: &Ident) -> TokenStream {
+        match self.string() {
+            "Int" => quote!(PrismaValue::Int(#var as i64)),
+            "BigInt" => quote!(PrismaValue::BigInt(#var)),
+            "Float" | "Decimal" => {
+                quote!(PrismaValue::Float(bigdecimal::from_f64(#var).unwrap().normalized()))
+            }
+            "Boolean" => quote!(PrismaValue::Boolean(#var)),
+            "Bytes" => quote!(PrismaValue::Bytes(#var)),
+            "DateTime" => quote!(PrismaValue::DateTime(#var)),
+            "Json" => quote!(PrismaValue::Json(serde_json::to_string(&#var).unwrap())),
+            "String" => quote!(PrismaValue::String(#var)),
+            "QueryMode" => quote!(PrismaValue::String(#var.to_string())),
+            t => panic!("Unsupported type: {t}"),
         }
     }
 }
