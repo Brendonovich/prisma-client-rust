@@ -19,7 +19,7 @@ impl<'a> QueryContext<'a> {
         async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<Value> {
             let data = ctx.executor.execute(None, op, ctx.schema, None).await?;
 
-            let ret = serde_json::to_value(data.data)?; // TODO: serialize without json conversion
+            let ret = serde_json::to_value(data.data)?;
 
             Ok(ret)
         }
@@ -35,12 +35,6 @@ impl<'a> QueryContext<'a> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Internal error parsing GraphQL: {0}")]
-    GraphQLParse(#[from] graphql_parser::query::ParseError),
-
-    #[error("Internal error converting GraphQL: {0}")]
-    GraphQLConvert(#[from] request_handlers::HandlerError),
-
     #[error("Error executing query: {0}")]
     Execute(#[from] query_core::CoreError),
 
