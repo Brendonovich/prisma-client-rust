@@ -23,8 +23,8 @@ The following example searches for a post, updates it if it is found, and create
 ```rust
 use prisma::post;
 
-let post: post::Data = client.
-    post()
+let post: post::Data = client
+    .post()
     .upsert(post::id::equals("upsert".to_string()))
     .create(
         post::published::set(true),
