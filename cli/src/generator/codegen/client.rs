@@ -48,6 +48,7 @@ pub fn generate(root: &Root) -> TokenStream {
 
         static DATAMODEL_STR: &'static str = #datamodel;
 
+        #[derive(Debug)]
         pub struct PrismaClient {
             executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
             query_schema: Arc<QuerySchema>,
