@@ -45,12 +45,20 @@ pub fn generate(root: &Root) -> TokenStream {
         use std::ops::Deref;
         use std::path::Path;
         use std::sync::Arc;
+        use std::fmt;
 
         static DATAMODEL_STR: &'static str = #datamodel;
 
         pub struct PrismaClient {
             executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
             query_schema: Arc<QuerySchema>,
+        }
+
+        impl fmt::Debug for PrismaClient {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct("PrismaClient")
+                 .finish()
+            }
         }
 
         pub async fn new_client() -> Result<PrismaClient, NewClientError> {
