@@ -117,7 +117,7 @@ impl GraphQLType {
             "Int" => quote!(PrismaValue::Int(#var as i64)),
             "BigInt" => quote!(PrismaValue::BigInt(#var)),
             "Float" | "Decimal" => {
-                quote!(PrismaValue::Float(bigdecimal::from_f64(#var).unwrap().normalized()))
+                quote!(PrismaValue::Float(bigdecimal::BigDecimal::from_f64(#var).unwrap().normalized()))
             }
             "Boolean" => quote!(PrismaValue::Boolean(#var)),
             "Bytes" => quote!(PrismaValue::Bytes(#var)),

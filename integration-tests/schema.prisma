@@ -57,6 +57,6 @@ model Types {
     datetime DateTime @default(now())
     // TODO: Figure out how to deserialize these
     // bigint   BigInt   @default(0)
-    // float_   Float    @default(0)
+    float_   Float    @default(0)
     // decimal  Decimal  @default(1)
 }

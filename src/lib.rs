@@ -3,14 +3,16 @@ pub mod query;
 pub mod serde;
 pub mod traits;
 
-use ::serde::{Deserialize, Serialize};
+pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
-use datamodel::datamodel_connector::Diagnostics;
 pub use prisma_models;
 pub use query_core;
-use query_core::{CoreError, Operation, QueryValue, Selection};
 pub use serde_json;
+
+use ::serde::{Deserialize, Serialize};
+use datamodel::datamodel_connector::Diagnostics;
+use query_core::{CoreError, Operation, QueryValue, Selection};
 use thiserror::Error;
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
@@ -724,12 +726,12 @@ where
         self.with_params.push(param);
         self
     }
-    
+
     pub fn create(mut self, params: Vec<Set>) -> Self {
         self.create_params = params;
         self
     }
-    
+
     pub fn update(mut self, params: Vec<Set>) -> Self {
         self.update_params = params;
         self
@@ -746,7 +748,7 @@ where
         let mut selection = Selection::builder(format!("upsertOne{}", model));
 
         selection.alias("result");
-        
+
         if create_params.len() > 0 {
             selection.push_argument(
                 "create",
@@ -758,7 +760,7 @@ where
                 ),
             );
         }
-        
+
         if update_params.len() > 0 {
             selection.push_argument(
                 "update",

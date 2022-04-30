@@ -29,6 +29,7 @@ pub fn generate(root: &Root) -> TokenStream {
 
         use prisma_client_rust::{
             chrono,
+            bigdecimal::{self, FromPrimitive},
             datamodel::parse_configuration,
             operator::Operator,
             prisma_models::{InternalDataModelBuilder, PrismaValue},

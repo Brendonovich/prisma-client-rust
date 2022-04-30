@@ -42,7 +42,8 @@ CREATE TABLE "Types" (
     "bool_" BOOLEAN NOT NULL DEFAULT false,
     "string" TEXT NOT NULL DEFAULT '',
     "integer" INTEGER NOT NULL DEFAULT 0,
-    "datetime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "datetime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "float_" REAL NOT NULL DEFAULT 0
 );
 
 -- CreateTable
@@ -52,6 +53,9 @@ CREATE TABLE "_CategoryToPost" (
     FOREIGN KEY ("A") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY ("B") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Post_title_author_id_key" ON "Post"("title", "author_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");

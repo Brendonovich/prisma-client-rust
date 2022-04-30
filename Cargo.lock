@@ -2544,6 +2544,7 @@ dependencies = [
 name = "prisma-client-rust"
 version = "0.4.1"
 dependencies = [
+ "bigdecimal 0.2.2",
  "chrono",
  "datamodel",
  "prisma-models",
