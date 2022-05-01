@@ -1,8 +1,8 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
-use syn::Ident;
 use std::collections::HashMap;
+use syn::Ident;
 
 use super::ast::{dmmf, AST};
 
@@ -126,6 +126,17 @@ impl GraphQLType {
             "String" => quote!(PrismaValue::String(#var)),
             "QueryMode" => quote!(PrismaValue::String(#var.to_string())),
             t => panic!("Unsupported type: {t}"),
+        }
+    }
+
+    pub fn to_query_value(&self, var: &Ident, is_list: bool) -> TokenStream {
+        if is_list {
+            let converter = self.to_prisma_value(&format_ident!("v"));
+            quote!(QueryValue::List(#var.into_iter().map(|v| #converter.into()).collect()))
+        } else {
+            let t = self.to_prisma_value(var);
+
+            quote!(#t.into())
         }
     }
 }

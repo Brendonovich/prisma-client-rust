@@ -389,17 +389,6 @@ impl Field {
             ]
         }
     }
-
-    pub fn type_as_query_value(&self, var: &Ident) -> TokenStream {
-        if self.is_list {
-            let converter = self.field_type.to_prisma_value(&format_ident!("v"));
-            quote!(QueryValue::List(#var.into_iter().map(|v| #converter.into()).collect()))
-        } else {
-            let t = self.field_type.to_prisma_value(var);
-
-            quote!(#t.into())
-        }
-    }
 }
 
 impl Model {

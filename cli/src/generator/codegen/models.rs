@@ -633,7 +633,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                 variant_data_as_types.push(field_type);
                 variant_data_as_destructured.push(quote!(#field_name_snake));
-                variant_data_as_query_values.push(model_field.type_as_query_value(&field_name_snake));
+                variant_data_as_query_values.push(model_field.field_type.to_query_value(&field_name_snake, model_field.is_list));
             }
 
             let field_name_string = unique.fields.join("_");
@@ -963,11 +963,11 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 let field_set_variant = SetParams::field_set_variant(&field.name);
 
                 if !field.prisma {
-                    let converter = field.type_as_query_value(&format_ident!("value"));
+                    let converter = field.field_type.to_query_value(&format_ident!("value"), field.is_list);
                     let (field_set_variant_type, field_content) = if field.is_list {
                         (
                             quote!(Vec<#field_type>),
-                            quote!(converter),
+                            converter,
                         )
                     } else {
                         if field.is_required {
@@ -1005,7 +1005,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
 
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
                     let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
-                    let type_as_query_value = field.type_as_query_value(&format_ident!("value"));
+                    let type_as_query_value = field.field_type.to_query_value(&format_ident!("value"), field.is_list);
                     
                     let type_as_query_value = if field.is_required {
                         type_as_query_value
