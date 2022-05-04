@@ -18,14 +18,11 @@ impl<'a> QueryContext<'a> {
     pub async fn execute<T: DeserializeOwned>(self, operation: Operation) -> Result<T> {
         async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<Value> {
             let data = ctx.executor.execute(None, op, ctx.schema, None).await?;
-
             let ret = serde_json::to_value(data.data)?;
 
             Ok(ret)
         }
         
-        dbg!(&operation);
-
         let value = inner(self, operation).await?;
         let ret = serde_json::from_value(value)?;
 
