@@ -5,7 +5,7 @@ use std::process::Command;
 
 pub fn binary_platform_name() -> String {
     let platform = name();
-    
+
     let distro = match platform.as_str() {
         "linux" => match get_linux_distro().as_str() {
             "alpine" => return "linux-musl".to_string(),
@@ -19,6 +19,14 @@ pub fn binary_platform_name() -> String {
     let name = format!("{}-openssl-{}", distro, ssl);
 
     name
+}
+
+pub fn arch() -> String {
+    match env::consts::ARCH {
+        "x86_64" => "x64".to_string(),
+        "aarch64" => "arm64".to_string(),
+        arch => panic!("Architecture {arch} is not yet supported"),
+    }
 }
 
 fn get_linux_distro() -> String {
@@ -78,9 +86,7 @@ fn parse_linux_distro(output: &str) -> String {
 }
 
 pub fn name() -> String {
-    let os = env::consts::OS;
-
-    match os {
+    match env::consts::OS {
         "macos" => "darwin".to_string(),
         os => os.to_string(),
     }
