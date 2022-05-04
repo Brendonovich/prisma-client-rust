@@ -1115,7 +1115,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                             quote!(Vec<#typ>)
                         } else { typ };
                         
-                        let prisma_value_type = method.typ.to_prisma_value(&format_ident!("value"));
+                        let query_value_converter = method.typ.to_query_value(&format_ident!("value"), method.is_list);
 
                         let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_pascal);
 
@@ -1134,7 +1134,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                                     QueryValue::Object(
                                         vec![(
                                             #method_action.to_string(),
-                                            #prisma_value_type.into()
+                                            #query_value_converter
                                         )]
                                             .into_iter()
                                             .collect()
