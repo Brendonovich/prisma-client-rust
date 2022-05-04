@@ -10,8 +10,8 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "3.12.0";
-pub static ENGINE_VERSION: &str = "22b822189f46ef0dc5c5b503368d1bee01213980";
+pub static PRISMA_CLI_VERSION: &str = "3.13.0";
+pub static ENGINE_VERSION: &str = "efdf9b1183dddfd4258cd181a72125755215ab7b";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
 
 pub struct Engine<'a> {
@@ -40,8 +40,9 @@ pub const ENGINES: [Engine; 4] = [
 
 pub fn prisma_cli_name() -> String {
     let variation = platform::name();
+    let arch = platform::arch();
 
-    format!("prisma-cli-{}", variation)
+    format!("prisma-cli-{variation}-{arch}")
 }
 
 pub fn global_cache_dir() -> PathBuf {
@@ -76,10 +77,11 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
     let url = platform::check_for_extension(
         &platform::name(),
         &format!(
-            "https://prisma-photongo.s3-eu-west-1.amazonaws.com/{}-{}-{}.gz",
+            "https://prisma-photongo.s3-eu-west-1.amazonaws.com/{}-{}-{}-{}.gz",
             "prisma-cli",
             PRISMA_CLI_VERSION,
-            platform::name()
+            platform::name(),
+            platform::arch()
         ),
     );
 
@@ -89,7 +91,7 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
             return Ok(());
         }
     };
-    
+
     println!("Downloading {} to {}", url, to);
 
     download(url.clone(), to.clone()).expect(&format!("could not download {} to {}", url, to));

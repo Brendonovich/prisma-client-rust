@@ -3,7 +3,7 @@
     <p><b>Type-safe database access for Rust</b></p>
     <img src="https://img.shields.io/badge/latest-0.4.1-blue?style=flat-square" alt="Latest version of Prisma Client Rust is 0.4.1">
     <a href="https://prisma.io">
-        <img src="https://img.shields.io/static/v1?label=prisma&message=v3.12.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.12.0">
+        <img src="https://img.shields.io/static/v1?label=prisma&message=v3.13.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.13.0">
     </a>
     <img src="https://img.shields.io/github/workflow/status/Brendonovich/prisma-client-rust/CI?label=tests&style=flat-square" alt="Test Status"/>
     <a href="https://github.com/Brendonovich/prisma-client-rust/blob/dev/docs/README.md"/>
