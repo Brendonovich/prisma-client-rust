@@ -7,9 +7,12 @@ pub fn binary_platform_name() -> String {
     let platform = name();
 
     let distro = match platform.as_str() {
-        "linux" => match get_linux_distro().as_str() {
-            "alpine" => return "linux-musl".to_string(),
-            distro => distro.to_string(),
+        "linux" => match arch() {
+            Arch::X64 => match get_linux_distro().as_str() {
+                "alpine" => return "linux-musl".to_string(),
+                distro => distro.to_string(),
+            },
+            Arch::Arm64 => "linux-arm64".to_string(),
         },
         _ => return platform.to_string(),
     };
@@ -21,10 +24,15 @@ pub fn binary_platform_name() -> String {
     name
 }
 
-pub fn arch() -> String {
+pub enum Arch {
+    X64,
+    Arm64,
+}
+
+pub fn arch() -> Arch {
     match env::consts::ARCH {
-        "x86_64" => "x64".to_string(),
-        "aarch64" => "arm64".to_string(),
+        "x86_64" => Arch::X64,
+        "aarch64" => Arch::Arm64,
         arch => panic!("Architecture {arch} is not yet supported"),
     }
 }
