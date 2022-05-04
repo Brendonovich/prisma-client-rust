@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use syn::Ident;
 
 use crate::generator::GraphQLType;
 

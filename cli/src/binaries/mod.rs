@@ -10,8 +10,6 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use self::platform::Arch;
-
 pub static PRISMA_CLI_VERSION: &str = "3.13.0";
 pub static ENGINE_VERSION: &str = "efdf9b1183dddfd4258cd181a72125755215ab7b";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
@@ -42,11 +40,7 @@ pub const ENGINES: [Engine; 4] = [
 
 pub fn prisma_cli_name() -> String {
     let variation = platform::name();
-
-    let arch = match platform::arch() {
-        Arch::X64 => "x64".to_string(),
-        Arch::Arm64 => "arm64".to_string(),
-    };
+    let arch = platform::arch();
 
     format!("prisma-cli-{variation}-{arch}")
 }
@@ -83,10 +77,11 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
     let url = platform::check_for_extension(
         &platform::name(),
         &format!(
-            "https://prisma-photongo.s3-eu-west-1.amazonaws.com/{}-{}-{}.gz",
+            "https://prisma-photongo.s3-eu-west-1.amazonaws.com/{}-{}-{}-{}.gz",
             "prisma-cli",
             PRISMA_CLI_VERSION,
-            platform::name()
+            platform::name(),
+            platform::arch()
         ),
     );
 
