@@ -9,27 +9,29 @@ generator client {
 }
 
 model Post {
-    id         String     @id @default(cuid())
-    created_at DateTime   @default(now())
-    updated_at DateTime   @updatedAt
-    title      String
-    published  Boolean
-    views      Int        @default(0)
-    desc       String?
-    author     User?      @relation(fields: [author_id], references: [id])
-    author_id  String?
-    categories Category[] @relation(references: [id])
+    id          String     @id @default(cuid())
+    created_at  DateTime   @default(now())
+    updated_at  DateTime   @updatedAt
+    title       String
+    published   Boolean
+    views       Int        @default(0)
+    desc        String?
+    author      User?      @relation("posts", fields: [author_id], references: [id])
+    author_id   String?
+    categories  Category[] @relation(references: [id])
+    favouriters User[]     @relation("favouritePosts")
 
     @@unique([title, author_id])
 }
 
 model User {
-    id         String   @id @default(cuid())
-    name       String
-    email      String?  @unique
-    created_at DateTime @default(now())
-    posts      Post[]
-    profile    Profile?
+    id             String   @id @default(cuid())
+    name           String
+    email          String?  @unique
+    created_at     DateTime @default(now())
+    posts          Post[]   @relation("posts")
+    favouritePosts Post[]   @relation("favouritePosts") // #53
+    profile        Profile?
 }
 
 model Category {
@@ -55,8 +57,8 @@ model Types {
     string   String   @default("")
     integer  Int      @default(0)
     datetime DateTime @default(now())
+    float_   Float    @default(0)
     // TODO: Figure out how to deserialize these
     // bigint   BigInt   @default(0)
-    float_   Float    @default(0)
     // decimal  Decimal  @default(1)
 }

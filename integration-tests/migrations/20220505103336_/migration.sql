@@ -43,15 +43,25 @@ CREATE TABLE "Types" (
     "string" TEXT NOT NULL DEFAULT '',
     "integer" INTEGER NOT NULL DEFAULT 0,
     "datetime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "float_" REAL NOT NULL DEFAULT 0
+    "bigint" BIGINT NOT NULL DEFAULT 0,
+    "float_" REAL NOT NULL DEFAULT 0,
+    "decimal" DECIMAL NOT NULL DEFAULT 1
+);
+
+-- CreateTable
+CREATE TABLE "_favouritePosts" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+    CONSTRAINT "_favouritePosts_A_fkey" FOREIGN KEY ("A") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "_favouritePosts_B_fkey" FOREIGN KEY ("B") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "_CategoryToPost" (
     "A" INTEGER NOT NULL,
     "B" TEXT NOT NULL,
-    FOREIGN KEY ("A") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY ("B") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "_CategoryToPost_A_fkey" FOREIGN KEY ("A") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "_CategoryToPost_B_fkey" FOREIGN KEY ("B") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -62,6 +72,12 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Profile_user_id_key" ON "Profile"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_favouritePosts_AB_unique" ON "_favouritePosts"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_favouritePosts_B_index" ON "_favouritePosts"("B");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "_CategoryToPost_AB_unique" ON "_CategoryToPost"("A", "B");

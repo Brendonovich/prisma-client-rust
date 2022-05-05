@@ -41,7 +41,6 @@ impl Outputs {
 }
 
 struct WithParams {
-    pub with_fn: TokenStream,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
     from_args: Vec<TokenStream>
@@ -50,15 +49,18 @@ struct WithParams {
 impl WithParams {
     pub fn new() -> Self {
         Self {
-            with_fn: quote! {
-                pub fn with(mut self, params: impl Into<WithParam>) -> Self {
-                    self.args = self.args.with(params.into());
-                    self
-                }
-            },
             variants: vec![],
             match_arms: vec![],
             from_args: vec![]
+        }
+    }
+    
+    fn with_fn(module: &Ident) -> TokenStream {
+        quote! {
+            pub fn with(mut self, params: impl Into<#module::WithParam>) -> Self {
+                self.args = self.args.with(params.into());
+                self
+            }
         }
     }
     
@@ -72,13 +74,6 @@ impl WithParams {
                 let mut builder = Selection::builder(#field_name);
                 builder.nested_selections(selections);
                 builder.build()
-            }
-        });
-        self.from_args.push(quote! {
-            impl From<super::#model_module::Args> for WithParam {
-                fn from(args: super::#model_module::Args) -> Self {
-                    Self::#variant_name(args)
-                }
             }
         });
     }
@@ -97,13 +92,6 @@ impl WithParams {
                 builder.nested_selections(nested_selections)
                     .set_arguments(arguments);
                 builder.build()
-            }
-        });
-        self.from_args.push(quote! {
-            impl From<super::#model_module::FindManyArgs> for WithParam {
-                fn from(args: super::#model_module::FindManyArgs) -> Self {
-                    Self::#variant_name(args)
-                }
             }
         });
     }
@@ -188,7 +176,6 @@ impl SetParams {
 }
 
 struct OrderByParams {
-    pub order_by_fn: TokenStream,
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
 }
@@ -196,14 +183,17 @@ struct OrderByParams {
 impl OrderByParams {
     pub fn new() -> Self {
         Self {
-            order_by_fn: quote! {
-                pub fn order_by(mut self, param: OrderByParam) -> Self {
-                    self.args = self.args.order_by(param);
-                    self
-                }
-            },
             variants: vec![],
             match_arms: vec![],
+        }
+    }
+    
+    fn order_by_fn(module: &Ident) -> TokenStream {
+        quote! {
+            pub fn order_by(mut self, param: #module::OrderByParam) -> Self {
+                self.args = self.args.order_by(param);
+                self
+            }
         }
     }
 
@@ -241,14 +231,20 @@ impl OrderByParams {
 }
 
 struct PaginationParams {
-    pub pagination_fns: TokenStream,
     cursor_variants: Vec<TokenStream>,
     cursor_match_arms: Vec<TokenStream>,
 }
 
 impl PaginationParams {
     pub fn new() -> Self {
-        let pagination_fns = quote! {
+        Self {
+            cursor_variants: vec![],
+            cursor_match_arms: vec![],
+        }
+    }
+    
+    pub fn pagination_fns(module: &Ident) -> TokenStream {
+        quote! {
             pub fn skip(mut self, value: i64) -> Self {
                 self.args = self.args.skip(value);
                 self
@@ -259,16 +255,10 @@ impl PaginationParams {
                 self
             }
 
-            pub fn cursor(mut self, value: impl Into<Cursor>) -> Self {
+            pub fn cursor(mut self, value: impl Into<#module::Cursor>) -> Self {
                 self.args = self.args.cursor(value.into());
                 self
             }
-        };
-
-        Self {
-            pagination_fns,
-            cursor_variants: vec![],
-            cursor_match_arms: vec![],
         }
     }
 
@@ -670,7 +660,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             let field_pascal = format_ident!("{}", field.name.to_case(Case::Pascal));
             let field_type_tokens_string = field.field_type.value();
             let field_type = field.field_type.tokens();
-
+            
             if field.kind.is_relation() {
                 let link_variant = SetParams::field_link_variant(&field.name);
                 let unlink_variant = SetParams::field_unlink_variant(&field.name);
@@ -717,11 +707,36 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     });
                 }
 
+                let with_fn = WithParams::with_fn(&relation_type_snake);
+
                 // Relation actions eg. Fetch, Link, Unlink
                 if field.is_list {
+                    let order_by_fn = OrderByParams::order_by_fn(&relation_type_snake);
+                    let pagination_fns = PaginationParams::pagination_fns(&relation_type_snake);
+                    
                     field_query_module.add_method(quote! {
-                        pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> #relation_type_snake::FindManyArgs {
-                            #relation_type_snake::FindManyArgs::new(params)
+                        pub struct Fetch {
+                            args: #relation_type_snake::FindManyArgs
+                        }
+                        
+                        impl Fetch {
+                            #with_fn
+                            
+                            #order_by_fn
+                            
+                            #pagination_fns
+                        }
+                        
+                        impl From<Fetch> for WithParam {
+                            fn from(fetch: Fetch) -> Self {
+                                WithParam::#field_pascal(fetch.args)
+                            }
+                        }
+                        
+                        pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> Fetch {
+                            Fetch {
+                                args: #relation_type_snake::FindManyArgs::new(params)
+                            }
                         }
 
                         pub fn link<T: From<Link>>(params: Vec<#relation_type_snake::UniqueWhereParam>) -> T {
@@ -817,8 +832,24 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     );
                 } else {
                     field_query_module.add_method(quote! {
-                        pub fn fetch() -> #relation_type_snake::Args {
-                            #relation_type_snake::Args::new()
+                        pub struct Fetch {
+                            args: #relation_type_snake::Args
+                        }
+                        
+                        impl Fetch {
+                            #with_fn
+                        }
+                        
+                        impl From<Fetch> for WithParam {
+                            fn from(fetch: Fetch) -> Self {
+                                WithParam::#field_pascal(fetch.args)
+                            }
+                        }
+                        
+                        pub fn fetch() -> Fetch {
+                            Fetch {
+                                args: #relation_type_snake::Args::new()
+                            }
                         }
 
                         pub fn link<T: From<Link>>(value: #relation_type_snake::UniqueWhereParam) -> T {
@@ -1232,9 +1263,10 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
             required_arg_pushes,
             ..
         } = &model_actions;
-        let WithParams { with_fn, .. } = &model_with_params;
-        let OrderByParams { order_by_fn, .. } = &model_order_by_params;
-        let PaginationParams { pagination_fns, .. } = &model_pagination_params;
+        
+        let with_fn = WithParams::with_fn(&model_name_snake);
+        let order_by_fn = OrderByParams::order_by_fn(&model_name_snake);
+        let pagination_fns = PaginationParams::pagination_fns(&model_name_snake);
 
         let data_struct = model_data_struct.quote();
         let with_params = model_with_params.quote();
