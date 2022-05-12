@@ -22,7 +22,7 @@ impl<'a> QueryContext<'a> {
 
             Ok(ret)
         }
-        
+
         let value = inner(self, operation).await?;
         let ret = serde_json::from_value(value)?;
 

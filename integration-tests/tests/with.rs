@@ -90,6 +90,54 @@ async fn find_unique_with() -> TestResult {
 }
 
 #[tokio::test]
+async fn find_unique_with_optional() -> TestResult {
+    let client = client().await;
+
+    let user_id = setup(&client).await?;
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::profile::fetch())
+        .exec()
+        .await?
+        .unwrap();
+
+    let profile = user.profile();
+    
+    dbg!(&user);
+        
+    assert!(profile.is_ok());
+    assert!(profile.unwrap().is_none());
+
+    client
+        .profile()
+        .create(
+            profile::user::link(user::id::equals(user.id.clone())),
+            profile::bio::set("Bio".to_string()),
+            profile::country::set("Country".to_string()),
+            vec![],
+        )
+        .exec()
+        .await?;
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::profile::fetch())
+        .exec()
+        .await?
+        .unwrap();
+
+    let profile = user.profile();
+
+    assert!(profile.is_ok());
+    assert!(profile.unwrap().is_some());
+
+    cleanup(client).await
+}
+
+#[tokio::test]
 async fn find_unique_with_take() -> TestResult {
     let client = client().await;
 
@@ -212,8 +260,6 @@ async fn find_unique_with_nested_with() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
-
-    let posts = client.post().find_many(vec![]).exec().await?;
 
     let user = client
         .user()

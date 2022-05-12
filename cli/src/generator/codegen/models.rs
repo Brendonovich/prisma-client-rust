@@ -967,7 +967,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     } else {
                         model_data_struct.add_relation(
                             quote! {
-                                #[serde(rename = #field_string)]
+                                #serde_attr
                                 #field_snake: Option<#struct_field_type>
                             },
                             quote! {
