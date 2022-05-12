@@ -1,9 +1,6 @@
 use prisma_client_rust::query::Error;
 
-use crate::{
-    db::*,
-    utils::*,
-};
+use crate::{db::*, utils::*};
 
 async fn create_user(client: &PrismaClient) -> Result<String, Error> {
     client
@@ -34,7 +31,7 @@ async fn update() -> TestResult {
         )
         .exec()
         .await?;
-    assert!(post.author().is_err());
+    assert!(post.author.is_err());
     assert_eq!(post.title, "Hi from Create!");
 
     let updated = client
@@ -64,7 +61,7 @@ async fn update() -> TestResult {
         .unwrap();
     assert!(!updated.published);
     assert_eq!(updated.desc, Some("Updated desc.".to_string()));
-    assert_eq!(updated.author().unwrap().unwrap().name, "Brendan");
+    assert_eq!(updated.author.unwrap().unwrap().name, "Brendan");
 
     cleanup(client).await
 }
@@ -84,7 +81,7 @@ async fn update_and_unlink() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert_eq!(user.posts().unwrap().len(), 0);
+    assert_eq!(user.posts.unwrap().len(), 0);
 
     let post = client
         .post()
@@ -99,26 +96,26 @@ async fn update_and_unlink() -> TestResult {
     let updated = client
         .user()
         .find_unique(user::id::equals(user_id.clone()))
-        .update(vec![
-            user::posts::link(vec![post::id::equals(post.id.clone())])
-        ])
+        .update(vec![user::posts::link(vec![post::id::equals(
+            post.id.clone(),
+        )])])
         .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
-    assert_eq!(updated.posts().unwrap().len(), 1);
+    assert_eq!(updated.posts.unwrap().len(), 1);
 
     let updated = client
         .user()
         .find_unique(user::id::equals(user_id.clone()))
-        .update(vec![
-            user::posts::unlink(vec![post::id::equals(post.id.clone())])
-        ])
+        .update(vec![user::posts::unlink(vec![post::id::equals(
+            post.id.clone(),
+        )])])
         .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
-    assert_eq!(updated.posts().unwrap().len(), 0);
+    assert_eq!(updated.posts.unwrap().len(), 0);
 
     cleanup(client).await
 }
@@ -241,7 +238,9 @@ async fn update_unique_field() -> TestResult {
         .user()
         .create(
             user::name::set("Brendan".to_string()),
-            vec![user::email::set(Some("brendonovich@outlook.com".to_string()))],
+            vec![user::email::set(Some(
+                "brendonovich@outlook.com".to_string(),
+            ))],
         )
         .exec()
         .await?;
@@ -284,7 +283,7 @@ async fn update_many() -> TestResult {
             .exec()
             .await?,
     ];
-    
+
     // let user_id = create_user(&client).await?;
 
     let count = client

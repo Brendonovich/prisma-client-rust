@@ -1,9 +1,6 @@
 use prisma_client_rust::{or, Direction};
 
-use crate::{
-    db::*,
-    utils::*,
-};
+use crate::{db::*, utils::*};
 
 #[tokio::test]
 async fn find_many() -> TestResult {
@@ -64,9 +61,9 @@ async fn find_many() -> TestResult {
 
     let posts = client
         .post()
-        .find_many(vec![
-            post::title::not_in_vec(vec!["Test post 1".to_string()])
-        ])
+        .find_many(vec![post::title::not_in_vec(vec![
+            "Test post 1".to_string()
+        ])])
         .exec()
         .await?;
     assert_eq!(posts.len(), 1);
@@ -176,16 +173,14 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(
-                user::id::equals(
-                    client
-                        .user()
-                        .create(user::name::set("Brendan".to_string()), vec![])
-                        .exec()
-                        .await?
-                        .id,
-                ),
-            ),
+            profile::user::link(user::id::equals(
+                client
+                    .user()
+                    .create(user::name::set("Brendan".to_string()), vec![])
+                    .exec()
+                    .await?
+                    .id,
+            )),
             profile::bio::set("My very cool bio.".to_string()),
             profile::country::set("Australia".to_string()),
             vec![],
@@ -196,16 +191,14 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(
-                user::id::equals(
-                    client
-                        .user()
-                        .create(user::name::set("Oscar".to_string()), vec![])
-                        .exec()
-                        .await?
-                        .id,
-                ),
-            ),
+            profile::user::link(user::id::equals(
+                client
+                    .user()
+                    .create(user::name::set("Oscar".to_string()), vec![])
+                    .exec()
+                    .await?
+                    .id,
+            )),
             profile::bio::set("Hello world, this is my bio.".to_string()),
             profile::country::set("Australia".to_string()),
             vec![],
@@ -221,20 +214,20 @@ async fn filtering_one_to_one_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::profile::is(vec![profile::bio::contains("cool".to_string())])
-        ])
+        .find_many(vec![user::profile::is(vec![profile::bio::contains(
+            "cool".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].name, "Brendan");
-    assert!(users[0].profile().is_err());
+    assert!(users[0].profile.is_err());
 
     let users = client
         .user()
-        .find_many(vec![
-            user::profile::is(vec![profile::bio::contains("bio".to_string())])
-        ])
+        .find_many(vec![user::profile::is(vec![profile::bio::contains(
+            "bio".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -243,9 +236,9 @@ async fn filtering_one_to_one_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::profile::is_not(vec![profile::bio::contains("bio".to_string())])
-        ])
+        .find_many(vec![user::profile::is_not(vec![profile::bio::contains(
+            "bio".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 1);
@@ -318,9 +311,9 @@ async fn filtering_one_to_many_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::posts::every(vec![post::title::contains("post".to_string())])
-        ])
+        .find_many(vec![user::posts::every(vec![post::title::contains(
+            "post".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -329,9 +322,9 @@ async fn filtering_one_to_many_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::posts::some(vec![post::title::contains("post".to_string())])
-        ])
+        .find_many(vec![user::posts::some(vec![post::title::contains(
+            "post".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -340,9 +333,9 @@ async fn filtering_one_to_many_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::posts::none(vec![post::title::contains("post".to_string())])
-        ])
+        .find_many(vec![user::posts::none(vec![post::title::contains(
+            "post".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 1);
@@ -350,9 +343,9 @@ async fn filtering_one_to_many_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![
-            user::posts::some(vec![post::title::equals("foo".to_string())])
-        ])
+        .find_many(vec![user::posts::some(vec![post::title::equals(
+            "foo".to_string(),
+        )])])
         .exec()
         .await?;
     assert_eq!(users.len(), 0);
@@ -402,7 +395,7 @@ async fn ordering() -> TestResult {
     assert_eq!(found[0].published, false);
     assert_eq!(found[1].published, false);
     assert_eq!(found[2].published, true);
-    
+
     let found = client
         .post()
         .find_many(vec![post::title::contains("Test".to_string())])
@@ -413,6 +406,6 @@ async fn ordering() -> TestResult {
     assert_eq!(found[0].published, true);
     assert_eq!(found[1].published, false);
     assert_eq!(found[2].published, false);
-    
+
     cleanup(client).await
 }

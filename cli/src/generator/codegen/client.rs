@@ -38,6 +38,7 @@ pub fn generate(root: &Root) -> TokenStream {
                 executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
                 QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
             },
+            serde::RelationResult,
             serde_json, transform_equals, Args, BatchResult, Direction, FindManyArgs,
             FindManySelectionArgs, SerializedWhere, SerializedWhereValue,
         };

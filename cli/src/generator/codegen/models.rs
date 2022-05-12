@@ -497,14 +497,12 @@ impl WhereParams {
 
 struct DataStruct {
     fields: Vec<TokenStream>,
-    relation_accessors: Vec<TokenStream>,
 }
 
 impl DataStruct {
     pub fn new() -> Self {
         Self {
             fields: vec![],
-            relation_accessors: vec![],
         }
     }
 
@@ -512,25 +510,15 @@ impl DataStruct {
         self.fields.push(field);
     }
 
-    pub fn add_relation(&mut self, field: TokenStream, accessor: TokenStream) {
-        self.fields.push(field);
-        self.relation_accessors.push(accessor);
-    }
-
     pub fn quote(&self) -> TokenStream {
         let Self {
             fields,
-            relation_accessors,
         } = self;
 
         quote! {
             #[derive(Debug, Clone, Serialize, Deserialize)]
             pub struct Data {
                 #(#fields),*
-            }
-
-            impl Data {
-                #(#relation_accessors)*
             }
         }
     }
@@ -665,12 +653,7 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                 let link_variant = SetParams::field_link_variant(&field.name);
                 let unlink_variant = SetParams::field_unlink_variant(&field.name);
 
-                let relation_type_snake = format_ident!("{}", field_type_tokens_string.to_case(Case::Snake));  
-
-                let relation_data_access_error = format!(
-                    "Attempted to access {} but did not fetch it using the .with() syntax",
-                    field_string.to_case(Case::Snake)
-                );
+                let relation_type_snake = format_ident!("{}", field_type_tokens_string.to_case(Case::Snake));
 
                 // Relation methods eg. Every, Some, Is
                 for method in field.relation_methods() {
@@ -816,19 +799,16 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         &field_pascal
                     );
 
-                    model_data_struct.add_relation(
+                    model_data_struct.add_field(
                         quote! {
-                           #[serde(rename = #field_string)]
-                           #field_snake: Option<Vec<super::#relation_type_snake::Data>>
-                        },
-                        quote! {
-                            pub fn #field_snake(&self) -> Result<&Vec<super::#relation_type_snake::Data>, String> {
-                                match self.#field_snake.as_ref() {
-                                    Some(v) => Ok(v),
-                                    None => Err(#relation_data_access_error.to_string()),
-                                }
-                            }
-                        },
+                            #[serde(
+                                rename = #field_string,
+                                skip_serializing_if = "Result::is_err",
+                                default = "prisma_client_rust::serde::default_field_not_fetched",
+                                with = "prisma_client_rust::serde::required_relation"
+                            )]
+                            pub #field_snake: RelationResult<Vec<super::#relation_type_snake::Data>>
+                        }
                     );
                 } else {
                     field_query_module.add_method(quote! {
@@ -924,12 +904,6 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                         &field_pascal
                     );
                     
-                    let accessor_type = if field.is_required {
-                        quote!(& super::#relation_type_snake::Data)
-                    } else {
-                        quote!(Option<& super::#relation_type_snake::Data>)
-                    };
-                    
                     let struct_field_type = if field.is_required {
                         quote!(Box<super::#relation_type_snake::Data>)
                     } else {
@@ -937,49 +911,31 @@ pub fn generate(root: &Root) -> Vec<TokenStream> {
                     };
                     
                     let serde_attr = if field.is_required {
-                        quote!(#[serde(rename = #field_string)])
+                        quote! {
+                            #[serde(
+                                rename = #field_string,
+                                skip_serializing_if = "Result::is_err",
+                                default = "prisma_client_rust::serde::default_field_not_fetched",
+                                with = "prisma_client_rust::serde::required_relation"
+                            )]
+                        }
                     } else {
                         quote! {
                            #[serde(
-                                rename = #field_string, 
-                                default, 
-                                skip_serializing_if = "Option::is_none", 
-                                with = "prisma_client_rust::serde::double_option"
+                                rename = #field_string,
+                                skip_serializing_if = "Result::is_err", 
+                                default = "prisma_client_rust::serde::default_field_not_fetched",
+                                with = "prisma_client_rust::serde::optional_single_relation"
                             )]
                         }
                     };
                     
-                    if field.is_required {
-                        model_data_struct.add_relation(
-                            quote! {
-                                #serde_attr
-                                #field_snake: Option<#struct_field_type>
-                            },
-                            quote! {
-                                pub fn #field_snake(&self) -> Result<#accessor_type, String> {
-                                    match self.#field_snake.as_ref() {
-                                        Some(v) => Ok(v),
-                                        None => Err(#relation_data_access_error.to_string()),
-                                    }
-                                }
-                            } 
-                        );
-                    } else {
-                        model_data_struct.add_relation(
-                            quote! {
-                                #serde_attr
-                                #field_snake: Option<#struct_field_type>
-                            },
-                            quote! {
-                                pub fn #field_snake(&self) -> Result<#accessor_type, String> {
-                                    match self.#field_snake.as_ref() {
-                                        Some(v) => Ok(v.as_ref().map(|v| v.as_ref())),
-                                        None => Err(#relation_data_access_error.to_string()),
-                                    }
-                                }
-                            },
-                        );
-                    }
+                    model_data_struct.add_field(
+                        quote! {
+                            #serde_attr
+                            pub #field_snake: RelationResult<#struct_field_type>
+                        }
+                    );
                 };
 
                 if field.required_on_create() {

@@ -77,11 +77,11 @@ async fn find_unique_with() -> TestResult {
         .await?
         .unwrap();
     assert_eq!(user.name, "Brendan");
-    let posts = user.posts().unwrap();
+    let posts = user.posts.unwrap();
     assert_eq!(posts.len(), 4);
 
     for (i, post) in posts.iter().enumerate().collect::<Vec<_>>() {
-        assert!(post.author().is_err());
+        assert!(post.author.is_err());
         assert_eq!(post.author_id, Some(user.id.clone()));
         assert_eq!(post.title, format!("post {}", i + 1));
     }
@@ -103,10 +103,10 @@ async fn find_unique_with_optional() -> TestResult {
         .await?
         .unwrap();
 
-    let profile = user.profile();
-    
+    let profile = user.profile.as_ref();
+
     dbg!(&user);
-        
+
     assert!(profile.is_ok());
     assert!(profile.unwrap().is_none());
 
@@ -129,7 +129,7 @@ async fn find_unique_with_optional() -> TestResult {
         .await?
         .unwrap();
 
-    let profile = user.profile();
+    let profile = user.profile;
 
     assert!(profile.is_ok());
     assert!(profile.unwrap().is_some());
@@ -150,7 +150,7 @@ async fn find_unique_with_take() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert_eq!(user.posts().unwrap().len(), 1);
+    assert_eq!(user.posts.unwrap().len(), 1);
 
     cleanup(client).await
 }
@@ -172,7 +172,7 @@ async fn find_unique_with_where() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    let user_posts = user.posts().unwrap();
+    let user_posts = user.posts.unwrap();
 
     assert_eq!(user_posts.len(), 1);
     assert_eq!(user_posts[0].id, posts[0].id);
@@ -200,8 +200,8 @@ async fn find_unique_with_pagination() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert_eq!(user.posts().unwrap().len(), 1);
-    assert_eq!(user.posts().unwrap()[0].id, posts[1].id);
+    assert_eq!(user.posts.as_ref().unwrap().len(), 1);
+    assert_eq!(user.posts.as_ref().unwrap()[0].id, posts[1].id);
 
     let user = client
         .user()
@@ -215,8 +215,8 @@ async fn find_unique_with_pagination() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert_eq!(user.posts().unwrap().len(), 1);
-    assert_eq!(user.posts().unwrap()[0].id, posts[0].id);
+    assert_eq!(user.posts.as_ref().unwrap().len(), 1);
+    assert_eq!(user.posts.as_ref().unwrap()[0].id, posts[0].id);
 
     cleanup(client).await
 }
@@ -241,7 +241,7 @@ async fn find_unique_with_nested_where_or() -> TestResult {
         .unwrap();
     assert_eq!(posts[0].published, false);
 
-    let user_posts = user.posts().unwrap();
+    let user_posts = user.posts.unwrap();
     assert_eq!(user_posts.len(), 3);
 
     assert_eq!(user_posts[0].id, posts[0].id);
@@ -271,11 +271,11 @@ async fn find_unique_with_nested_with() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert!(user.profile().is_err());
+    assert!(user.profile.is_err());
 
-    for post in user.posts().unwrap() {
-        for category in post.categories().unwrap() {
-            assert!(category.posts().is_ok())
+    for post in user.posts.unwrap() {
+        for category in post.categories.unwrap() {
+            assert!(category.posts.is_ok())
         }
     }
 
