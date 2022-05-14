@@ -1,6 +1,7 @@
+use prisma_client_rust::{Create, Result};
+
 use crate::db::*;
 
-pub mod db2;
 pub mod db;
 
 #[tokio::main]

@@ -12,6 +12,7 @@ pub struct Root<'a> {
     pub generator: Generator,
     pub schema_path: String,
     pub dmmf: dmmf::Document,
+    pub datasources: Vec<Datasource>,
     pub datamodel: String,
     #[serde(skip)]
     pub ast: Option<AST<'a>>,

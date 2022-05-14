@@ -10,3 +10,4 @@ mod find_unique;
 mod update;
 mod upsert;
 mod with;
+mod raw;
