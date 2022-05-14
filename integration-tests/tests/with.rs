@@ -1,4 +1,4 @@
-use prisma_client_rust::{or, query::Error};
+use prisma_client_rust::{or, queries::Error};
 
 use crate::{db::*, utils::*};
 

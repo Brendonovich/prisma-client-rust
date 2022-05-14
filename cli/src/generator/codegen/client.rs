@@ -27,7 +27,6 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
             query::QueryContext,
             query_core::{QueryExecutor, QuerySchema},
         };
-        pub use prisma_client_rust::{query::Error as QueryError, NewClientError};
         use serde::{Deserialize, Serialize};
         use std::fmt;
         use std::sync::Arc;

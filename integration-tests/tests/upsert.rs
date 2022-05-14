@@ -15,25 +15,30 @@ async fn upsert() -> TestResult {
 
     let user = client
         .user()
-        .upsert(user::id::equals(user_id.to_string()))
-        .create(
-            user::name::set("Brendan".to_string()),
-            vec![user::id::set(user_id.to_string())],
+        .upsert(
+            user::id::equals(user_id.to_string()),
+            (
+                user::name::set("Brendan".to_string()),
+                vec![user::id::set(user_id.to_string())],
+            ),
+            vec![user::name::set("Brendan".to_string())],
         )
-        .update(vec![user::name::set("Brendan".to_string())])
         .exec()
         .await?;
+
     assert_eq!(user.id, user_id);
     assert_eq!(user.name, "Brendan");
 
     let user = client
         .user()
-        .upsert(user::id::equals(user_id.to_string()))
-        .create(
-            user::name::set("Oscar".to_string()),
-            vec![user::id::set(user_id.to_string())],
+        .upsert(
+            user::id::equals(user_id.to_string()),
+            (
+                user::name::set("Oscar".to_string()),
+                vec![user::id::set(user_id.to_string())],
+            ),
+            vec![user::name::set("Oscar".to_string())],
         )
-        .update(vec![user::name::set("Oscar".to_string())])
         .exec()
         .await?;
     assert_eq!(user.id, user_id);

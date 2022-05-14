@@ -2615,6 +2615,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "user-facing-errors",
 ]
 
 [[package]]

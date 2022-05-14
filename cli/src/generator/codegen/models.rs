@@ -235,7 +235,7 @@ impl WithParams {
     }
     
     fn add_single_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
-        self.variants.push(quote!(#variant_name(super::#model_module::Args)));
+        self.variants.push(quote!(#variant_name(super::#model_module::UniqueArgs)));
         self.match_arms.push(quote! {
             Self::#variant_name(args) => {
                 let mut selections = super::#model_module::_outputs();
@@ -249,13 +249,13 @@ impl WithParams {
     }
     
     fn add_many_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
-        self.variants.push(quote!(#variant_name(super::#model_module::FindManyArgs)));
+        self.variants.push(quote!(#variant_name(super::#model_module::ManyArgs)));
         self.match_arms.push(quote! {
             Self::#variant_name(args) => {
-                let FindManySelectionArgs {
-                    mut nested_selections,
-                    arguments
-                } = args.into();
+                let (
+                    arguments,
+                    mut nested_selections
+                 ) = args.to_graphql();
                 nested_selections.extend(super::#model_module::_outputs());
                 
                 let mut builder = Selection::builder(#field_name);
@@ -322,8 +322,8 @@ impl SetParams {
                 #(#variants),*
             }
             
-            impl Into<(String, QueryValue)> for SetParam {
-                fn into(self) -> (String, QueryValue) {
+            impl Into<(String, PrismaValue)> for SetParam {
+                fn into(self) -> (String, PrismaValue) {
                     match self {
                         #(#match_arms),*
                     }
@@ -372,7 +372,7 @@ impl OrderByParams {
         self.match_arms.push(quote! {
             Self::#variant_name(direction) => (
                 #field_name.to_string(), 
-                QueryValue::String(direction.to_string())
+                PrismaValue::String(direction.to_string())
             ) 
         });
     }
@@ -389,8 +389,8 @@ impl OrderByParams {
                 #(#variants),*
             }
             
-            impl Into<(String, QueryValue)> for OrderByParam {
-                fn into(self) -> (String, QueryValue) {
+            impl Into<(String, PrismaValue)> for OrderByParam {
+                fn into(self) -> (String, PrismaValue) {
                     match self {
                         #(#match_arms),*
                     }
@@ -460,8 +460,8 @@ impl PaginationParams {
                 #(#cursor_variants),*
             }
             
-            impl Into<(String, QueryValue)> for Cursor {
-                fn into(self) -> (String, QueryValue) {
+            impl Into<(String, PrismaValue)> for Cursor {
+                fn into(self) -> (String, PrismaValue) {
                     match self {
                         #(#cursor_match_arms),*
                     }
@@ -693,21 +693,27 @@ impl DataStruct {
 }
 
 struct Actions {
-    pub required_args: Vec<TokenStream>,
-    pub required_arg_pushes: Vec<TokenStream>,
+    pub create_args: Vec<TokenStream>,
+    pub create_args_tuple_types: Vec<TokenStream>,
+    pub create_args_destructured: Vec<TokenStream>,
+    pub create_args_params_pushes: Vec<TokenStream>,
 }
 
 impl Actions {
     pub fn new() -> Self {
         Self {
-            required_args: vec![],
-            required_arg_pushes: vec![],
+            create_args: vec![],
+            create_args_tuple_types: vec![],
+            create_args_destructured: vec![],
+            create_args_params_pushes: vec![],
         }
     }
 
-    pub fn push_required_arg(&mut self, arg: TokenStream, arg_push: TokenStream) {
-        self.required_args.push(arg);
-        self.required_arg_pushes.push(arg_push);
+    pub fn push_required_arg(&mut self, field_name: &Ident, variant_type: Ident) {
+        self.create_args.push(quote!(#field_name: #field_name::#variant_type,));
+        self.create_args_tuple_types.push(quote!(#field_name::#variant_type,));
+        self.create_args_destructured.push(quote!(#field_name,));
+        self.create_args_params_pushes.push(quote!(_params.push(#field_name.into());));
     }
 }
 
@@ -738,15 +744,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         SerializedWhereValue::List(
                             value
                                 .into_iter()
-                                .map(|v| {
-                                    QueryValue::Object(
-                                        transform_equals(
-                                            vec![Into::<SerializedWhere>::into(v)].into_iter(),
-                                        )
-                                        .into_iter()
-                                        .collect(),
-                                    )
-                                })
+                                .map(|v| PrismaValue::Object(transform_equals(vec![v])))
                                 .collect(),
                         ),
                     )
@@ -878,14 +876,12 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                     #field_string.to_string(),
                                     SerializedWhereValue::Object(vec![(
                                         #method_action_string.to_string(),
-                                        QueryValue::Object(
+                                        PrismaValu::Object(
                                             transform_equals(
                                                 value
                                                     .into_iter()
                                                     .map(Into::<SerializedWhere>::into)    
                                             )
-                                            .into_iter()
-                                            .collect()
                                         ),
                                     )])
                                 )
@@ -955,22 +951,17 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             quote! {
                                 SetParam::#link_variant(where_params) => (
                                     #field_string.to_string(),
-                                    QueryValue::Object(
+                                    PrismaValue::Object(
                                         vec![(
                                             "connect".to_string(),
-                                            QueryValue::Object(
+                                            PrismaValue::Object(
                                                 transform_equals(
                                                     where_params
                                                         .into_iter()
                                                         .map(Into::<super::#relation_type_snake::WhereParam>::into)
-                                                        .map(Into::into)
                                                 )
-                                                .into_iter()
-                                                .collect()
                                             )
                                         )]
-                                        .into_iter()
-                                        .collect()
                                     )
                                 )
                             }
@@ -982,10 +973,10 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             quote! {
                                 SetParam::#unlink_variant(where_params) => (
                                     #field_string.to_string(),
-                                    QueryValue::Object(
+                                    PrismaValue::Object(
                                         vec![(
                                             "disconnect".to_string(),
-                                            QueryValue::Object(
+                                            PrismaValue::Object(
                                                 transform_equals( 
                                                     where_params
                                                         .into_iter()
@@ -996,8 +987,6 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                                 .collect()
                                             )
                                         )]
-                                        .into_iter()
-                                        .collect()
                                     )
                                 )
                             },
@@ -1062,22 +1051,18 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             quote! {
                                 SetParam::#link_variant(where_param) => (
                                     #field_string.to_string(),
-                                    QueryValue::Object(
+                                    PrismaValue::Object(
                                         vec![(
                                             "connect".to_string(),
-                                            QueryValue::Object(
+                                            PrismaValue::Object(
                                                 transform_equals(
                                                     vec![where_param]
                                                         .into_iter()
                                                         .map(Into::<super::#relation_type_snake::WhereParam>::into)
                                                         .map(Into::into)
                                                 )
-                                                .into_iter()
-                                                .collect()
                                             )
                                         )]
-                                        .into_iter()
-                                        .collect()
                                     )
                                 )
                             }
@@ -1096,13 +1081,11 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 quote! {
                                     SetParam::#unlink_variant => (
                                         #field_string.to_string(),
-                                        QueryValue::Object(
+                                        PrismaValue::Object(
                                             vec![(
                                                 "disconnect".to_string(),
-                                                QueryValue::Boolean(true)
+                                                PrismaValue::Boolean(true)
                                             )]
-                                            .into_iter()
-                                            .collect()
                                         )
                                     )
                                 },
@@ -1151,15 +1134,15 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     if root_field.required_on_create() {
                         model_actions.push_required_arg(
-                            quote!(#field_snake: #field_snake::Link,),
-                            quote!(params.push(#field_snake.into());),
-                       );
+                            &field_snake,
+                            format_ident!("Link")
+                        );
                     }
                 },
                 Field::ScalarField(field) => {
                     let field_set_variant = SetParams::field_set_variant(field_string);
                     
-                    let converter = root_field.type_query_value(&format_ident!("value"));
+                    let converter = root_field.type_prisma_value(&format_ident!("value"));
                     
                     let (field_set_variant_type, field_content) = match field.arity {
                         FieldArity::List => (
@@ -1167,7 +1150,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             converter,
                         ),
                         FieldArity::Required => (quote!(#field_type), converter),
-                        FieldArity::Optional => (quote!(Option<#field_type>), quote!(value.map(|value| #converter).unwrap_or(QueryValue::Null)))
+                        FieldArity::Optional => (quote!(Option<#field_type>), quote!(value.map(|value| #converter).unwrap_or(PrismaValue::Null)))
                     };
 
                     field_query_module.add_method(quote! {
@@ -1202,7 +1185,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     let type_as_query_value = if !root_field.arity().is_optional() {
                         type_as_query_value
                     } else {
-                        quote!(value.map(|value| #type_as_query_value).unwrap_or(QueryValue::Null))
+                        quote!(value.map(|value| #type_as_query_value).unwrap_or(PrismaValue::Null))
                     };
 
                     let match_arm = quote! {
@@ -1295,7 +1278,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 (
                                     quote!(Vec<#typ>),
                                     quote! {
-                                        QueryValue::List(
+                                        PrismaValue::List(
                                             value
                                                 .into_iter()
                                                 .map(|v| #prisma_value_converter.into())
@@ -1355,13 +1338,11 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 quote! {
                                     SetParam::#variant_name(value) => (
                                         #field_string.to_string(),
-                                        QueryValue::Object(
+                                        PrismaValue::Object(
                                             vec![(
                                                 #method_action.to_string(),
                                                 #query_value_converter
                                             )]
-                                                .into_iter()
-                                                .collect()
                                         )
                                     )
                                 }
@@ -1375,27 +1356,24 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     if !model.scalar_field_has_relation(field) && root_field.required_on_create() {
                         model_actions.push_required_arg(
-                            quote!(#field_snake: #field_snake::Set,),
-                            quote!(params.push(#field_snake.into());),
+                            &field_snake,
+                            format_ident!("Set")
                         );
                     }
                 },
-                _ => todo!()
+                _ => unreachable!("Cannot codegen for composite field")
             };
             
             model_query_module.add_field_module(field_query_module);
         }
 
         let Actions {
-            required_args,
-            required_arg_pushes,
-            ..
+            create_args,
+            create_args_tuple_types,
+            create_args_destructured,
+            create_args_params_pushes
         } = &model_actions;
         
-        let with_fn = WithParams::with_fn(&model_name_snake);
-        let order_by_fn = OrderByParams::order_by_fn(&model_name_snake);
-        let pagination_fns = PaginationParams::pagination_fns(&model_name_snake);
-
         let data_struct = model_data_struct.quote();
         let with_params = model_with_params.quote();
         let set_params = model_set_params.quote();
@@ -1426,277 +1404,26 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
 
                 #where_params
 
-                pub type FindManyArgs = prisma_client_rust::FindManyArgs<WhereParam, WithParam, OrderByParam, Cursor>;
-                    
-                pub struct FindMany<'a> {
-                    ctx: QueryContext<'a>,
-                    args: FindManyArgs,
-                }
-
-                impl<'a> FindMany<'a> {
-                    pub async fn exec(self) -> QueryResult<Vec<Data>> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await
-                    }
-
-                    pub fn delete(self) -> DeleteMany<'a> {
-                        let Self {
-                            ctx,
-                            args
-                        } = self;
-                        
-                        DeleteMany {
-                            ctx,
-                            args: DeleteManyArgs::new(args.where_params),
-                        }
-                    }
-
-                    pub fn update(mut self, params: Vec<SetParam>) -> UpdateMany<'a> {
-                        let Self {
-                            ctx,
-                            args
-                        } = self;
-                        
-                        UpdateMany {
-                            ctx,
-                            args: UpdateManyArgs::new(args.where_params, params),
-                        }
-                    }
-
-                    #with_fn
-
-                    #order_by_fn
-
-                    #pagination_fns
-                }
+                pub type UniqueArgs = prisma_client_rust::UniqueArgs<WithParam>;
+                pub type ManyArgs = prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, Cursor>;
                 
-                pub type FindFirstArgs = prisma_client_rust::FindFirstArgs<WhereParam, WithParam, OrderByParam, Cursor>;
-
-                pub struct FindFirst<'a> {
-                    ctx: QueryContext<'a>,
-                    args: FindFirstArgs,
-                }
-
-                impl<'a> FindFirst<'a> {
-                    pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await
-                    }
-
-                    #with_fn
-
-                    #order_by_fn
-
-                    #pagination_fns
-                }
-                
-                pub type Args = prisma_client_rust::Args<WithParam>;
-                pub type FindUniqueArgs = prisma_client_rust::FindUniqueArgs<WhereParam, WithParam>;
-                
-                pub struct FindUnique<'a> {
-                    ctx: QueryContext<'a>,
-                    args: FindUniqueArgs,
-                }
-
-                impl<'a> FindUnique<'a> {
-                    pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await
-                    }
-
-                    pub fn delete(self) -> Delete<'a> {
-                        let Self {
-                            ctx,
-                            args
-                        } = self;
-                        
-                        let FindUniqueArgs {
-                            where_param,
-                            with_params
-                        } = args;
-                        
-                        Delete { ctx, args: DeleteArgs::new(where_param, with_params) }
-                    }
-
-                    #with_fn
-
-                    pub fn update(mut self, params: Vec<SetParam>) -> Update<'a> {
-                        let Self {
-                            ctx,
-                            args
-                        } = self;
-                        
-                        let FindUniqueArgs {
-                            where_param,
-                            with_params
-                        } = args;
-                        
-                        Update {
-                            ctx,
-                            args: UpdateArgs::new(where_param, params, with_params)
-                        }
-                    }
-                }
-                
-                pub type CreateArgs = prisma_client_rust::CreateArgs<SetParam, WithParam>;
-
-                pub struct Create<'a> {
-                    ctx: QueryContext<'a>,
-                    args: CreateArgs,
-                }
-
-                impl<'a> Create<'a> {
-                    pub async fn exec(self) -> QueryResult<Data> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await
-                    }
-
-                    #with_fn
-                }
-
-                pub type UpdateArgs = prisma_client_rust::UpdateArgs<WhereParam, SetParam, WithParam>;
-
-                pub struct Update<'a> {
-                    ctx: QueryContext<'a>,
-                    args: UpdateArgs
-                }
-
-                impl<'a> Update<'a> {
-                    pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self {
-                            ctx,
-                            args,
-                        } = self;
-                        
-                        let result = ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await;
-                        
-                        match result {
-                            Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
-                                msg,
-                                Some(interpreter_error),
-                            )))) => match *interpreter_error {
-                                InterpreterError::QueryGraphBuilderError(
-                                    QueryGraphBuilderError::RecordNotFound(_),
-                                ) => Ok(None),
-                                res => Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
-                                    msg,
-                                    Some(Box::new(res)),
-                                )))),
-                            },
-                            res => res,
-                        }
-                    }
-
-                    #with_fn
-                    
-                }
-                
-                pub type UpdateManyArgs = prisma_client_rust::UpdateManyArgs<WhereParam, SetParam>;
-
-                pub struct UpdateMany<'a> {
-                    ctx: QueryContext<'a>,
-                    args: UpdateManyArgs
-                }
-
-                impl<'a> UpdateMany<'a> {
-                    pub async fn exec(self) -> QueryResult<i64> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string)).await.map(|res: BatchResult| res.count)
-                    }
-                }
-                
-                pub type UpsertArgs = prisma_client_rust::UpsertArgs<WhereParam, SetParam, WithParam>;
-
-                pub struct Upsert<'a> {
-                    ctx: QueryContext<'a>,
-                    args: UpsertArgs
-                }
-
-                impl<'a> Upsert<'a> {
-                    pub async fn exec(self) -> QueryResult<Data> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string, _outputs()))
-                            .await
-                    }
-
-                    pub fn create(
-                        mut self,
-                        #(#required_args)*
-                        mut params: Vec<SetParam>
-                    ) -> Self {
-                        #(#required_arg_pushes)*
-
-                        self.args = self.args.create(params);
-
-                        self
-                    }
-
-                    pub fn update(mut self, params: Vec<SetParam>) -> Self {
-                        self.args = self.args.update(params);
-                        
-                        self
-                    }
-                }
-                
-                pub type DeleteArgs = prisma_client_rust::DeleteArgs<WhereParam, WithParam>;
-                
-                pub struct Delete<'a> {
-                    ctx: QueryContext<'a>,
-                    args: DeleteArgs
-                }
-
-                impl<'a> Delete<'a> {
-                    pub async fn exec(self) -> QueryResult<Option<Data>> {
-                        let Self { ctx, args } = self;
-                        
-                        let result = ctx.execute(args.to_operation(#model_name_string, _outputs())).await;
-                        
-                        match result {
-                            Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
-                                msg,
-                                Some(interpreter_error),
-                            )))) => match *interpreter_error {
-                                InterpreterError::QueryGraphBuilderError(
-                                    QueryGraphBuilderError::RecordNotFound(_),
-                                ) => Ok(None),
-                                res => Err(QueryError::Execute(CoreError::InterpreterError(InterpreterError::InterpretationError(
-                                    msg,
-                                    Some(Box::new(res)),
-                                )))),
-                            },
-                            res => res,
-                        }
-                    }
-                    
-                    #with_fn
-                }
-                
-                pub type DeleteManyArgs = prisma_client_rust::DeleteManyArgs<WhereParam>;
-                
-                pub struct DeleteMany<'a> {
-                    ctx: QueryContext<'a>,
-                    args: DeleteManyArgs
-                }
-
-                impl<'a> DeleteMany<'a> {
-                    pub async fn exec(self) -> QueryResult<i64> {
-                        let Self { ctx, args } = self;
-                        ctx.execute(args.to_operation(#model_name_string)).await.map(|res: BatchResult| res.count)
-                    }
-                }
-
+                pub type Create<'a> = prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
+                pub type FindUnique<'a> = prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
+                pub type FindMany<'a> = prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, Cursor, SetParam, Data>;
+                pub type FindFirst<'a> = prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
+                pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+                pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
+                pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
+                pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
+                pub type DeleteMany<'a> = prisma_client_rust::DeleteMany<'a, WhereParam>;
+              
                 pub struct Actions<'a> {
                     pub client: &'a PrismaClient,
                 }
 
                 impl<'a> Actions<'a> {
-                    pub fn create(&self, #(#required_args)* mut params: Vec<SetParam>) -> Create {
-                        #(#required_arg_pushes)*
+                    pub fn create(&self, #(#create_args)* mut _params: Vec<SetParam>) -> Create {
+                        #(#create_args_params_pushes)*
 
                         Create {
                             ctx: self.client._new_query_context(),
