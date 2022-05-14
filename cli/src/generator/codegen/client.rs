@@ -28,26 +28,24 @@ pub fn generate(root: &Root) -> TokenStream {
         #![allow(warnings, unused)]
 
         use prisma_client_rust::{
-            chrono,
             bigdecimal::{self, FromPrimitive},
+            chrono,
             datamodel::parse_configuration,
             operator::Operator,
             prisma_models::{InternalDataModelBuilder, PrismaValue},
-            query::{QueryContext, Result as QueryResult},
+            queries::{QueryContext, QueryInfo, SerializedWhere, SerializedWhereValue, transform_equals},
             query_core::{
                 executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
                 QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
             },
             serde::RelationResult,
-            serde_json, transform_equals, Args, BatchResult, Direction, FindManyArgs,
-            FindManySelectionArgs, SerializedWhere, SerializedWhereValue,
+            serde_json, UniqueArgs, ManyArgs, BatchResult, Direction, NewClientError,
         };
-        pub use prisma_client_rust::{query::Error as QueryError, NewClientError};
         use serde::{Deserialize, Serialize};
+        use std::fmt;
         use std::ops::Deref;
         use std::path::Path;
         use std::sync::Arc;
-        use std::fmt;
 
         static DATAMODEL_STR: &'static str = #datamodel;
 
