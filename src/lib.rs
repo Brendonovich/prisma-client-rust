@@ -2,6 +2,7 @@ pub mod operator;
 pub mod queries;
 pub mod serde;
 pub mod traits;
+pub mod raw;
 
 pub use bigdecimal;
 pub use chrono;

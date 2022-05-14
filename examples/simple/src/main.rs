@@ -1,3 +1,5 @@
+use prisma_client_rust::{Create, Result};
+
 use crate::db::*;
 
 pub mod db;

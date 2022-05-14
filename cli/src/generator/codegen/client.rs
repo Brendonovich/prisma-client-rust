@@ -47,62 +47,29 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
             pub(super) fn _new_query_context(&self) -> QueryContext {
                 QueryContext::new(&self.executor, self.query_schema.clone())
             }
+            
             pub(super) fn _new(executor: Box<dyn QueryExecutor + Send + Sync + 'static>, query_schema: Arc<QuerySchema>) -> Self {
                 Self {
                     executor,
                     query_schema,
                 }
             }
-            // pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: &str) -> QueryResult<Vec<T>> {
-            //     let query = Query {
-            //         ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
-            //         operation: "mutation".into(),
-            //         method: "queryRaw".into(),
-            //         inputs: vec![
-            //             Input {
-            //                 name: "query".into(),
-            //                 value: Some(query.into()),
-            //                 ..Default::default()
-            //             },
-            //             Input {
-            //                 name: "parameters".into(),
-            //                 value: Some("[]".into()),
-            //                 ..Default::default()
-            //             }
-            //         ],
-            //         name: "".into(),
-            //         model: "".into(),
-            //         outputs: vec![]
-            //     };
+            
+            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: Raw) -> QueryResult<Vec<T>> {
+                QueryRaw::new(
+                   QueryContext::new(&self.executor, self.query_schema.clone()),
+                   query,
+                   DATABASE_STR
+                ).exec().await
+            }
 
-            //     query.perform().await
-            // }
-
-            // pub async fn _execute_raw(&self, query: &str) -> QueryResult<i64> {
-            //     let query = Query {
-            //         ctx: QueryContext::new(&self.executor, self.query_schema.clone()),
-            //         operation: "mutation".into(),
-            //         method: "executeRaw".into(),
-            //         inputs: vec![
-            //             Input {
-            //                 name: "query".into(),
-            //                 value: Some(query.into()),
-            //                 ..Default::default()
-            //             },
-            //             Input {
-            //                 // TODO: use correct value
-            //                 name: "parameters".into(),
-            //                 value: Some("[]".into()),
-            //                 ..Default::default()
-            //             },
-            //         ],
-            //         name: "".into(),
-            //         model: "".into(),
-            //         outputs: vec![]
-            //     };
-
-            //     query.perform().await.map(|result: i64| result)
-            // }
+            pub async fn _execute_raw(&self, query: Raw) -> QueryResult<i64> {
+                ExecuteRaw::new(
+                   QueryContext::new(&self.executor, self.query_schema.clone()),
+                   query,
+                   DATABASE_STR
+                ).exec().await
+            }
 
             #(#model_actions)*
         }
