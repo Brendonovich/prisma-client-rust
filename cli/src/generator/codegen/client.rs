@@ -1,12 +1,11 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::Root;
+use crate::generator::GeneratorArgs;
 
-pub fn generate(root: &Root) -> TokenStream {
-    let model_actions = root
-        .dmmf
-        .datamodel
+pub fn generate(args: &GeneratorArgs) -> TokenStream {
+    let model_actions = args
+        .dml
         .models
         .iter()
         .map(|model| {
@@ -22,7 +21,7 @@ pub fn generate(root: &Root) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    let datamodel = &root.datamodel;
+    let datamodel = &args.datamodel;
 
     quote! {
         #![allow(warnings, unused)]

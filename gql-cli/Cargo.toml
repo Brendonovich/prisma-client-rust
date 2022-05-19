@@ -1,5 +1,5 @@
 [package]
-name = "prisma-client-rust-cli"
+name = "gql-rs-prisma-generator"
 version = "0.4.1"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"

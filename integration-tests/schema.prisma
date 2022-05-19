@@ -1,11 +1,18 @@
 datasource db {
-    provider = "sqlite"
-    url      = "file:dev.db"
+    provider = "postgres"
+    url = "postgres://localhost/test"
+    // url      = "file:dev.db"
 }
 
 generator client {
     provider = "cargo prisma"
     output   = "tests/db.rs"
+}
+
+generator gql {
+    provider             = "cargo prisma-gql"
+    output               = "tests/db_gql.rs"
+    client_module_prefix = "crate::db"
 }
 
 model Post {

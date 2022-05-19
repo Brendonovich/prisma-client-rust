@@ -16,6 +16,7 @@ members = [
     "examples/*",
     "integration-tests",
     "cli",
+    "gql-cli",
     "prisma-cli"
 ]
 

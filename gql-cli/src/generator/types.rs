@@ -1,6 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use syn::Ident;
 
 #[derive(Serialize, Deserialize)]
@@ -14,7 +15,6 @@ pub struct Root {
 fn default_package() -> String {
     "./db".into()
 }
-
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Generator {

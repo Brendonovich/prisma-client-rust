@@ -14,7 +14,7 @@ use datamodel::datamodel_connector::ConnectorCapabilities;
 use generator::GeneratorArgs;
 use prisma_models::InternalDataModelBuilder;
 use query_core::{schema_builder, BuildMode, QuerySchemaRef, QuerySchemaRenderer};
-use request_handlers::dmmf::schema::DmmfQuerySchemaRenderer;
+use request_handlers::dmmf::{schema::DmmfQuerySchemaRenderer};
 use serde_json;
 use serde_path_to_error;
 use std::{
@@ -57,8 +57,8 @@ pub fn execute(args: &Vec<String>) {
         let value = match input.method.as_str() {
             "getManifest" => serde_json::to_value(ManifestResponse {
                 manifest: Manifest {
-                    default_output: "prisma.rs".to_string(),
-                    pretty_name: "Prisma Client Rust".to_string(),
+                    default_output: "prisma-gql.rs".to_string(),
+                    pretty_name: "gql-rs Plugin Prisma".to_string(),
                     ..Default::default()
                 },
             })
@@ -71,7 +71,7 @@ pub fn execute(args: &Vec<String>) {
                 let result: Result<Root, _> = serde_path_to_error::deserialize(deserializer);
 
                 match result {
-                    Ok(mut params) => {
+                    Ok(params) => {
                         let datamodel = datamodel::parse_datamodel(&params.datamodel).unwrap();
 
                         let config = datamodel::parse_configuration(&params.datamodel).unwrap();
@@ -97,7 +97,7 @@ pub fn execute(args: &Vec<String>) {
                             referential_integrity,
                         ));
 
-                        let (schema, mappings) = DmmfQuerySchemaRenderer::render(query_schema);
+                        let (schema, _) = DmmfQuerySchemaRenderer::render(query_schema);
 
                         let generator = config
                             .subject
@@ -106,12 +106,16 @@ pub fn execute(args: &Vec<String>) {
                             .find(|g| g.name == params.generator.name)
                             .unwrap();
 
-                        generator::run(GeneratorArgs::new(
-                            datamodel.subject,
+                        generator::run(GeneratorArgs {
+                            dml: datamodel.subject,
                             schema,
-                            params.datamodel,
-                            params.generator.output.value.clone(),
-                        ));
+                            output: params.generator.output.value.clone(),
+                            client_module_prefix: generator
+                                .config
+                                .get("client_module_prefix")
+                                .unwrap_or(&"crate::prisma".to_string())
+                                .clone(),
+                        });
                     }
                     Err(err) => {
                         panic!("{}", err);
