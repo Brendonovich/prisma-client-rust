@@ -3,7 +3,7 @@ use datamodel::dml::Field;
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
 
-use crate::generator::{GeneratorArgs, GraphQLType, Root};
+use crate::generator::{GeneratorArgs, Root};
 
 pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
     let client_prefix_ident: TokenStream = args.client_module_prefix.parse().unwrap();

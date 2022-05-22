@@ -1,6 +1,5 @@
 use crate::db::*;
 
-pub mod db2;
 pub mod db;
 
 #[tokio::main]

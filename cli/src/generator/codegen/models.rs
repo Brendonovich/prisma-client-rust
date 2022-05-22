@@ -1,5 +1,5 @@
 use convert_case::{Case, Casing};
-use datamodel::dml::{Model, Field, FieldType, ScalarType, FieldArity};
+use datamodel::dml::{Model, Field, FieldType, ScalarType, FieldArity, IndexType, ScalarField};
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
 
@@ -18,9 +18,20 @@ static OPERATORS: &'static [Operator; 3] = &[
     Operator { name: "And", action: "AND" },
 ];
 
-pub struct RelationMethod {
-    name: &'static str,
-    action: &'static str
+trait ModelExt {
+    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool;
+}
+
+impl ModelExt for Model {
+    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool {
+        self.fields.iter().any(|field| {
+            if let FieldType::Relation(info) = field.field_type() {
+                info.fields.iter().any(|f| f == &scalar.name)
+            } else {
+                false
+            }
+        })
+    }
 }
 
 trait FieldExt {
@@ -52,10 +63,7 @@ impl FieldExt for Field {
     }
     
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        match self.field_type() {
-            FieldType::Scalar(typ, _, _) => typ.to_prisma_value(var),
-            _ => unimplemented!()
-        }
+        self.field_type().to_prisma_value(var)
     }
     
     fn type_query_value(&self, var: &Ident) -> TokenStream {
@@ -78,7 +86,7 @@ impl FieldExt for Field {
     }
 
     fn required_on_create(&self) -> bool {
-        self.arity().is_required() && !self.is_updated_at() && self.default_value().is_none()
+        self.arity().is_required() && !self.is_updated_at() && self.default_value().is_none() && !matches!(self, Field::RelationField(r) if r.arity.is_list())
     }
 }
 
@@ -91,23 +99,24 @@ trait FieldTypeExt {
 impl FieldTypeExt for FieldType {
     fn to_tokens(&self) -> TokenStream {
         match self {
-            FieldType::Enum(name) => {
+            Self::Enum(name) => {
                 let name = format_ident!("{}", name.to_case(Case::Pascal));
                 quote!(#name)
             },
-            FieldType::Relation(info) => {
+            Self::Relation(info) => {
                 let model = format_ident!("{}", info.to.to_case(Case::Snake));
                 quote!(#model::Data)
             },
-            FieldType::Scalar(typ, _, _) => typ.to_tokens(),
+            Self::Scalar(typ, _, _) => typ.to_tokens(),
             _ => unimplemented!()
         }
     }
     
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {
         match self {
-            FieldType::Scalar(typ, _, _) => typ.to_prisma_value(var),
-            _ => unimplemented!()
+            Self::Scalar(typ, _, _) => typ.to_prisma_value(var),
+            Self::Enum(_) => quote!(PrismaValue::Enum(#var.to_string())),
+            typ => unimplemented!("{:?}", typ)
         }
     }
     
@@ -178,7 +187,7 @@ impl Outputs {
             outputs: model
                 .fields
                 .iter()
-                .filter(|f| f.required_on_create())
+                .filter(|f| matches!(f, Field::ScalarField(_)))
                 .map(|f| f.name().to_string())
                 .collect()
         }
@@ -426,7 +435,7 @@ impl PaginationParams {
     pub fn add_variant(&mut self, field: &Field) {
         let field_name = field.name();
         let rust_type = field.type_tokens();
-        let variant_name = format_ident!("{}Cursor", field_name.to_case(Case::Pascal));
+        let variant_name = format_ident!("{}", field_name.to_case(Case::Pascal));
         let prisma_value = field.type_prisma_value(&format_ident!("cursor"));
         
         self.cursor_variants.push(quote!(#variant_name(#rust_type)));
@@ -496,6 +505,7 @@ impl FieldQueryModule {
             pub mod #name {
                 use super::super::*;
                 use super::{WhereParam, UniqueWhereParam, OrderByParam, Cursor, WithParam, SetParam};
+                use super::_prisma::*;
                 
                 #(#methods)*
                 
@@ -527,8 +537,7 @@ impl ModelQueryModules {
     }
     
     pub fn quote(&self) -> TokenStream {
-        let Self {
-            
+        let Self { 
             field_modules,
             compound_field_accessors
         } = self;
@@ -569,27 +578,22 @@ impl WhereParams {
 
     pub fn add_unique_variant(
         &mut self,
-        variant: TokenStream,
-        match_arm: TokenStream,
         from_unique_match_arm: TokenStream,
         unique_variant: TokenStream
     ) {
-        self.add_variant(variant, match_arm);
         self.unique_variants.push(unique_variant);
         self.from_unique_match_arms.push(from_unique_match_arm);
     }
     
     pub fn add_optional_unique_variant(
         &mut self,
-        variant: TokenStream,
-        match_arm: TokenStream,
         from_unique_match_arm: TokenStream,
         unique_variant: TokenStream,
         arg_type: &TokenStream,
         variant_name: &syn::Ident,
         struct_name: TokenStream
     ) {
-        self.add_unique_variant(variant, match_arm, from_unique_match_arm, unique_variant);
+        self.add_unique_variant(from_unique_match_arm, unique_variant);
         
         self.from_optional_uniques.push(quote!{
             impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for WhereParam {
@@ -749,58 +753,101 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 },
             );
         }
-
+        
         for unique in &model.indices {
+            if let IndexType::Unique = unique.tpe {} else { continue; }
+            
             let variant_name_string = unique.fields.iter().map(|f| f.path[0].0.to_case(Case::Pascal)).collect::<String>();
             let variant_name = format_ident!("{}Equals", &variant_name_string);
             let accessor_name = format_ident!("{}", &variant_name_string.to_case(Case::Snake));
             
-            let mut variant_data_as_types = vec![];
-            let mut variant_data_as_args = vec![];
-            let mut variant_data_as_destructured = vec![];
-            let mut variant_data_as_query_values = vec![];
-            let variant_data_names = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>();
-            
-            for field in &unique.fields {
+            if unique.fields.len() == 1 {
+                let field = &unique.fields[0];
                 let model_field = model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap();
+                let field_string = model_field.name();
                 let field_type = model_field.type_tokens();
+              
+                let field_snake = format_ident!("{}", field_string.to_case(Case::Snake)); 
+                let field_pascal = format_ident!("{}", field_string.to_case(Case::Pascal));
                 
-                let field_name_snake = format_ident!("{}", field.path[0].0.to_case(Case::Snake));
-                
-                let field_type = match model_field.arity().is_list() {
-                    true => quote!(Vec<#field_type>),
-                    false => quote!(#field_type),
+                let field_set_variant_type = match model_field.arity() {
+                    FieldArity::List => quote!(Vec<#field_type>),
+                    FieldArity::Required => quote!(#field_type),
+                    FieldArity::Optional => quote!(Option<#field_type>)
                 };
                 
-                variant_data_as_args.push(quote!(#field_name_snake: #field_type));
-                variant_data_as_types.push(field_type);
-                variant_data_as_destructured.push(quote!(#field_name_snake));
-                variant_data_as_query_values.push(model_field.type_query_value(&field_name_snake));
-            }
-
-            let field_name_string = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>().join("_");
-
-            model_query_module.add_compound_field(
-                quote! {
-                    pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_as_args),*) -> T {
-                        UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*).into()
-                    }
+                let equals_variant_name = format_ident!("{}Equals", &field_pascal);
+                let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
+            
+                if model_field.arity().is_required() {
+                    model_where_params.add_unique_variant(
+                        quote! {
+                            UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
+                        },
+                        equals_variant
+                    );
+                } else {
+                    model_where_params.add_optional_unique_variant(
+                        quote! {
+                            UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(Some(value))
+                        },
+                        quote!(#equals_variant_name(#field_type)),
+                        &field_type,
+                        &equals_variant_name,
+                        quote!(#field_snake::Set)
+                    );
                 }
-            );
+            } else {
+                let mut variant_data_as_types = vec![];
+                let mut variant_data_as_args = vec![];
+                let mut variant_data_as_destructured = vec![];
+                let mut variant_data_as_query_values = vec![];
+                let variant_data_names = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>();
+            
+                for field in &unique.fields {
+                    let model_field = model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap();
+                    let field_type = model_field.type_tokens();
+                    
+                    let field_name_snake = format_ident!("{}", field.path[0].0.to_case(Case::Snake));
+                    
+                    let field_type = match model_field.arity().is_list() {
+                        true => quote!(Vec<#field_type>),
+                        false => quote!(#field_type),
+                    };
+                    
+                    variant_data_as_args.push(quote!(#field_name_snake: #field_type));
+                    variant_data_as_types.push(field_type);
+                    variant_data_as_destructured.push(quote!(#field_name_snake));
+                    variant_data_as_query_values.push(model_field.type_query_value(&field_name_snake));
+                }
 
-            model_where_params.add_unique_variant(
-                quote!(#variant_name(#(#variant_data_as_types),*)),
-                quote! {
-                    Self::#variant_name(#(#variant_data_as_destructured),*) => (
-                        #field_name_string.to_string(),
-                        SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_query_values)),*])
-                    )
-                },
-                quote! {
-                    UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
-                },
-                quote!(#variant_name(#(#variant_data_as_types),*)),
-            );
+                let field_name_string = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>().join("_");
+
+                model_query_module.add_compound_field(
+                    quote! {
+                        pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_as_args),*) -> T {
+                            UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*).into()
+                        }
+                    }
+                );
+
+                model_where_params.add_variant(
+                    quote!(#variant_name(#(#variant_data_as_types),*)),
+                    quote! {
+                        Self::#variant_name(#(#variant_data_as_destructured),*) => (
+                            #field_name_string.to_string(),
+                            SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_query_values)),*])
+                        )
+                    },
+                );
+                
+                model_where_params.add_unique_variant(
+                    quote! {
+                        UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
+                    },
+                    quote!(#variant_name(#(#variant_data_as_types),*)),
+                );
+            }
         }
 
         for root_field in &model.fields {
@@ -1147,7 +1194,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             )
                         },
                     );
-
+                    
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
                     let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
                     let type_as_query_value = root_field.type_query_value(&format_ident!("value"));
@@ -1165,50 +1212,41 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         )
                     };
                     
-                    match (model.field_is_primary(field_string), model.field_is_unique(field_string), !root_field.arity().is_optional())  {
-                        (true, _, _) | (_, true, true) => {
-                            model_where_params.add_unique_variant(
-                                equals_variant.clone(),
-                                match_arm,
-                                quote! {
-                                    UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
-                                },
-                                equals_variant
-                            );
+                    model_where_params.add_variant(equals_variant.clone(), match_arm);
+                    
+                    if model.field_is_primary(field_string) {
+                        model_where_params.add_unique_variant(
+                            quote! {
+                                UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
+                            },
+                            equals_variant
+                        );
+                        field_query_module.add_method(quote! {
+                            pub fn equals<T: From<UniqueWhereParam>>(value: #field_set_variant_type) -> T {
+                                UniqueWhereParam::#equals_variant_name(value).into()
+                            }
+                        });
+                    } else if model.field_is_unique(field_string) {
+                        if field.arity.is_required() {
                             field_query_module.add_method(quote! {
                                 pub fn equals<T: From<UniqueWhereParam>>(value: #field_set_variant_type) -> T {
                                     UniqueWhereParam::#equals_variant_name(value).into()
                                 }
                             });
-                        }
-                        (_, true, false) => {
-                            model_where_params.add_optional_unique_variant(
-                                equals_variant,
-                                match_arm,
-                                quote! {
-                                    UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(Some(value))
-                                },
-                                quote!(#equals_variant_name(#field_type)),
-                                &field_type,
-                                &equals_variant_name,
-                                quote!(#field_snake::Set)
-                            );
-                            
+                        } else {
                             field_query_module.add_method(quote! {
                                 pub fn equals<A, T: prisma_client_rust::traits::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
                                     T::from_arg(value)
                                 }
                             });
-                        },
-                        (_, _, _) => {
-                            model_where_params.add_variant(equals_variant, match_arm);
-                            field_query_module.add_method(quote! {
-                                pub fn equals(value: #field_set_variant_type) -> WhereParam {
-                                    WhereParam::#equals_variant_name(value).into()
-                                }
-                            });
                         }
-                    };
+                    } else {
+                        field_query_module.add_method(quote! {
+                            pub fn equals(value: #field_set_variant_type) -> WhereParam {
+                                WhereParam::#equals_variant_name(value).into()
+                            }
+                        });
+                    }
 
                     // Pagination
                     field_query_module.add_method(quote! {
@@ -1334,8 +1372,8 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     model_order_by_params.add_variant(field_string, &field_pascal);
 
                     model_pagination_params.add_variant(&root_field);
-
-                    if root_field.required_on_create() {
+                    
+                    if !model.scalar_field_has_relation(field) && root_field.required_on_create() {
                         model_actions.push_required_arg(
                             quote!(#field_snake: #field_snake::Set,),
                             quote!(params.push(#field_snake.into());),
@@ -1345,9 +1383,6 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 _ => todo!()
             };
             
-            std::fs::write("./bruh.rs", format!("{:?}", &args.schema));
-            
-
             model_query_module.add_field_module(field_query_module);
         }
 
@@ -1373,6 +1408,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
         quote! {
             pub mod #model_name_snake {
                 use super::*;
+                use super::_prisma::*;
                 
                 #query_modules
                 
@@ -1663,35 +1699,35 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         #(#required_arg_pushes)*
 
                         Create {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            ctx: self.client._new_query_context(),
                             args: CreateArgs::new(params)
                         }
                     }
 
                     pub fn find_unique(&self, param: UniqueWhereParam) -> FindUnique {
                         FindUnique {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            ctx: self.client._new_query_context(),
                             args: FindUniqueArgs::new(param.into()),
                         }
                     }
 
                     pub fn find_first(&self, params: Vec<WhereParam>) -> FindFirst {
                         FindFirst {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            ctx: self.client._new_query_context(),
                             args: FindFirstArgs::new(params),
                         }
                     }
 
                     pub fn find_many(&self, params: Vec<WhereParam>) -> FindMany {
                         FindMany {
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            ctx: self.client._new_query_context(),
                             args: FindManyArgs::new(params),
                         }
                     }
 
                     pub fn upsert(&self, param: UniqueWhereParam) -> Upsert {
                         Upsert { 
-                            ctx: QueryContext::new(&self.client.executor, self.client.query_schema.clone()),
+                            ctx: self.client._new_query_context(),
                             args: UpsertArgs::new(param.into()),
                         }
                     }

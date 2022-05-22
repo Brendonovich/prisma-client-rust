@@ -71,7 +71,7 @@ pub fn execute(args: &Vec<String>) {
                 let result: Result<Root, _> = serde_path_to_error::deserialize(deserializer);
 
                 match result {
-                    Ok(mut params) => {
+                    Ok(params) => {
                         let datamodel = datamodel::parse_datamodel(&params.datamodel).unwrap();
 
                         let config = datamodel::parse_configuration(&params.datamodel).unwrap();
@@ -97,14 +97,7 @@ pub fn execute(args: &Vec<String>) {
                             referential_integrity,
                         ));
 
-                        let (schema, mappings) = DmmfQuerySchemaRenderer::render(query_schema);
-
-                        let generator = config
-                            .subject
-                            .generators
-                            .iter()
-                            .find(|g| g.name == params.generator.name)
-                            .unwrap();
+                        let (schema, _) = DmmfQuerySchemaRenderer::render(query_schema);
 
                         generator::run(GeneratorArgs::new(
                             datamodel.subject,

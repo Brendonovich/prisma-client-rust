@@ -53,6 +53,7 @@ impl GraphQLType {
             "DateTime" => quote!(chrono::DateTime<chrono::FixedOffset>),
             "Json" => quote!(serde_json::Value),
             "String" => quote!(String),
+            "QueryMode" => quote!(super::QueryMode),
             _ => {
                 let ident = format_ident!("{}", string.to_case(Case::Pascal));
                 quote!(#ident)

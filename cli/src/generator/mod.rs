@@ -5,24 +5,11 @@ pub use types::*;
 pub mod codegen;
 
 use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
-use std::fs;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Write as IoWrite;
 use std::path::Path;
 use std::process::Command;
 use std::str::FromStr;
-
-// pub struct Filters {
-//     read: Vec<Filter>,
-//     write: Vec<Filter>,
-// }
-
-// impl Filters {
-
-// }
-
-const LIST: &str = "List";
-
 trait DmmfSchemaExt {
     fn pick(&self, names: Vec<String>) -> Option<&DmmfInputType>;
 }
@@ -168,7 +155,7 @@ impl GeneratorArgs {
 
                     let mut s = scalar.clone();
                     if p.name.contains("ListFilter") {
-                        s += LIST
+                        s += "List";
                     }
 
                     filters.push(Filter {
@@ -267,7 +254,9 @@ impl GeneratorArgs {
                         fields.push(Method::new(
                             field.name.to_case(Case::Pascal),
                             field.name.clone(),
-                            ScalarType::from_str(&type_name).map(|t| FieldType::Scalar(t, None, None)).unwrap_or(FieldType::Enum(type_name)),
+                            ScalarType::from_str(&type_name)
+                                .map(|t| FieldType::Scalar(t, None, None))
+                                .unwrap_or(FieldType::Enum(type_name)),
                             is_list,
                         ));
                     }
@@ -357,24 +346,31 @@ impl GeneratorArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        let scalar = field.name.replacen("NullableFilter", "", 1);
-        let mut scalar = scalar.replacen("ReadFilter", "", 1);
+        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+            let mut typ = typ.to_string();
 
-        if field.arity.is_list() {
-            scalar += LIST;
+            if field.arity.is_list() {
+                typ += "List";
+            }
+
+            self.read_filters.iter().find(|f| f.name == typ)
+        } else {
+            None
         }
-
-        self.read_filters.iter().find(|f| f.name == scalar)
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        let scalar = if field.arity.is_list() {
-            format!("{}List", field.name)
-        } else {
-            field.name.to_string()
-        };
+        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+            let mut typ = typ.to_string();
 
-        self.write_filters.iter().find(|f| f.name == scalar)
+            if field.arity.is_list() {
+                typ += "List";
+            }
+
+            self.write_filters.iter().find(|f| f.name == typ)
+        } else {
+            None
+        }
     }
 }
 
