@@ -28,7 +28,7 @@ pub struct Datasource {
 #[serde(rename_all = "camelCase")]
 pub struct EnvValue {
     pub from_env_var: Option<String>,
-    pub value: String,
+    pub value: Option<String>,
 }
 
 impl EnvValue {
