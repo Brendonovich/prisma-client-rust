@@ -1,9 +1,8 @@
-use convert_case::{Case, Casing};
 use quote::{__private::TokenStream, format_ident, quote};
 
-use crate::generator::{GeneratorArgs, Root};
+use crate::generator::{GeneratorArgs};
 
-pub fn generate(root: &GeneratorArgs) -> TokenStream {
+pub fn generate(_root: &GeneratorArgs) -> TokenStream {
     let gql_rs_ident = format_ident!("gql_rs");
 
     quote! {

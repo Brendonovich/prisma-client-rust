@@ -1,7 +1,7 @@
 mod client;
 mod models;
 
-use super::{GeneratorArgs, Root};
+use super::{GeneratorArgs};
 
 pub fn generate_prisma_client(root: &GeneratorArgs) -> String {
     let mut client = client::generate(root);

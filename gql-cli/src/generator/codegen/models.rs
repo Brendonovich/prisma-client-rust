@@ -1,9 +1,8 @@
 use convert_case::{Case, Casing};
 use datamodel::dml::Field;
 use quote::{__private::TokenStream, format_ident, quote};
-use syn::Ident;
 
-use crate::generator::{GeneratorArgs, Root};
+use crate::generator::{GeneratorArgs};
 
 pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
     let client_prefix_ident: TokenStream = args.client_module_prefix.parse().unwrap();
@@ -12,7 +11,6 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
         .models
         .iter()
         .map(|model| {
-            let model_name_string = &model.name;
             let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
             let model_name_pascal_string = model.name.to_case(Case::Pascal);
 

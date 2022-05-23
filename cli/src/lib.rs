@@ -71,10 +71,10 @@ pub fn execute(args: &Vec<String>) {
                 let result: Result<Root, _> = serde_path_to_error::deserialize(deserializer);
 
                 match result {
-                    Ok(params) => {
-                        let datamodel = datamodel::parse_datamodel(&params.datamodel).unwrap();
+                    Ok(root) => {
+                        let datamodel = datamodel::parse_datamodel(&root.datamodel).unwrap();
 
-                        let config = datamodel::parse_configuration(&params.datamodel).unwrap();
+                        let config = datamodel::parse_configuration(&root.datamodel).unwrap();
                         let datasource = config.subject.datasources.first();
 
                         let capabilities = datasource
@@ -102,8 +102,7 @@ pub fn execute(args: &Vec<String>) {
                         generator::run(GeneratorArgs::new(
                             datamodel.subject,
                             schema,
-                            params.datamodel,
-                            params.generator.output.value.clone(),
+                            root
                         ));
                     }
                     Err(err) => {

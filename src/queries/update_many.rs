@@ -55,7 +55,7 @@ where
         );
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params)));
+            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
         }
 
         selection.push_nested_selection(BatchResult::selection());

@@ -72,7 +72,7 @@ where
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(transform_equals(vec![where_param.into()])),
+            PrismaValue::Object(transform_equals(vec![where_param.into()].into_iter())),
         );
 
         selection.push_argument(

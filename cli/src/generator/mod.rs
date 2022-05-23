@@ -10,6 +10,7 @@ use std::io::Write as IoWrite;
 use std::path::Path;
 use std::process::Command;
 use std::str::FromStr;
+
 trait DmmfSchemaExt {
     fn pick(&self, names: Vec<String>) -> Option<&DmmfInputType>;
 }
@@ -35,6 +36,7 @@ pub struct Method {
     pub is_list: bool,
     pub typ: FieldType,
 }
+
 impl Method {
     fn new(name: String, action: String, typ: FieldType, is_list: bool) -> Self {
         Method {
@@ -55,9 +57,8 @@ pub struct Filter {
 #[derive(Debug)]
 pub struct GeneratorArgs {
     pub dml: datamodel::dml::Datamodel,
+    pub root: Root,
     pub schema: DmmfSchema,
-    pub datamodel: String,
-    pub output: String,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
 }
@@ -101,8 +102,7 @@ impl GeneratorArgs {
     pub fn new(
         mut dml: datamodel::dml::Datamodel,
         schema: DmmfSchema,
-        datamodel: String,
-        output: String,
+        root: Root,
     ) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
@@ -337,9 +337,8 @@ impl GeneratorArgs {
 
         Self {
             dml,
+            root,
             schema,
-            datamodel,
-            output,
             read_filters,
             write_filters,
         }
@@ -375,7 +374,7 @@ impl GeneratorArgs {
 }
 
 pub fn run(args: GeneratorArgs) {
-    let output = &args.output;
+    let output = &args.root.generator.output.value;
 
     let output_file_path = Path::new(output);
 

@@ -24,8 +24,9 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
     quote! {
         use super::*;
         use prisma_client_rust::{
-            query::QueryContext,
+            queries::QueryContext,
             query_core::{QueryExecutor, QuerySchema},
+            raw, QueryRaw, ExecuteRaw,
         };
         use serde::{Deserialize, Serialize};
         use std::fmt;
@@ -47,15 +48,15 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
             pub(super) fn _new_query_context(&self) -> QueryContext {
                 QueryContext::new(&self.executor, self.query_schema.clone())
             }
-            
+
             pub(super) fn _new(executor: Box<dyn QueryExecutor + Send + Sync + 'static>, query_schema: Arc<QuerySchema>) -> Self {
                 Self {
                     executor,
                     query_schema,
                 }
             }
-            
-            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: Raw) -> QueryResult<Vec<T>> {
+
+            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: raw::Raw) -> QueryResult<Vec<T>> {
                 QueryRaw::new(
                    QueryContext::new(&self.executor, self.query_schema.clone()),
                    query,
@@ -63,7 +64,7 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
                 ).exec().await
             }
 
-            pub async fn _execute_raw(&self, query: Raw) -> QueryResult<i64> {
+            pub async fn _execute_raw(&self, query: raw::Raw) -> QueryResult<i64> {
                 ExecuteRaw::new(
                    QueryContext::new(&self.executor, self.query_schema.clone()),
                    query,

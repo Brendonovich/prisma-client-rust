@@ -44,7 +44,7 @@ where
             selection.push_argument(
                 "where",
                 PrismaValue::Object(transform_equals(
-                    where_params.into_iter().map(Into::into).collect(),
+                    where_params.into_iter().map(Into::into),
                 )),
             );
         }

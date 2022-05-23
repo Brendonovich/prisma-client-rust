@@ -744,7 +744,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         SerializedWhereValue::List(
                             value
                                 .into_iter()
-                                .map(|v| PrismaValue::Object(transform_equals(vec![v])))
+                                .map(|v| PrismaValue::Object(transform_equals(vec![v].into_iter())))
                                 .collect(),
                         ),
                     )
@@ -876,11 +876,11 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                     #field_string.to_string(),
                                     SerializedWhereValue::Object(vec![(
                                         #method_action_string.to_string(),
-                                        PrismaValu::Object(
+                                        PrismaValue::Object(
                                             transform_equals(
                                                 value
                                                     .into_iter()
-                                                    .map(Into::<SerializedWhere>::into)    
+                                                    .map(Into::<SerializedWhere>::into)
                                             )
                                         ),
                                     )])
@@ -903,7 +903,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                                                     
                         field_query_module.add_method(quote! {
                             pub struct Fetch {
-                                args: #relation_type_snake::FindManyArgs
+                                args: #relation_type_snake::ManyArgs
                             }
                             
                             impl Fetch {
@@ -922,7 +922,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             
                             pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> Fetch {
                                 Fetch {
-                                    args: #relation_type_snake::FindManyArgs::new(params)
+                                    args: #relation_type_snake::ManyArgs::new(params)
                                 }
                             }
 
@@ -981,7 +981,6 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                                     where_params
                                                         .into_iter()
                                                         .map(Into::<super::#relation_type_snake::WhereParam>::into)
-                                                        .map(Into::into)
                                                 )
                                                 .into_iter()
                                                 .collect()
@@ -1012,7 +1011,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     } else {
                         field_query_module.add_method(quote! {
                             pub struct Fetch {
-                                args: #relation_type_snake::Args
+                                args: #relation_type_snake::UniqueArgs
                             }
                             
                             impl Fetch {
@@ -1027,7 +1026,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             
                             pub fn fetch() -> Fetch {
                                 Fetch {
-                                    args: #relation_type_snake::Args::new()
+                                    args: #relation_type_snake::UniqueArgs::new()
                                 }
                             }
 
@@ -1056,10 +1055,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                             "connect".to_string(),
                                             PrismaValue::Object(
                                                 transform_equals(
-                                                    vec![where_param]
-                                                        .into_iter()
-                                                        .map(Into::<super::#relation_type_snake::WhereParam>::into)
-                                                        .map(Into::into)
+                                                    vec![Into::<super::#relation_type_snake::WhereParam>::into(where_param)].into_iter()
                                                 )
                                             )
                                         )]
@@ -1425,38 +1421,52 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     pub fn create(&self, #(#create_args)* mut _params: Vec<SetParam>) -> Create {
                         #(#create_args_params_pushes)*
 
-                        Create {
-                            ctx: self.client._new_query_context(),
-                            args: CreateArgs::new(params)
-                        }
+                        Create::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _params
+                        )
                     }
 
                     pub fn find_unique(&self, param: UniqueWhereParam) -> FindUnique {
-                        FindUnique {
-                            ctx: self.client._new_query_context(),
-                            args: FindUniqueArgs::new(param.into()),
-                        }
+                        FindUnique::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            param.into()
+                        )
                     }
 
                     pub fn find_first(&self, params: Vec<WhereParam>) -> FindFirst {
-                        FindFirst {
-                            ctx: self.client._new_query_context(),
-                            args: FindFirstArgs::new(params),
-                        }
+                        FindFirst::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            params
+                        )
                     }
 
                     pub fn find_many(&self, params: Vec<WhereParam>) -> FindMany {
-                        FindMany {
-                            ctx: self.client._new_query_context(),
-                            args: FindManyArgs::new(params),
-                        }
+                        FindMany::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            params
+                        )
                     }
 
-                    pub fn upsert(&self, param: UniqueWhereParam) -> Upsert {
-                        Upsert { 
-                            ctx: self.client._new_query_context(),
-                            args: UpsertArgs::new(param.into()),
-                        }
+                    pub fn upsert(&self, _where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert {
+                        let (
+                            #(#create_args_destructured)*
+                            mut _params
+                        ) = _create;
+                        
+                        #(#create_args_params_pushes)*
+                        
+                        Upsert::new( 
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _where.into(),
+                            _params,
+                            _update
+                        )
                     }
                 }
             }

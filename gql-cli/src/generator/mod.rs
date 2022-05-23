@@ -1,6 +1,5 @@
 pub mod types;
-use datamodel::Configuration;
-use request_handlers::dmmf::{schema::DmmfSchema, DmmfOperationMappings};
+use request_handlers::dmmf::{schema::DmmfSchema};
 pub use types::*;
 pub mod codegen;
 

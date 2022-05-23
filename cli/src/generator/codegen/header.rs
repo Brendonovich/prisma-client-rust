@@ -3,32 +3,32 @@ use quote::{__private::TokenStream, quote};
 use crate::generator::GeneratorArgs;
 
 pub fn generate(args: &GeneratorArgs) -> TokenStream {
-    let datamodel = &args.datamodel;
+    let datamodel = &args.root.datamodel;
+    let database_string = &args.root.datasources[0].provider;
 
     quote! {
         #![allow(warnings, unused)]
 
         use prisma_client_rust::{
-            chrono,
+            serde::RelationResult,
             bigdecimal::{self, FromPrimitive},
             datamodel::parse_configuration,
             operator::Operator,
             prisma_models::{InternalDataModelBuilder, PrismaValue},
-            query::{QueryContext, Result as QueryResult},
+            queries::{QueryContext, Result as QueryResult, QueryInfo},
             query_core::{
                 executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
                 QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
             },
-            serde::RelationResult,
-            serde_json, transform_equals, Args, BatchResult, Direction, FindManyArgs,
-            FindManySelectionArgs, SerializedWhere, SerializedWhereValue,
+            chrono, serde_json, transform_equals, UniqueArgs, ManyArgs, BatchResult, Direction, SerializedWhere, SerializedWhereValue,
         };
-        pub use prisma_client_rust::{query::Error as QueryError, NewClientError};
+        pub use prisma_client_rust::{queries::Error as QueryError, NewClientError};
         use serde::{Deserialize, Serialize};
         use std::path::Path;
         use std::sync::Arc;
 
         static DATAMODEL_STR: &'static str = #datamodel;
+        static DATABASE_STR: &'static str = #database_string;
 
         pub async fn new_client() -> Result<_prisma::PrismaClient, NewClientError> {
             let config = parse_configuration(DATAMODEL_STR)?.subject;
