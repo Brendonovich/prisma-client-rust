@@ -1,13 +1,13 @@
 pub mod operator;
 pub mod queries;
+pub mod raw;
 pub mod serde;
 pub mod traits;
-pub mod raw;
 
 pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
-pub use prisma_models;
+pub use prisma_models::{self, PrismaValue};
 pub use queries::*;
 pub use query_core;
 pub use serde_json;
