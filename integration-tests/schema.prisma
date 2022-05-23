@@ -8,6 +8,12 @@ generator client {
     output   = "tests/db.rs"
 }
 
+generator gql {
+    provider             = "cargo prisma-gql"
+    output               = "tests/db_gql.rs"
+    client_module_prefix = "crate::db"
+}
+
 model Post {
     id          String     @id @default(cuid())
     created_at  DateTime   @default(now())

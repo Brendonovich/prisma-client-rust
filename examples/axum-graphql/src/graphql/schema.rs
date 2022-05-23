@@ -1,7 +1,7 @@
 use async_graphql::{EmptySubscription, Schema};
 
 use crate::{
-    graphql::{mutation::Mutation, query::Query},
+    graphql::{mutation::Mutation, queries::Query},
     db,
 };
 

@@ -1,6 +1,7 @@
 pub mod create;
 pub mod delete;
 pub mod delete_many;
+pub mod execute_raw;
 pub mod find_first;
 pub mod find_many;
 pub mod find_unique;
@@ -8,19 +9,18 @@ pub mod query_raw;
 pub mod update;
 pub mod update_many;
 pub mod upsert;
-pub mod execute_raw;
 
 pub use create::*;
 pub use delete::*;
 pub use delete_many::*;
+pub use execute_raw::*;
 pub use find_first::*;
 pub use find_many::*;
 pub use find_unique::*;
+pub use query_raw::*;
 pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
-pub use query_raw::*;
-pub use execute_raw::*;
 
 use prisma_models::PrismaValue;
 use query_core::{Operation, QuerySchemaRef, Selection};
@@ -92,9 +92,10 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn transform_equals<T: Into<SerializedWhere>>(params: Vec<T>) -> Vec<(String, PrismaValue)> {
+pub fn transform_equals<T: Into<SerializedWhere>>(
+    params: impl Iterator<Item = T>,
+) -> Vec<(String, PrismaValue)> {
     params
-        .into_iter()
         .map(Into::<SerializedWhere>::into)
         .map(|(field, value)| {
             (

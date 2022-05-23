@@ -10,13 +10,18 @@ use crate::{
         Request, Response,
     },
 };
-use generator::ast::AST;
+use datamodel::datamodel_connector::ConnectorCapabilities;
+use generator::GeneratorArgs;
+use prisma_models::InternalDataModelBuilder;
+use query_core::{schema_builder, BuildMode, QuerySchemaRef, QuerySchemaRenderer};
+use request_handlers::dmmf::schema::DmmfQuerySchemaRenderer;
 use serde_json;
 use serde_path_to_error;
 use std::{
     default::Default,
     env,
     io::{stderr, stdin, BufRead, BufReader, Write},
+    sync::Arc,
 };
 
 pub fn run() {
@@ -32,9 +37,11 @@ pub fn execute(args: &Vec<String>) {
         prisma_cli::main(args);
         return;
     }
-    
+
     if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
-        println!("This command is only meant to be invoked internally. Please specify a command to run.");
+        println!(
+            "This command is only meant to be invoked internally. Please specify a command to run."
+        );
 
         std::process::exit(1);
     }
@@ -64,11 +71,39 @@ pub fn execute(args: &Vec<String>) {
                 let result: Result<Root, _> = serde_path_to_error::deserialize(deserializer);
 
                 match result {
-                    Ok(mut params) => {
-                        let ast = AST::new(&params.dmmf);
-                        params.ast = Some(ast);
+                    Ok(root) => {
+                        let datamodel = datamodel::parse_datamodel(&root.datamodel).unwrap();
 
-                        generator::run(&params);
+                        let config = datamodel::parse_configuration(&root.datamodel).unwrap();
+                        let datasource = config.subject.datasources.first();
+
+                        let capabilities = datasource
+                            .map(|ds| ds.capabilities())
+                            .unwrap_or_else(ConnectorCapabilities::empty);
+
+                        let referential_integrity = datasource
+                            .map(|ds| ds.referential_integrity())
+                            .unwrap_or_default();
+
+                        let internal_data_model =
+                            InternalDataModelBuilder::from(&datamodel.subject).build("".into());
+
+                        let query_schema: QuerySchemaRef = Arc::new(schema_builder::build(
+                            internal_data_model,
+                            BuildMode::Modern,
+                            true,
+                            capabilities,
+                            config.subject.preview_features().iter().collect(),
+                            referential_integrity,
+                        ));
+
+                        let (schema, _) = DmmfQuerySchemaRenderer::render(query_schema);
+
+                        generator::run(GeneratorArgs::new(
+                            datamodel.subject,
+                            schema,
+                            root
+                        ));
                     }
                     Err(err) => {
                         panic!("{}", err);

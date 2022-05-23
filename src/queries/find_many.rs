@@ -122,7 +122,7 @@ where
         selection.alias("result");
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params)));
+            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
         }
 
         if with_params.len() > 0 {
@@ -230,7 +230,7 @@ where
         if where_params.len() > 0 {
             arguments.push((
                 "where".to_string(),
-                PrismaValue::Object(transform_equals(where_params)).into(),
+                PrismaValue::Object(transform_equals(where_params.into_iter())).into(),
             ));
         }
 
