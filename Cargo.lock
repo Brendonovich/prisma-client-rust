@@ -1306,27 +1306,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
-name = "gql-rs-prisma-generator"
-version = "0.4.1"
-dependencies = [
- "convert_case",
- "datamodel",
- "directories",
- "flate2",
- "http",
- "prisma-models",
- "query-core",
- "quote",
- "regex",
- "request-handlers",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "syn",
-]
-
-[[package]]
 name = "graphql-parser"
 version = "0.3.0"
 source = "git+https://github.com/prisma/graphql-parser?rev=6a3f58bd879065588e710cb02b5bd30c1ce182c3#6a3f58bd879065588e710cb02b5bd30c1ce182c3"
@@ -2598,7 +2577,6 @@ checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
 name = "prisma-cli"
 version = "0.0.0"
 dependencies = [
- "gql-rs-prisma-generator",
  "prisma-client-rust-cli",
 ]
 

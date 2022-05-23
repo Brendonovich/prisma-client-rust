@@ -5,4 +5,3 @@ edition = "2021"
 
 [dependencies]
 prisma-client-rust-cli = { path = "../cli" }
-gql-rs-prisma-generator = { path = "../gql-cli" }
