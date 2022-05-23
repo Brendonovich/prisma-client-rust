@@ -29,6 +29,7 @@ pub struct Datasource {
 pub struct EnvValue {
     pub from_env_var: Option<String>,
     pub value: String,
+}
 
 impl EnvValue {
     pub fn get_value(&self) -> String {
