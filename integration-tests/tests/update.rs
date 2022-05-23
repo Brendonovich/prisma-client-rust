@@ -284,8 +284,6 @@ async fn update_many() -> TestResult {
             .await?,
     ];
 
-    // let user_id = create_user(&client).await?;
-
     let count = client
         .post()
         .find_many(vec![post::published::equals(false)])

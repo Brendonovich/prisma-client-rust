@@ -68,10 +68,7 @@ impl<'a> QueryContext<'a> {
                 .execute(None, op, ctx.schema, None)
                 .await
                 .map_err(Into::<user_facing_errors::Error>::into)
-                .map_err(|e| {
-                    let message = e.message().to_string();
-                    Error::Execute(e, message)
-                })?;
+                .map_err(Error::Execute)?;
 
             let ret = serde_json::to_value(data.data)?;
 
@@ -87,8 +84,8 @@ impl<'a> QueryContext<'a> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Error executing query: {1:?}")]
-    Execute(user_facing_errors::Error, String),
+    #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
+    Execute(user_facing_errors::Error),
 
     #[error("Error parsing query result: {0}")]
     Parse(#[from] serde_json::Error),
