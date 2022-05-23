@@ -12,7 +12,7 @@ pub struct Root {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Generator {
-    pub output: Value,
+    pub output: EnvValue,
     pub name: String,
 }
 
@@ -21,12 +21,12 @@ pub struct Generator {
 pub struct Datasource {
     pub name: String,
     pub provider: String,
-    pub url: Value,
+    pub url: EnvValue,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Value {
+pub struct EnvValue {
     pub from_env_var: Option<String>,
     pub value: String,
 }
