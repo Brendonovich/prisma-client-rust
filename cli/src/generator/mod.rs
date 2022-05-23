@@ -374,9 +374,9 @@ impl GeneratorArgs {
 }
 
 pub fn run(args: GeneratorArgs) {
-    let output = &args.root.generator.output.value;
+    let output = args.root.generator.output.get_value();
 
-    let output_file_path = Path::new(output);
+    let output_file_path = Path::new(&output);
 
     if let Some(parent) = output_file_path.parent() {
         fs::create_dir_all(parent).unwrap();

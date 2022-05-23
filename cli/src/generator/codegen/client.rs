@@ -21,10 +21,6 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    let datamodel = &args.root.datamodel;
-
-    let database_string = &args.root.datasources[0].provider;
-
     quote! {
         use super::*;
         use prisma_client_rust::{
