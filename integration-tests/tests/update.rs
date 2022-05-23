@@ -31,7 +31,7 @@ async fn update() -> TestResult {
         )
         .exec()
         .await?;
-    assert!(post.author.is_err());
+    assert!(post.author().is_err());
     assert_eq!(post.title, "Hi from Create!");
 
     let updated = client
@@ -283,8 +283,6 @@ async fn update_many() -> TestResult {
             .exec()
             .await?,
     ];
-
-    // let user_id = create_user(&client).await?;
 
     let count = client
         .post()

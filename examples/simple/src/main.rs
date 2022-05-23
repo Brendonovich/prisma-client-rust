@@ -1,5 +1,3 @@
-use prisma_client_rust::{Create, Result};
-
 use crate::db::*;
 
 pub mod db;
@@ -46,27 +44,27 @@ pub async fn main() {
     println!("User: {:?}", user);
     println!("Post: {:?}", post);
 
-    // let post_with_user = client
-    //     .post()
-    //     .find_unique(post::id::equals("post0".to_string()))
-    //     .with(post::user::fetch())
-    //     .exec()
-    //     .await
-    //     .unwrap()
-    //     .unwrap();
+    let post_with_user = client
+        .post()
+        .find_unique(post::id::equals("post0".to_string()))
+        .with(post::user::fetch())
+        .exec()
+        .await
+        .unwrap()
+        .unwrap();
 
-    // println!("Post user: {:?}", post_with_user.user().unwrap());
+    println!("Post user: {:?}", post_with_user.user().unwrap());
 
-    // let user_with_posts = client
-    //     .user()
-    //     .find_unique(user::id::equals("user0".to_string()))
-    //     .with(user::posts::fetch(vec![]))
-    //     .exec()
-    //     .await
-    //     .unwrap()
-    //     .unwrap();
+    let user_with_posts = client
+        .user()
+        .find_unique(user::id::equals("user0".to_string()))
+        .with(user::posts::fetch(vec![]))
+        .exec()
+        .await
+        .unwrap()
+        .unwrap();
 
-    // println!("User posts: {:?}", user_with_posts.posts().unwrap());
+    println!("User posts: {:?}", user_with_posts.posts().unwrap());
 
     let deleted_posts = client
         .post()
@@ -77,12 +75,12 @@ pub async fn main() {
         .unwrap();
     println!("Deleted {} posts", deleted_posts);
 
-    // let deleted_users_count = client
-    //     .user()
-    //     .find_many(vec![])
-    //     .delete()
-    //     .exec()
-    //     .await
-    //     .unwrap();
-    // println!("Deleted {} users", deleted_users_count);
+    let deleted_users_count = client
+        .user()
+        .find_many(vec![])
+        .delete()
+        .exec()
+        .await
+        .unwrap();
+    println!("Deleted {} users", deleted_users_count);
 }

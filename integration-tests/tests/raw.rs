@@ -56,7 +56,10 @@ async fn query_raw_no_result() -> TestResult {
     let client = client().await;
 
     let result: Vec<post::Data> = client
-        ._query_raw(raw!("SELECT * FROM Post WHERE id = 'sdldsd'"))
+        ._query_raw(raw!(
+            "SELECT * FROM Post WHERE id = {}",
+            PrismaValue::String("sdldsd".to_string())
+        ))
         .await?;
     assert_eq!(result.len(), 0);
 
@@ -79,7 +82,8 @@ async fn execute_raw() -> TestResult {
 
     let count = client
         ._execute_raw(raw!(
-            "UPDATE Post SET title = 'My edited title' WHERE id = {}",
+            "UPDATE Post SET title = {} WHERE id = {}",
+            PrismaValue::String("My edited title".to_string()),
             PrismaValue::String(post.id.clone())
         ))
         .await?;
@@ -104,7 +108,9 @@ async fn execute_raw_no_result() -> TestResult {
 
     let count = client
         ._execute_raw(raw!(
-            "UPDATE Post SET title = 'updated title' WHERE id = 'sdldsd'"
+            "UPDATE Post SET title = {} WHERE id = {}",
+            PrismaValue::String("updated title".to_string()),
+            PrismaValue::String("sdldsd".to_string())
         ))
         .await?;
     assert_eq!(count, 0);

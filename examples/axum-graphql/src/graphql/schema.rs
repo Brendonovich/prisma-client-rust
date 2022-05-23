@@ -1,8 +1,8 @@
 use async_graphql::{EmptySubscription, Schema};
 
 use crate::{
-    graphql::{mutation::Mutation, queries::Query},
     db,
+    graphql::{mutation::Mutation, query::Query},
 };
 
 pub type AppSchema = Schema<Query, Mutation, EmptySubscription>;

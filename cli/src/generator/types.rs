@@ -12,7 +12,7 @@ pub struct Root {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Generator {
-    pub output: Value,
+    pub output: EnvValue,
     pub name: String,
 }
 
@@ -21,17 +21,17 @@ pub struct Generator {
 pub struct Datasource {
     pub name: String,
     pub provider: String,
-    pub url: Value,
+    pub url: EnvValue,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Value {
-    from_env_var: Option<String>,
-    value: Option<String>,
+pub struct EnvValue {
+    pub from_env_var: Option<String>,
+    pub value: Option<String>,
 }
 
-impl Value {
+impl EnvValue {
     pub fn get_value(&self) -> String {
         match &self.from_env_var {
             Some(env_var) => match std::env::var(env_var) {
