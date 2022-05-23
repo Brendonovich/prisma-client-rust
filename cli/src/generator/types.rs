@@ -29,4 +29,18 @@ pub struct Datasource {
 pub struct EnvValue {
     pub from_env_var: Option<String>,
     pub value: String,
+
+impl EnvValue {
+    pub fn get_value(&self) -> String {
+        match &self.from_env_var {
+            Some(env_var) => match std::env::var(env_var) {
+                Ok(val) => val,
+                Err(_) => unreachable!("env var {} not found", env_var),
+            },
+            None => match &self.value {
+                Some(val) => val.clone(),
+                None => unreachable!("value not found"),
+            },
+        }
+    }
 }
