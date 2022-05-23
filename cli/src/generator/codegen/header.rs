@@ -10,7 +10,6 @@ pub fn generate(args: &GeneratorArgs) -> TokenStream {
         #![allow(warnings, unused)]
 
         use prisma_client_rust::{
-            serde::RelationResult,
             bigdecimal::{self, FromPrimitive},
             datamodel::parse_configuration,
             operator::Operator,

@@ -1,6 +1,6 @@
 use chrono::SecondsFormat;
 use prisma_models::PrismaValue;
-use serde_json::{Map, Value};
+use serde_json::{Value, json};
 
 #[macro_export]
 macro_rules! raw {
@@ -24,13 +24,10 @@ impl Raw {
             values: values
                 .into_iter()
                 .map(|v| match v {
-                    PrismaValue::DateTime(dt) => Value::Object(Map::from_iter(vec![
-                        ("prisma__type".to_string(), Value::String("date".to_string())),
-                        (
-                            "prisma__value".to_string(),
-                            Value::String(dt.to_rfc3339_opts(SecondsFormat::Millis, true)),
-                        ),
-                    ])),
+                    PrismaValue::DateTime(dt) => json!({
+                        "prisma__type": "date",
+                        "prisma__value": dt.to_rfc3339_opts(SecondsFormat::Millis, true)
+                    }),
                     v => serde_json::to_value(v).unwrap(),
                 })
                 .collect(),
@@ -44,7 +41,7 @@ impl Raw {
             let variable_indicator = match database {
                 "postgres" | "cockroachdb" => format!("${}", i),
                 "sqlite" | "mysql" => "?".to_string(),
-                _ => panic!("Raw queries are not supported with database '{}'", database),
+                _ => panic!("Raw queries are not supported with database '{database}'"),
             };
 
             query = query.replacen("{}", &variable_indicator, 1);

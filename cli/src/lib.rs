@@ -2,6 +2,7 @@ pub mod binaries;
 pub mod generator;
 pub mod jsonrpc;
 pub mod prisma_cli;
+mod keywords;
 
 use crate::{
     generator::Root,

@@ -31,7 +31,7 @@ async fn update() -> TestResult {
         )
         .exec()
         .await?;
-    assert!(post.author.is_err());
+    assert!(post.author().is_err());
     assert_eq!(post.title, "Hi from Create!");
 
     let updated = client

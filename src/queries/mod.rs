@@ -68,7 +68,11 @@ impl<'a> QueryContext<'a> {
                 .execute(None, op, ctx.schema, None)
                 .await
                 .map_err(Into::<user_facing_errors::Error>::into)
-                .map_err(Error::Execute)?;
+                .map_err(|e| {
+                    let message = e.message().to_string();
+                    Error::Execute(e, message)
+                })?;
+
             let ret = serde_json::to_value(data.data)?;
 
             Ok(ret)
@@ -83,8 +87,8 @@ impl<'a> QueryContext<'a> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Error executing query: {0:?}")]
-    Execute(user_facing_errors::Error),
+    #[error("Error executing query: {1:?}")]
+    Execute(user_facing_errors::Error, String),
 
     #[error("Error parsing query result: {0}")]
     Parse(#[from] serde_json::Error),
@@ -118,7 +122,7 @@ pub fn transform_equals<T: Into<SerializedWhere>>(
 
 pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
     match res {
-        Err(Error::Execute(err))
+        Err(Error::Execute(err, _))
             if err
                 .as_known()
                 .map(|err| {

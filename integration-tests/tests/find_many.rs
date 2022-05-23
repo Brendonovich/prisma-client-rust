@@ -221,7 +221,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
         .await?;
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].name, "Brendan");
-    assert!(users[0].profile.is_err());
+    assert!(users[0].profile().is_err());
 
     let users = client
         .user()

@@ -81,7 +81,7 @@ async fn find_unique_with() -> TestResult {
     assert_eq!(posts.len(), 4);
 
     for (i, post) in posts.iter().enumerate().collect::<Vec<_>>() {
-        assert!(post.author.is_err());
+        assert!(post.author().is_err());
         assert_eq!(post.author_id, Some(user.id.clone()));
         assert_eq!(post.title, format!("post {}", i + 1));
     }
@@ -103,9 +103,7 @@ async fn find_unique_with_optional() -> TestResult {
         .await?
         .unwrap();
 
-    let profile = user.profile.as_ref();
-
-    dbg!(&user);
+    let profile = user.profile();
 
     assert!(profile.is_ok());
     assert!(profile.unwrap().is_none());
@@ -129,7 +127,7 @@ async fn find_unique_with_optional() -> TestResult {
         .await?
         .unwrap();
 
-    let profile = user.profile;
+    let profile = user.profile();
 
     assert!(profile.is_ok());
     assert!(profile.unwrap().is_some());
@@ -271,11 +269,11 @@ async fn find_unique_with_nested_with() -> TestResult {
         .exec()
         .await?
         .unwrap();
-    assert!(user.profile.is_err());
+    assert!(user.profile().is_err());
 
     for post in user.posts.unwrap() {
         for category in post.categories.unwrap() {
-            assert!(category.posts.is_ok())
+            assert!(category.posts().is_ok())
         }
     }
 
