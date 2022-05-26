@@ -119,16 +119,7 @@ pub fn transform_equals<T: Into<SerializedWhere>>(
 
 pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
     match res {
-        Err(Error::Execute(err))
-            if err
-                .as_known()
-                .map(|err| {
-                    err.error_code == <RecordRequiredButNotFound as UserFacingError>::ERROR_CODE
-                })
-                .unwrap_or(false) =>
-        {
-            Ok(None)
-        }
+        Err(Error::Execute(err)) if error_is_type::<RecordRequiredButNotFound>(err) => Ok(None),
         res => res.map(Some),
     }
 }

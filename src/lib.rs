@@ -7,10 +7,12 @@ pub mod traits;
 pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
+use prisma_errors::UserFacingError;
 pub use prisma_models::{self, PrismaValue};
 pub use queries::*;
 pub use query_core;
 pub use serde_json;
+pub use user_facing_errors as prisma_errors;
 
 use ::serde::{Deserialize, Serialize};
 use datamodel::datamodel_connector::Diagnostics;
@@ -64,6 +66,13 @@ impl From<Diagnostics> for NewClientError {
     fn from(diagnostics: Diagnostics) -> Self {
         NewClientError::Configuration(diagnostics)
     }
+}
+
+pub fn error_is_type<T: UserFacingError>(error: &user_facing_errors::Error) -> bool {
+    error
+        .as_known()
+        .map(|e| e.error_code == <T as UserFacingError>::ERROR_CODE)
+        .unwrap_or(false)
 }
 
 #[macro_export]
