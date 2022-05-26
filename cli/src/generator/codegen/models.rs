@@ -39,8 +39,6 @@ trait FieldExt {
     
     fn type_prisma_value(&self, var: &Ident) -> TokenStream;
     
-    fn type_query_value(&self, var: &Ident) -> TokenStream;
-    
     fn relation_methods(&self) -> &'static [&'static str];
     
     fn required_on_create(&self) -> bool;
@@ -63,20 +61,9 @@ impl FieldExt for Field {
     }
     
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type().to_prisma_value(var)
+        self.field_type().to_prisma_value(var, self.arity().is_list())
     }
     
-    fn type_query_value(&self, var: &Ident) -> TokenStream {
-        if self.arity().is_list() {
-            let converter = self.type_prisma_value(&format_ident!("v"));
-            quote!(QueryValue::List(#var.into_iter().map(|v| #converter.into).collect()))
-        } else {
-            let t = self.type_prisma_value(var);
-            
-            quote!(#t.into())
-        }
-    }
-
     fn relation_methods(&self) -> &'static [&'static str] {
         if self.arity().is_list() {
             &["some", "every", "none"]
@@ -92,8 +79,7 @@ impl FieldExt for Field {
 
 trait FieldTypeExt {
     fn to_tokens(&self) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident) -> TokenStream;
-    fn to_query_value(&self, var: &Ident, is_list: bool) -> TokenStream;
+    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream;
 }
 
 impl FieldTypeExt for FieldType {
@@ -112,22 +98,23 @@ impl FieldTypeExt for FieldType {
         }
     }
     
-    fn to_prisma_value(&self, var: &Ident) -> TokenStream {
-        match self {
-            Self::Scalar(typ, _, _) => typ.to_prisma_value(var),
-            Self::Enum(_) => quote!(PrismaValue::Enum(#var.to_string())),
-            typ => unimplemented!("{:?}", typ)
-        }
-    }
-    
-    fn to_query_value(&self, var: &Ident, is_list: bool) -> TokenStream {
-        if is_list {
-            let converter = self.to_prisma_value(&format_ident!("v"));
-            quote!(QueryValue::List(#var.into_iter().map(|v| #converter.into).collect()))
+    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream {
+        let scalar_identifier = if is_list {
+            format_ident!("v")
         } else {
-            let t = self.to_prisma_value(var);
-            
-            quote!(#t.into())
+            var.clone()
+        };
+        
+        let scalar_converter = match self {
+            Self::Scalar(typ, _, _) => typ.to_prisma_value(&scalar_identifier),
+            Self::Enum(_) => quote!(PrismaValue::Enum(#scalar_identifier.to_string())),
+            typ => unimplemented!("{:?}", typ)
+        };
+        
+        if is_list {
+            quote!(PrismaValue::List(#var.into_iter().map(|v| #scalar_converter).collect()))
+        } else {
+            scalar_converter
         }
     }
 }
@@ -135,7 +122,6 @@ impl FieldTypeExt for FieldType {
 trait ScalarTypeExt {
     fn to_tokens(&self) -> TokenStream;
     fn to_prisma_value(&self, var: &Ident) -> TokenStream;
-    fn to_query_value(&self, var: &Ident, is_list: bool) -> TokenStream;
 }
 
 impl ScalarTypeExt for ScalarType {
@@ -162,17 +148,6 @@ impl ScalarTypeExt for ScalarType {
             ScalarType::Json => quote!(PrismaValue::Json(serde_json::to_string(&#var).unwrap())),
             ScalarType::DateTime => quote!(PrismaValue::DateTime(#var)),
             ScalarType::Bytes => quote!(PrismaValue::Bytes(#var)),
-        }
-    }
-    
-    fn to_query_value(&self, var: &Ident, is_list: bool) -> TokenStream {
-        if is_list {
-            let converter = self.to_prisma_value(&format_ident!("v"));
-            quote!(QueryValue::List(#var.into_iter().map(|v| #converter.into).collect()))
-        } else {
-            let t = self.to_prisma_value(var);
-            
-            quote!(#t.into())
         }
     }
 }
@@ -432,7 +407,7 @@ impl PaginationParams {
         }
     }
 
-    pub fn add_variant(&mut self, field: &Field) {
+    pub fn add_cursor_variant(&mut self, field: &Field) {
         let field_name = field.name();
         let rust_type = field.type_tokens();
         let variant_name = format_ident!("{}", field_name.to_case_safe(Case::Pascal));
@@ -443,7 +418,7 @@ impl PaginationParams {
         self.cursor_match_arms.push(quote! {
             Self::#variant_name(cursor) => (
                 #field_name.to_string(),
-                #prisma_value.into()
+                #prisma_value
             )
         });
     }
@@ -554,7 +529,7 @@ impl ModelQueryModules {
 
 struct WhereParams {
     pub variants: Vec<TokenStream>,
-    pub to_query_value: Vec<TokenStream>,
+    pub to_serialized_where: Vec<TokenStream>,
     pub unique_variants: Vec<TokenStream>,
     pub from_unique_match_arms: Vec<TokenStream>,
     pub from_optional_uniques: Vec<TokenStream>
@@ -564,7 +539,7 @@ impl WhereParams {
     pub fn new() -> Self {
         Self {
             variants: vec![],
-            to_query_value: vec![],
+            to_serialized_where: vec![],
             unique_variants: vec![],
             from_unique_match_arms: vec![],
             from_optional_uniques: vec![]
@@ -573,7 +548,7 @@ impl WhereParams {
 
     pub fn add_variant(&mut self, variant: TokenStream, match_arm: TokenStream) {
         self.variants.push(variant);
-        self.to_query_value.push(match_arm);
+        self.to_serialized_where.push(match_arm);
     }
 
     pub fn add_unique_variant(
@@ -617,7 +592,7 @@ impl WhereParams {
     pub fn quote(&self) -> TokenStream {
         let Self {
             variants,
-            to_query_value,
+            to_serialized_where,
             unique_variants,
             from_unique_match_arms,
             from_optional_uniques
@@ -631,7 +606,7 @@ impl WhereParams {
             impl Into<SerializedWhere> for WhereParam {
                 fn into(self) -> SerializedWhere {
                     match self {
-                        #(#to_query_value),*
+                        #(#to_serialized_where),*
                     }
                 }
             }
@@ -811,7 +786,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 let mut variant_data_as_types = vec![];
                 let mut variant_data_as_args = vec![];
                 let mut variant_data_as_destructured = vec![];
-                let mut variant_data_as_query_values = vec![];
+                let mut variant_data_as_prisma_values = vec![];
                 let variant_data_names = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>();
             
                 for field in &unique.fields {
@@ -828,7 +803,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                     variant_data_as_types.push(field_type);
                     variant_data_as_destructured.push(quote!(#field_name_snake));
-                    variant_data_as_query_values.push(model_field.type_query_value(&field_name_snake));
+                    variant_data_as_prisma_values.push(model_field.type_prisma_value(&field_name_snake));
                 }
 
                 let field_name_string = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>().join("_");
@@ -846,7 +821,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     quote! {
                         Self::#variant_name(#(#variant_data_as_destructured),*) => (
                             #field_name_string.to_string(),
-                            SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_query_values)),*])
+                            SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
                         )
                     },
                 );
@@ -1190,18 +1165,18 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
                     let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
-                    let type_as_query_value = root_field.type_query_value(&format_ident!("value"));
+                    let type_as_prisma_value= root_field.type_prisma_value(&format_ident!("value"));
                     
-                    let type_as_query_value = if !root_field.arity().is_optional() {
-                        type_as_query_value
+                    let type_as_prisma_value = if !root_field.arity().is_optional() {
+                        type_as_prisma_value
                     } else {
-                        quote!(value.map(|value| #type_as_query_value).unwrap_or(PrismaValue::Null))
+                        quote!(value.map(|value| #type_as_prisma_value).unwrap_or(PrismaValue::Null))
                     };
 
                     let match_arm = quote! {
                         Self::#equals_variant_name(value) => (
                             #field_string.to_string(),
-                            SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_query_value)])
+                            SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
                         )
                     };
                     
@@ -1254,6 +1229,8 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 Cursor::#field_pascal(cursor)
                             }
                         });
+                        
+                        model_pagination_params.add_cursor_variant(&root_field);
                     }
 
                     model_data_struct.add_field(match (root_field.arity().is_list(), !root_field.arity().is_optional()) {
@@ -1281,27 +1258,12 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             let method_action_string = &method.action;
 
                             let field_name = field.name.to_string();
-
-                            let (typ, value_as_query_value) = if method.is_list {
-                                let prisma_value_converter = method.typ.to_prisma_value(&format_ident!("v"));
-                                
-                                (
-                                    quote!(Vec<#typ>),
-                                    quote! {
-                                        PrismaValue::List(
-                                            value
-                                                .into_iter()
-                                                .map(|v| #prisma_value_converter.into())
-                                                .collect()
-                                        )
-                                    },
-                                )
+                            
+                            let value_as_prisma_value = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
+                            let typ = if method.is_list {
+                                quote!(Vec<#typ>)
                             } else {
-                                let as_prisma_value = method.typ.to_prisma_value(&format_ident!("value"));
-                                (
-                                    typ,
-                                    quote!(#as_prisma_value.into()),
-                                )
+                                typ
                             };
 
                             model_where_params.add_variant(
@@ -1309,7 +1271,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 quote! {
                                     Self::#variant_name(value) => (
                                         #field_name.to_string(),
-                                        SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_query_value)])
+                                        SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_prisma_value)])
                                     )
                                 },
                             );
@@ -1332,7 +1294,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 quote!(Vec<#typ>)
                             } else { typ };
                             
-                            let query_value_converter = method.typ.to_query_value(&format_ident!("value"), method.is_list);
+                            let prisma_value_converter = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
 
                             let variant_name = format_ident!("{}{}", method.name.to_case_safe(Case::Pascal), field_pascal);
 
@@ -1351,7 +1313,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                         PrismaValue::Object(
                                             vec![(
                                                 #method_action.to_string(),
-                                                #query_value_converter
+                                                #prisma_value_converter
                                             )]
                                         )
                                     )
@@ -1362,8 +1324,6 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
 
                     model_order_by_params.add_variant(field_string, &field_pascal);
 
-                    model_pagination_params.add_variant(&root_field);
-                    
                     if !model.scalar_field_has_relation(field) && root_field.required_on_create() {
                         model_actions.push_required_arg(
                             &field_snake,
