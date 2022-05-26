@@ -27,9 +27,9 @@ use query_core::{Operation, QuerySchemaRef, Selection};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use thiserror::Error;
-use user_facing_errors::{query_engine::RecordRequiredButNotFound, UserFacingError};
+use user_facing_errors::query_engine::RecordRequiredButNotFound;
 
-use crate::Executor;
+use crate::{error_is_type, Executor};
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, PrismaValue)>),
@@ -119,7 +119,7 @@ pub fn transform_equals<T: Into<SerializedWhere>>(
 
 pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
     match res {
-        Err(Error::Execute(err)) if error_is_type::<RecordRequiredButNotFound>(err) => Ok(None),
+        Err(Error::Execute(err)) if error_is_type::<RecordRequiredButNotFound>(&err) => Ok(None),
         res => res.map(Some),
     }
 }
