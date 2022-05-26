@@ -2,9 +2,11 @@
 
 The `fetch` method on relation fields allows you to include relation data in your queries, in addition to the original records. Without this you would need 2 separate queries, but `with` and `fetch` allow for it to be done in one. Loading multiple relations can be done by calling `with` multiple times, each calling `fetch` for a different relation.
 
-Accessing a relation field on a model's data cannot be done like regular fields. Instead, an accessor function is available that wraps the relation data inside a `Result` which will be an `Err` if the relation has not been fetched using a `with` call.
+There are two ways to access relation data.
+The first - and recommended - approach is to use the generated accessor functions that return `Result`s. These will contain either a reference to the relation data, or an error telling you which field you forgot to fetch.
+The second is to access the relation by its field. This gives you direct access to the data used by the accessor function, but wraps it with `Option`, which is used to determine whether the relation has been fetched. Using this is only recommended if you need to take ownership of the relation data, as dealing with nested options can be tricky and not as descriptive as the errors provided by the accessor functions.
 
-Because of this, the loading of relations can only be guaranteed at compile time if the accessor's `Result` is not able to panic - ie. `unwrap`, `expect` etc are not called on it. Some could argue that this is a weakness and that relation fetching should alter the return type, but this cannot be done without a high degree of complexity and usage of macros. This may be explored in the future but for now is out of scope of the project.
+Whether a relation has been loaded can only be guaranteed at compile time if the accessor's `Result` is not able to panic - ie. `unwrap`, `expect` etc are not called on it. Some could argue that this is a weakness and that relation fetching should alter the return type, but this cannot be done without a high degree of complexity and usage of macros. This may be explored in the future but for now is out of scope of the project.
 
 The examples use the following schema:
 

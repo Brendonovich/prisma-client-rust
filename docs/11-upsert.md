@@ -2,7 +2,7 @@
 
 Upserting allows you to update a record if it exists, or create it if it does not.
 
-To perform an upsert, first do a `upsert` query for a record with a unique filter, then specify the upsert behaviours using the `create` and `update` functions.
+To perform an upsert, do an `upsert` query with the appropriate arguments. The first argument should be unique filter, the second a set of create arguments, and lastly a list of fields to update.
 
 The examples use the following Prisma schema:
 
@@ -25,17 +25,20 @@ use prisma::post;
 
 let post: post::Data = client
     .post()
-    .upsert(post::id::equals("upsert".to_string()))
-    .create(
-        post::published::set(true),
-        post::title::set("title".to_string()),
-        post::id::set("upsert".to_string()),
-        vec![]
+    .upsert( // First argument is a unique filter
+        post::id::equals("upsert".to_string()),
+        ( // Second argument is a tuple with the same values
+          // as an equivalent call to create()
+            post::published::set(true),
+            post::title::set("title".to_string()),
+            post::id::set("upsert".to_string()),
+            vec![]
+        ),
+        vec![ // Final argument is a vec of updates
+            post::content::set(Some("new content".to_string())),
+            post::views::increment(1)
+        ]
     )
-    .update(vec![
-        post::content::set(Some("new content".to_string())),
-        post::views::increment(1)
-    ])
     .exec()
     .await
     .unwrap();
