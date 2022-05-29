@@ -1,21 +1,28 @@
-use convert_case::{Case};
-use datamodel::dml::{Model, Field, FieldType, ScalarType, FieldArity, IndexType, ScalarField};
+use convert_case::Case;
+use datamodel::dml::{Field, FieldArity, FieldType, IndexType, Model, ScalarField, ScalarType};
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
 
-use crate::{generator::{
-    GeneratorArgs,
-}, keywords::UnderscoreSafeCasing};
+use crate::{generator::GeneratorArgs, keywords::UnderscoreSafeCasing};
 
 pub struct Operator {
     pub name: &'static str,
-    pub action: &'static str
+    pub action: &'static str,
 }
 
 static OPERATORS: &'static [Operator] = &[
-    Operator { name: "Not", action: "NOT" },
-    Operator { name: "Or", action: "OR" },
-    Operator { name: "And", action: "AND" },
+    Operator {
+        name: "Not",
+        action: "NOT",
+    },
+    Operator {
+        name: "Or",
+        action: "OR",
+    },
+    Operator {
+        name: "And",
+        action: "AND",
+    },
 ];
 
 trait ModelExt {
@@ -36,11 +43,11 @@ impl ModelExt for Model {
 
 trait FieldExt {
     fn type_tokens(&self) -> TokenStream;
-    
+
     fn type_prisma_value(&self, var: &Ident) -> TokenStream;
-    
+
     fn relation_methods(&self) -> &'static [&'static str];
-    
+
     fn required_on_create(&self) -> bool;
 }
 
@@ -50,20 +57,21 @@ impl FieldExt for Field {
             FieldType::Enum(name) => {
                 let name = format_ident!("{}", name.to_case_safe(Case::Pascal));
                 quote!(#name)
-            },
+            }
             FieldType::Relation(info) => {
                 let model = format_ident!("{}", info.to.to_case_safe(Case::Snake));
                 quote!(#model::Data)
-            },
+            }
             FieldType::Scalar(typ, _, _) => typ.to_tokens(),
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
-    
+
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type().to_prisma_value(var, self.arity().is_list())
+        self.field_type()
+            .to_prisma_value(var, self.arity().is_list())
     }
-    
+
     fn relation_methods(&self) -> &'static [&'static str] {
         if self.arity().is_list() {
             &["some", "every", "none"]
@@ -73,7 +81,10 @@ impl FieldExt for Field {
     }
 
     fn required_on_create(&self) -> bool {
-        self.arity().is_required() && !self.is_updated_at() && self.default_value().is_none() && !matches!(self, Field::RelationField(r) if r.arity.is_list())
+        self.arity().is_required()
+            && !self.is_updated_at()
+            && self.default_value().is_none()
+            && !matches!(self, Field::RelationField(r) if r.arity.is_list())
     }
 }
 
@@ -88,29 +99,29 @@ impl FieldTypeExt for FieldType {
             Self::Enum(name) => {
                 let name = format_ident!("{}", name.to_case_safe(Case::Pascal));
                 quote!(#name)
-            },
+            }
             Self::Relation(info) => {
                 let model = format_ident!("{}", info.to.to_case_safe(Case::Snake));
                 quote!(#model::Data)
-            },
+            }
             Self::Scalar(typ, _, _) => typ.to_tokens(),
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
-    
+
     fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream {
         let scalar_identifier = if is_list {
             format_ident!("v")
         } else {
             var.clone()
         };
-        
+
         let scalar_converter = match self {
             Self::Scalar(typ, _, _) => typ.to_prisma_value(&scalar_identifier),
             Self::Enum(_) => quote!(PrismaValue::Enum(#scalar_identifier.to_string())),
-            typ => unimplemented!("{:?}", typ)
+            typ => unimplemented!("{:?}", typ),
         };
-        
+
         if is_list {
             quote!(PrismaValue::List(#var.into_iter().map(|v| #scalar_converter).collect()))
         } else {
@@ -137,12 +148,14 @@ impl ScalarTypeExt for ScalarType {
             ScalarType::Bytes => quote!(Vec<u8>),
         }
     }
-    
+
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {
         match self {
             ScalarType::Int => quote!(PrismaValue::Int(#var as i64)),
             ScalarType::BigInt => quote!(PrismaValue::BigInt(#var)),
-            ScalarType::Float | ScalarType::Decimal => quote!(PrismaValue::Float(bigdecimal::BigDecimal::from_f64(#var).unwrap().normalized())),
+            ScalarType::Float | ScalarType::Decimal => {
+                quote!(PrismaValue::Float(bigdecimal::BigDecimal::from_f64(#var).unwrap().normalized()))
+            }
             ScalarType::Boolean => quote!(PrismaValue::Boolean(#var)),
             ScalarType::String => quote!(PrismaValue::String(#var)),
             ScalarType::Json => quote!(PrismaValue::Json(serde_json::to_string(&#var).unwrap())),
@@ -153,7 +166,7 @@ impl ScalarTypeExt for ScalarType {
 }
 
 struct Outputs {
-    outputs: Vec<String>
+    outputs: Vec<String>,
 }
 
 impl Outputs {
@@ -164,7 +177,7 @@ impl Outputs {
                 .iter()
                 .filter(|f| matches!(f, Field::ScalarField(_)))
                 .map(|f| f.name().to_string())
-                .collect()
+                .collect(),
         }
     }
 
@@ -188,7 +201,7 @@ impl Outputs {
 struct WithParams {
     variants: Vec<TokenStream>,
     match_arms: Vec<TokenStream>,
-    from_args: Vec<TokenStream>
+    from_args: Vec<TokenStream>,
 }
 
 impl WithParams {
@@ -196,10 +209,10 @@ impl WithParams {
         Self {
             variants: vec![],
             match_arms: vec![],
-            from_args: vec![]
+            from_args: vec![],
         }
     }
-    
+
     fn with_fn(module: &Ident) -> TokenStream {
         quote! {
             pub fn with(mut self, params: impl Into<#module::WithParam>) -> Self {
@@ -208,23 +221,25 @@ impl WithParams {
             }
         }
     }
-    
+
     fn add_single_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
-        self.variants.push(quote!(#variant_name(super::#model_module::UniqueArgs)));
+        self.variants
+            .push(quote!(#variant_name(super::#model_module::UniqueArgs)));
         self.match_arms.push(quote! {
             Self::#variant_name(args) => {
                 let mut selections = super::#model_module::_outputs();
                 selections.extend(args.with_params.into_iter().map(Into::<Selection>::into));
-                
+
                 let mut builder = Selection::builder(#field_name);
                 builder.nested_selections(selections);
                 builder.build()
             }
         });
     }
-    
+
     fn add_many_variant(&mut self, field_name: &str, model_module: &Ident, variant_name: &Ident) {
-        self.variants.push(quote!(#variant_name(super::#model_module::ManyArgs)));
+        self.variants
+            .push(quote!(#variant_name(super::#model_module::ManyArgs)));
         self.match_arms.push(quote! {
             Self::#variant_name(args) => {
                 let (
@@ -232,7 +247,7 @@ impl WithParams {
                     mut nested_selections
                  ) = args.to_graphql();
                 nested_selections.extend(super::#model_module::_outputs());
-                
+
                 let mut builder = Selection::builder(#field_name);
                 builder.nested_selections(nested_selections)
                     .set_arguments(arguments);
@@ -253,7 +268,7 @@ impl WithParams {
             pub enum WithParam {
                 #(#variants),*
             }
-            
+
             impl Into<Selection> for WithParam {
                 fn into(self) -> Selection {
                     match self {
@@ -261,7 +276,7 @@ impl WithParams {
                     }
                 }
             }
-            
+
             #(#from_args)*
         }
     }
@@ -296,7 +311,7 @@ impl SetParams {
             pub enum SetParam {
                 #(#variants),*
             }
-            
+
             impl Into<(String, PrismaValue)> for SetParam {
                 fn into(self) -> (String, PrismaValue) {
                     match self {
@@ -305,7 +320,7 @@ impl SetParams {
                 }
             }
         }
-    } 
+    }
 
     pub fn field_link_variant(field_name: &str) -> Ident {
         format_ident!("Link{}", field_name.to_case_safe(Case::Pascal))
@@ -332,7 +347,7 @@ impl OrderByParams {
             match_arms: vec![],
         }
     }
-    
+
     fn order_by_fn(module: &Ident) -> TokenStream {
         quote! {
             pub fn order_by(mut self, param: #module::OrderByParam) -> Self {
@@ -346,9 +361,9 @@ impl OrderByParams {
         self.variants.push(quote!(#variant_name(Direction)));
         self.match_arms.push(quote! {
             Self::#variant_name(direction) => (
-                #field_name.to_string(), 
+                #field_name.to_string(),
                 PrismaValue::String(direction.to_string())
-            ) 
+            )
         });
     }
 
@@ -363,7 +378,7 @@ impl OrderByParams {
             pub enum OrderByParam {
                 #(#variants),*
             }
-            
+
             impl Into<(String, PrismaValue)> for OrderByParam {
                 fn into(self) -> (String, PrismaValue) {
                     match self {
@@ -387,7 +402,7 @@ impl PaginationParams {
             cursor_match_arms: vec![],
         }
     }
-    
+
     pub fn pagination_fns(module: &Ident) -> TokenStream {
         quote! {
             pub fn skip(mut self, value: i64) -> Self {
@@ -412,9 +427,9 @@ impl PaginationParams {
         let rust_type = field.type_tokens();
         let variant_name = format_ident!("{}", field_name.to_case_safe(Case::Pascal));
         let prisma_value = field.type_prisma_value(&format_ident!("cursor"));
-        
+
         self.cursor_variants.push(quote!(#variant_name(#rust_type)));
-        
+
         self.cursor_match_arms.push(quote! {
             Self::#variant_name(cursor) => (
                 #field_name.to_string(),
@@ -434,7 +449,7 @@ impl PaginationParams {
             pub enum Cursor {
                 #(#cursor_variants),*
             }
-            
+
             impl Into<(String, PrismaValue)> for Cursor {
                 fn into(self) -> (String, PrismaValue) {
                     match self {
@@ -449,7 +464,7 @@ impl PaginationParams {
 struct FieldQueryModule {
     name: Ident,
     methods: Vec<TokenStream>,
-    structs: Vec<TokenStream>
+    structs: Vec<TokenStream>,
 }
 
 impl FieldQueryModule {
@@ -460,30 +475,30 @@ impl FieldQueryModule {
             structs: vec![],
         }
     }
-    
+
     pub fn add_method(&mut self, method: TokenStream) {
         self.methods.push(method);
     }
-    
+
     pub fn add_struct(&mut self, struct_: TokenStream) {
         self.structs.push(struct_);
     }
-    
+
     pub fn quote(&self) -> TokenStream {
         let Self {
             name,
             methods,
             structs,
         } = self;
-        
+
         quote! {
             pub mod #name {
                 use super::super::*;
                 use super::{WhereParam, UniqueWhereParam, OrderByParam, Cursor, WithParam, SetParam};
                 use super::_prisma::*;
-                
+
                 #(#methods)*
-                
+
                 #(#structs)*
             }
         }
@@ -492,36 +507,39 @@ impl FieldQueryModule {
 
 struct ModelQueryModules {
     field_modules: Vec<FieldQueryModule>,
-    compound_field_accessors: Vec<TokenStream>
+    compound_field_accessors: Vec<TokenStream>,
 }
 
 impl ModelQueryModules {
     pub fn new() -> Self {
         Self {
             field_modules: vec![],
-            compound_field_accessors: vec![]
+            compound_field_accessors: vec![],
         }
     }
-    
+
     pub fn add_field_module(&mut self, field_module: FieldQueryModule) {
         self.field_modules.push(field_module);
     }
-    
+
     pub fn add_compound_field(&mut self, compound_field_accessor: TokenStream) {
         self.compound_field_accessors.push(compound_field_accessor);
     }
-    
+
     pub fn quote(&self) -> TokenStream {
-        let Self { 
+        let Self {
             field_modules,
-            compound_field_accessors
+            compound_field_accessors,
         } = self;
-        
-        let field_modules = field_modules.iter().map(|field| field.quote()).collect::<Vec<_>>();
-        
+
+        let field_modules = field_modules
+            .iter()
+            .map(|field| field.quote())
+            .collect::<Vec<_>>();
+
         quote! {
             #(#field_modules)*
-            
+
             #(#compound_field_accessors)*
         }
     }
@@ -532,7 +550,7 @@ struct WhereParams {
     pub to_serialized_where: Vec<TokenStream>,
     pub unique_variants: Vec<TokenStream>,
     pub from_unique_match_arms: Vec<TokenStream>,
-    pub from_optional_uniques: Vec<TokenStream>
+    pub from_optional_uniques: Vec<TokenStream>,
 }
 
 impl WhereParams {
@@ -542,7 +560,7 @@ impl WhereParams {
             to_serialized_where: vec![],
             unique_variants: vec![],
             from_unique_match_arms: vec![],
-            from_optional_uniques: vec![]
+            from_optional_uniques: vec![],
         }
     }
 
@@ -554,22 +572,22 @@ impl WhereParams {
     pub fn add_unique_variant(
         &mut self,
         from_unique_match_arm: TokenStream,
-        unique_variant: TokenStream
+        unique_variant: TokenStream,
     ) {
         self.unique_variants.push(unique_variant);
         self.from_unique_match_arms.push(from_unique_match_arm);
     }
-    
+
     pub fn add_optional_unique_variant(
         &mut self,
         from_unique_match_arm: TokenStream,
         unique_variant: TokenStream,
         arg_type: &TokenStream,
         variant_name: &syn::Ident,
-        struct_name: TokenStream
+        struct_name: TokenStream,
     ) {
         self.add_unique_variant(from_unique_match_arm, unique_variant);
-        
+
         self.from_optional_uniques.push(quote!{
             impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for WhereParam {
                 type Arg = Option<#arg_type>;
@@ -595,14 +613,14 @@ impl WhereParams {
             to_serialized_where,
             unique_variants,
             from_unique_match_arms,
-            from_optional_uniques
+            from_optional_uniques,
         } = self;
 
         quote! {
             pub enum WhereParam {
                 #(#variants),*
             }
-            
+
             impl Into<SerializedWhere> for WhereParam {
                 fn into(self) -> SerializedWhere {
                     match self {
@@ -622,7 +640,7 @@ impl WhereParams {
                     }
                 }
             }
-            
+
             #(#from_optional_uniques)*
 
             impl From<Operator<Self>> for WhereParam {
@@ -640,38 +658,35 @@ impl WhereParams {
 
 struct DataStruct {
     fields: Vec<TokenStream>,
-    accessors: Vec<TokenStream>
+    accessors: Vec<TokenStream>,
 }
 
 impl DataStruct {
     pub fn new() -> Self {
         Self {
             fields: vec![],
-            accessors: vec![]
+            accessors: vec![],
         }
     }
 
     pub fn add_field(&mut self, field: TokenStream) {
         self.fields.push(field);
     }
-    
+
     pub fn add_relation(&mut self, field: TokenStream, accessor: TokenStream) {
         self.add_field(field);
         self.accessors.push(accessor);
     }
 
     pub fn quote(&self) -> TokenStream {
-        let Self {
-            fields,
-            accessors
-        } = self;
+        let Self { fields, accessors } = self;
 
         quote! {
             #[derive(Debug, Clone, Serialize, Deserialize)]
             pub struct Data {
                 #(#fields),*
             }
-            
+
             impl Data {
                 #(#accessors)*
             }
@@ -697,10 +712,13 @@ impl Actions {
     }
 
     pub fn push_required_arg(&mut self, field_name: &Ident, variant_type: Ident) {
-        self.create_args.push(quote!(#field_name: #field_name::#variant_type,));
-        self.create_args_tuple_types.push(quote!(#field_name::#variant_type,));
+        self.create_args
+            .push(quote!(#field_name: #field_name::#variant_type,));
+        self.create_args_tuple_types
+            .push(quote!(#field_name::#variant_type,));
         self.create_args_destructured.push(quote!(#field_name,));
-        self.create_args_params_pushes.push(quote!(_params.push(#field_name.into());));
+        self.create_args_params_pushes
+            .push(quote!(_params.push(#field_name.into());));
     }
 }
 
@@ -739,26 +757,21 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
             );
         }
         
-        let mut unique_single_fields = vec![];
-        for unique in &model.indices {
-            if let IndexType::Unique = unique.tpe {} else { continue; }
-            
-            let variant_name_string = unique.fields.iter().map(|f| f.path[0].0.to_case_safe(Case::Pascal)).collect::<String>();
+        let mut add_unique_field = |fields: Vec<&Field>| {
+            let variant_name_string = fields.iter().map(|f| f.name().to_case_safe(Case::Pascal)).collect::<String>();
             let variant_name = format_ident!("{}Equals", &variant_name_string);
             let accessor_name = format_ident!("{}", &variant_name_string.to_case_safe(Case::Snake));
             
-            if unique.fields.len() == 1 {
-                let field = &unique.fields[0];
-                let model_field = model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap();
-                let field_string = model_field.name();
-                let field_type = model_field.type_tokens();
+            if fields.len() == 1 {
+                let field = fields[0];
                 
-                unique_single_fields.push(field_string);
-              
+                let field_string = field.name();
+                let field_type = field.type_tokens();
+                
                 let field_snake = format_ident!("{}", field_string.to_case_safe(Case::Snake)); 
                 let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
                 
-                let field_set_variant_type = match model_field.arity() {
+                let field_set_variant_type = match field.arity() {
                     FieldArity::List => quote!(Vec<#field_type>),
                     FieldArity::Required => quote!(#field_type),
                     FieldArity::Optional => quote!(Option<#field_type>)
@@ -767,7 +780,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 let equals_variant_name = format_ident!("{}Equals", &field_pascal);
                 let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
             
-                if model_field.arity().is_required() {
+                if field.arity().is_required() {
                     model_where_params.add_unique_variant(
                         quote! {
                             UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
@@ -790,15 +803,15 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 let mut variant_data_as_args = vec![];
                 let mut variant_data_as_destructured = vec![];
                 let mut variant_data_as_prisma_values = vec![];
-                let variant_data_names = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>();
+                
+                let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
             
-                for field in &unique.fields {
-                    let model_field = model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap();
-                    let field_type = model_field.type_tokens();
+                for field in &fields {
+                    let field_type = field.type_tokens();
                     
-                    let field_name_snake = format_ident!("{}", field.path[0].0.to_case_safe(Case::Snake));
+                    let field_name_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
                     
-                    let field_type = match model_field.arity().is_list() {
+                    let field_type = match field.arity().is_list() {
                         true => quote!(Vec<#field_type>),
                         false => quote!(#field_type),
                     };
@@ -806,10 +819,10 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                     variant_data_as_types.push(field_type);
                     variant_data_as_destructured.push(quote!(#field_name_snake));
-                    variant_data_as_prisma_values.push(model_field.type_prisma_value(&field_name_snake));
+                    variant_data_as_prisma_values.push(field.type_prisma_value(&field_name_snake));
                 }
 
-                let field_name_string = unique.fields.iter().map(|f| f.path[0].0.to_string()).collect::<Vec<_>>().join("_");
+                let field_name_string = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
                 model_query_module.add_compound_field(
                     quote! {
@@ -836,35 +849,32 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     quote!(#variant_name(#(#variant_data_as_types),*)),
                 );
             }
+    
+        };
+        
+        for unique in &model.indices {
+            if unique.tpe != IndexType::Unique { continue }
+            
+            add_unique_field(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
         }
         
-        // TODO: standardise this
-        
         if let Some(primary_key) = &model.primary_key {
-            if primary_key.fields.len() == 1 && !unique_single_fields.contains(&primary_key.fields[0].name.as_str()) {
-                let model_field = model.fields.iter().find(|mf| mf.name() == &primary_key.fields[0].name).unwrap();
-                let field_string = model_field.name();
-                let field_type = model_field.type_tokens();
-                
-                unique_single_fields.push(field_string);
-              
-                let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
-                
-                let field_set_variant_type = match model_field.arity() {
-                    FieldArity::List => quote!(Vec<#field_type>),
-                    FieldArity::Required => quote!(#field_type),
-                    FieldArity::Optional => quote!(Option<#field_type>)
-                };
-                
-                let equals_variant_name = format_ident!("{}Equals", &field_pascal);
-                let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
-            
-                model_where_params.add_unique_variant(
-                    quote! {
-                        UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
-                    },
-                    equals_variant
-                );
+            // if primary key is marked as unique, skip primary key handling
+            if (primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name.as_str())) || (!model.indices
+                .iter()
+                .filter(|i| i.tpe == IndexType::Unique)
+                .any(|i|
+                    i.fields
+                        .iter()
+                        .map(|f| f.path[0].0.as_str())
+                        .collect::<Vec<_>>()
+                        == 
+                    primary_key.fields
+                        .iter()
+                        .map(|f| f.name.as_str())
+                        .collect::<Vec<_>>()
+                    )) {
+                add_unique_field(primary_key.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == field.name.as_str()).unwrap()).collect::<Vec<_>>());
             }
         }
 
@@ -925,7 +935,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     if field.arity.is_list() {
                         let order_by_fn = OrderByParams::order_by_fn(&relation_type_snake);
                         let pagination_fns = PaginationParams::pagination_fns(&relation_type_snake);
-                                                                    
+
                         field_query_module.add_method(quote! {
                             pub struct Fetch {
                                 args: #relation_type_snake::ManyArgs
@@ -1002,7 +1012,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                         vec![(
                                             "disconnect".to_string(),
                                             PrismaValue::Object(
-                                                transform_equals( 
+                                                transform_equals(
                                                     where_params
                                                         .into_iter()
                                                         .map(Into::<super::#relation_type_snake::WhereParam>::into)
@@ -1453,8 +1463,8 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         ) = _create;
                         
                         #(#create_args_params_pushes)*
-                        
-                        Upsert::new( 
+
+                        Upsert::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
                             _where.into(),
