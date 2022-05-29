@@ -41,7 +41,7 @@ model Category {
 }
 
 model Profile {
-    id      Int     @id @default(autoincrement())
+    id      Int     @id @unique @default(autoincrement()) // @unique - #71
     user    User    @relation(fields: [user_id], references: [id])
     user_id String  @unique
     bio     String

@@ -99,11 +99,7 @@ fn convert_field(field: &DmmfInputField) -> Option<Method> {
 }
 
 impl GeneratorArgs {
-    pub fn new(
-        mut dml: datamodel::dml::Datamodel,
-        schema: DmmfSchema,
-        root: Root,
-    ) -> Self {
+    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, root: Root) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {

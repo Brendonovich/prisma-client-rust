@@ -739,6 +739,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
             );
         }
         
+        let mut unique_single_fields = vec![];
         for unique in &model.indices {
             if let IndexType::Unique = unique.tpe {} else { continue; }
             
@@ -751,6 +752,8 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 let model_field = model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap();
                 let field_string = model_field.name();
                 let field_type = model_field.type_tokens();
+                
+                unique_single_fields.push(field_string);
               
                 let field_snake = format_ident!("{}", field_string.to_case_safe(Case::Snake)); 
                 let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
@@ -831,6 +834,36 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
                     },
                     quote!(#variant_name(#(#variant_data_as_types),*)),
+                );
+            }
+        }
+        
+        // TODO: standardise this
+        
+        if let Some(primary_key) = &model.primary_key {
+            if primary_key.fields.len() == 1 && !unique_single_fields.contains(&primary_key.fields[0].name.as_str()) {
+                let model_field = model.fields.iter().find(|mf| mf.name() == &primary_key.fields[0].name).unwrap();
+                let field_string = model_field.name();
+                let field_type = model_field.type_tokens();
+                
+                unique_single_fields.push(field_string);
+              
+                let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
+                
+                let field_set_variant_type = match model_field.arity() {
+                    FieldArity::List => quote!(Vec<#field_type>),
+                    FieldArity::Required => quote!(#field_type),
+                    FieldArity::Optional => quote!(Option<#field_type>)
+                };
+                
+                let equals_variant_name = format_ident!("{}Equals", &field_pascal);
+                let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
+            
+                model_where_params.add_unique_variant(
+                    quote! {
+                        UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
+                    },
+                    equals_variant
                 );
             }
         }
@@ -1182,39 +1215,26 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     model_where_params.add_variant(equals_variant.clone(), match_arm);
                     
-                    if model.field_is_primary(field_string) {
-                        model_where_params.add_unique_variant(
-                            quote! {
-                                UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
-                            },
-                            equals_variant
-                        );
-                        field_query_module.add_method(quote! {
-                            pub fn equals<T: From<UniqueWhereParam>>(value: #field_set_variant_type) -> T {
-                                UniqueWhereParam::#equals_variant_name(value).into()
-                            }
-                        });
-                    } else if model.field_is_unique(field_string) {
-                        if field.arity.is_required() {
-                            field_query_module.add_method(quote! {
+                    // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
+                    field_query_module.add_method(
+                        match (model.field_is_primary(field_string), model.field_is_unique(field_string), field.arity.is_required()) {
+                            (true, _, _) | (_, true, true) => quote! {
                                 pub fn equals<T: From<UniqueWhereParam>>(value: #field_set_variant_type) -> T {
                                     UniqueWhereParam::#equals_variant_name(value).into()
                                 }
-                            });
-                        } else {
-                            field_query_module.add_method(quote! {
+                            },
+                            (_, true, false) => quote! {
                                 pub fn equals<A, T: prisma_client_rust::traits::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
                                     T::from_arg(value)
                                 }
-                            });
-                        }
-                    } else {
-                        field_query_module.add_method(quote! {
-                            pub fn equals(value: #field_set_variant_type) -> WhereParam {
-                                WhereParam::#equals_variant_name(value).into()
+                            },
+                            (_, _, _) => quote! {
+                                pub fn equals(value: #field_set_variant_type) -> WhereParam {
+                                    WhereParam::#equals_variant_name(value).into()
+                                }
                             }
-                        });
-                    }
+                        }
+                    );
 
                     // Pagination
                     field_query_module.add_method(quote! {
