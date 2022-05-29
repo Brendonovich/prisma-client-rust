@@ -74,7 +74,7 @@ where
         let this = self.as_ref();
 
         match &this[this.len() - 1..] {
-            "_" if this.len() >= 2 => (&this[0..this.len() - 2]).to_case(case) + "_",
+            "_" if this.len() >= 2 => (&this[0..this.len() - 1]).to_case(case) + "_",
             _ => this.to_case(case),
         }
     }
