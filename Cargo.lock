@@ -2598,7 +2598,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "convert_case",
  "datamodel",
