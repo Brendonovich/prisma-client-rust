@@ -1,9 +1,7 @@
-use convert_case::Case;
-use datamodel::dml::{Field, FieldArity, FieldType, IndexType, Model, ScalarField, ScalarType};
+use datamodel::dml::{Field, FieldArity, IndexType, Model}; 
+use prisma_client_rust_sdk::{Case, Casing, extensions::*, GenerateArgs};
 use quote::{__private::TokenStream, format_ident, quote};
 use syn::Ident;
-
-use crate::{generator::GeneratorArgs, keywords::UnderscoreSafeCasing};
 
 pub struct Operator {
     pub name: &'static str,
@@ -24,141 +22,6 @@ static OPERATORS: &'static [Operator] = &[
         action: "AND",
     },
 ];
-
-trait ModelExt {
-    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool;
-}
-
-impl ModelExt for Model {
-    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool {
-        self.fields.iter().any(|field| {
-            if let FieldType::Relation(info) = field.field_type() {
-                info.fields.iter().any(|f| f == &scalar.name)
-            } else {
-                false
-            }
-        })
-    }
-}
-
-trait FieldExt {
-    fn type_tokens(&self) -> TokenStream;
-
-    fn type_prisma_value(&self, var: &Ident) -> TokenStream;
-
-    fn relation_methods(&self) -> &'static [&'static str];
-
-    fn required_on_create(&self) -> bool;
-}
-
-impl FieldExt for Field {
-    fn type_tokens(&self) -> TokenStream {
-        let single_type = self.field_type().to_tokens();
-        
-        match self.arity() {
-            FieldArity::Required => single_type,
-            FieldArity::Optional => quote!(Option<#single_type>),
-            FieldArity::List => quote!(Vec<#single_type>),
-        }
-    }
-
-    fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type()
-            .to_prisma_value(var, self.arity().is_list())
-    }
-
-    fn relation_methods(&self) -> &'static [&'static str] {
-        if self.arity().is_list() {
-            &["some", "every", "none"]
-        } else {
-            &["is", "is_not"]
-        }
-    }
-
-    fn required_on_create(&self) -> bool {
-        self.arity().is_required()
-            && !self.is_updated_at()
-            && self.default_value().is_none()
-            && !matches!(self, Field::RelationField(r) if r.arity.is_list())
-    }
-}
-
-trait FieldTypeExt {
-    fn to_tokens(&self) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream;
-}
-
-impl FieldTypeExt for FieldType {
-    fn to_tokens(&self) -> TokenStream {
-        match self {
-            Self::Enum(name) => {
-                let name = format_ident!("{}", name.to_case_safe(Case::Pascal));
-                quote!(#name)
-            }
-            Self::Relation(info) => {
-                let model = format_ident!("{}", info.to.to_case_safe(Case::Snake));
-                quote!(#model::Data)
-            }
-            Self::Scalar(typ, _, _) => typ.to_tokens(),
-            _ => unimplemented!(),
-        }
-    }
-
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream {
-        let scalar_identifier = if is_list {
-            format_ident!("v")
-        } else {
-            var.clone()
-        };
-
-        let scalar_converter = match self {
-            Self::Scalar(typ, _, _) => typ.to_prisma_value(&scalar_identifier),
-            Self::Enum(_) => quote!(PrismaValue::Enum(#scalar_identifier.to_string())),
-            typ => unimplemented!("{:?}", typ),
-        };
-
-        if is_list {
-            quote!(PrismaValue::List(#var.into_iter().map(|v| #scalar_converter).collect()))
-        } else {
-            scalar_converter
-        }
-    }
-}
-
-trait ScalarTypeExt {
-    fn to_tokens(&self) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident) -> TokenStream;
-}
-
-impl ScalarTypeExt for ScalarType {
-    fn to_tokens(&self) -> TokenStream {
-        match self {
-            ScalarType::Int => quote!(i32),
-            ScalarType::BigInt => quote!(i64),
-            ScalarType::Float | ScalarType::Decimal => quote!(f64),
-            ScalarType::Boolean => quote!(bool),
-            ScalarType::String => quote!(String),
-            ScalarType::Json => quote!(serde_json::Value),
-            ScalarType::DateTime => quote!(chrono::DateTime<chrono::FixedOffset>),
-            ScalarType::Bytes => quote!(Vec<u8>),
-        }
-    }
-
-    fn to_prisma_value(&self, var: &Ident) -> TokenStream {
-        match self {
-            ScalarType::Int => quote!(PrismaValue::Int(#var as i64)),
-            ScalarType::BigInt => quote!(PrismaValue::BigInt(#var)),
-            ScalarType::Float | ScalarType::Decimal => {
-                quote!(PrismaValue::Float(bigdecimal::BigDecimal::from_f64(#var).unwrap().normalized()))
-            }
-            ScalarType::Boolean => quote!(PrismaValue::Boolean(#var)),
-            ScalarType::String => quote!(PrismaValue::String(#var)),
-            ScalarType::Json => quote!(PrismaValue::Json(serde_json::to_string(&#var).unwrap())),
-            ScalarType::DateTime => quote!(PrismaValue::DateTime(#var)),
-            ScalarType::Bytes => quote!(PrismaValue::Bytes(#var)),
-        }
-    }
-}
 
 struct Outputs {
     outputs: Vec<String>,
@@ -318,15 +181,15 @@ impl SetParams {
     }
 
     pub fn field_link_variant(field_name: &str) -> Ident {
-        format_ident!("Link{}", field_name.to_case_safe(Case::Pascal))
+        format_ident!("Link{}", field_name.to_case(Case::Pascal))
     }
 
     pub fn field_unlink_variant(field_name: &str) -> Ident {
-        format_ident!("Unlink{}", field_name.to_case_safe(Case::Pascal))
+        format_ident!("Unlink{}", field_name.to_case(Case::Pascal))
     }
 
     pub fn field_set_variant(field_name: &str) -> Ident {
-        format_ident!("Set{}", field_name.to_case_safe(Case::Pascal))
+        format_ident!("Set{}", field_name.to_case(Case::Pascal))
     }
 }
 
@@ -469,7 +332,7 @@ struct FieldQueryModule {
 impl FieldQueryModule {
     pub fn new(field: &Field) -> Self {
         Self {
-            name: format_ident!("{}", field.name().to_case_safe(Case::Snake)),
+            name: format_ident!("{}", field.name().to_case(Case::Snake)),
             methods: vec![],
             structs: vec![],
         }
@@ -523,7 +386,7 @@ impl ModelQueryModules {
 
     pub fn add_compound_field(&mut self, accessor_name_str: &str, variant_data_args: &Vec<TokenStream>, variant_data_destructured: &Vec<Ident>) {
         let accessor_name = format_ident!("{}", accessor_name_str);
-        let variant_name = format_ident!("{}Equals", accessor_name_str.to_case_safe(Case::Pascal));
+        let variant_name = format_ident!("{}Equals", accessor_name_str.to_case(Case::Pascal));
         
         self.compound_field_accessors.push(quote! {
             pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_args),*) -> T {
@@ -582,7 +445,7 @@ impl WhereParams {
         
         let field_type = field.type_tokens();
 
-        let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
+        let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
 
 
         let variant_name = format_ident!("{}Equals", &field_pascal);
@@ -604,8 +467,8 @@ impl WhereParams {
         
         let field_base_type = field.field_type().to_tokens();
 
-        let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
-        let field_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
+        let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
+        let field_snake = format_ident!("{}", field.name().to_case(Case::Snake));
 
         let variant_name = format_ident!("{}Equals", &field_pascal);
         
@@ -765,7 +628,7 @@ impl Actions {
     }
 }
 
-pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
+pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
     args.dml.models.iter().map(|model| {
         let model_outputs = Outputs::new(&model);
         let mut model_data_struct = DataStruct::new();
@@ -778,10 +641,10 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
         let mut model_actions = Actions::new();
         
         let model_name_string = &model.name;
-        let model_name_snake = format_ident!("{}", model.name.to_case_safe(Case::Snake));
+        let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
  
         for op in OPERATORS {
-            let variant_name = format_ident!("{}", op.name.to_case_safe(Case::Pascal));
+            let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
             let op_action = &op.action;
 
             model_where_params.add_variant(
@@ -809,7 +672,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     _ => model_where_params.add_unique_variant(field),
                 }
             } else {
-                let variant_name_string = fields.iter().map(|f| f.name().to_case_safe(Case::Pascal)).collect::<String>();
+                let variant_name_string = fields.iter().map(|f| f.name().to_case(Case::Pascal)).collect::<String>();
                 let variant_name = format_ident!("{}Equals", &variant_name_string);
                 
                 let mut variant_data_as_types = vec![];
@@ -822,7 +685,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 for field in &fields {
                     let field_base_type = field.field_type().to_tokens();
                     
-                    let field_name_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
+                    let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
                     
                     let field_type = match field.arity().is_list() {
                         true => quote!(Vec<#field_base_type>),
@@ -837,7 +700,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
 
                 let field_name_string = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
-                model_query_module.add_compound_field(&variant_name_string.to_case_safe(Case::Snake), &variant_data_as_args, &variant_data_as_destructured);
+                model_query_module.add_compound_field(&variant_name_string.to_case(Case::Snake), &variant_data_as_args, &variant_data_as_destructured);
 
                 model_where_params.add_variant(
                     quote!(#variant_name(#(#variant_data_as_types),*)),
@@ -884,8 +747,8 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 FieldQueryModule::new(&root_field);
 
             let field_string = root_field.name();
-            let field_snake = format_ident!("{}", field_string.to_case_safe(Case::Snake));
-            let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
+            let field_snake = format_ident!("{}", field_string.to_case(Case::Snake));
+            let field_pascal = format_ident!("{}", field_string.to_case(Case::Pascal));
             let field_type = root_field.type_tokens();
             let field_base_type = root_field.field_type().to_tokens();
             
@@ -894,17 +757,17 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     let link_variant = SetParams::field_link_variant(field_string);
                     let unlink_variant = SetParams::field_unlink_variant(field_string);
                     
-                    let relation_type_snake = format_ident!("{}", field.relation_info.to.to_case_safe(Case::Snake));
+                    let relation_type_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
                     
                     let relation_data_access_error = format!(
                         "Attempted to access '{}' but did not fetch it using the .with() syntax",
-                        field_string.to_case_safe(Case::Snake)
+                        field_string.to_case(Case::Snake)
                     );
                     
                     for method in root_field.relation_methods() {
-                        let method_action_string = method.to_case_safe(Case::Camel);
-                        let variant_name = format_ident!("{}{}", &field_pascal, method.to_case_safe(Case::Pascal));
-                        let method_name_snake = format_ident!("{}", method.to_case_safe(Case::Snake));
+                        let method_action_string = method.to_case(Case::Camel);
+                        let variant_name = format_ident!("{}{}", &field_pascal, method.to_case(Case::Pascal));
+                        let method_name_snake = format_ident!("{}", method.to_case(Case::Snake));
                         
                         model_where_params.add_variant(
                             quote!(#variant_name(Vec<super::#relation_type_snake::WhereParam>)),
@@ -1275,9 +1138,9 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         for method in &read_type.methods {
                             let typ = method.typ.to_tokens();
 
-                            let method_name = format_ident!("{}", method.name.to_case_safe(Case::Snake));
+                            let method_name = format_ident!("{}", method.name.to_case(Case::Snake));
                             let variant_name =
-                                format_ident!("{}{}", &field_pascal, method.name.to_case_safe(Case::Pascal));
+                                format_ident!("{}{}", &field_pascal, method.name.to_case(Case::Pascal));
                             let method_action_string = &method.action;
 
                             let field_name = field.name.to_string();
@@ -1311,7 +1174,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         for method in &write_type.methods {
                             let typ = method.typ.to_tokens();
 
-                            let method_name_snake = format_ident!("{}", method.name.to_case_safe(Case::Snake));
+                            let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
                             let typ = if method.is_list {
                                 quote!(Vec<#typ>)
@@ -1319,7 +1182,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                             
                             let prisma_value_converter = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
 
-                            let variant_name = format_ident!("{}{}", method.name.to_case_safe(Case::Pascal), field_pascal);
+                            let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_pascal);
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> SetParam {

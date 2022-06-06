@@ -1,9 +1,8 @@
-use convert_case::{Case, Casing};
-use quote::{__private::TokenStream, format_ident, quote};
+use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
-use crate::generator::GeneratorArgs;
-
-pub fn generate(args: &GeneratorArgs) -> TokenStream {
+pub fn generate(args: &GenerateArgs) -> TokenStream {
     let model_actions = args
         .dml
         .models

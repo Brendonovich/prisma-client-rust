@@ -24,11 +24,6 @@ pub fn binary_platform_name() -> String {
     name
 }
 
-pub enum Arch {
-    X64,
-    Arm64,
-}
-
 pub fn arch() -> String {
     match env::consts::ARCH {
         "x86_64" => "x64".to_string(),

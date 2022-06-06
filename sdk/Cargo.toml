@@ -1,17 +1,21 @@
 [package]
-name = "prisma-client-rust-cli"
+name = "prisma-client-rust-sdk"
 version = "0.5.1"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 
 [dependencies]
+convert_case = "0.5.0"
+http = "0.2.6"
+directories = "4.0.1"
+flate2 = "1.0.23"
+regex = "1.5.5"
 serde_path_to_error = "0.1.7"
 quote = "1.0.18"
+reqwest = { version = "0.11.10", features = ["blocking"] }
 syn = "1.0.91"
 serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
-
-prisma-client-rust-sdk = { path = "../sdk" }
 
 datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
 prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }

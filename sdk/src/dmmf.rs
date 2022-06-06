@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct EngineDMMF {
     pub generator: Generator,
     pub schema_path: String,
     pub datamodel: String,
@@ -27,8 +27,8 @@ pub struct Datasource {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvValue {
-    pub from_env_var: Option<String>,
-    pub value: Option<String>,
+    from_env_var: Option<String>,
+    value: Option<String>,
 }
 
 impl EnvValue {
@@ -36,11 +36,11 @@ impl EnvValue {
         match &self.from_env_var {
             Some(env_var) => match std::env::var(env_var) {
                 Ok(val) => val,
-                Err(_) => unreachable!("env var {} not found", env_var),
+                Err(_) => panic!("env var {} not found", env_var),
             },
             None => match &self.value {
                 Some(val) => val.clone(),
-                None => unreachable!("value not found"),
+                None => panic!("value not found"),
             },
         }
     }

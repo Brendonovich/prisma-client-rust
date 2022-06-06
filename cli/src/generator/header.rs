@@ -1,8 +1,8 @@
 use quote::{__private::TokenStream, quote};
 
-use crate::generator::GeneratorArgs;
+use crate::generator::GenerateArgs;
 
-pub fn generate(args: &GeneratorArgs) -> TokenStream {
+pub fn generate(args: &GenerateArgs) -> TokenStream {
     let datamodel = &args.root.datamodel;
     let database_string = &args.root.datasources[0].provider;
 

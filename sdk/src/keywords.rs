@@ -1,5 +1,3 @@
-use convert_case::{Case, Casing};
-
 pub const KEYWORDS: &'static [&'static str] = &[
     "as",
     "break",
@@ -58,24 +56,6 @@ pub const KEYWORDS: &'static [&'static str] = &[
     "dyn",
 ];
 
-pub fn is_reserved_name(name: &str) -> bool {
+pub fn is_reserved_keyword(name: &str) -> bool {
     KEYWORDS.contains(&name)
-}
-
-pub trait UnderscoreSafeCasing {
-    fn to_case_safe(&self, case: Case) -> String;
-}
-
-impl<T: AsRef<str>> UnderscoreSafeCasing for T
-where
-    String: PartialEq<T>,
-{
-    fn to_case_safe(&self, case: Case) -> String {
-        let this = self.as_ref();
-
-        match &this[this.len() - 1..] {
-            "_" if this.len() >= 2 => (&this[0..this.len() - 1]).to_case(case) + "_",
-            _ => this.to_case(case),
-        }
-    }
 }
