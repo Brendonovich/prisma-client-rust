@@ -220,7 +220,7 @@ async fn update_id_field_atomic() -> TestResult {
     let record = client.types().create(vec![]).exec().await?;
     let updated = client
         .types()
-        .find_unique(types::id::equals(record.id))
+        .find_unique(types::id_string(record.id, "".to_string()))
         .update(vec![types::id::increment(500)])
         .exec()
         .await?

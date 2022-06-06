@@ -522,8 +522,15 @@ impl ModelQueryModules {
         self.field_modules.push(field_module);
     }
 
-    pub fn add_compound_field(&mut self, compound_field_accessor: TokenStream) {
-        self.compound_field_accessors.push(compound_field_accessor);
+    pub fn add_compound_field(&mut self, accessor_name_str: &str, variant_data_args: &Vec<TokenStream>, variant_data_destructured: &Vec<Ident>) {
+        let accessor_name = format_ident!("{}", accessor_name_str);
+        let variant_name = format_ident!("{}Equals", accessor_name_str.to_case_safe(Case::Pascal));
+        
+        self.compound_field_accessors.push(quote! {
+            pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_args),*) -> T {
+                UniqueWhereParam::#variant_name(#(#variant_data_destructured),*).into()
+            }
+        });
     }
 
     pub fn quote(&self) -> TokenStream {
@@ -569,41 +576,80 @@ impl WhereParams {
         self.to_serialized_where.push(match_arm);
     }
 
-    pub fn add_unique_variant(
-        &mut self,
-        from_unique_match_arm: TokenStream,
-        unique_variant: TokenStream,
-    ) {
-        self.unique_variants.push(unique_variant);
-        self.from_unique_match_arms.push(from_unique_match_arm);
+    pub fn add_unique_variant(&mut self, field: &Field) {
+        let field_type = field.type_tokens();
+
+        let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
+
+        let field_type = match field.arity() {
+            FieldArity::List => quote!(Vec<#field_type>),
+            FieldArity::Required => quote!(#field_type),
+            _ => unreachable!("unexpected field arity"),
+        };
+
+        let variant_name = format_ident!("{}Equals", &field_pascal);
+        self.unique_variants
+            .push(quote!(#variant_name(#field_type)));
+
+        self.from_unique_match_arms.push(quote! {
+            UniqueWhereParam::#variant_name(value) => Self::#variant_name(value)
+        });
     }
 
     pub fn add_optional_unique_variant(
         &mut self,
-        from_unique_match_arm: TokenStream,
-        unique_variant: TokenStream,
-        arg_type: &TokenStream,
-        variant_name: &syn::Ident,
-        struct_name: TokenStream,
+        field: &Field
+        // from_unique_match_arm: TokenStream,
+        // unique_variant: TokenStream,
+        // arg_type: &TokenStream,
+        // variant_name: &syn::Ident,
+        // struct_name: TokenStream,
     ) {
-        self.add_unique_variant(from_unique_match_arm, unique_variant);
+        let field_type = field.type_tokens();
+
+        let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
+        let field_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
+
+        let variant_name = format_ident!("{}Equals", &field_pascal);
+        
+        self.unique_variants
+            .push(quote!(#variant_name(#field_type)));
+
+        self.from_unique_match_arms.push(quote! {
+            UniqueWhereParam::#variant_name(value) => Self::#variant_name(Some(value))
+        });
 
         self.from_optional_uniques.push(quote!{
-            impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for WhereParam {
-                type Arg = Option<#arg_type>;
+            impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
+                type Arg = Option<#field_type>;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                     Self::#variant_name(arg)
                 }
             }
             
-            impl prisma_client_rust::traits::FromOptionalUniqueArg<#struct_name> for UniqueWhereParam {
-                type Arg = #arg_type;
+            impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
+                type Arg = #field_type;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                     Self::#variant_name(arg)
                 }
             }
+        });
+    }
+
+    pub fn add_compound_unique_variant(
+        &mut self,
+        field_names_str: &str,
+        variant_data_destructured: &Vec<Ident>,
+        variant_data_types: &Vec<TokenStream>,
+    ) {
+        let variant_name = format_ident!("{}Equals", field_names_str);
+
+        self.unique_variants
+            .push(quote!(#variant_name(#(#variant_data_types),*)));
+        self.from_unique_match_arms.push(quote! {
+            UniqueWhereParam::#variant_name(#(#variant_data_destructured),*) => Self::#variant_name(#(#variant_data_destructured),*)
         });
     }
 
@@ -757,48 +803,18 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
             );
         }
         
-        let mut add_unique_field = |fields: Vec<&Field>| {
-            let variant_name_string = fields.iter().map(|f| f.name().to_case_safe(Case::Pascal)).collect::<String>();
-            let variant_name = format_ident!("{}Equals", &variant_name_string);
-            let accessor_name = format_ident!("{}", &variant_name_string.to_case_safe(Case::Snake));
-            
+        let mut add_unique_variant = |fields: Vec<&Field>| {
             if fields.len() == 1 {
                 let field = fields[0];
                 
-                let field_string = field.name();
-                let field_type = field.type_tokens();
-                
-                let field_snake = format_ident!("{}", field_string.to_case_safe(Case::Snake)); 
-                let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
-                
-                let field_set_variant_type = match field.arity() {
-                    FieldArity::List => quote!(Vec<#field_type>),
-                    FieldArity::Required => quote!(#field_type),
-                    FieldArity::Optional => quote!(Option<#field_type>)
-                };
-                
-                let equals_variant_name = format_ident!("{}Equals", &field_pascal);
-                let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
-            
-                if field.arity().is_required() {
-                    model_where_params.add_unique_variant(
-                        quote! {
-                            UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(value)
-                        },
-                        equals_variant
-                    );
-                } else {
-                    model_where_params.add_optional_unique_variant(
-                        quote! {
-                            UniqueWhereParam::#equals_variant_name(value) => Self::#equals_variant_name(Some(value))
-                        },
-                        quote!(#equals_variant_name(#field_type)),
-                        &field_type,
-                        &equals_variant_name,
-                        quote!(#field_snake::Set)
-                    );
+                match field.arity()  {
+                    FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
+                    _ => model_where_params.add_unique_variant(field),
                 }
             } else {
+                let variant_name_string = fields.iter().map(|f| f.name().to_case_safe(Case::Pascal)).collect::<String>();
+                let variant_name = format_ident!("{}Equals", &variant_name_string);
+                
                 let mut variant_data_as_types = vec![];
                 let mut variant_data_as_args = vec![];
                 let mut variant_data_as_destructured = vec![];
@@ -818,19 +834,13 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                     variant_data_as_types.push(field_type);
-                    variant_data_as_destructured.push(quote!(#field_name_snake));
                     variant_data_as_prisma_values.push(field.type_prisma_value(&field_name_snake));
+                    variant_data_as_destructured.push(field_name_snake);
                 }
 
                 let field_name_string = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
-                model_query_module.add_compound_field(
-                    quote! {
-                        pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_as_args),*) -> T {
-                            UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*).into()
-                        }
-                    }
-                );
+                model_query_module.add_compound_field(&variant_name_string.to_case_safe(Case::Snake), &variant_data_as_args, &variant_data_as_destructured);
 
                 model_where_params.add_variant(
                     quote!(#variant_name(#(#variant_data_as_types),*)),
@@ -842,20 +852,14 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     },
                 );
                 
-                model_where_params.add_unique_variant(
-                    quote! {
-                        UniqueWhereParam::#variant_name(#(#variant_data_as_destructured),*) => Self::#variant_name(#(#variant_data_as_destructured),*)
-                    },
-                    quote!(#variant_name(#(#variant_data_as_types),*)),
-                );
+                model_where_params.add_compound_unique_variant(&variant_name_string, &variant_data_as_destructured, &variant_data_as_types);
             }
-    
         };
         
         for unique in &model.indices {
             if unique.tpe != IndexType::Unique { continue }
             
-            add_unique_field(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
+            add_unique_variant(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
         }
         
         if let Some(primary_key) = &model.primary_key {
@@ -874,7 +878,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         .map(|f| f.name.as_str())
                         .collect::<Vec<_>>()
                     )) {
-                add_unique_field(primary_key.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == field.name.as_str()).unwrap()).collect::<Vec<_>>());
+                add_unique_variant(primary_key.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == field.name.as_str()).unwrap()).collect::<Vec<_>>());
             }
         }
 

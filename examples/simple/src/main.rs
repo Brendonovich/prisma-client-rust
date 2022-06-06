@@ -16,7 +16,8 @@ pub async fn main() {
                 .take(5),
         )
         .exec()
-        .await;
+        .await
+        .unwrap();
 
     let user = client
         .user()
