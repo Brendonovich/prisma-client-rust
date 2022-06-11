@@ -1,6 +1,7 @@
 use datamodel::dml::{Field, FieldArity, IndexType, Model}; 
-use prisma_client_rust_sdk::{Case, Casing, extensions::*, GenerateArgs};
-use quote::{__private::TokenStream, format_ident, quote};
+use prisma_client_rust_sdk::*;
+use quote::{format_ident, quote};
+use proc_macro2::TokenStream;
 use syn::Ident;
 
 pub struct Operator {
@@ -22,7 +23,6 @@ static OPERATORS: &'static [Operator] = &[
         action: "AND",
     },
 ];
-
 struct Outputs {
     outputs: Vec<String>,
 }
@@ -123,6 +123,7 @@ impl WithParams {
         } = self;
 
         quote! {
+            #[derive(Clone)]
             pub enum WithParam {
                 #(#variants),*
             }
@@ -166,6 +167,7 @@ impl SetParams {
         } = self;
 
         quote! {
+            #[derive(Clone)]
             pub enum SetParam {
                 #(#variants),*
             }
@@ -233,6 +235,7 @@ impl OrderByParams {
         } = self;
 
         quote! {
+            #[derive(Clone)]
             pub enum OrderByParam {
                 #(#variants),*
             }
@@ -308,6 +311,7 @@ impl PaginationParams {
         } = self;
 
         quote! {
+            #[derive(Clone)]
             pub enum Cursor {
                 #(#cursor_variants),*
             }
@@ -523,6 +527,7 @@ impl WhereParams {
         } = self;
 
         quote! {
+            #[derive(Clone)]
             pub enum WhereParam {
                 #(#variants),*
             }
@@ -535,6 +540,7 @@ impl WhereParams {
                 }
             }
 
+            #[derive(Clone)]
             pub enum UniqueWhereParam {
                 #(#unique_variants),*
             }
