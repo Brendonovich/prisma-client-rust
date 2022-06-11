@@ -100,6 +100,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct UniqueArgs<With>
 where
     With: Into<Selection>,

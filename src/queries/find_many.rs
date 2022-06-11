@@ -153,6 +153,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct ManyArgs<Where, With, OrderBy, Cursor>
 where
     Where: Into<SerializedWhere>,
