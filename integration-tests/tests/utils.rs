@@ -67,6 +67,13 @@ pub async fn cleanup(client: PrismaClient) -> TestResult {
         .exec()
         .await
         .unwrap();
+    client
+        .types()
+        .find_many(vec![])
+        .delete()
+        .exec()
+        .await
+        .unwrap();
 
     Ok(())
 }

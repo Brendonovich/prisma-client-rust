@@ -1,4 +1,6 @@
+mod errors;
 pub mod operator;
+mod prisma_value;
 pub mod queries;
 pub mod raw;
 pub mod serde;
@@ -7,20 +9,20 @@ pub mod traits;
 pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
-use prisma_errors::UserFacingError;
 pub use prisma_models::{self, PrismaValue};
-pub use queries::*;
 pub use query_core;
 pub use serde_json;
 pub use user_facing_errors as prisma_errors;
 
+pub use errors::*;
+pub use queries::*;
+
 use ::serde::{Deserialize, Serialize};
-use datamodel::datamodel_connector::Diagnostics;
-use query_core::{CoreError, Selection};
-use thiserror::Error;
+use query_core::Selection;
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
+/// The return type of `findMany` queries.
 #[derive(Deserialize)]
 pub struct BatchResult {
     pub count: i64,
@@ -33,7 +35,10 @@ impl BatchResult {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+/// Direction that a query's results should be ordered by.
+///
+/// Only needs to be used in the `order` function of fields.
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Direction {
     #[serde(rename = "asc")]
     Asc,
@@ -48,31 +53,6 @@ impl ToString for Direction {
             Direction::Desc => "desc".to_string(),
         }
     }
-}
-
-#[derive(Debug, Error)]
-pub enum NewClientError {
-    #[error("Error configuring database connection: {0}")]
-    Configuration(Diagnostics),
-
-    #[error("Error loading database executor: {0}")]
-    Executor(#[from] CoreError),
-
-    #[error("Error getting database connection: {0}")]
-    Connection(#[from] query_connector::error::ConnectorError),
-}
-
-impl From<Diagnostics> for NewClientError {
-    fn from(diagnostics: Diagnostics) -> Self {
-        NewClientError::Configuration(diagnostics)
-    }
-}
-
-pub fn error_is_type<T: UserFacingError>(error: &user_facing_errors::Error) -> bool {
-    error
-        .as_known()
-        .map(|e| e.error_code == <T as UserFacingError>::ERROR_CODE)
-        .unwrap_or(false)
 }
 
 #[macro_export]

@@ -22,18 +22,16 @@ pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
-use prisma_models::PrismaValue;
 use query_core::{Operation, QuerySchemaRef, Selection};
-use serde::de::DeserializeOwned;
-use serde_json::Value;
+use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 use user_facing_errors::query_engine::RecordRequiredButNotFound;
 
-use crate::{error_is_type, Executor};
+use crate::{error_is_type, prisma_value, Executor};
 
 pub enum SerializedWhereValue {
-    Object(Vec<(String, PrismaValue)>),
-    List(Vec<PrismaValue>),
+    Object(Vec<(String, prisma_models::PrismaValue)>),
+    List(Vec<prisma_models::PrismaValue>),
 }
 
 pub type SerializedWhere = (String, SerializedWhereValue);
@@ -62,21 +60,20 @@ impl<'a> QueryContext<'a> {
     }
 
     pub async fn execute<T: DeserializeOwned>(self, operation: Operation) -> Result<T> {
-        async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<Value> {
-            let data = ctx
+        async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<serde_value::Value> {
+            let response = ctx
                 .executor
                 .execute(None, op, ctx.schema, None)
                 .await
-                .map_err(Into::<user_facing_errors::Error>::into)
-                .map_err(Error::Execute)?;
+                .map_err(|e| Error::Execute(e.into()))?;
 
-            let ret = serde_json::to_value(data.data)?;
+            let data: prisma_value::Item = response.data.into();
 
-            Ok(ret)
+            Ok(serde_value::to_value(data)?)
         }
 
         let value = inner(self, operation).await?;
-        let ret = serde_json::from_value(value)?;
+        let ret = T::deserialize(value.into_deserializer())?;
 
         Ok(ret)
     }
@@ -87,15 +84,23 @@ pub enum Error {
     #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
     Execute(user_facing_errors::Error),
 
-    #[error("Error parsing query result: {0}")]
-    Parse(#[from] serde_json::Error),
+    #[error("Error serializing query result: {0}")]
+    Serialize(#[from] serde_value::SerializerError),
+
+    #[error("Error deserializing query result into return type: {0}")]
+    Deserialize(#[from] serde_value::DeserializerError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Iterates each item in a list of seralized WhereParams, checks if the item is an object with
+/// the key `equals`, and if so then maps the value corresponding to the `equals` key to the object itself.
+///
+/// This is required since `equals` isn't actually necessary in a query's GraphQL.
+/// If a value is passed directly as a filter argument, it will be treated as an `equals` filter.
 pub fn transform_equals<T: Into<SerializedWhere>>(
     params: impl Iterator<Item = T>,
-) -> Vec<(String, PrismaValue)> {
+) -> Vec<(String, prisma_models::PrismaValue)> {
     params
         .map(Into::<SerializedWhere>::into)
         .map(|(field, value)| {
@@ -108,9 +113,9 @@ pub fn transform_equals<T: Into<SerializedWhere>>(
                         .map(|i| params.swap_remove(i))
                     {
                         Some((_, value)) => value,
-                        None => PrismaValue::Object(params),
+                        None => prisma_models::PrismaValue::Object(params),
                     },
-                    SerializedWhereValue::List(values) => PrismaValue::List(values),
+                    SerializedWhereValue::List(values) => prisma_models::PrismaValue::List(values),
                 },
             )
         })
