@@ -1102,7 +1102,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         );
                         
                         // Only allow unlink if field is not required
-                        if !field.arity.is_optional() {
+                        if field.arity.is_optional() {
                             field_query_module.add_method(quote! {
                                 pub fn unlink() -> SetParam {
                                     SetParam::#unlink_variant
