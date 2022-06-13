@@ -53,17 +53,12 @@ trait FieldExt {
 
 impl FieldExt for Field {
     fn type_tokens(&self) -> TokenStream {
-        match self.field_type() {
-            FieldType::Enum(name) => {
-                let name = format_ident!("{}", name.to_case_safe(Case::Pascal));
-                quote!(#name)
-            }
-            FieldType::Relation(info) => {
-                let model = format_ident!("{}", info.to.to_case_safe(Case::Snake));
-                quote!(#model::Data)
-            }
-            FieldType::Scalar(typ, _, _) => typ.to_tokens(),
-            _ => unimplemented!(),
+        let single_type = self.field_type().to_tokens();
+        
+        match self.arity() {
+            FieldArity::Required => single_type,
+            FieldArity::Optional => quote!(Option<#single_type>),
+            FieldArity::List => quote!(Vec<#single_type>),
         }
     }
 
@@ -424,7 +419,11 @@ impl PaginationParams {
 
     pub fn add_cursor_variant(&mut self, field: &Field) {
         let field_name = field.name();
-        let rust_type = field.type_tokens();
+        let field_base_type = field.field_type().to_tokens();
+        let rust_type = match field.arity() {
+            FieldArity::List => quote!(Vec<#field_base_type>),
+            _ => field_base_type
+        };
         let variant_name = format_ident!("{}", field_name.to_case_safe(Case::Pascal));
         let prisma_value = field.type_prisma_value(&format_ident!("cursor"));
 
@@ -577,15 +576,14 @@ impl WhereParams {
     }
 
     pub fn add_unique_variant(&mut self, field: &Field) {
+        if matches!(field.arity(), FieldArity::Optional) {
+            panic!("add_unique_variant cannot add optional fields. Perhaps you meant add_optional_unique_variant?");
+        }
+        
         let field_type = field.type_tokens();
 
         let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
 
-        let field_type = match field.arity() {
-            FieldArity::List => quote!(Vec<#field_type>),
-            FieldArity::Required => quote!(#field_type),
-            _ => unreachable!("unexpected field arity"),
-        };
 
         let variant_name = format_ident!("{}Equals", &field_pascal);
         self.unique_variants
@@ -599,13 +597,12 @@ impl WhereParams {
     pub fn add_optional_unique_variant(
         &mut self,
         field: &Field
-        // from_unique_match_arm: TokenStream,
-        // unique_variant: TokenStream,
-        // arg_type: &TokenStream,
-        // variant_name: &syn::Ident,
-        // struct_name: TokenStream,
     ) {
-        let field_type = field.type_tokens();
+        if !matches!(field.arity(), FieldArity::Optional) {
+            panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
+        }
+        
+        let field_base_type = field.field_type().to_tokens();
 
         let field_pascal = format_ident!("{}", field.name().to_case_safe(Case::Pascal));
         let field_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
@@ -613,7 +610,7 @@ impl WhereParams {
         let variant_name = format_ident!("{}Equals", &field_pascal);
         
         self.unique_variants
-            .push(quote!(#variant_name(#field_type)));
+            .push(quote!(#variant_name(#field_base_type)));
 
         self.from_unique_match_arms.push(quote! {
             UniqueWhereParam::#variant_name(value) => Self::#variant_name(Some(value))
@@ -621,7 +618,7 @@ impl WhereParams {
 
         self.from_optional_uniques.push(quote!{
             impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
-                type Arg = Option<#field_type>;
+                type Arg = Option<#field_base_type>;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                     Self::#variant_name(arg)
@@ -629,7 +626,7 @@ impl WhereParams {
             }
             
             impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
-                type Arg = #field_type;
+                type Arg = #field_base_type;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                     Self::#variant_name(arg)
@@ -823,13 +820,13 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                 let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
             
                 for field in &fields {
-                    let field_type = field.type_tokens();
+                    let field_base_type = field.field_type().to_tokens();
                     
                     let field_name_snake = format_ident!("{}", field.name().to_case_safe(Case::Snake));
                     
                     let field_type = match field.arity().is_list() {
-                        true => quote!(Vec<#field_type>),
-                        false => quote!(#field_type),
+                        true => quote!(Vec<#field_base_type>),
+                        false => quote!(#field_base_type),
                     };
                     
                     variant_data_as_args.push(quote!(#field_name_snake: #field_type));
@@ -890,6 +887,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
             let field_snake = format_ident!("{}", field_string.to_case_safe(Case::Snake));
             let field_pascal = format_ident!("{}", field_string.to_case_safe(Case::Pascal));
             let field_type = root_field.type_tokens();
+            let field_base_type = root_field.field_type().to_tokens();
             
             match root_field {
                 Field::RelationField(field) => {
@@ -1176,23 +1174,19 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     
                     let converter = root_field.type_prisma_value(&format_ident!("value"));
                     
-                    let (field_set_variant_type, field_content) = match field.arity {
-                        FieldArity::List => (
-                            quote!(Vec<#field_type>),
-                            converter,
-                        ),
-                        FieldArity::Required => (quote!(#field_type), converter),
-                        FieldArity::Optional => (quote!(Option<#field_type>), quote!(value.map(|value| #converter).unwrap_or(PrismaValue::Null)))
+                    let field_content = match field.arity {
+                        FieldArity::Optional => quote!(value.map(|value| #converter).unwrap_or(PrismaValue::Null)),
+                        _ => converter
                     };
 
                     field_query_module.add_method(quote! {
-                        pub fn set<T: From<Set>>(value: #field_set_variant_type) -> T {
+                        pub fn set<T: From<Set>>(value: #field_type) -> T {
                             Set(value).into()
                         }
                     });
 
                     field_query_module.add_struct(quote! {
-                        pub struct Set(#field_set_variant_type);
+                        pub struct Set(#field_type);
                         impl From<Set> for SetParam {
                             fn from(value: Set) -> Self {
                                 Self::#field_set_variant(value.0)
@@ -1201,7 +1195,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     });
 
                     model_set_params.add_variant(
-                        quote!(#field_set_variant(#field_set_variant_type)),
+                        quote!(#field_set_variant(#field_type)),
                         quote! {
                             SetParam::#field_set_variant(value) => (
                                 #field_string.to_string(),
@@ -1211,7 +1205,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     );
                     
                     let equals_variant_name = format_ident!("{}Equals", &field_pascal);
-                    let equals_variant = quote!(#equals_variant_name(#field_set_variant_type));
+                    let equals_variant = quote!(#equals_variant_name(#field_type));
                     let type_as_prisma_value= root_field.type_prisma_value(&format_ident!("value"));
                     
                     let type_as_prisma_value = if !root_field.arity().is_optional() {
@@ -1233,7 +1227,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     field_query_module.add_method(
                         match (model.field_is_primary(field_string), model.field_is_unique(field_string), field.arity.is_required()) {
                             (true, _, _) | (_, true, true) => quote! {
-                                pub fn equals<T: From<UniqueWhereParam>>(value: #field_set_variant_type) -> T {
+                                pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
                                     UniqueWhereParam::#equals_variant_name(value).into()
                                 }
                             },
@@ -1243,7 +1237,7 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                                 }
                             },
                             (_, _, _) => quote! {
-                                pub fn equals(value: #field_set_variant_type) -> WhereParam {
+                                pub fn equals(value: #field_type) -> WhereParam {
                                     WhereParam::#equals_variant_name(value).into()
                                 }
                             }
@@ -1258,8 +1252,13 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                     });
                     
                     if model.field_is_primary(field_string) || model.field_is_unique(field_string) {
+                        let cursor_type = match root_field.arity() {
+                            FieldArity::List => quote!(Vec<#field_base_type>),
+                            _ => field_base_type.clone()
+                        };
+                        
                         field_query_module.add_method(quote! {
-                            pub fn cursor(cursor: #field_type) -> Cursor {
+                            pub fn cursor(cursor: #cursor_type) -> Cursor {
                                 Cursor::#field_pascal(cursor)
                             }
                         });
@@ -1267,19 +1266,9 @@ pub fn generate(args: &GeneratorArgs) -> Vec<TokenStream> {
                         model_pagination_params.add_cursor_variant(&root_field);
                     }
 
-                    model_data_struct.add_field(match (root_field.arity().is_list(), !root_field.arity().is_optional()) {
-                        (true, _) => quote! {
-                            #[serde(rename = #field_string)]
-                            pub #field_snake: Vec<#field_type>
-                        },
-                        (_, true) => quote! {
-                            #[serde(rename = #field_string)]
-                            pub #field_snake: #field_type
-                        },
-                        (_, false) => quote! {
-                            #[serde(rename = #field_string)]
-                            pub #field_snake: Option<#field_type>
-                        },
+                    model_data_struct.add_field(quote! {
+                        #[serde(rename = #field_string)]
+                        pub #field_snake: #field_type
                     });
                     
                     if let Some(read_type) = args.read_filter(&field) {
