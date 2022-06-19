@@ -290,7 +290,7 @@ impl PaginationParams {
             FieldArity::List => quote!(Vec<#field_base_type>),
             _ => field_base_type
         };
-        let variant_name = format_ident!("{}", field_name.to_case_safe(Case::Pascal));
+        let variant_name = format_ident!("{}", field_name.to_case(Case::Pascal));
         let prisma_value = field.type_prisma_value(&format_ident!("cursor"));
 
         self.cursor_variants.push(quote!(#variant_name(#rust_type)));
@@ -450,7 +450,6 @@ impl WhereParams {
         let field_type = field.type_tokens();
 
         let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
-
 
         let variant_name = format_ident!("{}Equals", &field_pascal);
         self.unique_variants
@@ -1284,7 +1283,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 }
 
                 impl<'a> Actions<'a> {
-                    pub fn create(&self, #(#create_args)* mut _params: Vec<SetParam>) -> Create {
+                    pub fn create(self, #(#create_args)* mut _params: Vec<SetParam>) -> Create<'a> {
                         #(#create_args_params_pushes)*
 
                         Create::new(
@@ -1294,7 +1293,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn find_unique(&self, param: UniqueWhereParam) -> FindUnique {
+                    pub fn find_unique(self, param: UniqueWhereParam) -> FindUnique<'a> {
                         FindUnique::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
@@ -1302,7 +1301,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn find_first(&self, params: Vec<WhereParam>) -> FindFirst {
+                    pub fn find_first(self, params: Vec<WhereParam>) -> FindFirst<'a> {
                         FindFirst::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
@@ -1310,7 +1309,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn find_many(&self, params: Vec<WhereParam>) -> FindMany {
+                    pub fn find_many(self, params: Vec<WhereParam>) -> FindMany<'a> {
                         FindMany::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
@@ -1318,7 +1317,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn upsert(&self, _where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert {
+                    pub fn upsert(self, _where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
                         let (
                             #(#create_args_destructured)*
                             mut _params
