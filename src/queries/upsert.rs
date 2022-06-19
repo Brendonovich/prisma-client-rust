@@ -72,19 +72,15 @@ where
 
         selection.alias("result");
 
-        if create_params.len() > 0 {
-            selection.push_argument(
-                "create",
-                PrismaValue::Object(create_params.into_iter().map(Into::into).collect()),
-            );
-        }
+        selection.push_argument(
+            "create",
+            PrismaValue::Object(create_params.into_iter().map(Into::into).collect()),
+        );
 
-        if update_params.len() > 0 {
-            selection.push_argument(
-                "update",
-                PrismaValue::Object(update_params.into_iter().map(Into::into).collect()),
-            );
-        }
+        selection.push_argument(
+            "update",
+            PrismaValue::Object(update_params.into_iter().map(Into::into).collect()),
+        );
 
         selection.push_argument(
             "where",
