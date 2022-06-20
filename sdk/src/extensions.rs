@@ -1,4 +1,6 @@
-use datamodel::dml::{Field, FieldType, Model, ScalarField, ScalarType};
+use datamodel::{
+    dml::{Field, FieldType, Model, ScalarField, ScalarType, FieldArity},
+};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
@@ -32,17 +34,12 @@ pub trait FieldExt {
 
 impl FieldExt for Field {
     fn type_tokens(&self) -> TokenStream {
-        match self.field_type() {
-            FieldType::Enum(name) => {
-                let name = format_ident!("{}", name.to_case(Case::Pascal));
-                quote!(#name)
-            }
-            FieldType::Relation(info) => {
-                let model = format_ident!("{}", info.to.to_case(Case::Snake));
-                quote!(#model::Data)
-            }
-            FieldType::Scalar(typ, _, _) => typ.to_tokens(),
-            _ => unimplemented!(),
+        let single_type = self.field_type().to_tokens();
+
+        match self.arity() {
+            FieldArity::Required => single_type,
+            FieldArity::Optional => quote! { Option<#single_type> },
+            FieldArity::List => quote! { Vec<#single_type> },
         }
     }
 
