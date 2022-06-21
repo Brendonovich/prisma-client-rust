@@ -1268,6 +1268,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 pub type UniqueArgs = prisma_client_rust::UniqueArgs<WithParam>;
                 pub type ManyArgs = prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, Cursor>;
                 
+                pub type Count<'a> = prisma_client_rust::Count<'a, WhereParam, OrderByParam, Cursor>;
                 pub type Create<'a> = prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
                 pub type FindUnique<'a> = prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
                 pub type FindMany<'a> = prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, Cursor, SetParam, Data>;
@@ -1293,31 +1294,31 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn find_unique(self, param: UniqueWhereParam) -> FindUnique<'a> {
+                    pub fn find_unique(self, r#where: UniqueWhereParam) -> FindUnique<'a> {
                         FindUnique::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            param.into()
+                            r#where.into()
                         )
                     }
 
-                    pub fn find_first(self, params: Vec<WhereParam>) -> FindFirst<'a> {
+                    pub fn find_first(self, r#where: Vec<WhereParam>) -> FindFirst<'a> {
                         FindFirst::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            params
+                            r#where
                         )
                     }
 
-                    pub fn find_many(self, params: Vec<WhereParam>) -> FindMany<'a> {
+                    pub fn find_many(self, r#where: Vec<WhereParam>) -> FindMany<'a> {
                         FindMany::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            params
+                            r#where
                         )
                     }
 
-                    pub fn upsert(self, _where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
+                    pub fn upsert(self, r#where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
                         let (
                             #(#create_args_destructured)*
                             mut _params
@@ -1328,9 +1329,17 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         Upsert::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            _where.into(),
+                            r#where.into(),
                             _params,
                             _update
+                        )
+                    }
+                    
+                    pub fn count(self, r#where: Vec<WhereParam>) -> Count<'a> {
+                        Count::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            r#where
                         )
                     }
                 }

@@ -1,3 +1,4 @@
+pub mod count;
 pub mod create;
 pub mod delete;
 pub mod delete_many;
@@ -10,6 +11,7 @@ pub mod update;
 pub mod update_many;
 pub mod upsert;
 
+pub use count::*;
 pub use create::*;
 pub use delete::*;
 pub use delete_many::*;
