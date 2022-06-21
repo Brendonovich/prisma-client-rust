@@ -34,7 +34,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             let source = config
                 .datasources
                 .first()
-                .expect("Pleasy supply a datasource in your schema.prisma file");
+                .expect("Please supply a datasource in your schema.prisma file");
             let url = if let Some(url) = source.load_shadow_database_url()? {
                 url
             } else {
@@ -64,7 +64,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             let source = config
                 .datasources
                 .first()
-                .expect("Pleasy supply a datasource in your schema.prisma file");
+                .expect("Please supply a datasource in your schema.prisma file");
             let (db_name, executor) = executor::load(&source, &[], &url).await?;
             let internal_model = InternalDataModelBuilder::new(DATAMODEL_STR).build(db_name);
             let query_schema = Arc::new(schema_builder::build(
