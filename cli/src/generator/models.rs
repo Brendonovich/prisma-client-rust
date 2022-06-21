@@ -1272,7 +1272,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 pub type FindUnique<'a> = prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
                 pub type FindMany<'a> = prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, Cursor, SetParam, Data>;
                 pub type FindFirst<'a> = prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-                pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+                pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
                 pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
                 pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
                 pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
