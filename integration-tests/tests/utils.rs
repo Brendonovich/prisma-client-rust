@@ -6,74 +6,21 @@ pub type TestResult = Result<(), Error>;
 pub async fn client() -> PrismaClient {
     let client = new_client().await.unwrap();
 
-    client
-        .category()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .post()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .profile()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .user()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
+    client.category().delete_many(vec![]).exec().await.unwrap();
+    client.post().delete_many(vec![]).exec().await.unwrap();
+    client.profile().delete_many(vec![]).exec().await.unwrap();
+    client.user().delete_many(vec![]).exec().await.unwrap();
+    client.types().delete_many(vec![]).exec().await.unwrap();
 
     client
 }
 
 pub async fn cleanup(client: PrismaClient) -> TestResult {
-    client
-        .category()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .post()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .profile()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .user()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    client
-        .types()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
+    client.category().delete_many(vec![]).exec().await.unwrap();
+    client.post().delete_many(vec![]).exec().await.unwrap();
+    client.profile().delete_many(vec![]).exec().await.unwrap();
+    client.user().delete_many(vec![]).exec().await.unwrap();
+    client.types().delete_many(vec![]).exec().await.unwrap();
 
     Ok(())
 }

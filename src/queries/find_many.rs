@@ -77,6 +77,7 @@ where
         self
     }
 
+    #[deprecated(since = "0.6.0", note = "Please use the update_many action")]
     pub fn update(self, data: Vec<Set>) -> UpdateMany<'a, Where, Set> {
         let Self {
             ctx,
@@ -88,6 +89,7 @@ where
         UpdateMany::new(ctx, info, where_params, data)
     }
 
+    #[deprecated(since = "0.6.0", note = "Please use the delete_many action")]
     pub fn delete(self) -> DeleteMany<'a, Where> {
         let Self {
             ctx,
@@ -122,7 +124,10 @@ where
         selection.alias("result");
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
+            selection.push_argument(
+                "where",
+                PrismaValue::Object(transform_equals(where_params.into_iter())),
+            );
         }
 
         if with_params.len() > 0 {

@@ -7,11 +7,7 @@ async fn test_count() -> TestResult {
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
@@ -43,31 +39,19 @@ async fn test_take() -> TestResult {
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
@@ -84,31 +68,19 @@ async fn test_skip() -> TestResult {
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 
     client
         .post()
-        .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Hi from Prisma!".to_string(), true, vec![])
         .exec()
         .await?;
 

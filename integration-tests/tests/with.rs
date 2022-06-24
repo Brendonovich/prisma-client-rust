@@ -5,7 +5,7 @@ use crate::{db::*, utils::*};
 async fn setup(client: &PrismaClient) -> Result<String, Error> {
     let user = client
         .user()
-        .create(user::name::set("Brendan".to_string()), vec![])
+        .create("Brendan".to_string(), vec![])
         .exec()
         .await?;
 
@@ -13,8 +13,8 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                post::title::set("post 1".to_string()),
-                post::published::set(false),
+                "post 1".to_string(),
+                false,
                 vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
@@ -22,8 +22,8 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                post::title::set("post 2".to_string()),
-                post::published::set(true),
+                "post 2".to_string(),
+                true,
                 vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
@@ -31,8 +31,8 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                post::title::set("post 3".to_string()),
-                post::published::set(true),
+                "post 3".to_string(),
+                true,
                 vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
@@ -40,8 +40,8 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                post::title::set("post 4".to_string()),
-                post::published::set(false),
+                "post 4".to_string(),
+                false,
                 vec![post::author::link(user::id::equals(user.id.clone()))],
             )
             .exec()
@@ -51,7 +51,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
     client
         .category()
         .create(
-            category::name::set("My category".to_string()),
+            "My category".to_string(),
             vec![category::posts::link(vec![
                 post::id::equals(posts[0].id.clone()),
                 post::id::equals(posts[1].id.clone()),
@@ -111,9 +111,9 @@ async fn find_unique_with_optional() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(user::id::equals(user.id.clone())),
-            profile::bio::set("Bio".to_string()),
-            profile::country::set("Country".to_string()),
+            user::id::equals(user.id.clone()),
+            "Bio".to_string(),
+            "Country".to_string(),
             vec![],
         )
         .exec()

@@ -8,11 +8,7 @@ async fn query_raw() -> TestResult {
 
     client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 
@@ -30,11 +26,7 @@ async fn query_raw_model() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 
@@ -72,11 +64,7 @@ async fn execute_raw() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 

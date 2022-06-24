@@ -23,6 +23,7 @@ static OPERATORS: &'static [Operator] = &[
         action: "AND",
     },
 ];
+
 struct Outputs {
     outputs: Vec<String>,
 }
@@ -622,14 +623,14 @@ impl Actions {
         }
     }
 
-    pub fn push_required_arg(&mut self, field_name: &Ident, variant_type: Ident) {
+    pub fn push_required_arg(&mut self, field_name: &Ident, field_wrapper: TokenStream, variant_type: TokenStream) {
         self.create_args
-            .push(quote!(#field_name: #field_name::#variant_type,));
+            .push(quote!(#field_name: #variant_type,));
         self.create_args_tuple_types
-            .push(quote!(#field_name::#variant_type,));
+            .push(quote!(#variant_type,));
         self.create_args_destructured.push(quote!(#field_name,));
         self.create_args_params_pushes
-            .push(quote!(_params.push(#field_name.into());));
+            .push(quote!(_params.push(#field_wrapper(#field_name));));
     }
 }
 
@@ -1033,7 +1034,8 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                     if root_field.required_on_create() {
                         model_actions.push_required_arg(
                             &field_snake,
-                            format_ident!("Link")
+                            quote!(#field_snake::link),
+                            quote!(super::#relation_type_snake::UniqueWhereParam)
                         );
                     }
                 },
@@ -1218,7 +1220,8 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                     if !model.scalar_field_has_relation(field) && root_field.required_on_create() {
                         model_actions.push_required_arg(
                             &field_snake,
-                            format_ident!("Set")
+                            quote!(#field_snake::set),
+                            field_type.clone()
                         );
                     }
                 },
@@ -1284,6 +1287,30 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 }
 
                 impl<'a> Actions<'a> {
+                    pub fn find_unique(self, _where: UniqueWhereParam) -> FindUnique<'a> {
+                        FindUnique::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _where.into()
+                        )
+                    }
+
+                    pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirst<'a> {
+                        FindFirst::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _where
+                        )
+                    }
+
+                    pub fn find_many(self, _where: Vec<WhereParam>) -> FindMany<'a> {
+                        FindMany::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _where
+                        )
+                    }
+                    
                     pub fn create(self, #(#create_args)* mut _params: Vec<SetParam>) -> Create<'a> {
                         #(#create_args_params_pushes)*
 
@@ -1294,52 +1321,59 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
 
-                    pub fn find_unique(self, r#where: UniqueWhereParam) -> FindUnique<'a> {
-                        FindUnique::new(
+                    pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
+                        Update::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            r#where.into()
+                            _where.into(),
+                            _params,
+                            vec![]
                         )
                     }
-
-                    pub fn find_first(self, r#where: Vec<WhereParam>) -> FindFirst<'a> {
-                        FindFirst::new(
+                    
+                    pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
+                        UpdateMany::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            r#where
+                            _where,
+                            _params,
                         )
                     }
-
-                    pub fn find_many(self, r#where: Vec<WhereParam>) -> FindMany<'a> {
-                        FindMany::new(
+                    
+                    pub fn delete(self, _where: UniqueWhereParam) -> Delete<'a> {
+                        Delete::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            r#where
+                            _where.into(),
+                            vec![]
                         )
                     }
-
-                    pub fn upsert(self, r#where: UniqueWhereParam, _create: (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
-                        let (
-                            #(#create_args_destructured)*
-                            mut _params
-                        ) = _create;
-                        
+                    
+                    pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteMany<'a> {
+                        DeleteMany::new(
+                            self.client._new_query_context(),
+                            QueryInfo::new(#model_name_string, _outputs()),
+                            _where.into()
+                        )
+                    }
+                    
+                    pub fn upsert(self, _where: UniqueWhereParam, (#(#create_args_destructured)* mut _params): (#(#create_args_tuple_types)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
                         #(#create_args_params_pushes)*
 
                         Upsert::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            r#where.into(),
+                            _where.into(),
                             _params,
                             _update
                         )
                     }
                     
-                    pub fn count(self, r#where: Vec<WhereParam>) -> Count<'a> {
+                    pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
                         Count::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            r#where
+                            _where
                         )
                     }
                 }
