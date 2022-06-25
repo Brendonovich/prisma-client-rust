@@ -48,7 +48,7 @@ There is no release schedule, as I work on this alone and can't guarantee update
 
 ## Affiliation
 
-Pirsma Client Rust is not an official Prisma product, only a community made layer on top of Prisma's engines.
+Prisma Client Rust is not an official Prisma product, only a community made layer on top of Prisma's engines.
 
 ## Acknowledgements
 
