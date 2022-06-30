@@ -19,7 +19,8 @@ model User {
 }
 ```
 
-### Creating the Clientmodel User {
+### Creating the Client
+model User {
   id          String @id
   displayName String
 }
