@@ -9,8 +9,10 @@ datasource db {
 }
 
 generator client {
-    provider      = "cargo prisma" // Corresponds to the cargo alias created earlier
-    output        = "./src/prisma.rs" // The location to generate the schema. Is relative to the position of the schema
+    // Corresponds to the cargo alias created earlier
+    provider      = "cargo prisma"
+    // The location to generate the schema. Is relative to the position of the schema
+    output        = "./src/prisma.rs"
 }
 
 model User {
