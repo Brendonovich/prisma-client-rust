@@ -18,7 +18,7 @@ model Post {
     desc        String?
     author      User?      @relation("posts", fields: [author_id], references: [id])
     author_id   String?
-    categories  Category[] @relation(references: [id])
+    categories  Category[] @relation
     favouriters User[]     @relation("favouritePosts")
 
     @@unique([title, author_id])
@@ -36,7 +36,7 @@ model User {
 
 model Category {
     id    Int    @id @default(autoincrement())
-    posts Post[] @relation(references: [id])
+    posts Post[] @relation
     name  String
 }
 

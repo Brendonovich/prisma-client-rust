@@ -75,7 +75,7 @@ impl WithParams {
     fn with_fn(module: &Ident) -> TokenStream {
         quote! {
             pub fn with(mut self, params: impl Into<#module::WithParam>) -> Self {
-                self.args = self.args.with(params.into());
+                self.0 = self.0.with(params.into());
                 self
             }
         }
@@ -212,7 +212,7 @@ impl OrderByParams {
     fn order_by_fn(module: &Ident) -> TokenStream {
         quote! {
             pub fn order_by(mut self, param: #module::OrderByParam) -> Self {
-                self.args = self.args.order_by(param);
+                self.0 = self.0.order_by(param);
                 self
             }
         }
@@ -268,17 +268,17 @@ impl PaginationParams {
     pub fn pagination_fns(module: &Ident) -> TokenStream {
         quote! {
             pub fn skip(mut self, value: i64) -> Self {
-                self.args = self.args.skip(value);
+                self.0 = self.0.skip(value);
                 self
             }
 
             pub fn take(mut self, value: i64) -> Self {
-                self.args = self.args.take(value);
+                self.0 = self.0.take(value);
                 self
             }
 
             pub fn cursor(mut self, value: impl Into<#module::Cursor>) -> Self {
-                self.args = self.args.cursor(value.into());
+                self.0 = self.0.cursor(value.into());
                 self
             }
         }
@@ -808,9 +808,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         let pagination_fns = PaginationParams::pagination_fns(&relation_type_snake);
 
                         field_query_module.add_method(quote! {
-                            pub struct Fetch {
-                                args: #relation_type_snake::ManyArgs
-                            }
+                            pub struct Fetch(pub #relation_type_snake::ManyArgs);
                             
                             impl Fetch {
                                 #with_fn
@@ -822,14 +820,12 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                             
                             impl From<Fetch> for WithParam {
                                 fn from(fetch: Fetch) -> Self {
-                                    WithParam::#field_pascal(fetch.args)
+                                    WithParam::#field_pascal(fetch.0)
                                 }
                             }
                             
                             pub fn fetch(params: Vec<#relation_type_snake::WhereParam>) -> Fetch {
-                                Fetch {
-                                    args: #relation_type_snake::ManyArgs::new(params)
-                                }
+                                Fetch(#relation_type_snake::ManyArgs::new(params))
                             }
 
                             pub fn link<T: From<Link>>(params: Vec<#relation_type_snake::UniqueWhereParam>) -> T {
@@ -842,7 +838,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         });
                         
                         field_query_module.add_struct(quote! {
-                            pub struct Link(Vec<#relation_type_snake::UniqueWhereParam>);
+                            pub struct Link(pub Vec<#relation_type_snake::UniqueWhereParam>);
 
                             impl From<Link> for SetParam {
                                 fn from(value: Link) -> Self {
@@ -916,9 +912,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         );
                     } else {
                         field_query_module.add_method(quote! {
-                            pub struct Fetch {
-                                args: #relation_type_snake::UniqueArgs
-                            }
+                            pub struct Fetch(pub #relation_type_snake::UniqueArgs);
                             
                             impl Fetch {
                                 #with_fn
@@ -926,14 +920,12 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                             
                             impl From<Fetch> for WithParam {
                                 fn from(fetch: Fetch) -> Self {
-                                    WithParam::#field_pascal(fetch.args)
+                                    WithParam::#field_pascal(fetch.0)
                                 }
                             }
                             
                             pub fn fetch() -> Fetch {
-                                Fetch {
-                                    args: #relation_type_snake::UniqueArgs::new()
-                                }
+                                Fetch(#relation_type_snake::UniqueArgs::new())
                             }
 
                             pub fn link<T: From<Link>>(value: #relation_type_snake::UniqueWhereParam) -> T {
@@ -1056,7 +1048,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                     });
 
                     field_query_module.add_struct(quote! {
-                        pub struct Set(#field_type);
+                        pub struct Set(pub #field_type);
                         impl From<Set> for SetParam {
                             fn from(value: Set) -> Self {
                                 Self::#field_set_variant(value.0)
