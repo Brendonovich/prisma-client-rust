@@ -11,7 +11,7 @@ async fn test_count() -> TestResult {
         .exec()
         .await?;
 
-    let count = client.post().count(vec![]).exec().await?;
+    let count = client.post().count().exec().await?;
 
     assert_eq!(count, 1);
 
@@ -24,7 +24,8 @@ async fn test_count_no_results() -> TestResult {
 
     let count = client
         .post()
-        .count(vec![post::title::equals("lkdjkfsldkf".to_string())])
+        .find_many(vec![post::title::equals("lkdjkfsldkf".to_string())])
+        .count()
         .exec()
         .await?;
 
@@ -55,7 +56,7 @@ async fn test_take() -> TestResult {
         .exec()
         .await?;
 
-    let count = client.post().count(vec![]).take(1).exec().await?;
+    let count = client.post().count().take(1).exec().await?;
 
     assert_eq!(count, 1);
 
@@ -84,7 +85,7 @@ async fn test_skip() -> TestResult {
         .exec()
         .await?;
 
-    let count = client.post().count(vec![]).skip(1).exec().await?;
+    let count = client.post().count().skip(1).exec().await?;
 
     assert_eq!(count, 2);
 

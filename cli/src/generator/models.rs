@@ -1361,11 +1361,11 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         )
                     }
                     
-                    pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
+                    pub fn count(self) -> Count<'a> {
                         Count::new(
                             self.client._new_query_context(),
                             QueryInfo::new(#model_name_string, _outputs()),
-                            _where
+                            vec![]
                         )
                     }
                 }

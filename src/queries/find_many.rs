@@ -5,7 +5,8 @@ use query_core::{Operation, QueryValue, Selection};
 use serde::de::DeserializeOwned;
 
 use super::{
-    delete_many::DeleteMany, transform_equals, QueryContext, QueryInfo, SerializedWhere, UpdateMany,
+    count::Count, delete_many::DeleteMany, transform_equals, QueryContext, QueryInfo,
+    SerializedWhere, UpdateMany,
 };
 
 pub struct FindMany<'a, Where, With, OrderBy, Cursor, Set, Data>
@@ -77,7 +78,6 @@ where
         self
     }
 
-    #[deprecated(since = "0.6.0", note = "Please use the update_many action")]
     pub fn update(self, data: Vec<Set>) -> UpdateMany<'a, Where, Set> {
         let Self {
             ctx,
@@ -89,7 +89,6 @@ where
         UpdateMany::new(ctx, info, where_params, data)
     }
 
-    #[deprecated(since = "0.6.0", note = "Please use the delete_many action")]
     pub fn delete(self) -> DeleteMany<'a, Where> {
         let Self {
             ctx,
@@ -99,6 +98,17 @@ where
         } = self;
 
         DeleteMany::new(ctx, info, where_params)
+    }
+
+    pub fn count(self) -> Count<'a, Where, OrderBy, Cursor> {
+        let Self {
+            ctx,
+            info,
+            where_params,
+            ..
+        } = self;
+
+        Count::new(ctx, info, where_params)
     }
 
     pub async fn exec(self) -> super::Result<Vec<Data>> {

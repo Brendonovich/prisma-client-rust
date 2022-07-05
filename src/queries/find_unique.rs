@@ -42,7 +42,6 @@ where
         self
     }
 
-    #[deprecated(since = "0.6.0", note = "Please use the update action")]
     pub fn update(self, params: Vec<Set>) -> Update<'a, Where, With, Set, Data> {
         let Self {
             ctx,
@@ -55,7 +54,6 @@ where
         Update::new(ctx, info, where_param, params, with_params)
     }
     
-    #[deprecated(since = "0.6.0", note = "Please use the delte action")]
     pub fn delete(self) -> Delete<'a, Where, With, Data> {
         let Self {
             ctx,
