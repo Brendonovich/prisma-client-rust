@@ -81,7 +81,7 @@ impl From<prisma_models::PrismaValue> for PrismaValue {
                 PrismaValue::List(value.into_iter().map(Into::into).collect())
             }
             prisma_models::PrismaValue::Json(value) => {
-                PrismaValue::Json(serde_json::to_value(value).unwrap())
+                PrismaValue::Json(serde_json::from_str(&value).unwrap())
             }
             prisma_models::PrismaValue::Xml(value) => PrismaValue::Xml(value),
             prisma_models::PrismaValue::Object(value) => {
