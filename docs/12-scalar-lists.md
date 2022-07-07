@@ -99,4 +99,4 @@ let post: Option<post::Data> = client
 
 ## Up Next
 
-If the Rust client doesn't support a query you want to do, you can use [raw queries](13-raw-queries.md).
+If the Rust client doesn't support a query you want to do, you can use [raw queries](13-raw.md).
