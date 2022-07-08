@@ -4,7 +4,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct Upsert<'a, Where, Set, With, Data>
 where
@@ -84,7 +84,13 @@ where
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(transform_equals(vec![where_param.into()].into_iter())),
+            PrismaValue::Object(
+                vec![where_param]
+                    .into_iter()
+                    .map(Into::<SerializedWhere>::into)
+                    .map(SerializedWhere::transform_equals)
+                    .collect(),
+            ),
         );
 
         if with_params.len() > 0 {

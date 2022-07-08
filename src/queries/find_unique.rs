@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation,  Selection};
+use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use super::{delete::Delete, transform_equals, QueryContext, QueryInfo, SerializedWhere, Update};
+use super::{delete::Delete, QueryContext, QueryInfo, SerializedWhere, Update};
 
 pub struct FindUnique<'a, Where, With, Set, Data>
 where
@@ -86,7 +86,7 @@ where
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(transform_equals(vec![where_param.into()].into_iter())),
+            PrismaValue::Object(vec![where_param.into().transform_equals()]),
         );
 
         if with_params.len() > 0 {

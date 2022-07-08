@@ -14,6 +14,7 @@ use runtime::{run_generator, GeneratorMetadata};
 pub use args::GenerateArgs;
 pub use casing::*;
 pub use extensions::*;
+pub use datamodel as prisma_datamodel;
 
 pub trait PrismaGenerator {
     const NAME: &'static str;

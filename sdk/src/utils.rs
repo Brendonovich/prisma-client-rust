@@ -1,9 +1,9 @@
 use std::{path::Path, process::Command, sync::Arc};
 
 use convert_case::Case;
-use datamodel::{dml::Datamodel, Configuration, datamodel_connector::ConnectorCapabilities};
+use datamodel::{datamodel_connector::ConnectorCapabilities, dml::Datamodel, Configuration};
 use prisma_models::InternalDataModelBuilder;
-use query_core::{QuerySchemaRenderer, BuildMode, schema_builder};
+use query_core::{schema_builder, BuildMode, QuerySchemaRenderer};
 use request_handlers::dmmf::schema::{DmmfQuerySchemaRenderer, DmmfSchema};
 
 use crate::{args::GenerateArgs, casing::Casing, keywords::is_reserved_keyword};

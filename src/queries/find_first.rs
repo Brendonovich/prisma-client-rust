@@ -4,7 +4,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, QueryValue, Selection};
 use serde::de::DeserializeOwned;
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct FindFirst<'a, Where, With, OrderBy, Cursor, Data>
 where
@@ -95,7 +95,16 @@ where
         selection.alias("result");
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
+            selection.push_argument(
+                "where",
+                PrismaValue::Object(
+                    where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(Into::into)
+                        .collect(),
+                ),
+            );
         }
 
         if with_params.len() > 0 {

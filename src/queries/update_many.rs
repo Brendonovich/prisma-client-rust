@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 
 use crate::BatchResult;
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct UpdateMany<'a, Where, Set>
 where
@@ -55,7 +55,16 @@ where
         );
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
+            selection.push_argument(
+                "where",
+                PrismaValue::Object(
+                    where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(Into::into)
+                        .collect(),
+                ),
+            );
         }
 
         selection.push_nested_selection(BatchResult::selection());

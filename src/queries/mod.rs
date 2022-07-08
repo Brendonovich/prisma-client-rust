@@ -36,7 +36,58 @@ pub enum SerializedWhereValue {
     List(Vec<prisma_models::PrismaValue>),
 }
 
-pub type SerializedWhere = (String, SerializedWhereValue);
+impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
+    fn into(self) -> prisma_models::PrismaValue {
+        match self {
+            Self::Object(v) => prisma_models::PrismaValue::Object(v),
+            Self::List(v) => prisma_models::PrismaValue::List(v),
+        }
+    }
+}
+
+pub struct SerializedWhere {
+    field: String,
+    value: SerializedWhereValue,
+}
+
+impl SerializedWhere {
+    pub fn new(field: &str, value: SerializedWhereValue) -> Self {
+        Self {
+            field: field.into(),
+            value: value.into(),
+        }
+    }
+
+    /// If the parameter is an 'equals' parameter, collapses the value provided directly
+    /// into the where clause. This is necessary for unique queries that have no filters,
+    /// only direct value comparisons.
+    pub fn transform_equals(self) -> (String, prisma_models::PrismaValue) {
+        let Self { field, value } = self;
+
+        (
+            field,
+            match value {
+                SerializedWhereValue::Object(mut params) => match params
+                    .iter()
+                    .position(|(key, _)| key == "equals")
+                    .map(|i| params.swap_remove(i))
+                {
+                    Some((_, value)) => value,
+                    None => prisma_models::PrismaValue::Object(params),
+                },
+                SerializedWhereValue::List(values) => prisma_models::PrismaValue::List(values),
+            },
+        )
+    }
+}
+
+impl Into<(String, prisma_models::PrismaValue)> for SerializedWhere {
+    fn into(self) -> (String, prisma_models::PrismaValue) {
+        let SerializedWhere { field, value } = self;
+        (field, value.into())
+    }
+}
+
 pub struct QueryInfo {
     model: &'static str,
     scalar_selections: Vec<Selection>,
@@ -94,35 +145,6 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// Iterates each item in a list of seralized WhereParams, checks if the item is an object with
-/// the key `equals`, and if so then maps the value corresponding to the `equals` key to the object itself.
-///
-/// This is required since `equals` isn't actually necessary in a query's GraphQL.
-/// If a value is passed directly as a filter argument, it will be treated as an `equals` filter.
-pub fn transform_equals<T: Into<SerializedWhere>>(
-    params: impl Iterator<Item = T>,
-) -> Vec<(String, prisma_models::PrismaValue)> {
-    params
-        .map(Into::<SerializedWhere>::into)
-        .map(|(field, value)| {
-            (
-                field,
-                match value {
-                    SerializedWhereValue::Object(mut params) => match params
-                        .iter()
-                        .position(|(key, _)| key == "equals")
-                        .map(|i| params.swap_remove(i))
-                    {
-                        Some((_, value)) => value,
-                        None => prisma_models::PrismaValue::Object(params),
-                    },
-                    SerializedWhereValue::List(values) => prisma_models::PrismaValue::List(values),
-                },
-            )
-        })
-        .collect()
-}
 
 pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
     match res {

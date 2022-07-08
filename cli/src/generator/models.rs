@@ -7,20 +7,24 @@ use syn::Ident;
 pub struct Operator {
     pub name: &'static str,
     pub action: &'static str,
+    pub list: bool,
 }
 
 static OPERATORS: &'static [Operator] = &[
     Operator {
         name: "Not",
         action: "NOT",
+        list: false
     },
     Operator {
         name: "Or",
         action: "OR",
+        list: true
     },
     Operator {
         name: "And",
         action: "AND",
+        list: false
     },
 ];
 
@@ -652,18 +656,36 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
         for op in OPERATORS {
             let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
             let op_action = &op.action;
+            
+            let value = match op.list {
+                true => quote! {
+                    SerializedWhereValue::List(
+                        value
+                            .into_iter()
+                            .map(Into::<SerializedWhere>::into)
+                            .map(Into::into)
+                            .map(|v| vec![v])
+                            .map(PrismaValue::Object)
+                            .collect()
+                    )
+                },
+                false => quote! {
+                    SerializedWhereValue::Object(
+                        value
+                            .into_iter()
+                            .map(Into::<SerializedWhere>::into)
+                            .map(Into::into)
+                            .collect()
+                    )
+                },
+            };
 
             model_where_params.add_variant(
                 quote!(#variant_name(Vec<WhereParam>)),
                 quote! {
-                    Self::#variant_name(value) => (
-                        #op_action.to_string(),
-                        SerializedWhereValue::List(
-                            value
-                                .into_iter()
-                                .map(|v| PrismaValue::Object(transform_equals(vec![v].into_iter())))
-                                .collect(),
-                        ),
+                    Self::#variant_name(value) => SerializedWhere::new(
+                        #op_action,
+                        #value,
                     )
                 },
             );
@@ -711,8 +733,8 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 model_where_params.add_variant(
                     quote!(#variant_name(#(#variant_data_as_types),*)),
                     quote! {
-                        Self::#variant_name(#(#variant_data_as_destructured),*) => (
-                            #field_name_string.to_string(),
+                        Self::#variant_name(#(#variant_data_as_destructured),*) => SerializedWhere::new(
+                            #field_name_string,
                             SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
                         )
                     },
@@ -778,16 +800,16 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                         model_where_params.add_variant(
                             quote!(#variant_name(Vec<super::#relation_type_snake::WhereParam>)),
                             quote! {
-                                Self::#variant_name(value) => (
-                                    #field_string.to_string(),
+                                Self::#variant_name(where_params) => SerializedWhere::new(
+                                    #field_string,
                                     SerializedWhereValue::Object(vec![(
                                         #method_action_string.to_string(),
                                         PrismaValue::Object(
-                                            transform_equals(
-                                                value
-                                                    .into_iter()
-                                                    .map(Into::<SerializedWhere>::into)
-                                            )
+                                            where_params
+                                                .into_iter()
+                                                .map(Into::<SerializedWhere>::into)
+                                                .map(SerializedWhere::transform_equals)
+                                                .collect()
                                         ),
                                     )])
                                 )
@@ -857,11 +879,12 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                                         vec![(
                                             "connect".to_string(),
                                             PrismaValue::Object(
-                                                transform_equals(
-                                                    where_params
-                                                        .into_iter()
-                                                        .map(Into::<super::#relation_type_snake::WhereParam>::into)
-                                                )
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::<SerializedWhere>::into)
+                                                    .map(SerializedWhere::transform_equals)
+                                                    .collect()
                                             )
                                         )]
                                     )
@@ -879,13 +902,12 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                                         vec![(
                                             "disconnect".to_string(),
                                             PrismaValue::Object(
-                                                transform_equals(
-                                                    where_params
-                                                        .into_iter()
-                                                        .map(Into::<super::#relation_type_snake::WhereParam>::into)
-                                                )
-                                                .into_iter()
-                                                .collect()
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::<SerializedWhere>::into)
+                                                    .map(SerializedWhere::transform_equals)
+                                                    .collect()
                                             )
                                         )]
                                     )
@@ -952,9 +974,12 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                                         vec![(
                                             "connect".to_string(),
                                             PrismaValue::Object(
-                                                transform_equals(
-                                                    vec![Into::<super::#relation_type_snake::WhereParam>::into(where_param)].into_iter()
-                                                )
+                                                vec![where_param]
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::<SerializedWhere>::into)
+                                                    .map(SerializedWhere::transform_equals)
+                                                    .collect()
                                             )
                                         )]
                                     )
@@ -1075,15 +1100,16 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                     } else {
                         quote!(value.map(|value| #type_as_prisma_value).unwrap_or(PrismaValue::Null))
                     };
-
-                    let match_arm = quote! {
-                        Self::#equals_variant_name(value) => (
-                            #field_string.to_string(),
-                            SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
-                        )
-                    };
                     
-                    model_where_params.add_variant(equals_variant.clone(), match_arm);
+                    model_where_params.add_variant(
+                        equals_variant.clone(), 
+                        quote! {
+                            Self::#equals_variant_name(value) => SerializedWhere::new(
+                                #field_string,
+                                SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
+                            )
+                        }
+                    );
                     
                     // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
                     field_query_module.add_method(
@@ -1154,8 +1180,8 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                             model_where_params.add_variant(
                                 quote!(#variant_name(#typ)),
                                 quote! {
-                                    Self::#variant_name(value) => (
-                                        #field_name.to_string(),
+                                    Self::#variant_name(value) => SerializedWhere::new(
+                                        #field_name,
                                         SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_prisma_value)])
                                     )
                                 },

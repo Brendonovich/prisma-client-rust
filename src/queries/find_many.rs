@@ -5,8 +5,7 @@ use query_core::{Operation, QueryValue, Selection};
 use serde::de::DeserializeOwned;
 
 use super::{
-    count::Count, delete_many::DeleteMany, transform_equals, QueryContext, QueryInfo,
-    SerializedWhere, UpdateMany,
+    count::Count, delete_many::DeleteMany, QueryContext, QueryInfo, SerializedWhere, UpdateMany,
 };
 
 pub struct FindMany<'a, Where, With, OrderBy, Cursor, Set, Data>
@@ -136,7 +135,13 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(transform_equals(where_params.into_iter())),
+                PrismaValue::Object(
+                    where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(Into::into)
+                        .collect(),
+                ),
             );
         }
 
@@ -246,7 +251,14 @@ where
         if where_params.len() > 0 {
             arguments.push((
                 "where".to_string(),
-                PrismaValue::Object(transform_equals(where_params.into_iter())).into(),
+                PrismaValue::Object(
+                    where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(Into::into)
+                        .collect(),
+                )
+                .into(),
             ));
         }
 

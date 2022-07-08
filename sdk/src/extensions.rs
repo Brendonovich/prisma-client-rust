@@ -1,6 +1,4 @@
-use datamodel::{
-    dml::{Field, FieldType, Model, ScalarField, ScalarType, FieldArity},
-};
+use datamodel::dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 

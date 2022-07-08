@@ -19,7 +19,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
                 QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
             },
-            chrono, serde_json, transform_equals, UniqueArgs, ManyArgs, BatchResult, Direction, SerializedWhere, SerializedWhereValue,
+            chrono, serde_json, UniqueArgs, ManyArgs, BatchResult, Direction, SerializedWhere, SerializedWhereValue,
         };
         pub use prisma_client_rust::{queries::Error as QueryError, NewClientError};
         use serde::{Deserialize, Serialize};

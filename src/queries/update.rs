@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 
 use crate::option_on_not_found;
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct Update<'a, Where, With, Set, Data>
 where
@@ -72,7 +72,7 @@ where
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(transform_equals(vec![where_param.into()].into_iter())),
+            PrismaValue::Object(vec![where_param.into().transform_equals()]),
         );
 
         selection.push_argument(
