@@ -31,12 +31,11 @@ async fn get_posts(ctx: &Ctx) -> Json<Vec<post::Data>> {
 /// Get all users. Simple demonstration for basic route params.
 #[get("/users?<load_posts>")]
 async fn get_users(ctx: &Ctx, load_posts: Option<bool>) -> Json<Vec<user::Data>> {
-    let base_query = ctx.db.user().find_many(vec![]);
-
-    let query = match load_posts.map(|val| val).unwrap_or(true) {
-        true => base_query.with(user::posts::fetch(vec![])),
-        false => base_query,
-    };
+    let mut query = ctx.db.user().find_many(vec![]);
+    
+    if load_posts.unwrap_or(true) {
+        query = query.with(user::posts::fetch(vec![]));
+    }
 
     // Note: you should add some error handling :)
     Json(query.exec().await.unwrap())
