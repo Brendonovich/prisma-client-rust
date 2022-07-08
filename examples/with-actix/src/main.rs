@@ -2,6 +2,7 @@ use actix_web::{App, HttpServer, get, post, HttpResponse, Responder, web};
 use serde::Deserialize;
 
 mod prisma;
+use prisma::PrismaClient;
 use prisma::{user, post};
 
 extern crate dotenv;
@@ -9,9 +10,7 @@ extern crate dotenv;
 use dotenv::dotenv;
 
 #[get("/users")]
-async fn get_users() -> impl Responder {
-    let client = prisma::new_client().await.unwrap();
-
+async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
     let users = client
         .user()
         .find_many(vec![])
@@ -28,9 +27,7 @@ struct CreateUserRequest {
 }
 
 #[post("/user")]
-async fn create_user(body: web::Json<CreateUserRequest>) -> impl Responder {
-    let client = prisma::new_client().await.unwrap();
-
+async fn create_user(client: web::Data<PrismaClient>, body: web::Json<CreateUserRequest>) -> impl Responder {
     let user = client
         .user()
         .create(
@@ -45,9 +42,7 @@ async fn create_user(body: web::Json<CreateUserRequest>) -> impl Responder {
 }
 
 #[get("/posts")]
-async fn get_posts() -> impl Responder {
-    let client = prisma::new_client().await.unwrap();
-
+async fn get_posts(client: web::Data<PrismaClient>) -> impl Responder {
     let posts = client
         .post()
         .find_many(vec![])
@@ -65,9 +60,7 @@ struct CreatePostRequest {
 }
 
 #[post("/post")]
-async fn create_post(body: web::Json<CreatePostRequest>) -> impl Responder {
-    let client = prisma::new_client().await.unwrap();
-
+async fn create_post(client: web::Data<PrismaClient>, body: web::Json<CreatePostRequest>) -> impl Responder {
     let post = client
         .post()
         .create(
@@ -87,9 +80,11 @@ async fn create_post(body: web::Json<CreatePostRequest>) -> impl Responder {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    let client = web::Data::new(prisma::new_client().await.unwrap());
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
             App::new()
+                .app_data(client.clone())
                 .service(get_users)
                 .service(create_user)
                 .service(get_posts)
