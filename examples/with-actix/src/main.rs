@@ -5,10 +5,6 @@ mod prisma;
 use prisma::PrismaClient;
 use prisma::{user, post};
 
-extern crate dotenv;
-
-use dotenv::dotenv;
-
 #[get("/users")]
 async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
     let users = client
@@ -79,7 +75,6 @@ async fn create_post(client: web::Data<PrismaClient>, body: web::Json<CreatePost
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
     let client = web::Data::new(prisma::new_client().await.unwrap());
 
     HttpServer::new(move || {

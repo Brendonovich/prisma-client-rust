@@ -1,13 +1,11 @@
 datasource db {
-  provider             = "mysql"
-  url                  = env("DATABASE_URL")
-  referentialIntegrity = "prisma"
+  provider             = "sqlite"
+  url                  = "file:./dev.db"
 }
 
 generator client {
   provider = "cargo prisma"
   output   = "../src/prisma.rs"
-  previewFeatures = ["referentialIntegrity"]
 }
 
 model User {

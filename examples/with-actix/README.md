@@ -1,6 +1,6 @@
 # Actix Web Example
 
-This is an example of using [Prisma Client Rust](https://github.com/Brendonovich/prisma-client-rust) with [Actix Web](https://actix.rs/) and connect with [Prisma Data Platform](https://www.prisma.io/data-platform).
+This is an example of using [Prisma Client Rust](https://github.com/Brendonovich/prisma-client-rust) with [Actix Web](https://actix.rs/).
 
 ## Running
 
