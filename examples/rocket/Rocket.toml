@@ -1,0 +1,15 @@
+# For more information take a look at https://rocket.rs/guide/configuration/
+[global]
+ident="rocket"
+
+[debug]
+address = "0.0.0.0"
+port = 8080
+keep_alive = 5
+log_level = "normal"
+
+[release]
+address = "0.0.0.0"
+port = 8080
+keep_alive = 5
+log_level = "normal"
