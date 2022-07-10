@@ -1,4 +1,4 @@
-use datamodel::dml::{Field, FieldArity, IndexType, Model}; 
+use datamodel::dml::{Field, FieldArity, FieldType, IndexType, Model}; 
 use prisma_client_rust_sdk::*;
 use quote::{format_ident, quote};
 use proc_macro2::TokenStream;
@@ -27,6 +27,148 @@ static OPERATORS: &'static [Operator] = &[
         list: false
     },
 ];
+
+pub fn select_macro(model: &Model) -> TokenStream {
+    let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
+    let macro_name = format_ident!("_select_{}", model_name_snake);
+    
+    let filters_pattern_produce = quote!(($($filters:tt)+)$(.$arg:ident($($arg_params:tt)*))*);
+    let filters_pattern_consume = quote!(($($filters)+)$(.$arg($($arg_params)*))*);
+    
+    let selections_pattern_produce = quote!({$($selections:tt)+});
+    let selections_pattern_consume = quote!({$($selections)+});
+    
+    let selection_pattern_produce = quote!($field:ident $(#filters_pattern_produce)? $(#selections_pattern_produce)?);
+    let selection_pattern_consume = quote!($field $(#filters_pattern_consume)? $(#selections_pattern_consume)?);
+    
+    let field_type_impls = model.fields.iter().map(|field| {
+        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
+        let field_type = field.field_type().to_tokens();
+        let field_type = match field.field_type() {
+            FieldType::Relation(_) => quote!($crate::prisma::#field_type),
+            _ => field_type
+        };
+        let field_type = match field.arity() {
+            FieldArity::Required => field_type,
+            FieldArity::Optional => quote!(Option<#field_type>),
+            FieldArity::List => quote!(Vec<#field_type>),
+        };
+
+        let selection_type_impl = field.as_relation_field().map(|_| {
+            let field_type = quote!(#field_name_snake::Data);
+            let field_type = match field.arity() {
+                FieldArity::Required => field_type,
+                FieldArity::Optional => quote!(Option<#field_type>),
+                FieldArity::List => quote!(Vec<#field_type>),
+            };
+            
+            quote!((@field_type; #field_name_snake #selections_pattern_produce) => { #field_type };)
+        });
+        
+        quote! {
+            #selection_type_impl
+            (@field_type; #field_name_snake) => { #field_type };
+        }
+    });
+    
+    let field_module_impls = model.fields.iter().map(|field| {
+        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
+        
+        quote! {
+            (@field_module; #field_name_snake #selections_pattern_produce) => {
+                $crate::prisma::#model_name_snake::select!(@definitions; $($selection)+);
+            };
+        }
+    });
+    
+    let select_fields_to_selections_impl = quote! {
+        (@select_fields_to_selections; $(#selection_pattern_produce)+) => {
+            vec![$($crate::prisma::#model_name_snake::select!(
+                @select_field_to_selection;
+                #selection_pattern_consume
+            )),+]
+        };
+    };
+    
+    let select_field_to_selection_impls = model.fields.iter().map(|field| {
+        let field_string = field.name();
+        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
+        
+        match field.field_type() {
+            FieldType::Relation(relation) =>{
+                let relation_model_name_snake = format_ident!("{}", relation.to.to_case(Case::Snake));
+                
+                quote! {
+                    (@select_field_to_selection; #field_name_snake $(#filters_pattern_produce)? $(#selections_pattern_produce)?) => {{
+                        let $(
+                            $crate::prisma::#model_name_snake::select!(@munch; #filters_pattern_consume #selections_pattern_consume)
+                            mut
+                        )? selection = ::prisma_client_rust::query_core::Selection::builder(#field_string);
+                        $(
+                            let args = $crate::prisma::#relation_model_name_snake::ManyArgs::new #filters_pattern_consume;
+                            selection.set_arguments(args.to_graphql().0);
+                        )?
+                        $(
+                            selection.nested_selections($crate::prisma::#relation_model_name_snake::select!(
+                                @select_fields_to_selections;
+                                $($selections)+
+                            ));
+                        )?
+                        selection.build()
+                    }};
+                }
+            },
+            _ => quote! {
+                (@select_field_to_selection; #field_name_snake) => {
+                    ::prisma_client_rust::query_core::Selection::builder(#field_string).build()
+                };
+            }
+        }
+    });
+    
+    quote! {
+        #[macro_export]
+        macro_rules! #macro_name {
+            ($(#selection_pattern_produce)+) => {{
+                $crate::prisma::#model_name_snake::select!(@definitions; $(#selection_pattern_consume)+);
+                
+                Select($crate::prisma::#model_name_snake::select!(@select_fields_to_selections; $(#selection_pattern_consume)+))
+            }};
+            (@definitions; $(#selection_pattern_produce)+) => {
+                #[derive(::serde::Deserialize)]
+                #[allow(warnings)]
+                pub struct Data {
+                    $($field: $crate::prisma::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?),)+
+                }
+
+                $($(pub mod $field {
+                    $crate::prisma::#model_name_snake::select!(@field_module; $field #selections_pattern_consume);
+                })?)+
+
+                pub struct Select(pub Vec<::prisma_client_rust::query_core::Selection>);
+
+                impl ::prisma_client_rust::traits::Select<$crate::prisma::#model_name_snake::Data> for Select {
+                    type Data = Data;
+                    
+                    fn to_selections(self) -> Vec<::prisma_client_rust::query_core::Selection> {
+                        self.0
+                    }
+                }
+            };
+            
+            #(#field_type_impls)*
+            
+            #(#field_module_impls)*
+            
+            #select_fields_to_selections_impl
+            
+            #(#select_field_to_selection_impls)*
+            
+            (@munch; $($tokens:tt)*) => {};
+        }
+        pub use #macro_name as select;
+    }
+}
 
 struct Outputs {
     outputs: Vec<String>,
@@ -1264,6 +1406,7 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
         let outputs_fn = model_outputs.quote();
         let query_modules = model_query_module.quote();
         let where_params = model_where_params.quote();
+        let select_macro = select_macro(model);
 
         quote! {
             pub mod #model_name_snake {
@@ -1273,6 +1416,8 @@ pub fn generate(args: &GenerateArgs) -> Vec<TokenStream> {
                 #query_modules
                 
                 #outputs_fn
+                
+                #select_macro
 
                 #data_struct
 
