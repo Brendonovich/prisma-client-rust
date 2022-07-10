@@ -71,24 +71,16 @@ pub fn select_macro(model: &Model) -> TokenStream {
         }
     });
     
-    let field_module_impls = model.fields.iter().map(|field| {
-        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
+    let field_module_impls = model.fields.iter().filter_map(|f| f.as_relation_field()).map(|field| {
+        let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
+        let relation_model_name_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
-                $crate::prisma::#model_name_snake::select!(@definitions; $($selection)+);
+                $crate::prisma::#relation_model_name_snake::select!(@definitions; $($selections)+);
             };
         }
     });
-    
-    let select_fields_to_selections_impl = quote! {
-        (@select_fields_to_selections; $(#selection_pattern_produce)+) => {
-            vec![$($crate::prisma::#model_name_snake::select!(
-                @select_field_to_selection;
-                #selection_pattern_consume
-            )),+]
-        };
-    };
     
     let select_field_to_selection_impls = model.fields.iter().map(|field| {
         let field_string = field.name();
@@ -100,10 +92,8 @@ pub fn select_macro(model: &Model) -> TokenStream {
                 
                 quote! {
                     (@select_field_to_selection; #field_name_snake $(#filters_pattern_produce)? $(#selections_pattern_produce)?) => {{
-                        let $(
-                            $crate::prisma::#model_name_snake::select!(@munch; #filters_pattern_consume #selections_pattern_consume)
-                            mut
-                        )? selection = ::prisma_client_rust::query_core::Selection::builder(#field_string);
+                        #[allow(warnings)]
+                        let mut selection = ::prisma_client_rust::query_core::Selection::builder(#field_string);
                         $(
                             let args = $crate::prisma::#relation_model_name_snake::ManyArgs::new #filters_pattern_consume;
                             selection.set_arguments(args.to_graphql().0);
@@ -157,12 +147,20 @@ pub fn select_macro(model: &Model) -> TokenStream {
             };
             
             #(#field_type_impls)*
+            (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot select field nonexistent field $field on model #model_name_snake)) };
             
             #(#field_module_impls)*
+            (@field_module; $($tokens:tt)*) => {};
             
-            #select_fields_to_selections_impl
+            (@select_fields_to_selections; $(#selection_pattern_produce)+) => {
+                vec![$($crate::prisma::#model_name_snake::select!(
+                    @select_field_to_selection;
+                    #selection_pattern_consume
+                )),+]
+            };
             
             #(#select_field_to_selection_impls)*
+            (@select_field_to_selection; $($tokens:tt)*) => { ::prisma_client_rust::query_core::Selection::builder("").build() };
             
             (@munch; $($tokens:tt)*) => {};
         }
