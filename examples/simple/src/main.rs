@@ -22,8 +22,8 @@ pub async fn main() {
     let user = client
         .user()
         .create(
-            user::id::set("user0".to_string()),
-            user::display_name::set("User 0".to_string()),
+            "user0".to_string(),
+            "User 0".to_string(),
             vec![],
         )
         .exec()
@@ -33,9 +33,9 @@ pub async fn main() {
     let post = client
         .post()
         .create(
-            post::id::set("post0".to_string()),
-            post::content::set("Some post content".to_string()),
-            post::user::link(user::id::equals(user.id.to_string())),
+            "post0".to_string(),
+            "Some post content".to_string(),
+            user::id::equals(user.id.to_string()),
             vec![],
         )
         .exec()

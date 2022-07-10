@@ -20,7 +20,7 @@ impl UserMutation {
 
         let created = db
             .user()
-            .create(user::display_name::set(input.display_name), vec![])
+            .create(input.display_name, vec![])
             .exec()
             .await?;
 
