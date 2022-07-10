@@ -12,8 +12,8 @@ First, the main library and CLI package must be added to your project's Cargo.to
 
 ```toml
 [dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.5.2" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.5.2" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.0" }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.0" }
 ```
 
 The easiest way to create a binary to access the CLI through is by creating a `src/bin` folder if you don't already have one, and inside it creating a file called something like `prisma.rs` (This will determine the name of your binary). Inside this file insert the following:

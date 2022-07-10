@@ -1,7 +1,7 @@
 <div align="center">
     <h1>Prisma Client Rust</h1>
     <p><b>Type-safe database access for Rust</b></p>
-    <img src="https://img.shields.io/badge/latest-0.5.2-blue?style=flat-square" alt="Latest version of Prisma Client Rust is 0.5.2">
+    <img src="https://img.shields.io/badge/latest-0.6.0-blue?style=flat-square" alt="Latest version of Prisma Client Rust is 0.6.0">
     <a href="https://prisma.io">
         <img src="https://img.shields.io/static/v1?label=prisma&message=v3.13.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.13.0">
     </a>
