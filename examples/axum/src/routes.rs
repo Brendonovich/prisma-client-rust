@@ -7,10 +7,7 @@ use axum::{
     Router,
 };
 use prisma_client_rust::{
-    prisma_errors::query_engine::{
-        RecordNotFound,
-        UniqueKeyViolation,
-    },
+    prisma_errors::query_engine::UniqueKeyViolation,
     Error,
     error_is_type,
 };
@@ -60,10 +57,10 @@ pub fn create_route() -> Router {
 
 async fn handle_user_get(db: Database) -> AppResult<Json<Vec<user::Data>>> {
     let users = db.user()
-    .find_many(vec![])
-    .with(user::comments::fetch(vec![]))
-    .exec()
-    .await?;
+        .find_many(vec![])
+        .with(user::comments::fetch(vec![]))
+        .exec()
+        .await?;
 
     Ok(Json::from(users))
 }
@@ -149,9 +146,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match self {
             AppError::PrismaError(Error::Execute(prisma_err)) => {
-                if error_is_type::<RecordNotFound>(&prisma_err) {
-                    StatusCode::NOT_FOUND
-                } else if error_is_type::<UniqueKeyViolation>(&prisma_err) {
+                if error_is_type::<UniqueKeyViolation>(&prisma_err) {
                     StatusCode::CONFLICT
                 } else {
                     StatusCode::BAD_REQUEST
