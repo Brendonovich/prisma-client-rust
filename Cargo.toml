@@ -27,7 +27,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "1.0.30"
 bigdecimal = { version = "0.2.2", features = ["serde"] }
 uuid = { version = "0.8", features = ["serde"] }
-indexmap = "1.8.2"
+indexmap = "1.8.1"
 serde-value = "0.7.0"
 
 query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
