@@ -1,0 +1,23 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.db"
+}
+
+generator client {
+  provider = "cargo prisma"
+  output   = "../src/db.rs"
+}
+
+model User {
+  id       Int        @id @default(autoincrement())
+  username String     @unique
+  email    String
+  comments Comments[]
+}
+
+model Comments {
+  id       Int    @id @default(autoincrement())
+  message  String
+  authorId Int
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
