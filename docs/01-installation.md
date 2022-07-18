@@ -6,7 +6,7 @@ Prisma Client Rust's installation operates in a different way to most Rust proje
 
 `prisma-client-rust-cli` contains the code generation and access to the Prisma CLI, but does not provide an executable binary - this must be created yourself. <sup>[why?](#why-is-a-cli-binary-not-provided)</sup>
 
-## Creating a CLI Binary Inside Your Project
+## Creating a CLI Binary Inside Your Crate
 
 First, the main library and CLI package must be added to your project's Cargo.toml:
 
@@ -39,9 +39,15 @@ prisma = "run --bin <your binary name> --"
 
 Now you can run `cargo prisma <command>` anywhere in your project to access the CLI!
 
-## Creating a CLI Binary as a Seprate Package
+This approach has some problems though: 
+1. `prisma-client-rust-cli` is included as a dependency in your crate, which is likely not desirable.
+2. If your crate has errors during compilation then you aren't able to generate the client, since the CLI will also fail to compile!
 
-This approach has a problem, though: `prisma-client-rust-cli` is included as a dependency in your library/application, which is likely not desirable. The solution to this is to move the CLI binary to a separate package and configure your project to use [Cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). Below is a sample project structure that has one binary target in `src/main.rs`, and a separate package for the CLI named `prisma-cli`, which is included in the [workspace members](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html#:~:text=%5Bworkspace%5D-,members%20%3D%20%5B,-%22adder%22%2C%0A%5D) of `Cargo.toml`.
+Thankfully, there's a more reliable method:
+
+## Creating a CLI Binary as a Workspace Crate
+
+Move the CLI binary to a separate crate and configure your project to use [Cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). Below is a sample project structure that has one binary target in `src/main.rs`, and a separate crate for the CLI named `prisma-cli`, which is included in the [workspace members](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html#:~:text=%5Bworkspace%5D-,members%20%3D%20%5B,-%22adder%22%2C%0A%5D) of `Cargo.toml`.
 
 ```
 Cargo.toml
