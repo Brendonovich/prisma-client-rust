@@ -21,6 +21,8 @@ model User {
 }
 ```
 
+Next, run `cargo prisma generate` to generate the client that will be used in your Rust code. If you have `rustfmt` installed, the generated code will be formatted for easier exploration and debugging.
+
 ### Creating the Client
 
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime. Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
