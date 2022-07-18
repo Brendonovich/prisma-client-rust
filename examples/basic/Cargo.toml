@@ -1,8 +1,8 @@
 [package]
-name = "simple"
+name = "basic"
 version = "0.1.0"
 edition = "2021"
-default-run = "simple"
+default-run = "basic"
 
 [dependencies]
 prisma-client-rust = { path="../../" }

@@ -13,6 +13,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "prisma-client-rust",
+ "prisma-client-rust-cli",
+ "serde",
+]
+
+[[package]]
 name = "actix-codec"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,6 +589,16 @@ name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
+name = "basic"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "prisma-client-rust-cli",
+ "serde",
+ "tokio",
+]
 
 [[package]]
 name = "bigdecimal"
@@ -4086,16 +4106,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple"
-version = "0.1.0"
-dependencies = [
- "prisma-client-rust",
- "prisma-client-rust-cli",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "siphasher"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5165,16 +5175,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7daf138b6b14196e3830a588acf1e86966c694d3e8fb026fb105b8b5dca07e6e"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "with-actix"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "prisma-client-rust",
- "prisma-client-rust-cli",
- "serde",
 ]
 
 [[package]]

@@ -71,8 +71,8 @@ async fn handle_user_post(
 ) -> AppJsonResult<user::Data> {
     let data = db.user()
         .create(
-            user::username::set(input.username),
-            user::email::set(input.email),
+            input.username,
+            input.email,
             vec![],
         )
         .exec()
@@ -120,8 +120,8 @@ async fn handle_comment_post(
 ) -> AppJsonResult<comments::Data> {
     let comment = db.comments()
         .create(
-            comments::message::set(req.message),
-            comments::author::link(user::UniqueWhereParam::IdEquals(req.user)),
+            req.message,
+            user::id::equals(req.user),
             vec![]
         )
         .exec()

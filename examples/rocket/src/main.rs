@@ -5,16 +5,16 @@ use rocket::serde::json::Json;
 #[macro_use]
 extern crate rocket;
 
-pub mod prisma;
+pub mod db;
 
-use prisma::{post, user};
+use db::{post, user};
 
 // This is the struct that will hold the prisma client. This will be managed by
 // Rocket, accessible in the routing functions using the type alias `Ctx` below.
 // See https://rocket.rs/v0.5-rc/guide/state/
 #[derive(Clone)]
 pub struct Context {
-    pub db: Arc<prisma::PrismaClient>,
+    pub db: Arc<db::PrismaClient>,
 }
 
 // Type alias not required, just personal preference for this in particular so I
@@ -46,7 +46,7 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(Context {
             db: Arc::new(
-                prisma::new_client()
+                db::new_client()
                     .await
                     .expect("Failed to create Prisma client"),
             ),
