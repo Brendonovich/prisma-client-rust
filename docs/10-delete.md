@@ -28,7 +28,7 @@ model Comment {
 
 ## Deleting One Record
 
-To delete a single record, perform a `find_unique` query and chain `delete` onto it.
+To delete a single record, perform a `delete` query.
 
 The following example finds a single post and deletes it, returning the deleted post.
 
@@ -37,8 +37,7 @@ use prisma::post;
 
 let deleted_post: Option<post::Data> = client
     .post()
-    .find_unique(post::id::equals("id".to_string()))
-    .delete()
+    .delete(post::id::equals("id".to_string()))
     .exec()
     .await
     .unwrap();
@@ -48,19 +47,18 @@ Note that the query returns an `Option` and not just the data directly, since th
 
 ## Delete Many Records
 
-To delete many records, perform a `find_many` query and chain `delete` onto it.
+To delete many records, perform a `delete_many` query.
 
 The following example finds a group of comments and deletes them, returning the number of deleted comments.
 
 ```rust
-use prisma::{comment};
+use prisma::comment;
 
 let deleted_comments_count: usize = client
     .comment()
-    .find_many(vec![
+    .delete_many(vec![
         comment::content::contains("what's up".to_string())
     ])
-    .delete()
     .exec()
     .await
     .unwrap();

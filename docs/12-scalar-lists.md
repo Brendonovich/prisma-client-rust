@@ -69,12 +69,14 @@ use prisma::post;
 
 let post: Option<post::Data> = client
     .post()
-    .find_unique(post::id::equals("123".to_string()))
-    .update(post::tags::set(vec![
-        "a".to_string(),
-        "b".to_string(),
-        "c".to_string()
-    ]))
+    .update(
+        post::id::equals("123".to_string()),
+        vec![post::tags::set(vec![
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string()
+        ])]
+    )
     .exec()
     .await
     .unwrap();
@@ -87,11 +89,13 @@ use prisma::post;
 
 let post: Option<post::Data> = client
     .post()
-    .find_unique(post::id::equals("123".to_string()))
-    .update(post::tags::push(vec![
-        "a".to_string(),
-        "b".to_string()
-    ]))
+    .update(
+        post::id::equals("123".to_string()),
+        post::tags::push(vec![
+            "a".to_string(),
+            "b".to_string()
+        ])
+    )
     .exec()
     .await
     .unwrap();

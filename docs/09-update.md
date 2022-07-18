@@ -1,6 +1,6 @@
 # Update
 
-Updating a record is as easy as doing a `find_unique` or `find_many` query and then calling `update` with a `Vec` of all the changes you want to make.
+Updating a record can be done with `update` or `update_many` by specifying which records you would like to update and a `Vec` of all the updates you want to make.
 
 The examples use the following schema:
 
@@ -41,10 +41,10 @@ use prisma::post;
 
 let updated_post: post::Data = client
     .post()
-    .find_unique(post::id::equals("id".to_string()))
-    .update(vec![
-        post::title::set("new title".to_string())
-    ])
+    .update(
+        post::id::equals("id".to_string()), // Unique filter
+        vec![post::title::set("new title".to_string())] // Vec of updates
+    )
     .exec()
     .await
     .unwrap();
@@ -59,10 +59,10 @@ use prisma::post;
 
 let updated_posts_count: usize = client
     .post()
-    .find_many(vec![post::id::contains("id".to_string())])
-    .update(vec![
-        post::content::set("new content".to_string()),
-    ])
+    .update_many(
+        vec![post::id::contains("id".to_string())], // Vec of unique filters
+        vec![post::content::set("new content".to_string())] // Updates to be applied to each record
+    )
     .exec()
     .await
     .unwrap();
@@ -72,7 +72,7 @@ let updated_posts_count: usize = client
 
 Using `link`, relations can be created inside `update` queries.
 
-IMPORTANT: Updating a relation this way should only be done with a `find_unique` update. Doing so with a `find_many` update will always cause the query to return an `Err`. To avoid this, set the relation's scalar field directly.
+IMPORTANT: Updating a relation this way should only be done within `update`. Doing so with `update_many` will cause the query to always return an `Err`. To avoid this, set the relation's scalar fields directly.
 
 ### Update in a Find Unique
 
@@ -83,10 +83,12 @@ use prisma::{comment, post};
 
 let updated_comment: comment::Data = client
     .post()
-    .find_unique(comment::id::equals("id".to_string()))
-    .update(vec![comment::post::link(
-        post::id::equals("post".to_string())
-    )])
+    .update(
+        comment::id::equals("id".to_string()),
+        vec![comment::post::link(
+            post::id::equals("post".to_string())
+        )]
+    )
     .exec()
     .await
     .unwrap();
@@ -101,24 +103,22 @@ use prisma::{comment, post};
 
 let updated_comment: comment::Data = client
     .post()
-    .find_many(vec![comment::post::is(
-        post::id::equals("id".to_string())
-    )])
-    .update(vec![
-        comment::post_id::set("post".to_string())
-    ])
+    .update_many(
+        vec![comment::post::is(
+            post::id::equals("id".to_string())
+        )],
+        vec![comment::post_id::set("post".to_string())]
+    )
     .exec()
     .await
     .unwrap();
 ```
 
-
-
 ### Unlink Optional Relations
 
-For optional relations, the `unlink` method is available to remove relations and set the relation's scalar field to `NULL` in `find_unique` queries.
+For optional relations, the `unlink` method is available to remove relations and set the relation's scalar field to `NULL` in `update` queries.
 
-The same caveat for `find_many` applies, so setting the scalar field to `None` shoud be done instead.
+The same caveat for `update_many` applies, so setting the scalar fields to `None` shoud be done instead.
 
 ## Up Next
 

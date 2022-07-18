@@ -54,7 +54,7 @@ let count = client
     ._execute_raw(raw!(
         "INSERT INTO Post (published, title) VALUES ({}, {})",
         PrismaValue::Boolean(false),
-        PrismaValue::Title("A Title".to_string())
+        PrismaValue::String("A Title".to_string())
     ))
     .exec()
     .await

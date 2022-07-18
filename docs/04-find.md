@@ -139,7 +139,7 @@ use prisma_client_rust::operator::not;
 let posts: Option<post::Data> = client
     .post()
     .find_first(vec![
-        not(vec![post::title::id("123".to_string()))]
+        not(vec![post::title::id("123".to_string()))
     ])
     .exec()
     .await

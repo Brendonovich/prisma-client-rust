@@ -29,9 +29,9 @@ let post: post::Data = client
         post::id::equals("upsert".to_string()),
         ( // Second argument is a tuple with the same values
           // as an equivalent call to create()
-            post::published::set(true),
-            post::title::set("title".to_string()),
-            post::id::set("upsert".to_string()),
+            true,
+            "title".to_string(),
+            "upsert".to_string(),
             vec![]
         ),
         vec![ // Final argument is a vec of updates

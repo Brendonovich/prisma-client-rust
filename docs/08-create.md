@@ -44,9 +44,10 @@ use prisma::post;
 let created: post::Data = client
     .post()
     .create(
-        // Required fields are individual arguments
-        post::published::set(true),
-        post::title::set("what up".to_string()),
+        // Required fields are individual arguments.
+        // Wrapping their values is not necessary.
+        true,
+        "what up".to_string(),
         // All other fields can be passed in the last argument
         vec![
             // Generated fields can be overwritten like regular fields
@@ -61,7 +62,7 @@ let created: post::Data = client
 
 The `link` method of a relation field module can be used to connect new records with existing ones. Like `find_unique`, it takes a single unique filter as an argument.
 
-The following example creates a new comment and links it to a post by setting its `post_id` field behind the scenes.
+The following example creates a new comment and links it to a post.
 
 ```rust
 use prisma::{comment, post};
@@ -69,10 +70,11 @@ use prisma::{comment, post};
 let comment: comment::Data = client
     .comment()
     .create(
-        comment::content::set("content".to_string()),
-        comment::post::link(
-            post::id::equals("id".to_string())
-        ),
+        "content".to_string(),
+        // link wrapper is implied since field is required.
+        // If it wasn't required, then this statement would need 
+        // to be comment::post::link(post::id::equals(...)).
+        post::id::equals("id".to_string())
         vec![]
     )
     .exec()
