@@ -1,8 +1,10 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection};
+use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
+
+use crate::select::{SelectOption, SelectType};
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
 
@@ -72,24 +74,14 @@ where
         self
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            with_params,
-            order_by_params,
-            cursor_params,
-            skip,
-            take,
-            ..
-        } = self;
-
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = info;
-
+    fn to_selection(
+        model: &str,
+        where_params: Vec<Where>,
+        order_by_params: Vec<OrderBy>,
+        cursor_params: Vec<Cursor>,
+        skip: Option<i64>,
+        take: Option<i64>,
+    ) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("findFirst{}", model));
 
         selection.alias("result");
@@ -106,11 +98,6 @@ where
                 ),
             );
         }
-
-        if with_params.len() > 0 {
-            scalar_selections.append(&mut with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
 
         if order_by_params.len() > 0 {
             selection.push_argument(
@@ -129,8 +116,49 @@ where
         skip.map(|skip| selection.push_argument("skip".to_string(), QueryValue::Int(skip as i64)));
         take.map(|take| selection.push_argument("take".to_string(), QueryValue::Int(take as i64)));
 
+        selection
+    }
+
+    pub fn select<S: SelectType<Data>>(self, select: S) -> SelectOption<'a, S::Data> {
+        let mut selection = Self::to_selection(
+            self.info.model,
+            self.where_params,
+            self.order_by_params,
+            self.cursor_params,
+            self.skip,
+            self.take,
+        );
+
+        selection.nested_selections(select.to_selections());
+
         let op = Operation::Read(selection.build());
 
-        ctx.execute(op).await
+        SelectOption::new(self.ctx, op)
+    }
+
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let QueryInfo {
+            model,
+            mut scalar_selections,
+            ..
+        } = self.info;
+
+        let mut selection = Self::to_selection(
+            model,
+            self.where_params,
+            self.order_by_params,
+            self.cursor_params,
+            self.skip,
+            self.take,
+        );
+
+        if self.with_params.len() > 0 {
+            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
+        }
+        selection.nested_selections(scalar_selections);
+
+        let op = Operation::Read(selection.build());
+
+        self.ctx.execute(op).await
     }
 }

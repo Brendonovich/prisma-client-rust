@@ -27,24 +27,15 @@ where
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            ..
-        } = self;
-
-        let QueryInfo { model, .. } = info;
-
-        let mut selection = Selection::builder(format!("deleteMany{}", model));
+        let mut selection = Selection::builder(format!("deleteMany{}", self.info.model));
 
         selection.alias("result");
 
-        if where_params.len() > 0 {
+        if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
                 PrismaValue::Object(
-                    where_params
+                    self.where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
                         .map(Into::into)
@@ -57,6 +48,6 @@ where
 
         let op = Operation::Write(selection.build());
 
-        ctx.execute(op).await.map(|r: BatchResult| r.count)
+        self.ctx.execute(op).await.map(|r: BatchResult| r.count)
     }
 }

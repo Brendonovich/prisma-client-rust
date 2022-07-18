@@ -1,8 +1,10 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection};
+use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
+
+use crate::select::{SelectOption, SelectType};
 
 use super::{delete::Delete, QueryContext, QueryInfo, SerializedWhere, Update};
 
@@ -53,7 +55,7 @@ where
 
         Update::new(ctx, info, where_param, params, with_params)
     }
-    
+
     pub fn delete(self) -> Delete<'a, Where, With, Data> {
         let Self {
             ctx,
@@ -66,20 +68,7 @@ where
         Delete::new(ctx, info, where_param, with_params)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
-        let Self {
-            ctx,
-            info,
-            where_param,
-            with_params,
-            ..
-        } = self;
-
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = info;
-
+    fn to_selection(model: &str, where_param: Where) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("findUnique{}", model));
 
         selection.alias("result");
@@ -89,14 +78,35 @@ where
             PrismaValue::Object(vec![where_param.into().transform_equals()]),
         );
 
-        if with_params.len() > 0 {
-            scalar_selections.append(&mut with_params.into_iter().map(Into::into).collect());
+        selection
+    }
+
+    pub fn select<S: SelectType<Data>>(self, select: S) -> SelectOption<'a, S::Data> {
+        let mut selection = Self::to_selection(self.info.model, self.where_param);
+
+        selection.nested_selections(select.to_selections());
+
+        let op = Operation::Read(selection.build());
+
+        SelectOption::new(self.ctx, op)
+    }
+
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let QueryInfo {
+            model,
+            mut scalar_selections,
+        } = self.info;
+
+        let mut selection = Self::to_selection(model, self.where_param);
+
+        if self.with_params.len() > 0 {
+            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
         }
         selection.nested_selections(scalar_selections);
 
         let op = Operation::Read(selection.build());
 
-        ctx.execute(op).await
+        self.ctx.execute(op).await
     }
 }
 

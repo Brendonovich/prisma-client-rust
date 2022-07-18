@@ -9,11 +9,13 @@ use request_handlers::dmmf::schema::{DmmfQuerySchemaRenderer, DmmfSchema};
 use crate::{args::GenerateArgs, casing::Casing, keywords::is_reserved_keyword};
 
 pub fn rustfmt(path: &Path) {
-    Command::new("rustfmt")
+    match Command::new("rustfmt")
         .arg("--edition=2021")
         .arg(path.to_str().unwrap())
         .output()
-        .expect("Failed to run rustfmt");
+    {
+        _ => {}
+    };
 }
 
 /// Validates that names of models, fields and enums do not overlap with reserved Rust keywords.

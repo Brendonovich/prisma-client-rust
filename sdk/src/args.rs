@@ -4,19 +4,22 @@ use convert_case::Case;
 use datamodel::dml::{FieldType, ScalarType, ScalarField, Field, FieldArity};
 use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 
-use crate::{casing::Casing, dmmf::EngineDMMF};
+use crate::{casing::Casing, dmmf::{ Datasource}};
 
 #[derive(Debug)]
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
-    pub root: EngineDMMF,
+    pub datamodel_str: String,
+    pub datasources: Vec<Datasource>,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
 }
 
 impl GenerateArgs {
-    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, root: EngineDMMF) -> Self {
+    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, 
+    datamodel_str: String,
+    datasources: Vec<Datasource>) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -252,7 +255,8 @@ impl GenerateArgs {
 
         Self {
             dml,
-            root,
+            datamodel_str,
+            datasources,
             schema,
             read_filters,
             write_filters,

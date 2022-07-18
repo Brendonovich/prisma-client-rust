@@ -10,6 +10,7 @@ pub mod query_raw;
 pub mod update;
 pub mod update_many;
 pub mod upsert;
+pub mod select;
 
 pub use count::*;
 pub use create::*;

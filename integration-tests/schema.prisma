@@ -1,13 +1,14 @@
 datasource db {
     provider = "sqlite"
     url      = "file:dev.db"
-    // provider="postgresql"
-    // url="postgres://postgres:postgres@localhost:5432/postgres"
 }
 
 generator client {
     provider = "cargo prisma"
     output   = "tests/db.rs"
+    
+    // necessary since the generated file won't be at crate::prisma
+    module_path = "db"
 }
 
 model Post {

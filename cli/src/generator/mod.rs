@@ -6,17 +6,26 @@ mod models;
 
 use prisma_client_rust_sdk::{GenerateArgs, PrismaGenerator};
 use quote::quote;
+use serde::Deserialize;
 
-pub struct PrismaClientRustGenerator {}
+fn default_module_path() -> String {
+    "prisma".to_string()
+}
+
+#[derive(Deserialize)]
+pub struct PrismaClientRustGenerator {
+    #[serde(default = "default_module_path")]
+    module_path: String,
+}
 
 impl PrismaGenerator for PrismaClientRustGenerator {
     const NAME: &'static str = "Prisma Client Rust";
     const DEFAULT_OUTPUT: &'static str = "./prisma.rs";
 
-    fn generate(args: GenerateArgs) -> String {
+    fn generate(self, args: GenerateArgs) -> String {
         let mut header = header::generate(&args);
 
-        header.extend(models::generate(&args));
+        header.extend(models::generate(&args, self.module_path.parse().expect("Invalid module path")));
 
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);

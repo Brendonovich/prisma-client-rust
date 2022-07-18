@@ -335,29 +335,17 @@ async fn ordering() -> TestResult {
 
     client
         .post()
-        .create(
-            "Test post 1".to_string(),
-            false,
-            vec![],
-        )
+        .create("Test post 1".to_string(), false, vec![])
         .exec()
         .await?;
     client
         .post()
-        .create(
-            "Test post 2".to_string(),
-            false,
-            vec![],
-        )
+        .create("Test post 2".to_string(), false, vec![])
         .exec()
         .await?;
     client
         .post()
-        .create(
-            "Test post 3".to_string(),
-            true,
-            vec![],
-        )
+        .create("Test post 3".to_string(), true, vec![])
         .exec()
         .await?;
 
@@ -382,6 +370,54 @@ async fn ordering() -> TestResult {
     assert_eq!(found[0].published, true);
     assert_eq!(found[1].published, false);
     assert_eq!(found[2].published, false);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn select() -> TestResult {
+    let client = client().await;
+
+    client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
+
+    client
+        .user()
+        .create("Oscar".to_string(), vec![])
+        .exec()
+        .await?;
+
+    let users = client
+        .user()
+        .find_many(vec![])
+        .select(user::select! {
+            id
+            name
+            profile {
+                id
+            }
+            posts(vec![]).take(5) {
+                id
+                title
+                desc
+                categories(vec![]).take(5) {
+                    id
+                    name
+                }
+            }
+        })
+        .exec()
+        .await?;
+
+    assert_eq!(users.len(), 2);
+    assert_eq!(users[0].name, "Brendan".to_string());
+    assert_eq!(users[1].name, "Oscar".to_string());
+    assert!(users[0].profile.is_none());
+    assert!(users[1].profile.is_none());
+    assert_eq!(users[0].posts.len(), 0);
 
     cleanup(client).await
 }

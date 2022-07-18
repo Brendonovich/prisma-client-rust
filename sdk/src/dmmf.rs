@@ -1,4 +1,6 @@
+
 use serde::{Deserialize, Serialize};
+use serde_json::Map;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,6 +16,11 @@ pub struct EngineDMMF {
 pub struct Generator {
     pub output: EnvValue,
     pub name: String,
+    pub binary_targets: Vec<String>,
+    pub provider: EnvValue,
+    pub is_custom_output: bool,
+    pub preview_features: Vec<String>,
+    pub config: Map<String, serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

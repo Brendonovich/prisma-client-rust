@@ -3,8 +3,8 @@ use quote::{__private::TokenStream, quote};
 use crate::generator::GenerateArgs;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
-    let datamodel = &args.root.datamodel;
-    let database_string = &args.root.datasources[0].provider;
+    let datamodel = &args.datamodel_str;
+    let database_string = &args.datasources[0].provider;
 
     quote! {
         #![allow(warnings, unused)]
