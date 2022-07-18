@@ -12,3 +12,5 @@
 -  [Delete](10-delete.md)
 -  [Upsert](11-upsert.md)
 -  [Scalar Lists](12-scalar-lists.md)
+-  [Raw Queries](13-raw.md)
+-  [Error Handling](14-error-handling.md)
