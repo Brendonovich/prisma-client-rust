@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
 use convert_case::Case;
-use datamodel::dml::{FieldType, ScalarType, ScalarField, Field, FieldArity};
+use datamodel::dml::{Field, FieldArity, FieldType, ScalarField, ScalarType};
 use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 
-use crate::{casing::Casing, dmmf::{ Datasource}};
+use crate::{casing::Casing, dmmf::Datasource};
 
 #[derive(Debug)]
 pub struct GenerateArgs {
@@ -17,9 +17,12 @@ pub struct GenerateArgs {
 }
 
 impl GenerateArgs {
-    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, 
-    datamodel_str: String,
-    datasources: Vec<Datasource>) -> Self {
+    pub fn new(
+        mut dml: datamodel::dml::Datamodel,
+        schema: DmmfSchema,
+        datamodel_str: String,
+        datasources: Vec<Datasource>,
+    ) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -340,13 +343,13 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
     if field.name == "equals" {
         return None;
     }
-    
+
     field.input_types.iter().find(|input_type|
         matches!(input_type.location, TypeLocation::Scalar | TypeLocation::EnumTypes if input_type.typ != "Null")
     ).map(|input_type| {
         let type_name = input_type.typ.clone();
         let is_list = input_type.is_list;
-        
+
         Method::new(
             // 'in' is a reserved keyword in Rust
             match field.name.as_str() {

@@ -3,6 +3,7 @@ mod enums;
 mod header;
 mod internal_enums;
 mod models;
+mod prelude;
 
 use prisma_client_rust_sdk::{GenerateArgs, PrismaGenerator};
 use quote::quote;
