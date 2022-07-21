@@ -853,7 +853,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 Link(params).into()
                             }
 
-                            pub fn unlink(params: Vec<#relation_type_snake::WhereParam>) -> SetParam {
+                            pub fn unlink(params: Vec<#relation_type_snake::UniqueWhereParam>) -> SetParam {
                                 SetParam::#unlink_variant(params)
                             }
                         });
@@ -877,12 +877,13 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                     PrismaValue::Object(
                                         vec![(
                                             "connect".to_string(),
-                                            PrismaValue::Object(
+                                            PrismaValue::List(
                                                 where_params
                                                     .into_iter()
                                                     .map(Into::<super::#relation_type_snake::WhereParam>::into)
                                                     .map(Into::<SerializedWhere>::into)
                                                     .map(SerializedWhere::transform_equals)
+                                                    .map(|v| PrismaValue::Object(vec![v]))
                                                     .collect()
                                             )
                                         )]
@@ -893,19 +894,20 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                         // Unlink variant
                         model_set_params.add_variant(
-                            quote!(#unlink_variant(Vec<super::#relation_type_snake::WhereParam>)),
+                            quote!(#unlink_variant(Vec<super::#relation_type_snake::UniqueWhereParam>)),
                             quote! {
                                 SetParam::#unlink_variant(where_params) => (
                                     #field_string.to_string(),
                                     PrismaValue::Object(
                                         vec![(
                                             "disconnect".to_string(),
-                                            PrismaValue::Object(
+                                            PrismaValue::List(
                                                 where_params
                                                     .into_iter()
                                                     .map(Into::<super::#relation_type_snake::WhereParam>::into)
                                                     .map(Into::<SerializedWhere>::into)
                                                     .map(SerializedWhere::transform_equals)
+                                                    .map(|v| PrismaValue::Object(vec![v]))
                                                     .collect()
                                             )
                                         )]
@@ -973,7 +975,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                         vec![(
                                             "connect".to_string(),
                                             PrismaValue::Object(
-                                                vec![where_param]
+                                                [where_param]
                                                     .into_iter()
                                                     .map(Into::<super::#relation_type_snake::WhereParam>::into)
                                                     .map(Into::<SerializedWhere>::into)

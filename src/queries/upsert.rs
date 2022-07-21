@@ -67,7 +67,7 @@ where
         selection.push_argument(
             "where",
             PrismaValue::Object(
-                vec![where_param]
+                [where_param]
                     .into_iter()
                     .map(Into::<SerializedWhere>::into)
                     .map(SerializedWhere::transform_equals)
