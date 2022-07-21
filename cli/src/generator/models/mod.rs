@@ -853,7 +853,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 Link(params).into()
                             }
 
-                            pub fn unlink(params: Vec<#relation_type_snake::UniqueWhereParam>) -> SetParam {
+                            pub fn unlink(params: Vec<#relation_type_snake::WhereParam>) -> SetParam {
                                 SetParam::#unlink_variant(params)
                             }
                         });
@@ -893,7 +893,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                         // Unlink variant
                         model_set_params.add_variant(
-                            quote!(#unlink_variant(Vec<super::#relation_type_snake::UniqueWhereParam>)),
+                            quote!(#unlink_variant(Vec<super::#relation_type_snake::WhereParam>)),
                             quote! {
                                 SetParam::#unlink_variant(where_params) => (
                                     #field_string.to_string(),
