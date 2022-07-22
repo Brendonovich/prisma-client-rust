@@ -6,6 +6,8 @@ pub mod raw;
 pub mod serde;
 pub mod traits;
 
+use std::collections::HashMap;
+
 pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
@@ -74,4 +76,26 @@ macro_rules! or {
     ($($x:expr),+ $(,)?) => {
         $crate::operator::or(vec![$($x),+])
     };
+}
+
+/// Creates a PrismaValue::Object from a list of key-value pairs.
+/// If a key has multiple values that are PrismaValue::Objects, they will be merged.
+pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
+    let mut merged = HashMap::new();
+
+    for el in elements {
+        match (merged.get_mut(&el.0), el.1) {
+            (Some(PrismaValue::Object(existing)), PrismaValue::Object(incoming)) => {
+                existing.extend(incoming);
+            },
+            (None, v) => {
+                merged.insert(el.0, v);
+            },
+            (Some(_), _) => {
+                unreachable!("Cannot merge values if both are not objects")
+            }
+        }
+    }
+
+    PrismaValue::Object(merged.into_iter().collect())
 }

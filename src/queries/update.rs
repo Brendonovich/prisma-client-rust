@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::{option_on_not_found, select::{SelectOption, SelectType}};
+use crate::{
+    merged_object, option_on_not_found,
+    select::{SelectOption, SelectType},
+};
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
 
@@ -63,7 +66,7 @@ where
 
         selection.push_argument(
             "data",
-            PrismaValue::Object(set_params.into_iter().map(Into::into).collect()),
+            merged_object(set_params.into_iter().map(Into::into).collect()),
         );
 
         selection

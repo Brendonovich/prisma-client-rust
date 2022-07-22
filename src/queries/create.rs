@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::select::{Select, SelectType};
+use crate::{
+    merged_object,
+    select::{Select, SelectType},
+};
 
 use super::{QueryContext, QueryInfo};
 
@@ -49,7 +52,7 @@ where
 
         selection.push_argument(
             "data",
-            PrismaValue::Object(set_params.into_iter().map(Into::into).collect()),
+            merged_object(set_params.into_iter().map(Into::into).collect()),
         );
 
         selection
@@ -66,7 +69,10 @@ where
     }
 
     pub async fn exec(self) -> super::Result<Data> {
-        let QueryInfo { model, mut scalar_selections } = self.info;
+        let QueryInfo {
+            model,
+            mut scalar_selections,
+        } = self.info;
 
         let mut selection = Self::to_selection(model, self.set_params);
 

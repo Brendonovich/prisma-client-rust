@@ -87,9 +87,16 @@ async fn update_and_unlink() -> TestResult {
         .unwrap();
     assert_eq!(user.posts.unwrap().len(), 0);
 
+
     let post = client
         .post()
         .create("My post".to_string(), true, vec![])
+        .exec()
+        .await?;
+
+    let post_2 = client
+        .post()
+        .create("Another post".to_string(), true, vec![])
         .exec()
         .await?;
 
@@ -109,13 +116,17 @@ async fn update_and_unlink() -> TestResult {
         .user()
         .update(
             user::id::equals(user_id.clone()),
-            vec![user::posts::unlink(vec![post::id::equals(post.id.clone())])],
+            vec![
+                user::posts::unlink(vec![post::id::equals(post.id.clone())]),
+                user::posts::link(vec![post::id::equals(post_2.id.clone())]),
+            ],
         )
         .with(user::posts::fetch(vec![]))
         .exec()
         .await?
         .unwrap();
-    assert_eq!(updated.posts.unwrap().len(), 0);
+    assert_eq!(updated.posts().unwrap().len(), 1);
+    assert_eq!(updated.posts().unwrap()[0].id, post_2.id);
 
     cleanup(client).await
 }
