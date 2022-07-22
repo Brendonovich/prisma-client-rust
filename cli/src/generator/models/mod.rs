@@ -783,6 +783,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 Field::RelationField(field) => {
                     let link_variant = SetParams::field_link_variant(field_string);
                     let unlink_variant = SetParams::field_unlink_variant(field_string);
+                    let set_variant = SetParams::field_set_variant(field_string);
                     
                     let relation_type_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
                     
@@ -856,6 +857,10 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             pub fn unlink(params: Vec<#relation_type_snake::UniqueWhereParam>) -> SetParam {
                                 SetParam::#unlink_variant(params)
                             }
+
+                            pub fn set(params: Vec<#relation_type_snake::UniqueWhereParam>) -> SetParam {
+                                SetParam::#set_variant(params)
+                            }
                         });
                         
                         field_query_module.add_struct(quote! {
@@ -915,7 +920,31 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 )
                             },
                         );
-                        
+
+                        // Set variant
+                        model_set_params.add_variant(
+                            quote!(#set_variant(Vec<super::#relation_type_snake::UniqueWhereParam>)),
+                            quote! {
+                                SetParam::#set_variant(where_params) => (
+                                    #field_string.to_string(),
+                                    PrismaValue::Object(
+                                        vec![(
+                                            "set".to_string(),
+                                            PrismaValue::List(
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_type_snake::WhereParam>::into)
+                                                    .map(Into::<SerializedWhere>::into)
+                                                    .map(SerializedWhere::transform_equals)
+                                                    .map(|v| PrismaValue::Object(vec![v]))
+                                                    .collect()
+                                            )
+                                        )]
+                                    )
+                                )
+                            }
+                        );
+                    
                         model_with_params.add_many_variant(
                             field_string,
                             &relation_type_snake,
