@@ -35,3 +35,5 @@ query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev 
 prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
 datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
 user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
+
+specta = { optional = true, git = "https://github.com/oscartbeaumont/rspc", branch = "v2" }

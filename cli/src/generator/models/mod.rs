@@ -574,13 +574,15 @@ impl WhereParams {
 struct DataStruct {
     fields: Vec<TokenStream>,
     accessors: Vec<TokenStream>,
+    model_name: String
 }
 
 impl DataStruct {
-    pub fn new() -> Self {
+    pub fn new(model_name: String) -> Self {
         Self {
             fields: vec![],
             accessors: vec![],
+            model_name
         }
     }
 
@@ -594,10 +596,18 @@ impl DataStruct {
     }
 
     pub fn quote(&self) -> TokenStream {
-        let Self { fields, accessors } = self;
+        let Self { fields, accessors, model_name } = self;
+
+        let model_name_pascal_str = model_name.to_case(Case::Pascal);
+        
+        let specta_derive = cfg!(feature = "specta").then_some(quote!(
+            #[derive(::prisma_client_rust::specta::Type)]
+            #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
+        ));
 
         quote! {
             #[derive(Debug, Clone, Serialize, Deserialize)]
+            #specta_derive
             pub struct Data {
                 #(#fields),*
             }
@@ -640,7 +650,7 @@ impl Actions {
 pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
     args.dml.models.iter().map(|model| {
         let model_outputs = Outputs::new(&model);
-        let mut model_data_struct = DataStruct::new();
+        let mut model_data_struct = DataStruct::new(model.name.to_string());
         let mut model_order_by_params = OrderByParams::new();
         let mut model_pagination_params = PaginationParams::new();
         let mut model_with_params = WithParams::new();

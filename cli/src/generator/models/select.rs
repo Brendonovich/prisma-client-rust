@@ -100,6 +100,11 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         let i = format_ident!("{}", f.name().to_case(Case::Snake));
         quote!(#i)
     });
+
+    let specta_derive = cfg!(feature = "specta").then_some(quote! {
+        #[derive(prisma_client_rust::specta::Type)]
+        #[specta(crate = "prisma_client_rust::specta", inline)]
+    });
     
     quote! {
         #[macro_export]
@@ -123,6 +128,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 }
                 
                 #[derive(::serde::Deserialize)]
+                #specta_derive
                 #[allow(warnings)]
                 pub struct Data {
                     $($field: $crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?),)+

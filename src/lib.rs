@@ -19,6 +19,9 @@ pub use user_facing_errors as prisma_errors;
 pub use errors::*;
 pub use queries::*;
 
+#[cfg(feature = "specta")]
+pub use specta;
+
 use ::serde::{Deserialize, Serialize};
 use query_core::Selection;
 

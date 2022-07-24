@@ -4,6 +4,9 @@ version = "0.6.0"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 
+[features]
+specta = []
+
 [dependencies]
 serde_path_to_error = "0.1.7"
 quote = "1.0.18"
@@ -18,3 +21,4 @@ prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = 
 request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
 query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
 proc-macro2 = "1.0.39"
+
