@@ -1,9 +1,9 @@
 [package]
-name = "specta"
+name = "specta-example"
 version = "0.1.0"
 edition = "2021"
 # change to whatever you name your package
-default-run = "specta"
+default-run = "specta-example"
 
 [dependencies]
 prisma-client-rust = { features = ["rspc"], path="../../" }
