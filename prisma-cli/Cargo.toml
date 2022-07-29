@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 prisma-client-rust-cli = { features = [
-	"specta"
+	"rspc"
 ], path = "../cli" }

@@ -6,5 +6,5 @@ edition = "2021"
 default-run = "specta"
 
 [dependencies]
-prisma-client-rust = { features = ["specta"], path="../../" }
+prisma-client-rust = { features = ["rspc"], path="../../" }
 serde = { version = "1.0", features = ["derive"] }
