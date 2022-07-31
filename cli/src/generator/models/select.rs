@@ -101,9 +101,9 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!(#i)
     });
 
-    let specta_derive = cfg!(feature = "specta").then_some(quote! {
-        #[derive(prisma_client_rust::specta::Type)]
-        #[specta(crate = "prisma_client_rust::specta", inline)]
+    let specta_derive = cfg!(feature = "rspc").then_some(quote! {
+        #[derive(::prisma_client_rust::rspc::Type)]
+        #[specta(crate = "prisma_client_rust::rspc::internal::specta", inline)]
     });
     
     quote! {
