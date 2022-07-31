@@ -1,8 +1,8 @@
 [package]
-name = "rspc"
+name = "rspc-example"
 version = "0.1.0"
 edition = "2021"
-default-run = "rspc"
+default-run = "rspc-example"
 
 [dependencies]
 prisma-client-rust = { features = ["rspc"], path="../../" }

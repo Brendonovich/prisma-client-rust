@@ -102,7 +102,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
 
     let specta_impl = cfg!(feature = "rspc").then(|| {
-        let specta = quote!(prisma_client_rust::specta);
+        let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
         quote! {
             impl #specta::Type for Data {

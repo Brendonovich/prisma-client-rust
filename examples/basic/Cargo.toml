@@ -1,11 +1,10 @@
 [package]
-name = "basic"
+name = "basic-example"
 version = "0.1.0"
 edition = "2021"
-default-run = "basic"
+default-run = "basic-example"
 
 [dependencies]
 prisma-client-rust = { path="../../" }
-prisma-client-rust-cli = {path ="../../cli"}
 serde = { version = "1.0", features = ["derive"] }
 tokio = {features=["macros","rt-multi-thread"], version = "1.17.0"}

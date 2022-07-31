@@ -21,9 +21,8 @@ async fn main() {
                 .await
                 .unwrap()
         })
-        .query("userWithPosts", |db: Ctx, _: ()| async move {
-            let mut val = db
-                .user()
+        .query("usersWithPosts", |db: Ctx, _: ()| async move {
+            db.user()
                 .find_many(vec![])
                 .select(db::user::select! {
                     posts(vec![]).skip(1) {
@@ -37,9 +36,7 @@ async fn main() {
                 })
                 .exec()
                 .await
-                .unwrap();
-
-            val.remove(0)
+                .unwrap()
         })
         .build();
 }

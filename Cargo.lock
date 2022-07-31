@@ -13,16 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "prisma-client-rust",
- "prisma-client-rust-cli",
- "serde",
-]
-
-[[package]]
 name = "actix-codec"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -37,6 +27,15 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tokio-util 0.7.3",
+]
+
+[[package]]
+name = "actix-example"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "prisma-client-rust",
+ "serde",
 ]
 
 [[package]]
@@ -357,7 +356,7 @@ checksum = "135713bf3439ac3325f29281fd88725a71f95dc621fd49b7f064333d099a5b35"
 dependencies = [
  "async-graphql",
  "async-trait",
- "axum 0.5.13",
+ "axum",
  "bytes",
  "futures-util",
  "http-body",
@@ -493,16 +492,6 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "axum"
-version = "0.1.0"
-dependencies = [
- "axum 0.5.13",
- "prisma-client-rust",
- "serde",
- "tokio",
-]
-
-[[package]]
-name = "axum"
 version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b9496f0c1d1afb7a2af4338bbe1d969cddfead41d87a9fb3aaa6d0bbc7af648"
@@ -551,13 +540,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-graphql"
+name = "axum-graphql-example"
 version = "0.1.0"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
- "axum 0.5.13",
+ "axum",
  "dotenv",
+ "prisma-client-rust",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "axum-rest-example"
+version = "0.1.0"
+dependencies = [
+ "axum",
  "prisma-client-rust",
  "serde",
  "tokio",
@@ -591,11 +590,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "basic"
+name = "basic-example"
 version = "0.1.0"
 dependencies = [
  "prisma-client-rust",
- "prisma-client-rust-cli",
  "serde",
  "tokio",
 ]
@@ -736,9 +734,9 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "bytes"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0b3de4a0c5e67e16066a0715723abd91edc2f9001d09c46e1dca929351e130e"
+checksum = "ec8a7b6a70fde80372154c65702f00a0f56f3e1c36abbc6c440484be248856db"
 dependencies = [
  "serde",
 ]
@@ -2580,15 +2578,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nanoid"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ffa00dec017b5b1a8b7cf5e2c008bfda1aa7e0697ac1508b491fdf2622fb4d8"
-dependencies = [
- "rand 0.8.5",
-]
-
-[[package]]
 name = "native-tls"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3613,16 +3602,6 @@ dependencies = [
 
 [[package]]
 name = "rocket"
-version = "0.1.0"
-dependencies = [
- "prisma-client-rust",
- "prisma-client-rust-cli",
- "rocket 0.5.0-rc.2",
- "serde",
-]
-
-[[package]]
-name = "rocket"
 version = "0.5.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98ead083fce4a405feb349cf09abdf64471c6077f14e0ce59364aa90d4b99317"
@@ -3658,6 +3637,15 @@ dependencies = [
  "ubyte",
  "version_check",
  "yansi",
+]
+
+[[package]]
+name = "rocket-example"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "rocket",
+ "serde",
 ]
 
 [[package]]
@@ -3706,7 +3694,7 @@ dependencies = [
 [[package]]
 name = "rspc"
 version = "0.0.4"
-source = "git+https://github.com/oscartbeaumont/rspc.git#78eee8f99f5eb3126f98d17a81f85305eb3b87fd"
+source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
 dependencies = [
  "futures",
  "nanoid",
@@ -3714,6 +3702,16 @@ dependencies = [
  "serde_json",
  "specta",
  "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "rspc-example"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "rspc",
+ "serde",
  "tokio",
 ]
 
@@ -4103,7 +4101,7 @@ dependencies = [
 [[package]]
 name = "specta"
 version = "0.0.1"
-source = "git+https://github.com/oscartbeaumont/rspc.git#78eee8f99f5eb3126f98d17a81f85305eb3b87fd"
+source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
 dependencies = [
  "chrono",
  "convert_case 0.5.0",
@@ -4125,7 +4123,7 @@ dependencies = [
 [[package]]
 name = "specta-macros"
 version = "0.0.1"
-source = "git+https://github.com/oscartbeaumont/rspc.git#78eee8f99f5eb3126f98d17a81f85305eb3b87fd"
+source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -4597,9 +4595,9 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.35"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a400e31aa60b9d44a52a8ee0343b5b18566b03a8321e0d321f695cf56e940160"
+checksum = "2fce9567bd60a67d08a16488756721ba392f24f29006402881e43b19aac64307"
 dependencies = [
  "cfg-if 1.0.0",
  "log",
