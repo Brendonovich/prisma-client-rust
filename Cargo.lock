@@ -3694,7 +3694,8 @@ dependencies = [
 [[package]]
 name = "rspc"
 version = "0.0.4"
-source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "175b44c229ea6314902120dd1fa43181b3207a5eec18a7a3c9cbcc6ec6a780db"
 dependencies = [
  "futures",
  "nanoid",
@@ -4100,8 +4101,9 @@ dependencies = [
 
 [[package]]
 name = "specta"
-version = "0.0.1"
-source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8dfbc46bfad9289e01928a228b82fdf615131212aded5497cce2d460b452e94"
 dependencies = [
  "chrono",
  "convert_case 0.5.0",
@@ -4122,8 +4124,9 @@ dependencies = [
 
 [[package]]
 name = "specta-macros"
-version = "0.0.1"
-source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5ad5db5dea9fa5816615d722b682781214fed875fe56c1bcd0a67ee9c477d84"
 dependencies = [
  "Inflector",
  "proc-macro2",
