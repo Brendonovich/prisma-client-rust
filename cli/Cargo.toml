@@ -5,6 +5,7 @@ authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 
 [features]
+default = []
 rspc = []
 
 [dependencies]

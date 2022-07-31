@@ -7,10 +7,10 @@ pub mod find_first;
 pub mod find_many;
 pub mod find_unique;
 pub mod query_raw;
+pub mod select;
 pub mod update;
 pub mod update_many;
 pub mod upsert;
-pub mod select;
 
 pub use count::*;
 pub use create::*;
@@ -151,5 +151,16 @@ pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
     match res {
         Err(Error::Execute(err)) if error_is_type::<RecordRequiredButNotFound>(&err) => Ok(None),
         res => res.map(Some),
+    }
+}
+
+#[cfg(feature = "rspc")]
+impl From<Error> for rspc::Error {
+    fn from(err: Error) -> Self {
+        rspc::Error::with_cause(
+            rspc::ErrorCode::InternalServerError,
+            "Internal server error occurred while completing database operation!".into(),
+            err,
+        )
     }
 }

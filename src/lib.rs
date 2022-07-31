@@ -20,7 +20,7 @@ pub use errors::*;
 pub use queries::*;
 
 #[cfg(feature = "rspc")]
-pub use specta;
+pub use rspc;
 
 use ::serde::{Deserialize, Serialize};
 use query_core::Selection;
