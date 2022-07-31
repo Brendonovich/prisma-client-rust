@@ -600,13 +600,13 @@ impl DataStruct {
 
         let model_name_pascal_str = model_name.to_case(Case::Pascal);
         
-        let specta_derive = cfg!(feature = "specta").then_some(quote!(
+        let specta_derive = cfg!(feature = "rspc").then_some(quote!(
             #[derive(::prisma_client_rust::specta::Type)]
             #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
         ));
 
         quote! {
-            #[derive(Debug, Clone, Serialize, Deserialize)]
+            #[derive(Debug, Clone, ::serde::Serialize, ::serde::Deserialize)]
             #specta_derive
             pub struct Data {
                 #(#fields),*

@@ -19,7 +19,7 @@ pub use user_facing_errors as prisma_errors;
 pub use errors::*;
 pub use queries::*;
 
-#[cfg(feature = "specta")]
+#[cfg(feature = "rspc")]
 pub use specta;
 
 use ::serde::{Deserialize, Serialize};
@@ -90,10 +90,10 @@ pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
         match (merged.get_mut(&el.0), el.1) {
             (Some(PrismaValue::Object(existing)), PrismaValue::Object(incoming)) => {
                 existing.extend(incoming);
-            },
+            }
             (None, v) => {
                 merged.insert(el.0, v);
-            },
+            }
             (Some(_), _) => {
                 unreachable!("Cannot merge values if both are not objects")
             }

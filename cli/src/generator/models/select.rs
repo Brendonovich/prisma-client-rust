@@ -101,11 +101,43 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!(#i)
     });
 
-    let specta_derive = cfg!(feature = "specta").then_some(quote! {
-        #[derive(prisma_client_rust::specta::Type)]
-        #[specta(crate = "prisma_client_rust::specta", inline)]
+    let specta_impl = cfg!(feature = "rspc").then(|| {
+        let specta = quote!(prisma_client_rust::specta);
+
+        quote! {
+            impl #specta::Type for Data {
+                const NAME: &'static str = "Data";
+
+                fn inline(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
+                    #specta::DataType::Object(#specta::ObjectType {
+                        name: "Data".to_string(),
+                        tag: None,
+                        generics: vec![],
+                        fields: vec![$(#specta::ObjectField {
+                            name: stringify!($field).to_string(),
+                            optional: false,
+                            ty: <$crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
+                                #specta::DefOpts {
+                                    parent_inline: false,
+                                    type_map: _opts.type_map
+                                },
+                                &[]
+                            )
+                        }),*]
+                    })
+                }
+
+                fn reference(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
+                    Self::inline(_opts, &[])
+                }
+                
+                fn definition(_opts: #specta::DefOpts) -> #specta::DataType {
+                    unreachable!()
+                }
+            }
+        }
     });
-    
+
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
@@ -126,13 +158,14 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         $(let _ = Fields::$field;)+
                     }
                 }
-                
-                #[derive(::serde::Deserialize)]
-                #specta_derive
+
+                #[derive(::serde::Deserialize, ::serde::Serialize)]
                 #[allow(warnings)]
                 pub struct Data {
                     $($field: $crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?),)+
                 }
+
+                #specta_impl
 
                 $($(pub mod $field {
                     $crate::#module_path::#model_name_snake::select!(@field_module; $field #selections_pattern_consume);

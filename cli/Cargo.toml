@@ -5,7 +5,7 @@ authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 
 [features]
-specta = []
+rspc = []
 
 [dependencies]
 serde_path_to_error = "0.1.7"

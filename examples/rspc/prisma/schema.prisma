@@ -12,12 +12,12 @@ generator client {
 model User {
   id          String @id @default(uuid())
   displayName String
-//  posts       Post[]
+  posts       Post[]
 }
 
-// model Post {
-//   id      String @id @default(uuid())
-//   content String
-//   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   userId  String
-// }
+model Post {
+  id      String @id @default(uuid())
+  content String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+}

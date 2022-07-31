@@ -1,0 +1,11 @@
+[package]
+name = "rspc"
+version = "0.1.0"
+edition = "2021"
+default-run = "rspc"
+
+[dependencies]
+prisma-client-rust = { features = ["rspc"], path="../../" }
+serde = { version = "1.0", features = ["derive"] }
+rspc = { git = "https://github.com/oscartbeaumont/rspc", branch = "main" }
+tokio = "1.20.1"
