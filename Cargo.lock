@@ -4113,14 +4113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "specta-example"
-version = "0.1.0"
-dependencies = [
- "prisma-client-rust",
- "serde",
-]
-
-[[package]]
 name = "specta-macros"
 version = "0.0.1"
 source = "git+https://github.com/oscartbeaumont/rspc?branch=main#a9f72c94936ba88427e476b880a362884170d045"
