@@ -6,9 +6,11 @@ mod data;
 mod order_by;
 mod pagination;
 mod actions;
+mod create;
 
 use datamodel::dml::{Field, FieldArity, IndexType}; 
 use crate::generator::prelude::*;
+use std::ops::Deref;
 
 pub struct Operator {
     pub name: &'static str,
@@ -302,6 +304,58 @@ impl Actions {
     }
 }
 
+pub struct RequiredField<'a> {
+    pub push_wrapper: TokenStream,
+    pub typ: TokenStream,
+    pub field: &'a dml::Field,
+}
+
+impl Deref for RequiredField<'_> {
+    type Target = dml::Field;
+    fn deref(&self) -> &Self::Target {
+        self.field
+    }
+}
+
+pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
+    model
+        .fields()
+        .filter(|field| match field {
+            dml::Field::ScalarField(scalar_field) => {
+                !model.scalar_field_has_relation(scalar_field) && field.required_on_create()
+            }
+            dml::Field::RelationField(_) => field.required_on_create(),
+            _ => unreachable!(),
+        })
+        .map(|field| {
+            let field_name_snake = snake_ident(&field.name());
+            let field_base_type = field.field_type().to_tokens();
+
+            let typ = match field {
+                dml::Field::ScalarField(_) => field.type_tokens(),
+                dml::Field::RelationField(relation_field) => {
+                    let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
+
+                    quote!(super::#relation_model_name_snake::UniqueWhereParam)
+                }
+                _ => unreachable!(),
+            };
+
+            let push_wrapper = match field {
+                dml::Field::ScalarField(_) => quote!(set),
+                dml::Field::RelationField(_) => quote!(link),
+                _ => unreachable!(),
+            };
+
+            RequiredField {
+                field,
+                push_wrapper: quote!(#field_name_snake::#push_wrapper),
+                typ,
+            }
+        })
+        .collect()
+}
+
 pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
     args.dml.models.iter().map(|model| {
         let mut model_query_modules = ModelQueryModules::new();
@@ -309,7 +363,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
         let model_name_string = &model.name;
         let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
- 
+
         for op in OPERATORS {
             let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
             let op_action = &op.action;
@@ -347,7 +401,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 },
             );
         }
-        
+
         let mut add_unique_variant = |fields: Vec<&Field>| {
             if fields.len() == 1 {
                 let field = fields[0];
@@ -716,6 +770,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let order_by_params_enum = order_by::enum_definition(&model);
         let cursor_enum = pagination::cursor_enum_definition(&model);
         let outputs_fn = outputs::model_fn(&model);
+        let create_fn = create::model_fn(&model);
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
         let select_macro = select::generate_macro(model, &module_path);
@@ -729,6 +784,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 #query_modules
                 
                 #outputs_fn
+
+                #create_fn
                 
                 #select_macro
 

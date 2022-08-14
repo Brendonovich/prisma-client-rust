@@ -1,61 +1,8 @@
-use std::ops::Deref;
-
 use crate::generator::prelude::*;
 
-struct RequiredField<'a> {
-    pub push_wrapper: TokenStream,
-    pub typ: TokenStream,
-    pub field: &'a dml::Field,
-}
-
-impl Deref for RequiredField<'_> {
-    type Target = dml::Field;
-    fn deref(&self) -> &Self::Target {
-        self.field
-    }
-}
-
-fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
-    model
-        .fields()
-        .filter(|field| match field {
-            dml::Field::ScalarField(scalar_field) => {
-                !model.scalar_field_has_relation(scalar_field) && field.required_on_create()
-            }
-            dml::Field::RelationField(_) => field.required_on_create(),
-            _ => unreachable!(),
-        })
-        .map(|field| {
-            let field_name_snake = snake_ident(&field.name());
-            let field_base_type = field.field_type().to_tokens();
-
-            let typ = match field {
-                dml::Field::ScalarField(_) => field.type_tokens(),
-                dml::Field::RelationField(relation_field) => {
-                    let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
-
-                    quote!(super::#relation_model_name_snake::UniqueWhereParam)
-                }
-                _ => unreachable!(),
-            };
-
-            let push_wrapper = match field {
-                dml::Field::ScalarField(_) => quote!(set),
-                dml::Field::RelationField(_) => quote!(link),
-                _ => unreachable!(),
-            };
-
-            RequiredField {
-                field,
-                push_wrapper: quote!(#field_name_snake::#push_wrapper),
-                typ,
-            }
-        })
-        .collect()
-}
+use super::required_fields;
 
 pub fn create_args_params_pushes(model: &dml::Model) -> Vec<TokenStream> {
-    let model_name_snake = snake_ident(&model.name);
     let required_fields = required_fields(model);
 
     required_fields
@@ -204,3 +151,4 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         }
     }
 }
+
