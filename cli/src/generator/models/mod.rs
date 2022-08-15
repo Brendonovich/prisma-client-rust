@@ -276,34 +276,6 @@ impl WhereParams {
     }
 }
 
-struct Actions {
-    pub create_args: Vec<TokenStream>,
-    pub create_args_tuple_types: Vec<TokenStream>,
-    pub create_args_destructured: Vec<TokenStream>,
-    pub create_args_params_pushes: Vec<TokenStream>,
-}
-
-impl Actions {
-    pub fn new() -> Self {
-        Self {
-            create_args: vec![],
-            create_args_tuple_types: vec![],
-            create_args_destructured: vec![],
-            create_args_params_pushes: vec![],
-        }
-    }
-
-    pub fn push_required_arg(&mut self, field_name: &Ident, field_wrapper: TokenStream, variant_type: TokenStream) {
-        self.create_args
-            .push(quote!(#field_name: #variant_type,));
-        self.create_args_tuple_types
-            .push(quote!(#variant_type,));
-        self.create_args_destructured.push(quote!(#field_name,));
-        self.create_args_params_pushes
-            .push(quote!(_params.push(#field_wrapper(#field_name));));
-    }
-}
-
 pub struct RequiredField<'a> {
     pub push_wrapper: TokenStream,
     pub typ: TokenStream,
@@ -774,7 +746,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
         let select_macro = select::generate_macro(model, &module_path);
-        let actions_struct = actions::struct_definition(&model);
+        let actions_struct = actions::struct_definition(&model, args);
 
         quote! {
             pub mod #model_name_snake {
@@ -806,6 +778,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 
                 pub type Count<'a> = ::prisma_client_rust::Count<'a, WhereParam, OrderByParam, Cursor>;
                 pub type Create<'a> = ::prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
+                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, SetParam>;
                 pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
                 pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, Cursor, SetParam, Data>;
                 pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;

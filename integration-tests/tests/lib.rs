@@ -12,3 +12,4 @@ mod raw;
 mod update;
 mod upsert;
 mod with;
+mod create_many;

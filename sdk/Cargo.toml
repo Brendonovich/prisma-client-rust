@@ -17,10 +17,10 @@ syn = "1.0.91"
 serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
 
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
 
 proc-macro2 = "1.0.39"

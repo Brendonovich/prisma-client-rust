@@ -1,4 +1,6 @@
 use crate::generator::prelude::*;
+use prisma_client_rust_sdk::{dmmf::Datasource, GenerateArgs};
+use prisma_datamodel::datamodel_connector::ConnectorCapability;
 
 use super::required_fields;
 
@@ -41,12 +43,43 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
     }
 }
 
+pub fn create_many_fn(model: &dml::Model) -> TokenStream {
+    let model_name_str = &model.name;
+
+    let required_fields = required_fields(model);
+
+    let required_field_names = required_fields
+        .iter()
+        .map(|field| snake_ident(field.name()));
+    let required_field_types = required_fields.iter().map(|field| &field.typ);
+
+    let create_args_params_pushes = create_args_params_pushes(model);
+
+    quote! {
+        pub fn create_many(self, data: Vec<(#(#required_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
+            let data = data.into_iter().map(|(#(#required_field_names,)* mut _params)| {
+                #(#create_args_params_pushes;)*
+
+                _params
+            }).collect();
+
+            CreateMany::new(
+                self.client._new_query_context(),
+                QueryInfo::new(#model_name_str, _outputs()),
+                data
+            )
+        }
+    }
+}
+
 pub fn upsert_fn(model: &dml::Model) -> TokenStream {
     let model_name_str = &model.name;
 
     let required_fields = required_fields(model);
 
-    let create_args_names_snake = required_fields.iter().map(|field| snake_ident(field.name()));
+    let create_args_names_snake = required_fields
+        .iter()
+        .map(|field| snake_ident(field.name()));
     let create_args_typs = required_fields.iter().map(|field| &field.typ);
     let create_args_params_pushes = create_args_params_pushes(model);
 
@@ -65,11 +98,18 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
     }
 }
 
-pub fn struct_definition(model: &dml::Model) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let model_name_str = &model.name;
 
     let create_fn = create_fn(model);
     let upsert_fn = upsert_fn(model);
+
+    let create_many_fn = (args
+        .connector
+        .capabilities()
+        .contains(&ConnectorCapability::CreateMany)
+        || cfg!(feature = "sqlite-create-many"))
+    .then(|| create_many_fn(model));
 
     quote! {
         pub struct Actions<'a> {
@@ -102,6 +142,8 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
             }
 
             #create_fn
+
+            #create_many_fn
 
             pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
                 Update::new(
@@ -151,4 +193,3 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         }
     }
 }
-

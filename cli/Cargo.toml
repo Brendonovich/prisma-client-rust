@@ -7,6 +7,7 @@ edition = "2021"
 [features]
 default = []
 rspc = []
+sqlite-create-many = ["datamodel/sqlite-create-many"]
 
 [dependencies]
 serde_path_to_error = "0.1.7"
@@ -18,8 +19,7 @@ proc-macro2 = "1.0.39"
 
 prisma-client-rust-sdk = { path = "../sdk" }
 
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "596bcf09a33adcd50624167aae4348153f07fe18" }
-
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }

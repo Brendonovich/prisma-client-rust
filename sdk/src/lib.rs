@@ -1,7 +1,7 @@
 mod args;
 mod binaries;
 mod casing;
-mod dmmf;
+pub mod dmmf;
 mod extensions;
 mod jsonrpc;
 mod keywords;

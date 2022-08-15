@@ -1,13 +1,15 @@
 use std::str::FromStr;
 
 use convert_case::Case;
-use datamodel::dml::{Field, FieldArity, FieldType, ScalarField, ScalarType};
-// use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
-use dmmf::{DmmfSchema, TypeLocation, DmmfInputType, DmmfInputField};
+use datamodel::{
+    builtin_connectors,
+    datamodel_connector::Connector,
+    dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
+};
+use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 
 use crate::{casing::Casing, dmmf::Datasource};
 
-#[derive(Debug)]
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
     pub datamodel_str: String,
@@ -15,6 +17,7 @@ pub struct GenerateArgs {
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
+    pub connector: &'static dyn Connector,
 }
 
 impl GenerateArgs {
@@ -256,6 +259,17 @@ impl GenerateArgs {
             filters
         };
 
+        use builtin_connectors::{COCKROACH, MONGODB, MSSQL, MYSQL, POSTGRES, SQLITE};
+        let connector = match &datasources[0].provider {
+            p if SQLITE.is_provider(p) => SQLITE,
+            p if POSTGRES.is_provider(p) => POSTGRES,
+            p if MSSQL.is_provider(p) => MSSQL,
+            p if MYSQL.is_provider(p) => MYSQL,
+            p if COCKROACH.is_provider(p) => COCKROACH,
+            p if MONGODB.is_provider(p) => MONGODB,
+            _ => unreachable!(),
+        };
+
         Self {
             dml,
             datamodel_str,
@@ -263,6 +277,7 @@ impl GenerateArgs {
             schema,
             read_filters,
             write_filters,
+            connector,
         }
     }
 
