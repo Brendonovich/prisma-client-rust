@@ -2,9 +2,9 @@ use std::{path::Path, process::Command, sync::Arc};
 
 use convert_case::Case;
 use datamodel::{datamodel_connector::ConnectorCapabilities, dml::Datamodel, Configuration};
+use dmmf::{from_precomputed_parts, DataModelMetaFormat};
 use prisma_models::InternalDataModelBuilder;
-use query_core::{schema_builder, BuildMode, QuerySchemaRenderer};
-use request_handlers::dmmf::schema::{DmmfQuerySchemaRenderer, DmmfSchema};
+use query_core::schema_builder;
 
 use crate::{args::GenerateArgs, casing::Casing, keywords::is_reserved_keyword};
 
@@ -53,7 +53,7 @@ pub fn validate_names(args: &GenerateArgs) {
     }
 }
 
-pub fn build_schema(datamodel: &Datamodel, configuration: &Configuration) -> DmmfSchema {
+pub fn build_schema(datamodel: &Datamodel, configuration: &Configuration) -> DataModelMetaFormat {
     let datasource = configuration.datasources.first();
 
     let capabilities = datasource
@@ -68,14 +68,11 @@ pub fn build_schema(datamodel: &Datamodel, configuration: &Configuration) -> Dmm
 
     let query_schema = Arc::new(schema_builder::build(
         internal_data_model,
-        BuildMode::Modern,
         true,
         capabilities,
         configuration.preview_features().iter().collect(),
         referential_integrity,
     ));
 
-    let (schema, _) = DmmfQuerySchemaRenderer::render(query_schema);
-
-    schema
+    from_precomputed_parts(datamodel, query_schema)
 }

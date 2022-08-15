@@ -112,7 +112,7 @@ fn generate(generator: &GeneratorMetadata, dmmf: EngineDMMF) {
 
     let mut file = create_generated_file(&output_path);
 
-    let args = GenerateArgs::new(datamodel, schema, dmmf.datamodel, dmmf.datasources);
+    let args = GenerateArgs::new(datamodel, schema.schema, dmmf.datamodel, dmmf.datasources);
 
     validate_names(&args);
 

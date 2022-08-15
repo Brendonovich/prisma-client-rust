@@ -3,9 +3,20 @@ use user_facing_errors::UserFacingError;
 use query_core::CoreError;
 use thiserror::Error;
 
+trait DiagnosticsToString {
+    fn to_string(&self) -> String;
+}
+
+impl DiagnosticsToString for Diagnostics {
+    fn to_string(&self) -> String {
+        let strs: Vec<_> = self.errors().iter().map(|e| e.message()).collect();
+        strs.join("\n")
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum NewClientError {
-    #[error("Error configuring database connection: {0}")]
+    #[error("Error configuring database connection: {}", .0.to_string())]
     Configuration(Diagnostics),
 
     #[error("Error loading database executor: {0}")]

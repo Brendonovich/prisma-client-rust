@@ -25,7 +25,7 @@ pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
-use query_core::{Operation, QuerySchemaRef, Selection};
+use query_core::{schema::QuerySchemaRef, Operation, Selection};
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 use user_facing_errors::query_engine::RecordRequiredButNotFound;

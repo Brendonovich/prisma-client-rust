@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use chrono::SecondsFormat;
 use prisma_models::PrismaValue;
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{Value, json};
 
 #[macro_export]
@@ -54,4 +57,92 @@ impl Raw {
 
         (query, values)
     }
+}
+
+pub type RawOperationData = Vec<HashMap<String, RawTypedJson>>;
+
+#[derive(Deserialize)]
+pub struct RawTypedJson {
+    #[serde(rename = "prisma__type")]
+    typ: String,
+    #[serde(rename = "prisma__value")]
+    value: serde_json::Value,
+}
+
+impl From<RawTypedJson> for RawPrismaValue {
+    fn from(json: RawTypedJson) -> Self {
+        use serde_json::Value::*;
+
+        match (json.typ.as_str(), json.value) {
+            ("int", Number(n)) => RawPrismaValue::Int(n.as_i64().unwrap() as i32),
+            ("bigint", String(s)) => RawPrismaValue::BigInt(s.parse().unwrap()),
+            ("float", Number(n)) => RawPrismaValue::Float(n.as_f64().unwrap() as f32),
+            ("double", Number(n)) => RawPrismaValue::Double(n.as_f64().unwrap()),
+            ("string", String(s)) => RawPrismaValue::String(s),
+            ("enum", String(s)) => RawPrismaValue::Enum(s),
+            ("bytes", String(b64)) => {
+                RawPrismaValue::Bytes(base64::decode(b64).unwrap())
+            }
+            ("bool", Bool(b)) => RawPrismaValue::Bool(b),
+            ("char", String(s)) => RawPrismaValue::Char(s.chars().next().unwrap()),
+            ("decimal", Number(n)) => RawPrismaValue::Decimal(
+                bigdecimal::BigDecimal::try_from(n.as_f64().unwrap()).unwrap(),
+            ),
+            ("json", v) => RawPrismaValue::Json(v),
+            ("xml", String(s)) => RawPrismaValue::Xml(s),
+            ("uuid", String(s)) => {
+                RawPrismaValue::Uuid(uuid::Uuid::from_slice(s.as_bytes()).unwrap())
+            }
+            ("datetime", String(s)) => {
+                RawPrismaValue::DateTime(chrono::DateTime::parse_from_rfc3339(&s).unwrap().into())
+            }
+            ("date", String(s)) => {
+                RawPrismaValue::Date(serde_json::from_slice(s.as_bytes()).unwrap())
+            }
+            ("time", String(s)) => {
+                RawPrismaValue::Time(serde_json::from_slice(s.as_bytes()).unwrap())
+            }
+            ("array", Array(arr)) => RawPrismaValue::Array(
+                arr.into_iter()
+                    .map(serde_json::from_value::<RawTypedJson>)
+                    .map(Result::unwrap)
+                    .map(Into::into)
+                    .collect(),
+            ),
+            ("null", _) => RawPrismaValue::Null,
+            _ => unreachable!("Invalid value for raw type {}", &json.typ),
+        }
+    }
+}
+
+// See quaint::ast::Value & IntoTypedJsonExtension
+#[derive(Serialize)]
+#[serde(untagged)]
+pub(crate) enum RawPrismaValue {
+    Int(i32),
+    BigInt(i64),
+    Float(f32),
+    Double(f64),
+    String(String),
+    Enum(String),
+    Bytes(Vec<u8>),
+    Bool(bool),
+    Char(char),
+    Decimal(bigdecimal::BigDecimal),
+    Json(serde_json::Value),
+    Xml(String),
+    Uuid(uuid::Uuid),
+    DateTime(chrono::DateTime<chrono::Utc>),
+    Date(chrono::NaiveDate),
+    Time(chrono::NaiveTime),
+    Array(Vec<RawPrismaValue>),
+    #[serde(serialize_with = "serialize_null")]
+    Null,
+}
+
+fn serialize_null<S>(serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    Option::<()>::None.serialize(serializer)
 }

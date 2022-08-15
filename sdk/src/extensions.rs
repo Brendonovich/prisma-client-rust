@@ -77,7 +77,7 @@ impl FieldTypeExt for FieldType {
                 let model = format_ident!("{}", info.to.to_case(Case::Snake));
                 quote!(#model::Data)
             }
-            Self::Scalar(typ, _, _) => typ.to_tokens(),
+            Self::Scalar(typ, _) => typ.to_tokens(),
             _ => unimplemented!(),
         }
     }
@@ -90,7 +90,7 @@ impl FieldTypeExt for FieldType {
         };
 
         let scalar_converter = match self {
-            Self::Scalar(typ, _, _) => typ.to_prisma_value(&scalar_identifier),
+            Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
             Self::Enum(_) => quote!(PrismaValue::Enum(#scalar_identifier.to_string())),
             typ => unimplemented!("{:?}", typ),
         };

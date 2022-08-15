@@ -1,11 +1,11 @@
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::raw::Raw;
+use crate::raw::{Raw, RawOperationData, RawPrismaValue};
 
 use super::QueryContext;
 
@@ -49,6 +49,24 @@ where
 
         let op = Operation::Write(selection.build());
 
-        ctx.execute(op).await
+        let data: RawOperationData = ctx.execute(op).await?;
+
+        let typed_data: Vec<HashMap<String, RawPrismaValue>> = data
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|(column_name, cell)| (column_name, cell.into()))
+                    .collect()
+            })
+            .collect();
+
+        typed_data
+            .into_iter()
+            .map(|row| {
+                let v = serde_value::to_value(&row).unwrap();
+                v.deserialize_into::<Data>()
+            })
+            .collect::<Result<_, _>>()
+            .map_err(Into::into)
     }
 }

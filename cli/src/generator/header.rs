@@ -16,9 +16,10 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             prisma_models::{InternalDataModelBuilder, PrismaValue},
             queries::{QueryContext, Result as QueryResult, QueryInfo},
             query_core::{
-                executor, schema_builder, BuildMode, CoreError, InterpreterError, QueryExecutor,
-                QueryGraphBuilderError, QuerySchema, QueryValue, Selection,
+                executor, schema_builder,  CoreError, InterpreterError, QueryExecutor,
+                QueryGraphBuilderError,  QueryValue, Selection,
             },
+            schema::QuerySchema,
             chrono, serde_json, UniqueArgs, ManyArgs, BatchResult, Direction, SerializedWhere, SerializedWhereValue,
         };
         pub use prisma_client_rust::{queries::Error as QueryError, NewClientError};
@@ -69,7 +70,6 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             let internal_model = InternalDataModelBuilder::new(DATAMODEL_STR).build(db_name);
             let query_schema = Arc::new(schema_builder::build(
                 internal_model,
-                BuildMode::Modern,
                 true,
                 source.capabilities(),
                 vec![],

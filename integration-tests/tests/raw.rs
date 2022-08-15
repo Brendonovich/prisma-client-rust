@@ -12,8 +12,8 @@ async fn query_raw() -> TestResult {
         .exec()
         .await?;
 
-    let result: Vec<BatchResult> = client
-        ._query_raw(raw!("SELECT COUNT(*) as count FROM Post"))
+    let result = client
+        ._query_raw::<BatchResult>(raw!("SELECT COUNT(*) as count FROM Post"))
         .await?;
     assert_eq!(result.len(), 1);
 
@@ -36,6 +36,7 @@ async fn query_raw_model() -> TestResult {
             PrismaValue::String(post.id.clone())
         ))
         .await?;
+
     assert_eq!(result.len(), 1);
     assert_eq!(&result[0].id, &post.id);
     assert_eq!(result[0].published, false);

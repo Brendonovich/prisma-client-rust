@@ -24,7 +24,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         use super::*;
         use prisma_client_rust::{
             queries::QueryContext,
-            query_core::{QueryExecutor, QuerySchema},
+            query_core::{QueryExecutor},
             raw, QueryRaw, ExecuteRaw,
         };
         use serde::{Deserialize, Serialize};

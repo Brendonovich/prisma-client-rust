@@ -15,6 +15,8 @@ pub use prisma_models::{self, PrismaValue};
 pub use query_core;
 pub use serde_json;
 pub use user_facing_errors as prisma_errors;
+pub use dmmf;
+pub use schema;
 
 pub use errors::*;
 pub use queries::*;

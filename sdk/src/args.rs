@@ -2,7 +2,8 @@ use std::str::FromStr;
 
 use convert_case::Case;
 use datamodel::dml::{Field, FieldArity, FieldType, ScalarField, ScalarType};
-use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+// use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use dmmf::{DmmfSchema, TypeLocation, DmmfInputType, DmmfInputField};
 
 use crate::{casing::Casing, dmmf::Datasource};
 
@@ -176,7 +177,7 @@ impl GenerateArgs {
                             field.name.to_case(Case::Pascal),
                             field.name.clone(),
                             ScalarType::from_str(&type_name)
-                                .map(|t| FieldType::Scalar(t, None, None))
+                                .map(|t| FieldType::Scalar(t, None))
                                 .unwrap_or(FieldType::Enum(type_name)),
                             is_list,
                         ));
@@ -236,7 +237,6 @@ impl GenerateArgs {
                                     FieldType::Scalar(
                                         ScalarType::from_str(&type_name).unwrap(),
                                         None,
-                                        None,
                                     ),
                                     is_list,
                                 ));
@@ -267,7 +267,7 @@ impl GenerateArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+        if let FieldType::Scalar(typ, _) = &field.field_type {
             let mut typ = typ.to_string();
 
             if field.arity.is_list() {
@@ -281,7 +281,7 @@ impl GenerateArgs {
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+        if let FieldType::Scalar(typ, _) = &field.field_type {
             let mut typ = typ.to_string();
 
             if field.arity.is_list() {
@@ -359,7 +359,7 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
             },
             field.name.clone(),
             ScalarType::from_str(&type_name)
-                .map(|t| FieldType::Scalar(t, None, None))
+                .map(|t| FieldType::Scalar(t, None))
                 .unwrap_or(FieldType::Enum(type_name)),
             is_list,
         )
