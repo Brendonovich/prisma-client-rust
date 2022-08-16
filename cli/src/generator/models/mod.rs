@@ -301,7 +301,6 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
         })
         .map(|field| {
             let field_name_snake = snake_ident(&field.name());
-            let field_base_type = field.field_type().to_tokens();
 
             let typ = match field {
                 dml::Field::ScalarField(_) => field.type_tokens(),
@@ -335,7 +334,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let mut model_query_modules = ModelQueryModules::new();
         let mut model_where_params = WhereParams::new();
 
-        let model_name_string = &model.name;
         let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
 
         for op in OPERATORS {
@@ -460,7 +458,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 FieldQueryModule::new(&root_field);
 
             let field_string = root_field.name();
-            let field_snake = format_ident!("{}", field_string.to_case(Case::Snake));
             let field_name_pascal = format_ident!("{}", field_string.to_case(Case::Pascal));
             let field_type = root_field.type_tokens();
             let field_base_type = root_field.field_type().to_tokens();

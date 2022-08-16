@@ -17,6 +17,7 @@ pub use query_core;
 pub use query_core::Selection;
 pub use schema;
 pub use serde_json;
+use thiserror::Error;
 pub use user_facing_errors as prisma_errors;
 
 pub use errors::*;
@@ -41,6 +42,27 @@ impl BatchResult {
     pub fn selection() -> Selection {
         let selection = Selection::builder("count");
         selection.build()
+    }
+}
+
+#[derive(Error, Debug)]
+pub struct RelationNotFetchedError {
+    field: &'static str,
+}
+
+impl RelationNotFetchedError {
+    pub fn new(field: &'static str) -> Self {
+        RelationNotFetchedError { field }
+    }
+}
+
+impl std::fmt::Display for RelationNotFetchedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Attempted to access field '{}' but did not fetch it using the .with() syntax",
+            self.field
+        )
     }
 }
 

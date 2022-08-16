@@ -1,6 +1,5 @@
-use prisma_client_rust::error_is_type;
-use prisma_client_rust::prisma_errors;
-use prisma_client_rust::Error;
+#![allow(unused_must_use)]
+use prisma_client_rust::{error_is_type, prisma_errors, Error};
 
 use crate::db::*;
 use crate::utils::*;
@@ -88,7 +87,7 @@ async fn test_mixing_models() -> TestResult {
 async fn test_mixing_actions() -> TestResult {
     let client = client().await;
 
-    let (user, profile) = client
+    client
         ._batch((
             client.user().create("Brendan".to_string(), vec![]),
             client

@@ -36,6 +36,8 @@ enum Field<'a> {
 }
 
 pub fn struct_definition(model: &dml::Model) -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
     let fields = model
         .fields()
         .map(|field| match field {
@@ -64,52 +66,50 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                 Field::Scalar(ScalarField {
                     typ,
                     name: field.name(),
-                    inner: &scalar_field
+                    inner: &scalar_field,
                 })
             }
             dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
         })
         .collect::<Vec<_>>();
 
-    let struct_fields = fields.iter().map(|field| {
-        match field {
-            Field::Relation(field) => {
-                let typ = &field.typ;
+    let struct_fields = fields.iter().map(|field| match field {
+        Field::Relation(field) => {
+            let typ = &field.typ;
 
-                let field_name_str = &field.name;
-                let field_name_snake = snake_ident(field_name_str);
+            let field_name_str = &field.name;
+            let field_name_snake = snake_ident(field_name_str);
 
-                let attrs = match &field.inner.arity {
-                    dml::FieldArity::Optional => {
-                        quote! {
-                            #[serde(
-                                rename = #field_name_str,
-                                default,
-                                skip_serializing_if = "Option::is_none",
-                                with = "prisma_client_rust::serde::double_option"
-                            )]
-                        }
-                    },
-                    _ => quote! {
-                        #[serde(rename = #field_name_str)]
+            let attrs = match &field.inner.arity {
+                dml::FieldArity::Optional => {
+                    quote! {
+                        #[serde(
+                            rename = #field_name_str,
+                            default,
+                            skip_serializing_if = "Option::is_none",
+                            with = "prisma_client_rust::serde::double_option"
+                        )]
                     }
-                };
-
-                quote! { 
-                    #attrs
-                    pub #field_name_snake: Option<#typ>
                 }
-            }
-            Field::Scalar(field) => {
-                let typ = &field.typ;
-
-                let field_name_str = &field.name;
-                let field_name_snake = snake_ident(field_name_str);
-
-                quote! {
+                _ => quote! {
                     #[serde(rename = #field_name_str)]
-                    pub #field_name_snake: #typ
-                }
+                },
+            };
+
+            quote! {
+                #attrs
+                pub #field_name_snake: Option<#typ>
+            }
+        }
+        Field::Scalar(field) => {
+            let typ = &field.typ;
+
+            let field_name_str = &field.name;
+            let field_name_snake = snake_ident(field_name_str);
+
+            quote! {
+                #[serde(rename = #field_name_str)]
+                pub #field_name_snake: #typ
             }
         }
     });
@@ -119,16 +119,13 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
             let field_name_snake = snake_ident(&field.name);
             let relation_model_name_snake = snake_ident(&field.relation_info.to);
 
-            let access_error = format!(
-                "Attempted to acccess '{}' but did not fetch it using the .with() syntax",
-                field.name.to_case(Case::Snake)
-            );
-
             let typ = &field.typ;
+
+            let access_error = quote!(#pcr::RelationNotFetchedError::new(stringify!(#field_name_snake)));
 
             let ret = match field.arity.is_list() {
                 true => quote! {
-                    pub fn #field_name_snake(&self) -> Result<&#typ, &'static str> {
+                    pub fn #field_name_snake(&self) -> Result<&#typ, #pcr::RelationNotFetchedError> {
                         self.#field_name_snake.as_ref().ok_or(#access_error)
                     }
                 },
@@ -145,7 +142,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                     };
 
                     quote! {
-                        pub fn #field_name_snake(&self) -> Result<#accessor_type, &'static str> {
+                        pub fn #field_name_snake(&self) -> Result<#accessor_type, #pcr::RelationNotFetchedError> {
                             self.#field_name_snake.as_ref().ok_or(#access_error).map(|v| v.as_ref() #inner_map)
                         }
                     }
