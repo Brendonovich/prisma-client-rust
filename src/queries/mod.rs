@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod count;
 pub mod create;
 pub mod create_many;
@@ -13,6 +14,7 @@ pub mod update;
 pub mod update_many;
 pub mod upsert;
 
+pub use batch::*;
 pub use count::*;
 pub use create::*;
 pub use create_many::*;
@@ -105,6 +107,7 @@ impl QueryInfo {
     }
 }
 
+#[derive()]
 pub struct QueryContext<'a> {
     executor: &'a Executor,
     schema: QuerySchemaRef,

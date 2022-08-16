@@ -49,6 +49,8 @@ struct SetParam {
 fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_str = field.name();
+    
+    let pcr = quote!(::prisma_client_rust);
 
     match &field {
         dml::Field::ScalarField(scalar_field) => {
@@ -58,7 +60,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             let converter = field
                 .arity()
                 .is_optional()
-                .then(|| quote!(value.map(|value| #converter).unwrap_or(PrismaValue::Null)))
+                .then(|| quote!(value.map(|value| #converter).unwrap_or(#pcr::PrismaValue::Null)))
                 .unwrap_or_else(|| converter);
 
             let set_variant_name = format_ident!("Set{}", &field_name_pascal);
@@ -90,7 +92,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         into_pv_arm: quote! {
                             SetParam::#variant_name(value) => (
                                 #field_name_str.to_string(),
-                                PrismaValue::Object(
+                                #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
                                         #prisma_value_converter
@@ -116,16 +118,16 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_params) => (
                                 #field_name_str.to_string(),
-                                PrismaValue::Object(
+                                #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
-                                        PrismaValue::List(
+                                        #pcr::PrismaValue::List(
                                             where_params
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<SerializedWhere>::into)
-                                                .map(SerializedWhere::transform_equals)
-                                                .map(|v| PrismaValue::Object(vec![v]))
+                                                .map(Into::<#pcr::SerializedWhere>::into)
+                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(|v| #pcr::PrismaValue::Object(vec![v]))
                                                 .collect()
                                         )
                                     )]
@@ -140,15 +142,15 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_param) => (
                                 #field_name_str.to_string(),
-                                PrismaValue::Object(
+                                #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
-                                        PrismaValue::Object(
+                                        #pcr::PrismaValue::Object(
                                             [where_param]
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<SerializedWhere>::into)
-                                                .map(SerializedWhere::transform_equals)
+                                                .map(Into::<#pcr::SerializedWhere>::into)
+                                                .map(#pcr::SerializedWhere::transform_equals)
                                                 .collect()
                                         )
                                     )]
@@ -163,10 +165,10 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         into_pv_arm: quote! {
                             SetParam::#variant_name => (
                                 #field_name_str.to_string(),
-                                PrismaValue::Object(
+                                #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
-                                        PrismaValue::Boolean(true)
+                                        #pcr::PrismaValue::Boolean(true)
                                     )]
                                 )
                             )
@@ -189,14 +191,16 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let variants = set_params.iter().map(|p| &p.variant);
     let into_pv_arms = set_params.iter().map(|p| &p.into_pv_arm);
 
+    let pcr = quote!(::prisma_client_rust);
+
     quote! {
         #[derive(Clone)]
         pub enum SetParam {
             #(#variants),*
         }
 
-        impl Into<(String, PrismaValue)> for SetParam {
-            fn into(self) -> (String, PrismaValue) {
+        impl Into<(String, #pcr::PrismaValue)> for SetParam {
+            fn into(self) -> (String, #pcr::PrismaValue) {
                 match self {
                     #(#into_pv_arms),*
                 }

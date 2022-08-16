@@ -32,7 +32,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             .collect::<Vec<_>>();
 
         quote! {
-            #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+            #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize)]
             pub enum #name {
                 #(#variants),*
             }

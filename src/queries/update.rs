@@ -7,6 +7,7 @@ use serde::de::DeserializeOwned;
 use crate::{
     merged_object, option_on_not_found,
     select::{SelectOption, SelectType},
+    BatchQuery,
 };
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
@@ -25,6 +26,7 @@ where
     pub with_params: Vec<With>,
     _data: PhantomData<Data>,
 }
+
 impl<'a, Where, With, Set, Data> Update<'a, Where, With, Set, Data>
 where
     Where: Into<SerializedWhere>,
@@ -82,7 +84,7 @@ where
         SelectOption::new(self.ctx, op)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
         let QueryInfo {
             model,
             mut scalar_selections,
@@ -95,8 +97,31 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
 
-        option_on_not_found(self.ctx.execute(op).await)
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let (op, ctx) = self.exec_operation();
+
+        option_on_not_found(ctx.execute(op).await)
+    }
+}
+
+impl<'a, Where, With, Set, Data> BatchQuery for Update<'a, Where, With, Set, Data>
+where
+    Where: Into<SerializedWhere>,
+    Set: Into<(String, PrismaValue)>,
+    With: Into<Selection>,
+    Data: DeserializeOwned,
+{
+    type RawType = Data;
+    type ReturnType = Option<Self::RawType>;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+        option_on_not_found(raw)
     }
 }

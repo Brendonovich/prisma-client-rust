@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
-use crate::{merged_object, SerializedWhere};
+use crate::{merged_object, BatchQuery, SerializedWhere};
 
 use super::{QueryContext, QueryInfo};
 
@@ -54,29 +54,16 @@ where
         self
     }
 
-    pub async fn exec(self) -> super::Result<i64> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            order_by_params,
-            cursor_params,
-            skip,
-            take,
-            ..
-        } = self;
-
-        let QueryInfo { model, .. } = info;
-
-        let mut selection = Selection::builder(format!("aggregate{}", model));
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+        let mut selection = Selection::builder(format!("aggregate{}", &self.info.model));
 
         selection.alias("result");
 
-        if where_params.len() > 0 {
+        if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
                 merged_object(
-                    where_params
+                    self.where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
                         .map(|s| (s.field, s.value.into()))
@@ -91,37 +78,63 @@ where
             count_builder.build()
         });
 
-        if order_by_params.len() > 0 {
+        if self.order_by_params.len() > 0 {
             selection.push_argument(
                 "orderBy".to_string(),
-                PrismaValue::Object(order_by_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(self.order_by_params.into_iter().map(Into::into).collect()),
             );
         }
 
-        if cursor_params.len() > 0 {
+        if self.cursor_params.len() > 0 {
             selection.push_argument(
                 "cursor".to_string(),
-                PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(self.cursor_params.into_iter().map(Into::into).collect()),
             );
         }
 
-        skip.map(|skip| selection.push_argument("skip".to_string(), PrismaValue::Int(skip as i64)));
-        take.map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
+        self.skip
+            .map(|skip| selection.push_argument("skip".to_string(), PrismaValue::Int(skip as i64)));
+        self.take
+            .map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
 
-        let op = Operation::Read(selection.build());
+        (Operation::Read(selection.build()), self.ctx)
+    }
 
-        #[derive(Deserialize)]
-        struct CountAggregateResult {
-            _count: CountResult,
-        }
+    pub(crate) fn convert(data: CountAggregateResult) -> i64 {
+        data._count._all
+    }
 
-        #[derive(Deserialize)]
-        struct CountResult {
-            _all: i64,
-        }
+    pub async fn exec(self) -> super::Result<i64> {
+        let (op, ctx) = self.exec_operation();
 
-        ctx.execute(op)
-            .await
-            .map(|res: CountAggregateResult| res._count._all)
+        ctx.execute(op).await.map(Self::convert)
+    }
+}
+
+#[derive(Deserialize)]
+pub struct CountAggregateResult {
+    _count: CountResult,
+}
+
+#[derive(Deserialize)]
+pub struct CountResult {
+    _all: i64,
+}
+
+impl<'a, Where, OrderBy, Cursor> BatchQuery for Count<'a, Where, OrderBy, Cursor>
+where
+    Where: Into<SerializedWhere>,
+    OrderBy: Into<(String, PrismaValue)>,
+    Cursor: Into<(String, PrismaValue)>,
+{
+    type RawType = CountAggregateResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+        raw.map(Self::convert)
     }
 }

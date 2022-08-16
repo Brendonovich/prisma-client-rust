@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::select::{SelectOption, SelectType};
+use crate::{
+    select::{SelectOption, SelectType},
+    BatchQuery,
+};
 
 use super::{option_on_not_found, QueryContext, QueryInfo, SerializedWhere};
 
@@ -69,7 +72,7 @@ where
         SelectOption::new(self.ctx, op)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
         let QueryInfo {
             model,
             mut scalar_selections,
@@ -82,8 +85,30 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
 
-        option_on_not_found(self.ctx.execute(op).await)
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let (op, ctx) = self.exec_operation();
+
+        option_on_not_found(ctx.execute(op).await)
+    }
+}
+
+impl<'a, Where, With, Data> BatchQuery for Delete<'a, Where, With, Data>
+where
+    Where: Into<SerializedWhere>,
+    With: Into<Selection>,
+    Data: DeserializeOwned,
+{
+    type RawType = Data;
+    type ReturnType = Option<Data>;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+        option_on_not_found(raw)
     }
 }

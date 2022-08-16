@@ -64,8 +64,8 @@ pub fn cursor_enum_definition(model: &dml::Model) -> TokenStream {
             #(#cursor_variants),*
         }
 
-        impl Into<(String, PrismaValue)> for Cursor {
-            fn into(self) -> (String, PrismaValue) {
+        impl Into<(String, ::prisma_client_rust::PrismaValue)> for Cursor {
+            fn into(self) -> (String, ::prisma_client_rust::PrismaValue) {
                 match self {
                     #(#cursor_into_pv_arms),*
                 }

@@ -17,6 +17,7 @@ async fn query_raw_model() -> TestResult {
             "SELECT * FROM Post WHERE id = {}",
             PrismaValue::String(post.id.clone())
         ))
+        .exec()
         .await?;
 
     assert_eq!(result.len(), 1);
@@ -35,6 +36,7 @@ async fn query_raw_no_result() -> TestResult {
             "SELECT * FROM Post WHERE id = {}",
             PrismaValue::String("sdldsd".to_string())
         ))
+        .exec()
         .await?;
     assert_eq!(result.len(), 0);
 
@@ -57,6 +59,7 @@ async fn execute_raw() -> TestResult {
             PrismaValue::String("My edited title".to_string()),
             PrismaValue::String(post.id.clone())
         ))
+        .exec()
         .await?;
     assert_eq!(count, 1);
 
@@ -83,6 +86,7 @@ async fn execute_raw_no_result() -> TestResult {
             PrismaValue::String("updated title".to_string()),
             PrismaValue::String("sdldsd".to_string())
         ))
+        .exec()
         .await?;
     assert_eq!(count, 0);
 

@@ -192,7 +192,7 @@ impl WhereParams {
         });
 
         self.from_optional_uniques.push(quote!{
-            impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
+            impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
                 type Arg = Option<#field_base_type>;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
@@ -200,7 +200,7 @@ impl WhereParams {
                 }
             }
             
-            impl prisma_client_rust::traits::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
+            impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
                 type Arg = #field_base_type;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
@@ -240,8 +240,8 @@ impl WhereParams {
                 #(#variants),*
             }
 
-            impl Into<SerializedWhere> for WhereParam {
-                fn into(self) -> SerializedWhere {
+            impl Into<::prisma_client_rust::SerializedWhere> for WhereParam {
+                fn into(self) -> ::prisma_client_rust::SerializedWhere {
                     match self {
                         #(#to_serialized_where),*
                     }
@@ -329,6 +329,8 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
 }
 
 pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
+    let pcr = quote!(::prisma_client_rust);
+
     args.dml.models.iter().map(|model| {
         let mut model_query_modules = ModelQueryModules::new();
         let mut model_where_params = WhereParams::new();
@@ -342,21 +344,21 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             
             let value = match op.list {
                 true => quote! {
-                    SerializedWhereValue::List(
+                    #pcr::SerializedWhereValue::List(
                         value
                             .into_iter()
-                            .map(Into::<SerializedWhere>::into)
+                            .map(Into::<#pcr::SerializedWhere>::into)
                             .map(Into::into)
                             .map(|v| vec![v])
-                            .map(PrismaValue::Object)
+                            .map(#pcr::PrismaValue::Object)
                             .collect()
                     )
                 },
                 false => quote! {
-                    SerializedWhereValue::Object(
+                    #pcr::SerializedWhereValue::Object(
                         value
                             .into_iter()
-                            .map(Into::<SerializedWhere>::into)
+                            .map(Into::<#pcr::SerializedWhere>::into)
                             .map(Into::into)
                             .collect()
                     )
@@ -366,7 +368,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             model_where_params.add_variant(
                 quote!(#variant_name(Vec<WhereParam>)),
                 quote! {
-                    Self::#variant_name(value) => SerializedWhere::new(
+                    Self::#variant_name(value) => #pcr::SerializedWhere::new(
                         #op_action,
                         #value,
                     )
@@ -416,9 +418,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 model_where_params.add_variant(
                     quote!(#variant_name(#(#variant_data_as_types),*)),
                     quote! {
-                        Self::#variant_name(#(#variant_data_as_destructured),*) => SerializedWhere::new(
+                        Self::#variant_name(#(#variant_data_as_destructured),*) => #pcr::SerializedWhere::new(
                             #field_name_string,
-                            SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
+                            #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
                         )
                     },
                 );
@@ -480,15 +482,15 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         model_where_params.add_variant(
                             quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
                             quote! {
-                                Self::#variant_name(where_params) => SerializedWhere::new(
+                                Self::#variant_name(where_params) => #pcr::SerializedWhere::new(
                                     #field_string,
-                                    SerializedWhereValue::Object(vec![(
+                                    #pcr::SerializedWhereValue::Object(vec![(
                                         #method_action_string.to_string(),
-                                        PrismaValue::Object(
+                                        #pcr::PrismaValue::Object(
                                             where_params
                                                 .into_iter()
-                                                .map(Into::<SerializedWhere>::into)
-                                                .map(SerializedWhere::transform_equals)
+                                                .map(Into::<#pcr::SerializedWhere>::into)
+                                                .map(#pcr::SerializedWhere::transform_equals)
                                                 .collect()
                                         ),
                                     )])
@@ -626,9 +628,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     model_where_params.add_variant(
                         equals_variant.clone(), 
                         quote! {
-                            Self::#equals_variant_name(value) => SerializedWhere::new(
+                            Self::#equals_variant_name(value) => #pcr::SerializedWhere::new(
                                 #field_string,
-                                SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
+                                #pcr::SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
                             )
                         }
                     );
@@ -642,7 +644,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 }
                             },
                             (_, true, false) => quote! {
-                                pub fn equals<A, T: prisma_client_rust::traits::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+                                pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
                                     T::from_arg(value)
                                 }
                             },
@@ -695,9 +697,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             model_where_params.add_variant(
                                 quote!(#variant_name(#typ)),
                                 quote! {
-                                    Self::#variant_name(value) => SerializedWhere::new(
+                                    Self::#variant_name(value) => #pcr::SerializedWhere::new(
                                         #field_name,
-                                        SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_prisma_value)])
+                                        #pcr::SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_prisma_value)])
                                     )
                                 },
                             );

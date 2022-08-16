@@ -5,7 +5,10 @@ use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::raw::{Raw, RawOperationData, RawPrismaValue};
+use crate::{
+    raw::{Raw, RawOperationData, RawPrismaValue},
+    BatchQuery,
+};
 
 use super::QueryContext;
 
@@ -34,24 +37,20 @@ where
         }
     }
 
-    pub async fn exec(self) -> super::Result<Vec<Data>> {
-        let Self {
-            ctx, sql, params, ..
-        } = self;
-
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
         let mut selection = Selection::builder("queryRaw".to_string());
 
-        selection.push_argument("query", PrismaValue::String(sql));
+        selection.push_argument("query", PrismaValue::String(self.sql));
         selection.push_argument(
             "parameters",
-            PrismaValue::String(serde_json::to_string(&params).unwrap()),
+            PrismaValue::String(serde_json::to_string(&self.params).unwrap()),
         );
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
 
-        let data: RawOperationData = ctx.execute(op).await?;
-
-        let typed_data: Vec<HashMap<String, RawPrismaValue>> = data
+    pub(crate) fn convert(raw: RawOperationData) -> super::Result<Vec<Data>> {
+        let typed_data: Vec<HashMap<String, RawPrismaValue>> = raw
             .into_iter()
             .map(|row| {
                 row.into_iter()
@@ -68,5 +67,27 @@ where
             })
             .collect::<Result<_, _>>()
             .map_err(Into::into)
+    }
+
+    pub async fn exec(self) -> super::Result<Vec<Data>> {
+        let (op, ctx) = self.exec_operation();
+
+        ctx.execute(op).await.and_then(Self::convert)
+    }
+}
+
+impl<'a, Data> BatchQuery for QueryRaw<'a, Data>
+where
+    Data: DeserializeOwned,
+{
+    type RawType = RawOperationData;
+    type ReturnType = Vec<Data>;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+        raw.and_then(Self::convert)
     }
 }

@@ -28,24 +28,26 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
     let field_name_pascal = pascal_ident(field_name_str);
     let relation_model_name_snake = snake_ident(&field.relation_info.to);
 
+    let pcr = quote!(::prisma_client_rust);
+
     let body = match field.arity.is_list() {
         true => quote! {
             let (arguments, mut nested_selections) = args.to_graphql();
             nested_selections.extend(super::#relation_model_name_snake::_outputs());
 
-            let mut builder = Selection::builder(#field_name_str);
+            let mut builder = #pcr::Selection::builder(#field_name_str);
             builder.nested_selections(nested_selections)
                 .set_arguments(arguments);
             builder.build()
         },
         false => quote! {
             let mut selections = super::#relation_model_name_snake::_outputs();
-            selections.extend(args.with_params.into_iter().map(Into::<Selection>::into));
+            selections.extend(args.with_params.into_iter().map(Into::<#pcr::Selection>::into));
 
-            let mut builder = Selection::builder(#field_name_str);
+            let mut builder = #pcr::Selection::builder(#field_name_str);
             builder.nested_selections(selections);
             builder.build()
-        }
+        },
     };
 
     quote! {
@@ -65,8 +67,8 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<Selection> for WithParam {
-            fn into(self) -> Selection {
+        impl Into<::prisma_client_rust::Selection> for WithParam {
+            fn into(self) -> ::prisma_client_rust::Selection {
                 match self {
                     #(#into_selection_arms),*
                 }

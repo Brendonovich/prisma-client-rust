@@ -1,5 +1,5 @@
 use crate::generator::prelude::*;
-use prisma_client_rust_sdk::{dmmf::Datasource, GenerateArgs};
+use prisma_client_rust_sdk::GenerateArgs;
 use prisma_datamodel::datamodel_connector::ConnectorCapability;
 
 use super::required_fields;
@@ -36,7 +36,7 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
 
             Create::new(
                 self.client._new_query_context(),
-                QueryInfo::new(#model_name_str, _outputs()),
+                ::prisma_client_rust::QueryInfo::new(#model_name_str, _outputs()),
                 _params
             )
         }
@@ -65,7 +65,7 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
 
             CreateMany::new(
                 self.client._new_query_context(),
-                QueryInfo::new(#model_name_str, _outputs()),
+                ::prisma_client_rust::QueryInfo::new(#model_name_str, _outputs()),
                 data
             )
         }
@@ -89,7 +89,7 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
 
             Upsert::new(
                 self.client._new_query_context(),
-                QueryInfo::new(#model_name_str, _outputs()),
+                ::prisma_client_rust::QueryInfo::new(#model_name_str, _outputs()),
                 _where.into(),
                 _params,
                 _update
@@ -111,6 +111,8 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
         || cfg!(feature = "sqlite-create-many"))
     .then(|| create_many_fn(model));
 
+    let pcr = quote!(::prisma_client_rust);
+
     quote! {
         pub struct Actions<'a> {
             pub client: &'a PrismaClient,
@@ -120,7 +122,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn find_unique(self, _where: UniqueWhereParam) -> FindUnique<'a> {
                 FindUnique::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where.into()
                 )
             }
@@ -128,7 +130,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirst<'a> {
                 FindFirst::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where
                 )
             }
@@ -136,7 +138,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn find_many(self, _where: Vec<WhereParam>) -> FindMany<'a> {
                 FindMany::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where
                 )
             }
@@ -148,7 +150,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
                 Update::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where.into(),
                     _params,
                     vec![]
@@ -158,7 +160,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
                 UpdateMany::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where,
                     _params,
                 )
@@ -169,7 +171,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn delete(self, _where: UniqueWhereParam) -> Delete<'a> {
                 Delete::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where.into(),
                     vec![]
                 )
@@ -178,7 +180,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteMany<'a> {
                 DeleteMany::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     _where.into()
                 )
             }
@@ -186,7 +188,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub fn count(self) -> Count<'a> {
                 Count::new(
                     self.client._new_query_context(),
-                    QueryInfo::new(#model_name_str, _outputs()),
+                    #pcr::QueryInfo::new(#model_name_str, _outputs()),
                     vec![]
                 )
             }

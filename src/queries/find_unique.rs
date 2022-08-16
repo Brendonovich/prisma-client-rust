@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::select::{SelectOption, SelectType};
+use crate::{
+    select::{SelectOption, SelectType},
+    BatchQuery,
+};
 
 use super::{delete::Delete, QueryContext, QueryInfo, SerializedWhere, Update};
 
@@ -91,7 +94,7 @@ where
         SelectOption::new(self.ctx, op)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
         let QueryInfo {
             model,
             mut scalar_selections,
@@ -104,9 +107,32 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        let op = Operation::Read(selection.build());
+        (Operation::Read(selection.build()), self.ctx)
+    }
 
-        self.ctx.execute(op).await
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let (op, ctx) = self.exec_operation();
+
+        ctx.execute(op).await
+    }
+}
+
+impl<'a, Where, With, Set, Data> BatchQuery for FindUnique<'a, Where, With, Set, Data>
+where
+    Where: Into<SerializedWhere>,
+    With: Into<Selection>,
+    Set: Into<(String, PrismaValue)>,
+    Data: DeserializeOwned,
+{
+    type RawType = Data;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+        raw
     }
 }
 

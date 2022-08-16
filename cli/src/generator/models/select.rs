@@ -65,7 +65,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 quote! {
                     (@select_field_to_selection; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
                         #[allow(warnings)]
-                        let mut selection = ::prisma_client_rust::query_core::Selection::builder(#field_string);
+                        let mut selection = ::prisma_client_rust::Selection::builder(#field_string);
                         $(
                             let args = $crate::#module_path::#relation_model_name_snake::ManyArgs::new #filters_pattern_consume;
                             selection.set_arguments(args.to_graphql().0);
@@ -78,7 +78,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     }};
                     (@select_field_to_selection; #field_name_snake $(#filters_pattern_produce)?) => {{
                         #[allow(warnings)]
-                        let mut selection = ::prisma_client_rust::query_core::Selection::builder(#field_string);
+                        let mut selection = ::prisma_client_rust::Selection::builder(#field_string);
                         $(
                             let args = $crate::#module_path::#relation_model_name_snake::ManyArgs::new #filters_pattern_consume;
                             selection.set_arguments(args.to_graphql().0);
@@ -90,7 +90,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             },
             _ => quote! {
                 (@select_field_to_selection; #field_name_snake) => {
-                    ::prisma_client_rust::query_core::Selection::builder(#field_string).build()
+                    ::prisma_client_rust::Selection::builder(#field_string).build()
                 };
             }
         }
@@ -171,12 +171,12 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     $crate::#module_path::#model_name_snake::select!(@field_module; $field #selections_pattern_consume);
                 })?)+
 
-                pub struct Select(pub Vec<::prisma_client_rust::query_core::Selection>);
+                pub struct Select(pub Vec<::prisma_client_rust::Selection>);
 
                 impl ::prisma_client_rust::select::SelectType<$crate::#module_path::#model_name_snake::Data> for Select {
                     type Data = Data;
                     
-                    fn to_selections(self) -> Vec<::prisma_client_rust::query_core::Selection> {
+                    fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
                         self.0
                     }
                 }
@@ -196,7 +196,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             };
             
             #(#select_field_to_selection_impls)*
-            (@select_field_to_selection; $($tokens:tt)*) => { ::prisma_client_rust::query_core::Selection::builder("").build() };
+            (@select_field_to_selection; $($tokens:tt)*) => { ::prisma_client_rust::Selection::builder("").build() };
         }
         pub use #macro_name as select;
     }

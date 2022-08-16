@@ -15,6 +15,8 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
         quote!(#field_name_pascal(Direction))
     });
 
+    let pcr = quote!(::prisma_client_rust);
+
     let into_pv_arms = model.scalar_fields().map(|field| {
         let field_name_str = &field.name;
         let field_name_pascal = pascal_ident(field_name_str);
@@ -22,7 +24,7 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
         quote! {
             Self::#field_name_pascal(direction) => (
                 #field_name_str.to_string(),
-                PrismaValue::String(direction.to_string())
+                #pcr::PrismaValue::String(direction.to_string())
             )
         }
     });
@@ -33,8 +35,8 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(String, PrismaValue)> for OrderByParam {
-            fn into(self) -> (String, PrismaValue) {
+        impl Into<(String, #pcr::PrismaValue)> for OrderByParam {
+            fn into(self) -> (String, #pcr::PrismaValue) {
                 match self {
                     #(#into_pv_arms),*
                 }

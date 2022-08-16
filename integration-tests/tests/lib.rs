@@ -1,8 +1,10 @@
 mod db;
 mod utils;
 
+pub mod batch;
 mod count;
 mod create;
+mod create_many;
 mod delete;
 mod delete_many;
 mod find_first;
@@ -12,4 +14,3 @@ mod raw;
 mod update;
 mod upsert;
 mod with;
-mod create_many;

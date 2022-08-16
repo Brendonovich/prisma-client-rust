@@ -11,21 +11,23 @@ use std::collections::HashMap;
 pub use bigdecimal;
 pub use chrono;
 pub use datamodel;
+pub use dmmf;
 pub use prisma_models::{self, PrismaValue};
 pub use query_core;
+pub use query_core::Selection;
+pub use schema;
 pub use serde_json;
 pub use user_facing_errors as prisma_errors;
-pub use dmmf;
-pub use schema;
 
 pub use errors::*;
 pub use queries::*;
+pub use raw::*;
+pub use traits::*;
 
 #[cfg(feature = "rspc")]
 pub use rspc;
 
 use ::serde::{Deserialize, Serialize};
-use query_core::Selection;
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
