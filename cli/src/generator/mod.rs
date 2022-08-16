@@ -26,12 +26,17 @@ impl PrismaGenerator for PrismaClientRustGenerator {
     fn generate(self, args: GenerateArgs) -> String {
         let mut header = header::generate(&args);
 
-        header.extend(models::generate(&args, self.module_path.parse().expect("Invalid module path")));
+        header.extend(models::generate(
+            &args,
+            self.module_path.parse().expect("Invalid module path"),
+        ));
 
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);
 
         header.extend(quote! {
+            pub use _prisma::*;
+
             pub mod _prisma {
                 #client
                 #internal_enums
