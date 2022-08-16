@@ -15,6 +15,7 @@ sqlite-create-many = ["datamodel/sqlite-create-many"]
 
 [workspace]
 members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
+resolver = "2"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

@@ -12,7 +12,7 @@ pub fn fetch_builder_fns(model_name_snake: &Ident) -> TokenStream {
             self
         }
 
-        pub fn cursor(mut self, value: impl Into<super::#model_name_snake::Cursor>) -> Self {
+        pub fn cursor(mut self, value: impl Into<#model_name_snake::Cursor>) -> Self {
             self.0 = self.0.cursor(value.into());
             self
         }

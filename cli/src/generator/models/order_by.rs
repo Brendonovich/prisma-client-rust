@@ -2,7 +2,7 @@ use crate::generator::prelude::*;
 
 pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
     quote! {
-        pub fn order_by(mut self, param: super::#model_name_snake::OrderByParam) -> Self {
+        pub fn order_by(mut self, param: impl Into<#model_name_snake::OrderByParam>) -> Self {
             self.0 = self.0.order_by(param);
             self
         }
