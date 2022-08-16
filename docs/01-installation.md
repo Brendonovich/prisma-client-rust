@@ -16,6 +16,13 @@ prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.0" }
 ```
 
+You'll also need to make sure you're using edition 2021 of Rust.
+```toml
+[pacakge]
+# ... package stuff
+edition = "2021"
+```
+
 The easiest way to create a binary to access the CLI through is by creating a `src/bin` folder if you don't already have one, and inside it creating a file called something like `prisma.rs` (This will determine the name of your binary). Inside this file insert the following:
 
 ```rust
@@ -62,6 +69,20 @@ prisma-cli/
 ```
 
 For the above example, `Cargo.toml` would include `prisma-client-rust` as a dependency as it is required by the generated file, whereas `prisma-cli/Cargo.toml` would include `prisma-client-rust-cli` as a dependency, and so the binary in `src/main.rs` would not be bundled with all the CLI code, only the required library code.
+
+### A Note on Virtual Workspaces
+
+If the root `Cargo.toml` of your workspace has no `[package]` section, only a `[workspace]` section, then you are using a virtual workspace.
+For Prisma Client Rust to compile properly, you'll need to instruct Cargo on what version of the feature resolver to use.
+
+```toml
+[workspace]
+# ... workspace stuff
+resolver = "2"
+```
+
+This is not necessary for regular workspaces & single packages since they can use `edition = "2021"`, but virtual workspaces are special for some reason.
+
 
 ## Why is a CLI Binary not Provided?
 
