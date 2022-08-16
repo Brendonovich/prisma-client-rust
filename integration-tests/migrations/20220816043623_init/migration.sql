@@ -38,14 +38,14 @@ CREATE TABLE "Profile" (
 
 -- CreateTable
 CREATE TABLE "Types" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" INTEGER NOT NULL DEFAULT 0,
     "bool_" BOOLEAN NOT NULL DEFAULT false,
     "string" TEXT NOT NULL DEFAULT '',
     "integer" INTEGER NOT NULL DEFAULT 0,
     "datetime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "bigint" BIGINT NOT NULL DEFAULT 0,
     "float_" REAL NOT NULL DEFAULT 0,
-    "decimal" DECIMAL NOT NULL DEFAULT 1
+
+    PRIMARY KEY ("id", "string")
 );
 
 -- CreateTable
@@ -71,7 +71,13 @@ CREATE UNIQUE INDEX "Post_title_author_id_key" ON "Post"("title", "author_id");
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Profile_id_key" ON "Profile"("id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Profile_user_id_key" ON "Profile"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Types_id_string_key" ON "Types"("id", "string");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "_favouritePosts_AB_unique" ON "_favouritePosts"("A", "B");

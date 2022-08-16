@@ -57,11 +57,11 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(
+                merged_object(
                     where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
-                        .map(Into::into)
+                        .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
             );

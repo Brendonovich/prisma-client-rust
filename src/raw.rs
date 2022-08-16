@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::SecondsFormat;
 use prisma_models::PrismaValue;
 use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 #[macro_export]
 macro_rules! raw {
@@ -42,7 +42,7 @@ impl Raw {
 
         for i in 0..values.len() {
             let variable_indicator = match database {
-                "postgres" | "cockroachdb" => format!("${}", i),
+                "postgresql" | "cockroachdb" => format!("${}", i),
                 "sqlite" | "mysql" => "?".to_string(),
                 _ => panic!("Raw queries are not supported with database '{database}'"),
             };
@@ -80,9 +80,7 @@ impl From<RawTypedJson> for RawPrismaValue {
             ("double", Number(n)) => RawPrismaValue::Double(n.as_f64().unwrap()),
             ("string", String(s)) => RawPrismaValue::String(s),
             ("enum", String(s)) => RawPrismaValue::Enum(s),
-            ("bytes", String(b64)) => {
-                RawPrismaValue::Bytes(base64::decode(b64).unwrap())
-            }
+            ("bytes", String(b64)) => RawPrismaValue::Bytes(base64::decode(b64).unwrap()),
             ("bool", Bool(b)) => RawPrismaValue::Bool(b),
             ("char", String(s)) => RawPrismaValue::Char(s.chars().next().unwrap()),
             ("decimal", Number(n)) => RawPrismaValue::Decimal(

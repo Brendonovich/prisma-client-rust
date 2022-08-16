@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::select::{SelectOption, SelectType};
+use crate::{
+    merged_object,
+    select::{SelectOption, SelectType},
+};
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
 
@@ -89,11 +92,11 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(
+                merged_object(
                     where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
-                        .map(Into::into)
+                        .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
             );
@@ -157,7 +160,7 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        let op = Operation::Read(selection.build());
+        let op = dbg!(Operation::Read(selection.build()));
 
         self.ctx.execute(op).await
     }

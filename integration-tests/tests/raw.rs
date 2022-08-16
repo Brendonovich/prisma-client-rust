@@ -3,24 +3,6 @@ use prisma_client_rust::{prisma_models::PrismaValue, raw, BatchResult};
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn query_raw() -> TestResult {
-    let client = client().await;
-
-    client
-        .post()
-        .create("My post title!".to_string(), false, vec![])
-        .exec()
-        .await?;
-
-    let result = client
-        ._query_raw::<BatchResult>(raw!("SELECT COUNT(*) as count FROM Post"))
-        .await?;
-    assert_eq!(result.len(), 1);
-
-    cleanup(client).await
-}
-
-#[tokio::test]
 async fn query_raw_model() -> TestResult {
     let client = client().await;
 

@@ -4,7 +4,10 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::select::{Select, SelectType};
+use crate::{
+    merged_object,
+    select::{Select, SelectType},
+};
 
 use super::{
     count::Count, delete_many::DeleteMany, QueryContext, QueryInfo, SerializedWhere, UpdateMany,
@@ -127,11 +130,11 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(
+                merged_object(
                     where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
-                        .map(Into::into)
+                        .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
             );

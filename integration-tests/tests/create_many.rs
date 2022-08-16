@@ -22,7 +22,7 @@ async fn test_create_many() -> TestResult {
 
     let posts_count = client.post().create_many(data).exec().await?;
 
-    assert_eq!(posts_count, 100000);
+    assert_eq!(posts_count, 1000);
 
     cleanup(client).await
 }

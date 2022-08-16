@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
-use crate::SerializedWhere;
+use crate::{merged_object, SerializedWhere};
 
 use super::{QueryContext, QueryInfo};
 
@@ -75,11 +75,11 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(
+                merged_object(
                     where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
-                        .map(Into::into)
+                        .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
             );
