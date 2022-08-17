@@ -69,7 +69,7 @@ impl FieldQueryModule {
         quote! {
             pub mod #name {
                 use super::super::*;
-                use super::{WhereParam, UniqueWhereParam, OrderByParam, Cursor, WithParam, SetParam};
+                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam};
                 use super::_prisma::*;
 
                 #(#methods)*
@@ -460,7 +460,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             let field_string = root_field.name();
             let field_name_pascal = format_ident!("{}", field_string.to_case(Case::Pascal));
             let field_type = root_field.type_tokens();
-            let field_base_type = root_field.field_type().to_tokens();
             
             let set_variant = format_ident!("Set{}", field_name_pascal);
 
@@ -659,19 +658,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             OrderByParam::#field_name_pascal(direction)
                         }
                     });
-                    
-                    if model.field_is_primary(field_string) || model.field_is_unique(field_string) {
-                        let cursor_type = match root_field.arity() {
-                            FieldArity::List => quote!(Vec<#field_base_type>),
-                            _ => field_base_type.clone()
-                        };
-                        
-                        field_query_module.add_method(quote! {
-                            pub fn cursor(cursor: #cursor_type) -> Cursor {
-                                Cursor::#field_name_pascal(cursor)
-                            }
-                        });
-                    }
 
                     if let Some(read_type) = args.read_filter(&field) {
                         for method in &read_type.methods {
@@ -739,7 +725,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let with_params_enum = with_params::enum_definition(&model);
         let set_params_enum = set_params::enum_definition(&model, args);
         let order_by_params_enum = order_by::enum_definition(&model);
-        let cursor_enum = pagination::cursor_enum_definition(&model);
         let outputs_fn = outputs::model_fn(&model);
         let create_fn = create::model_fn(&model);
         let query_modules = model_query_modules.quote();
@@ -768,19 +753,17 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 #order_by_params_enum
 
-                #cursor_enum
-
                 #where_params
 
                 pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<WithParam>;
-                pub type ManyArgs = ::prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, Cursor>;
+                pub type ManyArgs = ::prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, UniqueWhereParam>;
                 
-                pub type Count<'a> = ::prisma_client_rust::Count<'a, WhereParam, OrderByParam, Cursor>;
+                pub type Count<'a> = ::prisma_client_rust::Count<'a, WhereParam, OrderByParam, UniqueWhereParam>;
                 pub type Create<'a> = ::prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
                 pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, SetParam>;
                 pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
-                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, Cursor, SetParam, Data>;
-                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
+                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, SetParam, Data>;
+                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, Data>;
                 pub type Update<'a> = ::prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
                 pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
                 pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;

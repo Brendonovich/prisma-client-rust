@@ -17,7 +17,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Data: DeserializeOwned,
 {
     ctx: QueryContext<'a>,
@@ -36,7 +36,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Data: DeserializeOwned,
 {
     pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
@@ -113,7 +113,14 @@ where
         if cursor_params.len() > 0 {
             selection.push_argument(
                 "cursor".to_string(),
-                PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(
+                    cursor_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(Into::<SerializedWhere>::into)
+                        .map(SerializedWhere::transform_equals)
+                        .collect(),
+                ),
             );
         }
 
@@ -177,7 +184,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Data: DeserializeOwned,
 {
     type RawType = Data;

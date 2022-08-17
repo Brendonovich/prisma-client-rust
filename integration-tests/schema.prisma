@@ -3,6 +3,11 @@ datasource db {
   url      = "file:dev.db"
 }
 
+// datasource db {
+//   provider = "postgresql"
+//   url      = "postgres://postgres:postgrespw@localhost:55000"
+// }
+
 generator client {
   provider = "cargo prisma"
   output   = "tests/db.rs"

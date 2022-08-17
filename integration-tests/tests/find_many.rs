@@ -122,7 +122,7 @@ async fn cursor() -> TestResult {
     let found = client
         .post()
         .find_many(vec![])
-        .cursor(post::id::cursor(posts[1].id.clone()))
+        .cursor(post::id::equals(posts[1].id.clone()))
         .exec()
         .await?;
     assert_eq!(found.len(), 3);
@@ -133,7 +133,7 @@ async fn cursor() -> TestResult {
     let found = client
         .post()
         .find_many(vec![])
-        .cursor(post::id::cursor(posts[3].id.clone()))
+        .cursor(post::id::equals(posts[3].id.clone()))
         .exec()
         .await?;
     assert_eq!(found.len(), 1);
@@ -290,6 +290,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::every(vec![post::title::contains(
             "post".to_string(),
         )])])
+        .order_by(user::name::order(Direction::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -301,6 +302,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::some(vec![post::title::contains(
             "post".to_string(),
         )])])
+        .order_by(user::name::order(Direction::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);

@@ -19,7 +19,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Set: Into<(String, PrismaValue)>,
     Data: DeserializeOwned,
 {
@@ -40,7 +40,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Set: Into<(String, PrismaValue)>,
     Data: DeserializeOwned,
 {
@@ -63,13 +63,13 @@ where
         self
     }
 
-    pub fn order_by(mut self, param: impl Into<OrderBy>) -> Self {
-        self.order_by_params.push(param.into());
+    pub fn order_by(mut self, param: OrderBy) -> Self {
+        self.order_by_params.push(param);
         self
     }
 
-    pub fn cursor(mut self, param: impl Into<Cursor>) -> Self {
-        self.cursor_params.push(param.into());
+    pub fn cursor(mut self, param: Cursor) -> Self {
+        self.cursor_params.push(param);
         self
     }
 
@@ -151,7 +151,14 @@ where
         if cursor_params.len() > 0 {
             selection.push_argument(
                 "cursor".to_string(),
-                PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(
+                    cursor_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(Into::<SerializedWhere>::into)
+                        .map(SerializedWhere::transform_equals)
+                        .collect(),
+                ),
             );
         }
 
@@ -214,7 +221,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Set: Into<(String, PrismaValue)>,
     Data: DeserializeOwned,
 {
@@ -236,7 +243,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
 {
     pub where_params: Vec<Where>,
     pub with_params: Vec<With>,
@@ -251,7 +258,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
 {
     pub fn new(where_params: Vec<Where>) -> Self {
         Self {
@@ -269,13 +276,13 @@ where
         self
     }
 
-    pub fn order_by(mut self, param: impl Into<OrderBy>) -> Self {
-        self.order_by_params.push(param.into());
+    pub fn order_by(mut self, param: OrderBy) -> Self {
+        self.order_by_params.push(param);
         self
     }
 
-    pub fn cursor(mut self, param: impl Into<Cursor>) -> Self {
-        self.cursor_params.push(param.into());
+    pub fn cursor(mut self, param: Cursor) -> Self {
+        self.cursor_params.push(param);
         self
     }
 
@@ -290,26 +297,17 @@ where
     }
 
     pub fn to_graphql(self) -> (Vec<(String, QueryValue)>, Vec<Selection>) {
-        let Self {
-            where_params,
-            with_params,
-            order_by_params,
-            cursor_params,
-            skip,
-            take,
-        } = self;
-
         let (mut arguments, mut nested_selections) = (vec![], vec![]);
 
-        if with_params.len() > 0 {
-            nested_selections = with_params.into_iter().map(Into::into).collect()
+        if self.with_params.len() > 0 {
+            nested_selections = self.with_params.into_iter().map(Into::into).collect()
         }
 
-        if where_params.len() > 0 {
+        if self.where_params.len() > 0 {
             arguments.push((
                 "where".to_string(),
                 PrismaValue::Object(
-                    where_params
+                    self.where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
                         .map(Into::into)
@@ -319,22 +317,33 @@ where
             ));
         }
 
-        if order_by_params.len() > 0 {
+        if self.order_by_params.len() > 0 {
             arguments.push((
                 "orderBy".to_string(),
-                PrismaValue::Object(order_by_params.into_iter().map(Into::into).collect()).into(),
+                PrismaValue::Object(self.order_by_params.into_iter().map(Into::into).collect())
+                    .into(),
             ));
         }
 
-        if cursor_params.len() > 0 {
+        if self.cursor_params.len() > 0 {
             arguments.push((
                 "cursor".to_string(),
-                PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect()).into(),
+                PrismaValue::Object(
+                    self.cursor_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(Into::<SerializedWhere>::into)
+                        .map(SerializedWhere::transform_equals)
+                        .collect(),
+                )
+                .into(),
             ));
         }
 
-        skip.map(|skip| arguments.push(("skip".to_string(), QueryValue::Int(skip))));
-        take.map(|take| arguments.push(("take".to_string(), QueryValue::Int(take))));
+        self.skip
+            .map(|skip| arguments.push(("skip".to_string(), QueryValue::Int(skip))));
+        self.take
+            .map(|take| arguments.push(("take".to_string(), QueryValue::Int(take))));
 
         (arguments, nested_selections)
     }

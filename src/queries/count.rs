@@ -20,7 +20,7 @@ impl<'a, Where, OrderBy, Cursor> Count<'a, Where, OrderBy, Cursor>
 where
     Where: Into<SerializedWhere>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
 {
     pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
         Self {
@@ -34,13 +34,13 @@ where
         }
     }
 
-    pub fn order_by(mut self, param: impl Into<OrderBy>) -> Self {
-        self.order_by_params.push(param.into());
+    pub fn order_by(mut self, param: OrderBy) -> Self {
+        self.order_by_params.push(param);
         self
     }
 
-    pub fn cursor(mut self, param: impl Into<Cursor>) -> Self {
-        self.cursor_params.push(param.into());
+    pub fn cursor(mut self, param: Cursor) -> Self {
+        self.cursor_params.push(param);
         self
     }
 
@@ -88,7 +88,14 @@ where
         if self.cursor_params.len() > 0 {
             selection.push_argument(
                 "cursor".to_string(),
-                PrismaValue::Object(self.cursor_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(
+                    self.cursor_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(Into::<SerializedWhere>::into)
+                        .map(SerializedWhere::transform_equals)
+                        .collect(),
+                ),
             );
         }
 
@@ -125,7 +132,7 @@ impl<'a, Where, OrderBy, Cursor> BatchQuery for Count<'a, Where, OrderBy, Cursor
 where
     Where: Into<SerializedWhere>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
 {
     type RawType = CountAggregateResult;
     type ReturnType = i64;

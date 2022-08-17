@@ -191,7 +191,7 @@ async fn find_unique_with_pagination() -> TestResult {
         .find_unique(user::id::equals(user_id.clone()))
         .with(
             user::posts::fetch(vec![])
-                .cursor(post::id::cursor(posts[0].id.clone()))
+                .cursor(post::id::equals(posts[0].id.clone()))
                 .take(1)
                 .skip(1),
         )
@@ -206,7 +206,7 @@ async fn find_unique_with_pagination() -> TestResult {
         .find_unique(user::id::equals(user_id.clone()))
         .with(
             user::posts::fetch(vec![])
-                .cursor(post::id::cursor(posts[1].id.clone()))
+                .cursor(post::id::equals(posts[1].id.clone()))
                 .take(-1)
                 .skip(1),
         )
