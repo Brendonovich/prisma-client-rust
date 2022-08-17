@@ -12,7 +12,7 @@ const lang = currentPage && getLanguageFromURL(currentPage);
 ---
 
 <header
-  class="sticky md:relative top-0 z-[11] h-24 bg-[color:var(--theme-bg)] w-full flex items-center justify-center overflow-hidden"
+  class="sticky md:relative md:relative top-0 z-[11] h-24 bg-[color:var(--theme-bg)] w-full flex items-center justify-center overflow-hidden"
 >
   <SkipToContent />
   <nav class="max-w-screen-2xl w-full flex items-center" title="Top Navigation">
@@ -20,14 +20,14 @@ const lang = currentPage && getLanguageFromURL(currentPage);
       <SidebarToggle client:idle />
     </div>
     <div
-      class="md:pl-8 logo flex items-center overflow-hidden text-3xl flex-shrink-0 font-bold leading-1 gap-1 z-[-1] bg-[color:var(--color-base-white)]"
+      class="md:pl-8 logo flex items-center overflow-hidden text-3xl flex-shrink-0 font-bold leading-1 gap-1 bg-[color:var(--color-base-white)]"
     >
       <a
         href="/"
         class="flex py-2 px-1 -my-2 -mx-1 font-bold decoration-none text-[color:var(--theme-text)] transition transition-color"
       >
         <AstroLogo size={40} />
-        <h1 class="logo-name m-0 hidden md:block">
+        <h1 class="logo-name decoration-none m-0 hidden md:block">
           {CONFIG.SITE.title ?? "Documentation"}
         </h1>
       </a>
