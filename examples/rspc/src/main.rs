@@ -19,9 +19,9 @@ async fn main() {
                 .select(db::user::select!(display_name))
                 .exec()
                 .await
-                .unwrap()
+                .map_err(Into::into)
         })
-        .query("usersWithPosts", |db: Ctx, _: ()| async move {
+        .query("usersSelectPosts", |db: Ctx, _: ()| async move {
             db.user()
                 .find_many(vec![])
                 .select(db::user::select! {
@@ -36,7 +36,7 @@ async fn main() {
                 })
                 .exec()
                 .await
-                .unwrap()
+                .map_err(Into::into)
         })
         .build();
 }
