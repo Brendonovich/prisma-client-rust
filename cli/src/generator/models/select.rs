@@ -131,7 +131,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                                 },
                                 &[]
                             )
-                        }),*]
+                        }),*],
+                        type_id: None
                     })
                 }
 
