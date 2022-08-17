@@ -10,9 +10,7 @@ use crate::{
     BatchQuery,
 };
 
-use super::{
-    count::Count, delete_many::DeleteMany, QueryContext, QueryInfo, SerializedWhere, UpdateMany,
-};
+use super::{DeleteMany, QueryContext, QueryInfo, SerializedWhere, UpdateMany};
 
 pub struct FindMany<'a, Where, With, OrderBy, Cursor, Set, Data>
 where
@@ -103,17 +101,6 @@ where
         } = self;
 
         DeleteMany::new(ctx, info, where_params)
-    }
-
-    pub fn count(self) -> Count<'a, Where, OrderBy, Cursor> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            ..
-        } = self;
-
-        Count::new(ctx, info, where_params)
     }
 
     fn to_selection(

@@ -77,8 +77,8 @@ async fn test_mixing_models() -> TestResult {
     assert!(profile.is_ok());
     assert_eq!(&profile?.bio, "Brendan's profile");
 
-    assert_eq!(client.user().count().exec().await?, 1);
-    assert_eq!(client.profile().count().exec().await?, 1);
+    assert_eq!(client.user().count(vec![]).exec().await?, 1);
+    assert_eq!(client.profile().count(vec![]).exec().await?, 1);
 
     cleanup(client).await
 }
@@ -96,7 +96,7 @@ async fn test_mixing_actions() -> TestResult {
         ))
         .await?;
 
-    assert_eq!(client.user().count().exec().await?, 0);
+    assert_eq!(client.user().count(vec![]).exec().await?, 0);
 
     cleanup(client).await
 }
@@ -113,7 +113,7 @@ async fn test_large_query() -> TestResult {
         )
         .await?;
 
-    assert_eq!(client.user().count().exec().await?, 1000);
+    assert_eq!(client.user().count(vec![]).exec().await?, 1000);
 
     cleanup(client).await
 }
@@ -240,7 +240,7 @@ async fn test_upsert() -> TestResult {
 
     assert_eq!(&user.id, user_id);
     assert_eq!(&user.name, "Oscar");
-    assert_eq!(client.user().count().exec().await?, 1);
+    assert_eq!(client.user().count(vec![]).exec().await?, 1);
 
     cleanup(client).await
 }

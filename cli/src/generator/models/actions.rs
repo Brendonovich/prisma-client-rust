@@ -185,7 +185,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn count(self) -> Count<'a> {
+            pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
                 Count::new(
                     self.client._new_query_context(),
                     #pcr::QueryInfo::new(#model_name_str, _outputs()),
