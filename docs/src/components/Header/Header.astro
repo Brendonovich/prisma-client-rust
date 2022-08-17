@@ -11,16 +11,25 @@ const { currentPage } = Astro.props;
 const lang = currentPage && getLanguageFromURL(currentPage);
 ---
 
-<header>
+<header
+  class="sticky md:relative top-0 z-[11] h-24 bg-[color:var(--theme-bg)] w-full flex items-center justify-center overflow-hidden"
+>
   <SkipToContent />
-  <nav class="nav-wrapper" title="Top Navigation">
-    <div class="menu-toggle">
+  <nav class="max-w-screen-2xl w-full flex items-center" title="Top Navigation">
+    <div class="md:hidden px-4">
       <SidebarToggle client:idle />
     </div>
-    <div class="logo flex">
-      <a href="/">
+    <div
+      class="md:pl-8 logo flex items-center overflow-hidden text-3xl flex-shrink-0 font-bold leading-1 gap-1 z-[-1] bg-[color:var(--color-base-white)]"
+    >
+      <a
+        href="/"
+        class="flex py-2 px-1 -my-2 -mx-1 font-bold decoration-none text-[color:var(--theme-text)] transition transition-color"
+      >
         <AstroLogo size={40} />
-        <h1>{CONFIG.SITE.title ?? "Documentation"}</h1>
+        <h1 class="logo-name m-0 hidden md:block">
+          {CONFIG.SITE.title ?? "Documentation"}
+        </h1>
       </a>
     </div>
     <div style="flex-grow: 1;"></div>
@@ -33,56 +42,17 @@ const lang = currentPage && getLanguageFromURL(currentPage);
 </header>
 
 <style>
-  header {
-    z-index: 11;
-    height: var(--theme-navbar-height);
-    width: 100%;
-    background-color: var(--theme-navbar-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: sticky;
-    top: 0;
+  .decoration-none {
+    text-decoration: none !important;
   }
 
-  .logo {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    width: 30px;
-    font-size: 2rem;
-    flex-shrink: 0;
-    font-weight: 600;
-    line-height: 1;
-    color: hsla(var(--color-base-white), 100%, 1);
-    gap: 0.25em;
-    z-index: -1;
-  }
-
-  .logo a {
-    display: flex;
-    padding: 0.5em 0.25em;
-    margin: -0.5em -0.25em;
-    text-decoration: none;
-    font-weight: bold;
-  }
-
-  .logo a {
-    transition: color 100ms ease-out;
-    color: var(--theme-text);
-  }
-
-  .logo a:hover,
-  .logo a:focus {
+  :focus.decoration-none,
+  :hover.decoration-none {
     color: var(--theme-text-accent);
   }
 
-  .logo h1 {
-    display: none;
+  .logo-name {
     font: inherit;
-    color: inherit;
-    margin: 0;
   }
 
   .nav-wrapper {
@@ -90,28 +60,6 @@ const lang = currentPage && getLanguageFromURL(currentPage);
     align-items: center;
     justify-content: flex-end;
     gap: 1em;
-    width: 100%;
-    max-width: 82em;
-    padding: 0 1rem;
-  }
-
-  @media (min-width: 50em) {
-    header {
-      position: static;
-      padding: 2rem 0rem;
-    }
-    .logo {
-      width: auto;
-      margin: 0;
-      margin-left: 2rem;
-      z-index: 0;
-    }
-    .logo h1 {
-      display: initial;
-    }
-    .menu-toggle {
-      display: none;
-    }
   }
 
   /** Style Algolia */
@@ -131,10 +79,5 @@ const lang = currentPage && getLanguageFromURL(currentPage);
   }
   :global(.search-item > *) {
     flex-grow: 1;
-  }
-  @media (min-width: 50em) {
-    .search-item {
-      max-width: 400px;
-    }
   }
 </style>

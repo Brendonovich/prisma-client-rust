@@ -13,15 +13,7 @@
 	--max-width: calc(100% - 1rem);
 }
 
-@media (min-width: 50em) {
-	:root {
-		--max-width: 46em;
-	}
-}
-
 body {
-	display: flex;
-	flex-direction: column;
 	min-height: 100vh;
 	font-family: var(--font-body);
 	font-size: 1rem;
@@ -279,11 +271,6 @@ blockquote {
 
 img {
 	max-width: 100%;
-}
-
-.flex {
-	display: flex;
-	align-items: center;
 }
 
 button {

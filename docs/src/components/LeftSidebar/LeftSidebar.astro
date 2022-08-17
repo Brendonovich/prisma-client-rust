@@ -22,8 +22,8 @@ const sidebarSections = SIDEBAR[langCode].reduce((col, item, i) => {
 }, []);
 ---
 
-<nav aria-labelledby="grid-left">
-  <ul class="nav-groups">
+<nav aria-labelledby="grid-left" class="h-full">
+  <ul class="nav-groups" class="h-full">
     {
       sidebarSections.map((section) => (
         <li>
