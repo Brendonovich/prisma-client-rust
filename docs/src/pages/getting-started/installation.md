@@ -1,12 +1,18 @@
-# Setup
+---
+title: Installation
+desc: Installation instructions
+layout: ../../layouts/MainLayout.astro
+---
 
 Prisma Client Rust's installation operates in a different way to most Rust projects.
 
-`prisma-client-rust` is used by the generated client and possibly own code, as it provides access to Prisma internals and helper functions.
+`prisma-client-rust` contains the query builders, traits, and type definitions. Some of these - eg. `Direction` - may be used in your own code.
 
-`prisma-client-rust-cli` contains the code generation and access to the Prisma CLI, but does not provide an executable binary - this must be created yourself. <sup>[why?](#why-is-a-cli-binary-not-provided)</sup>
+`prisma-client-rust-cli` contains the Prisma generator and access to the Prisma CLI, but does not provide an executable binary - this must be created yourself.
 
-## Creating a CLI Binary Inside Your Crate
+## Creating a CLI Binary
+
+### Inside Your Crate
 
 First, the main library and CLI package must be added to your project's Cargo.toml:
 
@@ -18,7 +24,7 @@ prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-
 
 You'll also need to make sure you're using edition 2021 of Rust.
 ```toml
-[pacakge]
+[package]
 # ... package stuff
 edition = "2021"
 ```
@@ -37,7 +43,7 @@ Technically, this is all that is required! Just run the following to access the 
 $ cargo run --bin <your binary name> -- <command>
 ```
 
-This isn't a very friendly command to run, though. Luckily Cargo allows us to define project-wide aliases for running commands! Create a folder at the root of your project called `.cargo` and inside it create a file `config.toml` with the following contents:
+This isn't a very friendly command to run, though. Luckily Cargo allows us to define project-wide aliases for running commands! Create a folder at the root of your project called `.cargo` and inside it create a file `config.toml` containing the following:
 
 ```toml
 [alias]
@@ -52,7 +58,7 @@ This approach has some problems though:
 
 Thankfully, there's a more reliable method:
 
-## Creating a CLI Binary as a Workspace Crate
+### As a Workspace Crate
 
 Move the CLI binary to a separate crate and configure your project to use [Cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). Below is a sample project structure that has one binary target in `src/main.rs`, and a separate crate for the CLI named `prisma-cli`, which is included in the [workspace members](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html#:~:text=%5Bworkspace%5D-,members%20%3D%20%5B,-%22adder%22%2C%0A%5D) of `Cargo.toml`.
 
@@ -70,10 +76,11 @@ prisma-cli/
 
 For the above example, `Cargo.toml` would include `prisma-client-rust` as a dependency as it is required by the generated file, whereas `prisma-cli/Cargo.toml` would include `prisma-client-rust-cli` as a dependency, and so the binary in `src/main.rs` would not be bundled with all the CLI code, only the required library code.
 
-### A Note on Virtual Workspaces
+#### A Note on Virtual Workspaces
 
-If the root `Cargo.toml` of your workspace has no `[package]` section, only a `[workspace]` section, then you are using a virtual workspace.
-For Prisma Client Rust to compile properly, you'll need to instruct Cargo on what version of the feature resolver to use.
+If the root `Cargo.toml` of your workspace has no `[package]` section (only a `[workspace]` section) then you are using a virtual workspace.
+
+For Prisma Client Rust to compile properly, you'll need to instruct Cargo to use version 2 of the [feature resolver](https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html).
 
 ```toml
 [workspace]
@@ -84,12 +91,8 @@ resolver = "2"
 This is not necessary for regular workspaces & single packages since they can use `edition = "2021"`, but virtual workspaces are special for some reason.
 
 
-## Why is a CLI Binary not Provided?
+## Why is a CLI Binary Not Provided?
 
 In older versions of Prisma Client Rust, it was possible to `cargo install prisma-client-rust-cli` and have a global install of the CLI available to use at any time. This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly, plus it went against the recommmended installation instructions of Prisma Client [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres), [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md), and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).
 
 Unlike these three languages, Rust (or more specifically Cargo) does not provide a method for executing binaries available inside dependencies. Since installing a globally available binary was ruled out, providing the CLI as a library was seen as the only other option, plus personally I think that being able to run `cargo prisma <command>` is quite a nice experience and matches with clients in other languages.
-
-## Up Next
-
-Next, learn how to [setup your schema](02-setup.md) to generate the client.

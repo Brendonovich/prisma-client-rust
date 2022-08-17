@@ -1,6 +1,8 @@
-# Update
-
-Updating a record can be done with `update` or `update_many` by specifying which records you would like to update and a `Vec` of all the updates you want to make.
+---
+title: Update Queries
+desc: Update query documentation
+layout: ../../layouts/MainLayout.astro
+---
 
 The examples use the following schema:
 
@@ -32,14 +34,16 @@ model Comment {
 }
 ```
 
-## Updating a Unique Record
+## Update
+
+`update` accepts a single unique filter and a `Vec` of updates to apply, returning the data of the updated record.
 
 The following example finds and updates an existing post, with the resulting post data being returned.
 
 ```rust
 use prisma::post;
 
-let updated_post: post::Data = client
+let updated_post: Option<post::Data> = client
     .post()
     .update(
         post::id::equals("id".to_string()), // Unique filter
@@ -50,7 +54,10 @@ let updated_post: post::Data = client
     .unwrap();
 ```
 
-## Updating Many Records
+## Update Many
+
+`update_many` accepts a `Vec` of filters (not just unique filters), and a `Vec` of updates to apply to all records found.
+It returns the number of records updated, not the data of those records.
 
 The following example finds and updates a set of posts. The number of updated records is returned.
 
@@ -70,13 +77,15 @@ let updated_posts_count: usize = client
 
 ## Updating Relations
 
-Using `link`, relations can be created inside `update` queries.
+Using `connect` and `disconnect`, relations can be modified inside `update` queries.
 
-IMPORTANT: Updating a relation this way should only be done within `update`. Doing so with `update_many` will cause the query to always return an `Err`. To avoid this, set the relation's scalar fields directly.
+IMPORTANT: Updating a relation this way with `update_many` will cause the query to always return an error.
+To avoid this, set the relation's scalar fields directly.
+An effort to create stricter types to avoid this is being [tracked]().
 
-### Update in a Find Unique
+### Single Record
 
-The following example find a comment and updates the post that it is linked to.
+The following example find a comment and disconnects the post that it is related to.
 
 ```rust
 use prisma::{comment, post};
@@ -85,16 +94,14 @@ let updated_comment: comment::Data = client
     .post()
     .update(
         comment::id::equals("id".to_string()),
-        vec![comment::post::link(
-            post::id::equals("post".to_string())
-        )]
+        vec![comment::post::disconnect()]
     )
     .exec()
     .await
     .unwrap();
 ```
 
-### Update in a Find Many
+### Many Records
 
 The following example finds all comments on a post and updates the post they are linked to, but does so by modifying the relation column directly.
 
@@ -113,13 +120,3 @@ let updated_comment: comment::Data = client
     .await
     .unwrap();
 ```
-
-### Unlink Optional Relations
-
-For optional relations, the `unlink` method is available to remove relations and set the relation's scalar field to `NULL` in `update` queries.
-
-The same caveat for `update_many` applies, so setting the scalar fields to `None` shoud be done instead.
-
-## Up Next
-
-Once you're done with your data, it can be helpful to [delete it](10-delete.md)

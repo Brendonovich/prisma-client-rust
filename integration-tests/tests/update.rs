@@ -70,10 +70,10 @@ async fn update() -> TestResult {
     cleanup(client).await
 }
 
-// TODO: update with nested create & delete/unlink
+// TODO: update with nested create & delete/disconnect
 
 #[tokio::test]
-async fn update_and_unlink() -> TestResult {
+async fn update_and_disconnect() -> TestResult {
     let client = client().await;
 
     let user_id = create_user(&client).await?;
@@ -86,7 +86,6 @@ async fn update_and_unlink() -> TestResult {
         .await?
         .unwrap();
     assert_eq!(user.posts.unwrap().len(), 0);
-
 
     let post = client
         .post()
@@ -104,7 +103,9 @@ async fn update_and_unlink() -> TestResult {
         .user()
         .update(
             user::id::equals(user_id.clone()),
-            vec![user::posts::link(vec![post::id::equals(post.id.clone())])],
+            vec![user::posts::connect(vec![post::id::equals(
+                post.id.clone(),
+            )])],
         )
         .with(user::posts::fetch(vec![]))
         .exec()
@@ -117,8 +118,8 @@ async fn update_and_unlink() -> TestResult {
         .update(
             user::id::equals(user_id.clone()),
             vec![
-                user::posts::unlink(vec![post::id::equals(post.id.clone())]),
-                user::posts::link(vec![post::id::equals(post_2.id.clone())]),
+                user::posts::disconnect(vec![post::id::equals(post.id.clone())]),
+                user::posts::connect(vec![post::id::equals(post_2.id.clone())]),
             ],
         )
         .with(user::posts::fetch(vec![]))
@@ -387,7 +388,7 @@ async fn update_many() -> TestResult {
     // let posts = client
     //     .post()
     //     .find_many(vec![])
-    //     .update(vec![post::author().link(user::id().equals(user_id.clone()))])
+    //     .update(vec![post::author().connect(user::id().equals(user_id.clone()))])
     //     .exec()
     //     .await?;
     // assert_eq!(posts, 5);

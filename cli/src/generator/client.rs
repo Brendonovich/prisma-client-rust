@@ -24,7 +24,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
     quote! {
         pub struct PrismaClient {
-            executor: Box<dyn #pcr::query_core::QueryExecutor + Send + Sync + 'static>,
+            executor: #pcr::Executor,
             query_schema: ::std::sync::Arc<#pcr::schema::QuerySchema>,
         }
 
@@ -37,10 +37,10 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
         impl PrismaClient {
             pub(super) fn _new_query_context(&self) -> #pcr::queries::QueryContext {
-                #pcr::queries::QueryContext::new(&self.executor, self.query_schema.clone())
+                #pcr::queries::QueryContext::new(&self.executor, &self.query_schema)
             }
 
-            pub(super) fn _new(executor: Box<dyn #pcr::query_core::QueryExecutor + Send + Sync + 'static>, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>) -> Self {
+            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>) -> Self {
                 Self {
                     executor,
                     query_schema,
@@ -51,7 +51,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::QueryRaw::new(
                    #pcr::queries::QueryContext::new(
                         &self.executor,
-                        self.query_schema.clone()
+                        &self.query_schema
                     ),
                     query,
                     super::DATABASE_STR
@@ -62,7 +62,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::ExecuteRaw::new(
                    #pcr::queries::QueryContext::new(
                         &self.executor,
-                        self.query_schema.clone()
+                        &self.query_schema
                     ),
                     query,
                     super::DATABASE_STR
@@ -75,5 +75,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             #(#model_actions)*
         }
+
+
     }
 }

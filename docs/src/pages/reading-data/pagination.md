@@ -1,8 +1,10 @@
-# Pagination
+---
+title: Pagination
+desc: Query pagination
+layout: ../../layouts/MainLayout.astro
+---
 
-Pagination allows you to alter which records are returned from `find_first` and `find_many` queries, and on many relations.
-
-All of these methods can used together, and the order they are used in does not matter.
+Pagination allows you to specify what range of records are returned from `find_first` and `find_many` queries, and on many relations.
 
 The examples use the following schema:
 
@@ -36,41 +38,37 @@ model Comment {
 
 ## Take
 
-To limit the number of records returned, use `take()`:
-
 ```rust
 use prisma::post;
 
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![post::title::contains("Title".to_string())])
-    .take(5) // query will return the first 5 records, instead of every record
+    // Only the first 5 records will be returned
+    .take(5)
     .exec()
-    .await
-    .unwrap();
+    .await?;
 
 ```
 
 ## Skip
 
-To skip a number of records, use `skip()`:
-
 ```rust
 use prisma::post;
 
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![post::title::contains("Title".to_string())])
-    .skip(2) // query will skip the first two records, returning the rest
+    // The first 2 records will be skipped
+    .skip(2)
     .exec()
-    .await
-    .unwrap();
+    .await?;
 
 ```
 
 ## Cursor
 
-To get the records after a unique field value, use `cursor()`.
+`cursor` takes a [unique filter](structure#unique-filters) as its argument.
 
 ```rust
 use prisma::post;
@@ -78,13 +76,12 @@ use prisma::post;
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![])
-    .cursor(post::id::cursor("abc".to_string()))
+    .cursor(post::id::equals("abc".to_string()))
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
 
-The [`order_by` method](07-order-by.md) can be very useful when combined with cursor pagination.
+[`order_by`](order-by.md) can be very useful when combined with cursor pagination.
 
 ## Relation Pagination
 
@@ -100,13 +97,8 @@ let posts: Vec<post::Data> = client
         post::comments::fetch(vec![])
             .skip(10)
             .take(5)
-            .cursor("abc".to_string()),
+            .cursor(comment::id::equals("abc".to_string())),
     )
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
-
-## Up Next
-
-Next, check out how to [order queries](07-order-by.md)

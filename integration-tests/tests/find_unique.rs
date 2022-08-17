@@ -87,7 +87,7 @@ async fn find_unique_compound() -> TestResult {
         .create(
             "Title".to_string(),
             false,
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;

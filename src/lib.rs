@@ -21,6 +21,7 @@ use thiserror::Error;
 pub use user_facing_errors as prisma_errors;
 
 pub use errors::*;
+pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
 pub use traits::*;

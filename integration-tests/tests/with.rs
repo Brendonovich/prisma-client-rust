@@ -15,7 +15,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
             .create(
                 "post 1".to_string(),
                 false,
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -24,7 +24,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
             .create(
                 "post 2".to_string(),
                 true,
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -33,7 +33,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
             .create(
                 "post 3".to_string(),
                 true,
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -42,7 +42,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
             .create(
                 "post 4".to_string(),
                 false,
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -52,7 +52,7 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         .category()
         .create(
             "My category".to_string(),
-            vec![category::posts::link(vec![
+            vec![category::posts::connect(vec![
                 post::id::equals(posts[0].id.clone()),
                 post::id::equals(posts[1].id.clone()),
             ])],

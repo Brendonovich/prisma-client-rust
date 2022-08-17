@@ -1,6 +1,8 @@
-# Delete
-
-Deleting records is as simple as doing a query and chaining `delete()` before the query is executed.
+---
+title: Delete Queries
+desc: Delete query documentation
+layout: ../../layouts/MainLayout.astro
+---
 
 The examples use the following Prisma schema:
 
@@ -26,9 +28,10 @@ model Comment {
 }
 ```
 
-## Deleting One Record
+## Delete
 
-To delete a single record, perform a `delete` query.
+`delete` will delete the record referenced by a single unique filter,
+returning the record's data if it existed.
 
 The following example finds a single post and deletes it, returning the deleted post.
 
@@ -39,15 +42,12 @@ let deleted_post: Option<post::Data> = client
     .post()
     .delete(post::id::equals("id".to_string()))
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
 
-Note that the query returns an `Option` and not just the data directly, since the record to delete may not exist.
+## Delete Many
 
-## Delete Many Records
-
-To delete many records, perform a `delete_many` query.
+`delete_many` will delete the records referenced by a `Vec` of any filters and return the number of deleted records.
 
 The following example finds a group of comments and deletes them, returning the number of deleted comments.
 
@@ -57,13 +57,8 @@ use prisma::comment;
 let deleted_comments_count: usize = client
     .comment()
     .delete_many(vec![
-        comment::content::contains("what's up".to_string())
+        comment::content::contains("some text".to_string())
     ])
     .exec()
-    .await
-    .unwrap();
+    .await;
 ```
-
-## Up Next
-
-Want to update a record even if it doesn't exist? [Upserting](11-upsert.md) might be useful!

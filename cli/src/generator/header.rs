@@ -12,27 +12,10 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     quote! {
         #![allow(warnings, unused)]
 
-        use prisma_client_rust::{
-            bigdecimal::{self, FromPrimitive},
-            datamodel::parse_configuration,
-            operator::Operator,
-            prisma_models::{InternalDataModelBuilder, PrismaValue},
-            queries::{QueryContext, Result as QueryResult, QueryInfo},
-            query_core::{
-                executor, schema_builder,  CoreError, InterpreterError, QueryExecutor,
-                QueryGraphBuilderError,  QueryValue, Selection,
-            },
-            schema::QuerySchema,
-            chrono, serde_json, UniqueArgs, ManyArgs, BatchResult, Direction, SerializedWhere, SerializedWhereValue,
-        };
-        use serde::{Deserialize, Serialize};
-        use std::path::Path;
-        use std::sync::Arc;
-
         static DATAMODEL_STR: &'static str = #datamodel;
         static DATABASE_STR: &'static str = #database_string;
 
-        pub async fn new_client() -> Result<_prisma::PrismaClient, #pcr::NewClientError> {
+        pub async fn new_client() -> Result<PrismaClient, #pcr::NewClientError> {
             let config = #pcr::datamodel::parse_configuration(DATAMODEL_STR)?.subject;
             let source = config
                 .datasources
@@ -62,7 +45,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
 
         // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
-        pub async fn new_client_with_url(url: &str) -> Result<_prisma::PrismaClient, #pcr::NewClientError> {
+        pub async fn new_client_with_url(url: &str) -> Result<PrismaClient, #pcr::NewClientError> {
             let config = #pcr::datamodel::parse_configuration(DATAMODEL_STR)?.subject;
             let source = config
                 .datasources
@@ -70,7 +53,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 .expect("Please supply a datasource in your schema.prisma file");
             let (db_name, executor) = #pcr::query_core::executor::load(&source, &[], &url).await?;
             let internal_model = #pcr::prisma_models::InternalDataModelBuilder::new(DATAMODEL_STR).build(db_name);
-            let query_schema = std::sync::Arc::new(schema_builder::build(
+            let query_schema = std::sync::Arc::new(prisma_client_rust::query_core::schema_builder::build(
                 internal_model,
                 true,
                 source.capabilities(),

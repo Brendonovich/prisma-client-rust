@@ -248,7 +248,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .create(
             "My second post".to_string(),
             false,
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
@@ -274,7 +274,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .create(
             "My test post".to_string(),
             false,
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;

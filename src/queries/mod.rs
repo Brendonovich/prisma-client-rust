@@ -110,11 +110,11 @@ impl QueryInfo {
 #[derive()]
 pub struct QueryContext<'a> {
     executor: &'a Executor,
-    schema: QuerySchemaRef,
+    schema: &'a QuerySchemaRef,
 }
 
 impl<'a> QueryContext<'a> {
-    pub fn new(executor: &'a Executor, schema: QuerySchemaRef) -> Self {
+    pub fn new(executor: &'a Executor, schema: &'a QuerySchemaRef) -> Self {
         Self { executor, schema }
     }
 
@@ -123,7 +123,7 @@ impl<'a> QueryContext<'a> {
         async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<serde_value::Value> {
             let response = ctx
                 .executor
-                .execute(None, op, ctx.schema, None)
+                .execute(None, op, ctx.schema.clone(), None)
                 .await
                 .map_err(|e| Error::Execute(e.into()))?;
 

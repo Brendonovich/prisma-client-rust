@@ -10,12 +10,12 @@ pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
 }
 
 pub fn enum_definition(model: &dml::Model) -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
     let variants = model.scalar_fields().map(|field| {
         let field_name_pascal = pascal_ident(&field.name);
-        quote!(#field_name_pascal(Direction))
+        quote!(#field_name_pascal(#pcr::Direction))
     });
-
-    let pcr = quote!(::prisma_client_rust);
 
     let into_pv_arms = model.scalar_fields().map(|field| {
         let field_name_str = &field.name;

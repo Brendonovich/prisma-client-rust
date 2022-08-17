@@ -1,9 +1,13 @@
-# Order By
+---
+title: Ordering
+desc: Query result ordering
+layout: ../../layouts/MainLayout.astro
+---
 
 Ordering can be performed on any field, though it is recommended to only order by indexed fields for improved performance.
 
-Order is defined using a field module's `order` function, which takes a `Direction` enum provided by `prisma_client_rust`.
-It can be performed on `find_first` and `find_many` queries, as well as being chained onto `fetch` calls for many relations in a similar manner [relation pagination](06-pagination.md#relation-pagination).
+Order is defined using a field module's `order` function, which takes a `prisma_client_rust::Direction`.
+It can be performed on `find_first` and `find_many` queries, as well as being chained onto `fetch` calls for many relations in a similar manner to [relation pagination](pagination#relation-pagination).
 
 The examples use the following schema:
 
@@ -35,7 +39,7 @@ model Comment {
 }
 ```
 
-## Order on ID
+## Indexed Fields
 
 The following exaple will be order `posts` by `id` from lowest to highest
 
@@ -52,7 +56,7 @@ let posts: Vec<post::Data> = client
     .unwrap();
 ```
 
-## Order by Recently Created
+## Non-Indexed Fields
 
 The following example will be order `posts` by `created_at`, even though it is not an indexed field.
 
@@ -69,7 +73,7 @@ let posts: Vec<post::Data> = client
     .unwrap();
 ```
 
-## Combine with Pagination
+## Combining With Pagination
 
 The following example will order all `post` records and then paginate a selection of them.
 
@@ -80,14 +84,10 @@ use prisma_client_rust::Direction;
 let posts: Vec<post::Data> = client
     .post()
     .find_many()
-    .take(5)
-    .cursor(post::id::cursor("abc".to_string()))
     .order_by(post::created_at::order(Direction::Desc))
+    .cursor(post::id::equals("abc".to_string()))
+    .take(5)
     .exec()
     .await
     .unwrap();
 ```
-
-## Up Next
-
-Finding data is great, but let's look at how to [create records](08-create.md).

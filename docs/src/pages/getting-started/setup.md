@@ -1,6 +1,10 @@
-# Setup
+---
+title: Setup
+desc: Setup instructions
+layout: ../../layouts/MainLayout.astro
+---
 
-If you have completed the [installation steps](01-installation.md) and setup the `cargo prisma <command>` alias, you are ready to add the Prisma Cliet Rust generator to your [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema). Below is an example of a schema that exists at the root of the project, uses a SQLite database and generates the client at `src/prisma.rs`:
+If you have completed the [installation steps](installation) and setup the `cargo prisma <command>` alias, you are ready to add the Prisma Cliet Rust generator to your [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema). Below is an example of a schema that exists at the root of the project, uses a SQLite database and generates the client at `src/prisma.rs`:
 
 ```prisma
 datasource db {
@@ -23,7 +27,7 @@ model User {
 
 Next, run `cargo prisma generate` to generate the client that will be used in your Rust code. If you have `rustfmt` installed, the generated code will be formatted for easier exploration and debugging.
 
-### Creating the Client
+## Creating the Client
 
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime. Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
 
@@ -41,11 +45,7 @@ async fn main() {
 }
 ```
 
-### Naming Clashes
+## Naming Clashes
 
 Rust has a [reserved set of keywords](https://doc.rust-lang.org/reference/keywords.html) that cannot be used as names in your code. If you name a model or field something that after conversion to `snake_case` will be a restricted keyword, you will almost assuredly not be able to compile your project.
 While this is annoying, it is an unavoidable consequence of using Rust.
-
-## Up Next
-
-Next, look at a general overview of [how to use your generated client](03-overview.md)

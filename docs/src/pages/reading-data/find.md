@@ -1,4 +1,8 @@
-# Find
+---
+title: Find Queries
+desc: Find query documentation
+layout: ../../layouts/MainLayout.astro
+---
 
 The examples use the following schema:
 
@@ -87,7 +91,7 @@ Filtering on relations can be done in a similar way to filtering on scalars, it 
 
 For single relations, there is the `is` and `is_not` filters.
 
-The following example gets all comments whose post has the title "What up?":
+The following example gets all comments whose post has the title "My Title":
 
 ```rust
 use prisma::{comment, post};
@@ -96,7 +100,7 @@ let comments: Vec<comment:Data> = client
     .post()
     .find_many(vec![
         comment::post::is(vec![
-            post::title::equals("What up?")
+            post::title::equals("My Title".to_string())
         ])
     ])
     .exec()
@@ -108,7 +112,7 @@ let comments: Vec<comment:Data> = client
 
 For many relations, there are the `some`, `every` and `none` filters.
 
-The following example gets posts which have at least one comment with the content "My Content" and whose titles are all "What up?"
+The following example gets posts which have at least one comment with the content "My Content" and whose titles are all "My Title"
 
 ```rust
 use prisma::{post, comment};
@@ -116,7 +120,7 @@ use prisma::{post, comment};
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![
-        post::title::equals("What up?".to_string()),
+        post::title::equals("My Title".to_string()),
         post::comments::some(vec![
             comment::content::equals("My Content".to_string())
         ])
@@ -164,8 +168,4 @@ let posts: Option<post::Data> = client
     .unwrap()
 ```
 
-Note that an operator macro must still be within a `vec!`, since it still resolves to a single filter.
-
-## Up Next
-
-Next, check out how to [fetch relations with your queries](05-fetch.md).
+Keep in mind that an operator macro must still be within a `vec!`, since it resolves to a single filter.

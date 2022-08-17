@@ -234,6 +234,8 @@ impl WhereParams {
             from_optional_uniques,
         } = self;
 
+        let pcr = quote!(::prisma_client_rust);
+
         quote! {
             #[derive(Clone)]
             pub enum WhereParam {
@@ -263,12 +265,12 @@ impl WhereParams {
 
             #(#from_optional_uniques)*
 
-            impl From<Operator<Self>> for WhereParam {
-                fn from(op: Operator<Self>) -> Self {
+            impl From<#pcr::Operator<Self>> for WhereParam {
+                fn from(op: #pcr::Operator<Self>) -> Self {
                     match op {
-                        Operator::Not(value) => Self::Not(value),
-                        Operator::And(value) => Self::And(value),
-                        Operator::Or(value) => Self::Or(value),
+                        #pcr::Operator::Not(value) => Self::Not(value),
+                        #pcr::Operator::And(value) => Self::And(value),
+                        #pcr::Operator::Or(value) => Self::Or(value),
                     }
                 }
             }
@@ -314,7 +316,7 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
 
             let push_wrapper = match field {
                 dml::Field::ScalarField(_) => quote!(set),
-                dml::Field::RelationField(_) => quote!(link),
+                dml::Field::RelationField(_) => quote!(connect),
                 _ => unreachable!(),
             };
 
@@ -528,11 +530,11 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 Fetch(#relation_model_name_snake::ManyArgs::new(params))
                             }
 
-                            pub fn link<T: From<Link>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
-                                Link(params).into()
+                            pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
+                                Connect(params).into()
                             }
 
-                            pub fn unlink(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
+                            pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
                                 SetParam::#disconnect_variant(params)
                             }
 
@@ -542,10 +544,10 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         });
                         
                         field_query_module.add_struct(quote! {
-                            pub struct Link(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
+                            pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
 
-                            impl From<Link> for SetParam {
-                                fn from(value: Link) -> Self {
+                            impl From<Connect> for SetParam {
+                                fn from(value: Connect) -> Self {
                                     Self::#connect_variant(value.0)
                                 }
                             }
@@ -568,25 +570,25 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 Fetch(#relation_model_name_snake::UniqueArgs::new())
                             }
 
-                            pub fn link<T: From<Link>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
-                                Link(value).into()
+                            pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
+                                Connect(value).into()
                             }
                         });
 
                         field_query_module.add_struct(quote! {
-                            pub struct Link(#relation_model_name_snake::UniqueWhereParam);
+                            pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
 
-                            impl From<Link> for SetParam {
-                                fn from(value: Link) -> Self {
+                            impl From<Connect> for SetParam {
+                                fn from(value: Connect) -> Self {
                                     Self::#connect_variant(value.0)
                                 }
                             }
                         });
 
-                        // Only allow unlink if field is not required
+                        // Only allow disconnect if field is not required
                         if field.arity.is_optional() {
                             field_query_module.add_method(quote! {
-                                pub fn unlink() -> SetParam {
+                                pub fn disconnect() -> SetParam {
                                     SetParam::#disconnect_variant
                                 }
                             });
@@ -618,7 +620,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     let type_as_prisma_value = if !root_field.arity().is_optional() {
                         type_as_prisma_value
                     } else {
-                        quote!(value.map(|value| #type_as_prisma_value).unwrap_or(PrismaValue::Null))
+                        quote!(value.map(|value| #type_as_prisma_value).unwrap_or(#pcr::PrismaValue::Null))
                     };
                     
                     model_where_params.add_variant(
@@ -654,7 +656,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                     // Pagination
                     field_query_module.add_method(quote! {
-                        pub fn order(direction: Direction) -> OrderByParam {
+                        pub fn order(direction: #pcr::Direction) -> OrderByParam {
                             OrderByParam::#field_name_pascal(direction)
                         }
                     });
