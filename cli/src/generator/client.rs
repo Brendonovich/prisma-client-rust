@@ -75,7 +75,5 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             #(#model_actions)*
         }
-
-
     }
 }

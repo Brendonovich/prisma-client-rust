@@ -5,6 +5,7 @@ mod internal_enums;
 mod models;
 mod prelude;
 
+use datamodel::builtin_connectors::{MONGODB, POSTGRES};
 use prisma_client_rust_sdk::{GenerateArgs, PrismaGenerator};
 use quote::quote;
 use serde::Deserialize;
@@ -34,15 +35,21 @@ impl PrismaGenerator for PrismaClientRustGenerator {
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);
 
-        header.extend(quote! {
-            pub use _prisma::*;
+        let extra_pub_uses = match &args.connector {
+            c if c.is_provider(POSTGRES.name()) | c.is_provider(MONGODB.name()) => quote!(
+                pub use _prisma::QueryMode;
+            ),
+            _ => quote!(),
+        };
 
+        header.extend(quote! {
             pub mod _prisma {
                 #client
                 #internal_enums
             }
 
             pub use _prisma::PrismaClient;
+            #extra_pub_uses
         });
 
         header.extend(enums::generate(&args));
