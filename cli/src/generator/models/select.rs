@@ -1,6 +1,7 @@
 use crate::generator::prelude::*;
 
 pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+    let model_name_pascal_str = model.name.to_case(Case::Pascal);
     let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
     let macro_name = format_ident!("_select_{}", model_name_snake);
     
@@ -17,7 +18,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
         let field_type = field.field_type().to_tokens();
         let field_type = match field.field_type() {
-            dml::FieldType::Relation(_) => quote!(crate::prisma::#field_type),
+            dml::FieldType::Relation(_) => quote!(crate::#module_path::#field_type),
             _ => field_type
         };
         let field_type = match field.arity() {
@@ -101,6 +102,13 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!(#i)
     });
 
+    let field_raw_names = model.fields.iter().map(|f| {
+        let name = f.name();
+        let field_name_snake = snake_ident(name);
+
+        quote!((@field_raw_name; #field_name_snake) => { #name };)
+    });
+
     let specta_impl = cfg!(feature = "rspc").then(|| {
         let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
@@ -138,6 +146,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         }
     });
 
+    let all_fields_str = model.fields.iter().map(|f| f.name().to_case(Case::Snake)).collect::<Vec<_>>().join(", ");
+
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
@@ -161,6 +171,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
                 #[derive(::serde::Deserialize, ::serde::Serialize)]
                 #[allow(warnings)]
+                #[serde(rename_all = "camelCase")]
                 pub struct Data {
                     $($field: $crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?),)+
                 }
@@ -183,7 +194,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             };
             
             #(#field_type_impls)*
-            (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot select field nonexistent field $field on model #model_name_snake)) };
+            (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot select field nonexistent field $field on model #model_name_pascal_str, available fields are #all_fields_str)) };
             
             #(#field_module_impls)*
             (@field_module; $($tokens:tt)*) => {};
@@ -197,6 +208,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             
             #(#select_field_to_selection_impls)*
             (@select_field_to_selection; $($tokens:tt)*) => { ::prisma_client_rust::Selection::builder("").build() };
+
+            #(#field_raw_names)*
         }
         pub use #macro_name as select;
     }

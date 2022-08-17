@@ -119,6 +119,7 @@ impl<'a> QueryContext<'a> {
     }
 
     pub async fn execute<T: DeserializeOwned>(self, operation: Operation) -> Result<T> {
+        // reduce monomorphization a lil bit
         async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<serde_value::Value> {
             let response = ctx
                 .executor

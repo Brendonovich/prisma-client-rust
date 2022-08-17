@@ -6,7 +6,7 @@ CREATE TABLE "Post" (
     "title" TEXT NOT NULL,
     "published" BOOLEAN NOT NULL,
     "views" INTEGER NOT NULL DEFAULT 0,
-    "desc" TEXT,
+    "desc_" TEXT,
     "author_id" TEXT,
     CONSTRAINT "Post_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );

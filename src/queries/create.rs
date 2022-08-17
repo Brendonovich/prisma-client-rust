@@ -64,7 +64,7 @@ where
 
         selection.nested_selections(select.to_selections());
 
-        let op = Operation::Read(selection.build());
+        let op = Operation::Write(selection.build());
 
         Select::new(self.ctx, op)
     }
