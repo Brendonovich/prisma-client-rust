@@ -5,11 +5,11 @@ use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::{
-    select::{SelectOption, SelectType},
+    select::{Select, SelectType},
     BatchQuery,
 };
 
-use super::{delete::Delete, QueryContext, QueryInfo, SerializedWhere, Update};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct FindUnique<'a, Where, With, Set, Data>
 where
@@ -47,30 +47,6 @@ where
         self
     }
 
-    pub fn update(self, params: Vec<Set>) -> Update<'a, Where, With, Set, Data> {
-        let Self {
-            ctx,
-            info,
-            where_param,
-            with_params,
-            ..
-        } = self;
-
-        Update::new(ctx, info, where_param, params, with_params)
-    }
-
-    pub fn delete(self) -> Delete<'a, Where, With, Data> {
-        let Self {
-            ctx,
-            info,
-            where_param,
-            with_params,
-            ..
-        } = self;
-
-        Delete::new(ctx, info, where_param, with_params)
-    }
-
     fn to_selection(model: &str, where_param: Where) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("findUnique{}", model));
 
@@ -84,14 +60,14 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<Data>>(self, select: S) -> SelectOption<'a, S::Data> {
+    pub fn select<S: SelectType<Data>>(self, select: S) -> Select<'a, Option<S::Data>> {
         let mut selection = Self::to_selection(self.info.model, self.where_param);
 
         selection.nested_selections(select.to_selections());
 
         let op = Operation::Read(selection.build());
 
-        SelectOption::new(self.ctx, op)
+        Select::new(self.ctx, op)
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
@@ -124,14 +100,14 @@ where
     Set: Into<(String, PrismaValue)>,
     Data: DeserializeOwned,
 {
-    type RawType = Data;
+    type RawType = Option<Data>;
     type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }

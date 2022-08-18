@@ -1,3 +1,5 @@
+use prisma_client_rust::prisma_errors::query_engine::RecordRequiredButNotFound;
+
 use crate::{db::*, utils::*};
 
 #[tokio::test]
@@ -29,8 +31,7 @@ async fn delete() -> TestResult {
         .delete(post::id::equals(post.id.clone()))
         .with(post::author::fetch())
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(deleted.title, "Hi from Prisma!");
     let author = deleted.author.unwrap().unwrap();
     assert_eq!(author.name, "Brendan");
@@ -56,12 +57,14 @@ async fn delete() -> TestResult {
 async fn delete_record_not_found() -> TestResult {
     let client = client().await;
 
-    let deleted = client
+    let error = client
         .post()
         .delete(post::id::equals("sdlfskdf".to_string()))
         .exec()
-        .await?;
-    assert!(deleted.is_none());
+        .await
+        .unwrap_err();
+
+    assert!(error.is_prisma_error::<RecordRequiredButNotFound>());
 
     cleanup(client).await
 }

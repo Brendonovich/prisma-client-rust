@@ -1,5 +1,5 @@
 ---
-title: Syntax
+title: Structure
 desc: Basic syntax explanation
 layout: ../../layouts/MainLayout.astro
 ---
@@ -13,14 +13,14 @@ A instance of `PrismaClient` can be created by calling `new_client`:
 let client = prisma::new_client().await.unwrap();
 ```
 
-After creaing an instance of `PrismaClient`, queries can be made like the following:
+After creating an instance of `PrismaClient`, queries can be made like the following:
 
 ```rust
 client
     .post() // Model to query on
     .find_many(vec![]) // Query to execute
     .exec() // Ends query
-    .await // All queries are async and return Result
+    .await; // All queries are async and return Result
 ```
 
 Queries can be filtered and extended using the generated modifiers.
@@ -40,7 +40,7 @@ client
         post::title::equals("Test".to_string())
     ])
     .exec()
-    .await
+    .await;
 ```   
 
 All model and field module names are converted to `snake_case` as to be consistent with Rust's naming conventions.

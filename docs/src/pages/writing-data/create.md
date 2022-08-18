@@ -101,7 +101,7 @@ setting `post_id` from the above example with `comment::post_id::set()`.
 ## Create Many
 
 `create_many` can be used to create many records of a single model type.
-It accepts a `Vec` of tuples with the same shape as the arguments to `create`.
+It accepts a `Vec` of tuples with the same shape as the arguments to `create`, and returns the number of records that were created.
 
 SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
 
@@ -119,7 +119,7 @@ let titles = [
     "Title 3"
 ]
 
-let posts: Vec<post::Data> = client
+let posts: i64 = client
     .post()
     .create_many(
         titles

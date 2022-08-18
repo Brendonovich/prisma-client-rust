@@ -1,8 +1,8 @@
-use prisma_client_rust::{or, queries::Error};
+use prisma_client_rust::{or, queries::QueryError};
 
 use crate::{db::*, utils::*};
 
-async fn setup(client: &PrismaClient) -> Result<String, Error> {
+async fn setup(client: &PrismaClient) -> Result<String, QueryError> {
     let user = client
         .user()
         .create("Brendan".to_string(), vec![])

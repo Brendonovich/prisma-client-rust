@@ -25,22 +25,23 @@ const TableOfContents: FunctionalComponent<{ headings: MarkdownHeading[] }> = ({
     };
   }, []);
 
+  headings = headings
+    .filter(({ depth }) => depth > 1 && depth < 4);
+
   if (headings.length === 0) return null;
 
   return (
     <>
       <h2 class="heading">On this page</h2>
       <ul>
-        {headings
-          .filter(({ depth }) => depth > 1 && depth < 4)
-          .map((heading) => (
-            <li
-              class={`heading-link depth-${heading.depth} ${activeId === heading.slug ? 'active' : ''
-                }`.trim()}
-            >
-              <a href={`#${heading.slug}`}>{heading.text}</a>
-            </li>
-          ))}
+        {headings.map((heading) => (
+          <li
+            class={`heading-link depth-${heading.depth} ${activeId === heading.slug ? 'active' : ''
+              }`.trim()}
+          >
+            <a href={`#${heading.slug}`}>{heading.text}</a>
+          </li>
+        ))}
       </ul>
     </>
   );

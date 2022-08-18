@@ -36,7 +36,7 @@ const githubEditUrl =
     <Header {currentPage} />
     <main class="flex max-w-screen-2xl mx-auto md:space-x-8 items-start px-4">
       <aside
-        class="fixed hidden bg-[color:var(--theme-bg)] z-10 mobile-sidebar md:block md:sticky md:top-8 md:!w-72 flex-shrink-0"
+        class="fixed hidden bg-[color:var(--theme-bg)] z-10 mobile-sidebar flex-shrink-0 md:block md:sticky md:top-8 md:!w-64"
         title="Site Navigation"
       >
         <LeftSidebar {currentPage} />
@@ -47,7 +47,7 @@ const githubEditUrl =
         </PageContent>
       </div>
       <aside
-        class="hidden xl:block w-72 flex-shrink-0 sticky top-8"
+        class="hidden lg:block w-64 flex-shrink-0 sticky top-8"
         title="Table of Contents"
       >
         <RightSidebar {headings} {githubEditUrl} />

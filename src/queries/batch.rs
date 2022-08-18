@@ -7,7 +7,7 @@ use serde::{
     Deserialize,
 };
 
-use crate::{prisma_value, Error, Executor};
+use crate::{prisma_value, Executor, QueryError};
 
 pub async fn batch<T: BatchContainer<Marker>, Marker>(
     container: T,
@@ -16,14 +16,17 @@ pub async fn batch<T: BatchContainer<Marker>, Marker>(
 ) -> super::Result<T::ReturnType> {
     let response = executor
         .execute_all(None, container.graphql(), true, query_schema.clone(), None)
-        .await
-        .map_err(|e| Error::Execute(e.into()))?;
+        .await;
+
+    let response = dbg!(response).map_err(|e| QueryError::Execute(e.into()))?;
 
     let data = response
         .into_iter()
         .map(|result| {
-            let data: prisma_value::Item =
-                result.map_err(|e| Error::Execute(e.into()))?.data.into();
+            let data: prisma_value::Item = result
+                .map_err(|e| QueryError::Execute(e.into()))?
+                .data
+                .into();
 
             let val = serde_value::to_value(data)?;
 
@@ -31,7 +34,7 @@ pub async fn batch<T: BatchContainer<Marker>, Marker>(
                 val.into_deserializer(),
             )?)
         })
-        .collect();
+        .collect::<super::Result<VecDeque<_>>>()?;
 
     Ok(T::convert(data))
 }
@@ -45,7 +48,7 @@ pub trait BatchQuery {
 
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType>;
+    fn convert(raw: Self::RawType) -> Self::ReturnType;
 }
 
 /// A container that can hold queries to batch into a transaction
@@ -54,18 +57,18 @@ pub trait BatchContainer<Marker> {
     type ReturnType;
 
     fn graphql(self) -> Vec<Operation>;
-    fn convert(raw: VecDeque<super::Result<Self::RawType>>) -> Self::ReturnType;
+    fn convert(raw: VecDeque<Self::RawType>) -> Self::ReturnType;
 }
 
 impl<T: BatchQuery, I: IntoIterator<Item = T>> BatchContainer<()> for I {
     type RawType = T::RawType;
-    type ReturnType = Vec<super::Result<T::ReturnType>>;
+    type ReturnType = Vec<T::ReturnType>;
 
     fn graphql(self) -> Vec<Operation> {
         self.into_iter().map(BatchQuery::graphql).collect()
     }
 
-    fn convert(raw: VecDeque<super::Result<Self::RawType>>) -> Self::ReturnType {
+    fn convert(raw: VecDeque<Self::RawType>) -> Self::ReturnType {
         raw.into_iter().map(T::convert).collect()
     }
 }
@@ -77,7 +80,7 @@ macro_rules! impl_tuple {
         #[allow(warnings)]
         impl<$($generic: BatchQuery),+> BatchContainer<TupleMarker> for ($($generic),+) {
             type RawType = serde_json::Value;
-            type ReturnType = ($(super::Result<$generic::ReturnType>),+);
+            type ReturnType = ($($generic::ReturnType),+);
 
             fn graphql(self) -> Vec<$crate::query_core::Operation> {
                 let ($($generic),+) = self;
@@ -85,11 +88,11 @@ macro_rules! impl_tuple {
                 vec![$($generic.graphql()),+]
             }
 
-            fn convert(mut raw: VecDeque<super::Result<Self::RawType>>) -> Self::ReturnType {
+            fn convert(mut raw: VecDeque<Self::RawType>) -> Self::ReturnType {
                 ($($generic::convert(raw
                     .pop_front()
-                    .unwrap()
                     .map(|v| serde_json::from_value(v).unwrap())
+                    .unwrap()
                 )),+)
             }
         }

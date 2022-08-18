@@ -47,7 +47,7 @@ export const SIDEBAR = {
     ...section("Getting Started", [
       { text: 'Installation', link: 'installation' },
       { text: 'Setup', link: 'setup' },
-      { text: 'Syntax', link: 'syntax' },
+      { text: 'Structure', link: 'structure' },
     ]),
     ...section("Reading Data", [
       { text: "Find Queries", link: 'find' },
@@ -65,7 +65,8 @@ export const SIDEBAR = {
     ]),
     ...section("Extra", [
       { text: "Raw Queries", link: 'raw' },
-      { text: "Error Handling", link: "error-handling" }
+      { text: "Batch Queries", link: 'batching' },
+      { text: "Error Handling", link: "error-handling" },
     ])
   ],
 };

@@ -43,36 +43,34 @@ The following example finds and updates an existing post, with the resulting pos
 ```rust
 use prisma::post;
 
-let updated_post: Option<post::Data> = client
+let updated_post: post::Data = client
     .post()
     .update(
         post::id::equals("id".to_string()), // Unique filter
         vec![post::title::set("new title".to_string())] // Vec of updates
     )
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
 
 ## Update Many
 
 `update_many` accepts a `Vec` of filters (not just unique filters), and a `Vec` of updates to apply to all records found.
-It returns the number of records updated, not the data of those records.
+It returns the number of records updated.
 
 The following example finds and updates a set of posts. The number of updated records is returned.
 
 ```rust
 use prisma::post;
 
-let updated_posts_count: usize = client
+let updated_posts_count: i64 = client
     .post()
     .update_many(
         vec![post::id::contains("id".to_string())], // Vec of unique filters
         vec![post::content::set("new content".to_string())] // Updates to be applied to each record
     )
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
 
 ## Updating Relations
@@ -97,8 +95,7 @@ let updated_comment: comment::Data = client
         vec![comment::post::disconnect()]
     )
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```
 
 ### Many Records
@@ -108,7 +105,7 @@ The following example finds all comments on a post and updates the post they are
 ```rust
 use prisma::{comment, post};
 
-let updated_comment: comment::Data = client
+let updated_comments_count: i64 = client
     .post()
     .update_many(
         vec![comment::post::is(
@@ -117,6 +114,5 @@ let updated_comment: comment::Data = client
         vec![comment::post_id::set("post".to_string())]
     )
     .exec()
-    .await
-    .unwrap();
+    .await?;
 ```

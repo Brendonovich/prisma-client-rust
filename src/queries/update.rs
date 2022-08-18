@@ -5,8 +5,8 @@ use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::{
-    merged_object, option_on_not_found,
-    select::{SelectOption, SelectType},
+    merged_object,
+    select::{Select, SelectType},
     BatchQuery,
 };
 
@@ -74,14 +74,14 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<Data>>(self, select: S) -> SelectOption<'a, S::Data> {
+    pub fn select<S: SelectType<Data>>(self, select: S) -> Select<'a, S::Data> {
         let mut selection = Self::to_selection(self.info.model, self.where_param, self.set_params);
 
         selection.nested_selections(select.to_selections());
 
         let op = Operation::Write(selection.build());
 
-        SelectOption::new(self.ctx, op)
+        Select::new(self.ctx, op)
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
@@ -100,10 +100,10 @@ where
         (Operation::Write(selection.build()), self.ctx)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
+    pub async fn exec(self) -> super::Result<Data> {
         let (op, ctx) = self.exec_operation();
 
-        option_on_not_found(ctx.execute(op).await)
+        ctx.execute(op).await
     }
 }
 
@@ -115,13 +115,13 @@ where
     Data: DeserializeOwned,
 {
     type RawType = Data;
-    type ReturnType = Option<Self::RawType>;
+    type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
-        option_on_not_found(raw)
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }

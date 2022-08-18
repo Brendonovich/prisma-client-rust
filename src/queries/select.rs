@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{option_on_not_found, BatchQuery, QueryContext};
+use crate::{BatchQuery, QueryContext};
 
 pub trait SelectType<T> {
     type Data: DeserializeOwned;
@@ -39,36 +39,7 @@ impl<'a, Data: DeserializeOwned> BatchQuery for Select<'a, Data> {
         self.operation
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
-        raw
-    }
-}
-
-pub struct SelectOption<'a, Data: DeserializeOwned> {
-    select: Select<'a, Data>,
-}
-
-impl<'a, T: DeserializeOwned> SelectOption<'a, T> {
-    pub fn new(ctx: QueryContext<'a>, operation: Operation) -> Self {
-        Self {
-            select: Select::new(ctx, operation),
-        }
-    }
-
-    pub async fn exec(self) -> super::Result<Option<T>> {
-        option_on_not_found(self.select.exec().await)
-    }
-}
-
-impl<'a, Data: DeserializeOwned> BatchQuery for SelectOption<'a, Data> {
-    type RawType = Option<Data>;
-    type ReturnType = Self::RawType;
-
-    fn graphql(self) -> Operation {
-        self.select.operation
-    }
-
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }

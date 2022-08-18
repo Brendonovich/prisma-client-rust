@@ -1,8 +1,10 @@
-use prisma_client_rust::queries::Error;
+use prisma_client_rust::{
+    prisma_errors::query_engine::RecordRequiredButNotFound, queries::QueryError,
+};
 
 use crate::{db::*, utils::*};
 
-async fn create_user(client: &PrismaClient) -> Result<String, Error> {
+async fn create_user(client: &PrismaClient) -> Result<String, QueryError> {
     client
         .user()
         .create("Brendan".to_string(), vec![])
@@ -44,8 +46,7 @@ async fn update() -> TestResult {
             ],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.title, "Hi from Update!");
     assert_ne!(updated.updated_at, post.updated_at);
     assert_eq!(updated.created_at, post.created_at);
@@ -61,8 +62,7 @@ async fn update() -> TestResult {
         )
         .with(post::author::fetch())
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert!(!updated.published);
     assert_eq!(updated.desc, Some("Updated desc.".to_string()));
     assert_eq!(updated.author.unwrap().unwrap().name, "Brendan");
@@ -109,8 +109,7 @@ async fn update_and_disconnect() -> TestResult {
         )
         .with(user::posts::fetch(vec![]))
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.posts.unwrap().len(), 1);
 
     let updated = client
@@ -124,8 +123,7 @@ async fn update_and_disconnect() -> TestResult {
         )
         .with(user::posts::fetch(vec![]))
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.posts().unwrap().len(), 1);
     assert_eq!(updated.posts().unwrap()[0].id, post_2.id);
 
@@ -151,8 +149,7 @@ async fn atomic_update() -> TestResult {
             vec![post::views::increment(1)],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.views, 1);
 
     cleanup(client).await
@@ -162,15 +159,17 @@ async fn atomic_update() -> TestResult {
 async fn update_record_not_found() -> TestResult {
     let client = client().await;
 
-    let post = client
+    let error = client
         .post()
         .update(
             post::id::equals("wow".to_string()),
             vec![post::title::set("My post".to_string())],
         )
         .exec()
-        .await?;
-    assert!(post.is_none());
+        .await
+        .unwrap_err();
+
+    assert!(error.is_prisma_error::<RecordRequiredButNotFound>());
 
     cleanup(client).await
 }
@@ -197,8 +196,7 @@ async fn setting_field_to_null() -> TestResult {
             vec![post::desc::set(None)],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.id, post.id);
     assert!(updated.desc.is_none());
 
@@ -222,8 +220,7 @@ async fn update_id_field() -> TestResult {
             vec![user::id::set("new_id".to_string())],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.id, "new_id");
 
     cleanup(client).await
@@ -241,8 +238,7 @@ async fn update_id_field_atomic() -> TestResult {
             vec![types::id::increment(500)],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.id, record.id + 500);
 
     cleanup(client).await
@@ -271,8 +267,7 @@ async fn update_unique_field() -> TestResult {
             vec![user::email::set(Some("foo@gmail.com".to_string()))],
         )
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(updated.id, user.id);
     assert_eq!(updated.email, Some("foo@gmail.com".to_string()));
 
@@ -387,8 +382,7 @@ async fn update_many() -> TestResult {
     // THIS SHOULDN'T BE ALLOWED
     // let posts = client
     //     .post()
-    //     .find_many(vec![])
-    //     .update(vec![post::author().connect(user::id().equals(user_id.clone()))])
+    //     .update_many(vec![], vec![post::author().connect(user::id().equals(user_id.clone()))])
     //     .exec()
     //     .await?;
     // assert_eq!(posts, 5);

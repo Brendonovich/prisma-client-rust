@@ -10,7 +10,7 @@ use crate::{
     BatchQuery,
 };
 
-use super::{DeleteMany, QueryContext, QueryInfo, SerializedWhere, UpdateMany};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct FindMany<'a, Where, With, OrderBy, Cursor, Set, Data>
 where
@@ -79,28 +79,6 @@ where
     pub fn take(mut self, take: i64) -> Self {
         self.take = Some(take);
         self
-    }
-
-    pub fn update(self, data: Vec<Set>) -> UpdateMany<'a, Where, Set> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            ..
-        } = self;
-
-        UpdateMany::new(ctx, info, where_params, data)
-    }
-
-    pub fn delete(self) -> DeleteMany<'a, Where> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            ..
-        } = self;
-
-        DeleteMany::new(ctx, info, where_params)
     }
 
     fn to_selection(
@@ -219,7 +197,7 @@ where
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }

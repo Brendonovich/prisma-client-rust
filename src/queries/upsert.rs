@@ -142,7 +142,7 @@ where
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }

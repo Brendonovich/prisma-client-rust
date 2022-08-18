@@ -54,7 +54,7 @@ The following example finds a group of comments and deletes them, returning the 
 ```rust
 use prisma::comment;
 
-let deleted_comments_count: usize = client
+let deleted_comments_count: i64 = client
     .comment()
     .delete_many(vec![
         comment::content::contains("some text".to_string())

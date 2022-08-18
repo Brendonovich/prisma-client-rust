@@ -69,7 +69,24 @@ A model's `select` macro accepts a syntax similar to GraphQL and outputs a few t
 including custom `Data` structs that exactly match what you select,
 and your selection converted to data that is sent to the Prisma engines.
 
-How a field can be selected depends on its type.
+### Setup
+
+`select` macros rely on recursion and call each other internally, so they have to be aware of the module path of the generated client.
+By default this is `crate::prisma`, which assumes your client is generated to a file named `prisma.rs` and sits at the root of the crate it is in.
+If you have configured your client to have a different name or be located somewhere else,
+you will need to provide this location through the `module_path` generator option.
+
+`module_path` is a Rust path relative to `crate` that points to your generated client.
+
+```prisma
+generator client {
+    provider      = "cargo prisma"
+    output        = "./src/generated/db.rs"
+    // `select` macros will now point to `crate::generated::db`
+    // instead of `crate::prisma`
+    module_path   = "generated::db"
+}
+```
 
 ### Scalar Fields
 

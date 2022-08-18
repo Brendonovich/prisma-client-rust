@@ -1,5 +1,5 @@
 #![allow(unused_must_use)]
-use prisma_client_rust::{error_is_type, prisma_errors, Error};
+use prisma_client_rust::prisma_errors::query_engine::UniqueKeyViolation;
 
 use crate::db::*;
 use crate::utils::*;
@@ -15,11 +15,25 @@ async fn test_batch() -> TestResult {
         ))
         .await?;
 
-    assert!(brendan.is_ok());
-    assert_eq!(&brendan?.name, "Brendan");
+    assert_eq!(&brendan.name, "Brendan");
+    assert_eq!(&oscar.name, "Oscar");
 
-    assert!(oscar.is_ok());
-    assert_eq!(&oscar?.name, "Oscar");
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn test_batch_vec() -> TestResult {
+    let client = client().await;
+
+    let users = client
+        ._batch(vec![
+            client.user().create("Brendan".to_string(), vec![]),
+            client.user().create("Oscar".to_string(), vec![]),
+        ])
+        .await?;
+
+    assert_eq!(&users[0].name, "Brendan");
+    assert_eq!(&users[1].name, "Oscar");
 
     cleanup(client).await
 }
@@ -28,7 +42,7 @@ async fn test_batch() -> TestResult {
 async fn test_batch_error() -> TestResult {
     let client = client().await;
 
-    let res = client
+    let error = client
         ._batch((
             client.user().create(
                 "Brendan".to_string(),
@@ -39,16 +53,10 @@ async fn test_batch_error() -> TestResult {
                 vec![user::id::set("abc".to_string())],
             ),
         ))
-        .await;
+        .await
+        .unwrap_err();
 
-    let err = match res {
-        Err(Error::Execute(e)) => e,
-        _ => unreachable!(),
-    };
-
-    assert!(error_is_type::<
-        prisma_errors::query_engine::UniqueKeyViolation,
-    >(&err));
+    assert!(error.is_prisma_error::<UniqueKeyViolation>());
 
     cleanup(client).await
 }
@@ -72,10 +80,8 @@ async fn test_mixing_models() -> TestResult {
         ))
         .await?;
 
-    assert!(user.is_ok());
-    assert_eq!(&user?.name, "Brendan");
-    assert!(profile.is_ok());
-    assert_eq!(&profile?.bio, "Brendan's profile");
+    assert_eq!(&user.name, "Brendan");
+    assert_eq!(&profile.bio, "Brendan's profile");
 
     assert_eq!(client.user().count(vec![]).exec().await?, 1);
     assert_eq!(client.profile().count(vec![]).exec().await?, 1);

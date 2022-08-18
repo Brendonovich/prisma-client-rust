@@ -32,9 +32,9 @@ pub use upsert::*;
 use query_core::{schema::QuerySchemaRef, Operation, Selection};
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
-use user_facing_errors::query_engine::RecordRequiredButNotFound;
+use user_facing_errors::UserFacingError;
 
-use crate::{error_is_type, prisma_value, Executor};
+use crate::{prisma_value, Executor};
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -125,7 +125,7 @@ impl<'a> QueryContext<'a> {
                 .executor
                 .execute(None, op, ctx.schema.clone(), None)
                 .await
-                .map_err(|e| Error::Execute(e.into()))?;
+                .map_err(|e| QueryError::Execute(e.into()))?;
 
             let data: prisma_value::Item = response.data.into();
 
@@ -140,7 +140,7 @@ impl<'a> QueryContext<'a> {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum QueryError {
     #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
     Execute(user_facing_errors::Error),
 
@@ -151,18 +151,23 @@ pub enum Error {
     Deserialize(#[from] serde_value::DeserializerError),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
-
-pub fn option_on_not_found<T>(res: Result<T>) -> Result<Option<T>> {
-    match res {
-        Err(Error::Execute(err)) if error_is_type::<RecordRequiredButNotFound>(&err) => Ok(None),
-        res => res.map(Some),
+impl QueryError {
+    pub fn is_prisma_error<T: UserFacingError>(&self) -> bool {
+        match self {
+            Self::Execute(error) => error
+                .as_known()
+                .map(|e| e.error_code == <T as UserFacingError>::ERROR_CODE)
+                .unwrap_or(false),
+            _ => false,
+        }
     }
 }
 
+pub type Result<T> = std::result::Result<T, QueryError>;
+
 #[cfg(feature = "rspc")]
-impl From<Error> for rspc::Error {
-    fn from(err: Error) -> Self {
+impl From<QueryError> for rspc::Error {
+    fn from(err: QueryError) -> Self {
         rspc::Error::with_cause(
             rspc::ErrorCode::InternalServerError,
             "Internal server error occurred while completing database operation!".into(),

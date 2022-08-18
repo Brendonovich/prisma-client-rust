@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     merged_object,
-    select::{SelectOption, SelectType},
+    select::{Select, SelectType},
     BatchQuery,
 };
 
@@ -130,7 +130,7 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<Data>>(self, select: S) -> SelectOption<'a, S::Data> {
+    pub fn select<S: SelectType<Data>>(self, select: S) -> Select<'a, Option<S::Data>> {
         let mut selection = Self::to_selection(
             self.info.model,
             self.where_params,
@@ -144,7 +144,7 @@ where
 
         let op = Operation::Read(selection.build());
 
-        SelectOption::new(self.ctx, op)
+        Select::new(self.ctx, op)
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
@@ -194,7 +194,7 @@ where
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }

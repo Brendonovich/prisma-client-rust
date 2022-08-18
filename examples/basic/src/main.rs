@@ -21,11 +21,7 @@ pub async fn main() {
 
     let user = client
         .user()
-        .create(
-            "user0".to_string(),
-            "User 0".to_string(),
-            vec![],
-        )
+        .create("user0".to_string(), "User 0".to_string(), vec![])
         .exec()
         .await
         .unwrap();
@@ -67,21 +63,9 @@ pub async fn main() {
 
     println!("User posts: {:?}", user_with_posts.posts().unwrap());
 
-    let deleted_posts = client
-        .post()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
-    println!("Deleted {} posts", deleted_posts);
+    let deleted_posts_count = client.post().delete_many(vec![]).exec().await.unwrap();
+    println!("Deleted {} posts", deleted_posts_count);
 
-    let deleted_users_count = client
-        .user()
-        .find_many(vec![])
-        .delete()
-        .exec()
-        .await
-        .unwrap();
+    let deleted_users_count = client.user().delete_many(vec![]).exec().await.unwrap();
     println!("Deleted {} users", deleted_users_count);
 }

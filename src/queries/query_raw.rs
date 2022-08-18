@@ -87,7 +87,7 @@ where
         self.exec_operation().0
     }
 
-    fn convert(raw: super::Result<Self::RawType>) -> super::Result<Self::ReturnType> {
-        raw.and_then(Self::convert)
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        Self::convert(raw).unwrap()
     }
 }

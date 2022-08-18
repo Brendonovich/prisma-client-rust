@@ -11,7 +11,7 @@ async fn main() {
     Router::<Ctx>::new()
         .config(Config::new().export_ts_bindings("./bindings.ts"))
         .query("users", |db: Ctx, _: ()| async move {
-            db.user().find_many(vec![]).exec().await.unwrap()
+            db.user().find_many(vec![]).exec().await.map_err(Into::into)
         })
         .query("userNames", |db: Ctx, _: ()| async move {
             db.user()
