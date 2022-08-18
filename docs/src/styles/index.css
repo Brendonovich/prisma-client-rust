@@ -1,3 +1,7 @@
+@tailwind components;
+@tailwind utilities;
+@tailwind variants;
+
 * {
 	box-sizing: border-box;
 	margin: 0;
