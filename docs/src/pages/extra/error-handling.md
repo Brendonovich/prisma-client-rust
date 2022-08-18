@@ -15,14 +15,12 @@ pub enum Error {
 }
 ```
 
-`Serialize` and `Deserialize` errors are fairly self-explanatory, and occur while converting the data returned from Prisma into its appropriate structs. Looking at the [serde documentation](https://serde.rs/error-handling.html) can be helpful in handling serde errors.
+`Serialize` and `Deserialize` errors are fairly self-explanatory, and occur while converting the data returned from Prisma into its appropriate structs.
+[The serde documentation](https://serde.rs/error-handling.html) can be helpful in handling serde errors.
 
 `Execute` errors take place when sending a query to the Prisma engines, executing it, and receiving the results. The data contained inside them are an error type provided by Prisma, which contain a lot of deeply nested - and likely not useful - data about the specific error that occurred.
 
-To handle this error type nicely, query errors have an `is_prisma_error` function to check if a query error is a specific Prisma error.
-It works by checking first if the provided error is a `KnownError` - one that Prisma provides an error code and information for - 
-and if so, whether the error is the type that you provide in its generic argument,
-which must be a type of `UserFacingError` provided by `prisma_client_rust::prisma_errors`.
+To handle this error type nicely, query errors have an `is_prisma_error` function to check if the error is a particular `UserFacingError`.
 
 #### Examples
 

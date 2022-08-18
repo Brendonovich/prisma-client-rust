@@ -1,5 +1,5 @@
 ---
-title: Batch Queries
+title: Batching Queries
 layout: ../../layouts/MainLayout.astro
 ---
 
@@ -9,9 +9,7 @@ If one of the queries fails, all changes will be rolled back.
 When providing queries to `_batch` there is no need to call `exec()`,
 but all queries must be put inside a valid container type.
 
-## Container Types
-
-### Tuple
+#### Tuple Container
 
 Using a tuple allows for multiple types of queries to be used at once.
 The return type of `_batch` will be a tuple of the results of each query in the input tuple.
@@ -31,7 +29,7 @@ let (user_one, user_two, user_count): (user::Data, user::Data, i64) = client
 assert_eq!(user_count, 2);
 ```
 
-### Iterator
+#### Iterator Container
 
 Using an iterator such as `Vec` allows for a dynamic number of a single type of query to be batched.
 The return type will be a `Vec` of the result of the input query type.
@@ -48,7 +46,6 @@ let users: Vec<user::Data> = client
     .exec()
     .await?;
 
-
 assert_eq!(users.len(), 3);
 ```
 
@@ -59,17 +56,17 @@ use prisma::user;
 
 let user_ids = vec![1, 2, 3, 4, 5];
 
+let user_creates = user_ids
+    .into_iter()
+    .map(|id| client
+        .user()
+        .create(..)
+    ); // _batch will collect internally!
+
 let users: Vec<user::Data> = client
-    ._batch(user_ids
-        .into_iter()
-        .map(|id| client
-            .user()
-            .create(..)
-        ) // _batch will collect internally!
-    )
+    ._batch(user_creates)
     .exec()
     .await?;
-
 
 assert_eq!(users.len(), 5);
 ```

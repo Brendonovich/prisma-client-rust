@@ -65,7 +65,7 @@ export const SIDEBAR = {
     ]),
     ...section("Extra", [
       { text: "Raw Queries", link: 'raw' },
-      { text: "Batch Queries", link: 'batching' },
+      { text: "Batching Queries", link: 'batching' },
       { text: "Error Handling", link: "error-handling" },
     ])
   ],
