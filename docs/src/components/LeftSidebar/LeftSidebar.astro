@@ -66,7 +66,6 @@ const sidebarSections = SIDEBAR[langCode].reduce((col, item, i) => {
   }
   .nav-groups {
     height: 100%;
-    padding: 2rem 0;
     overflow-x: visible;
     overflow-y: auto;
     max-height: 100vh;
@@ -115,11 +114,5 @@ const sidebarSections = SIDEBAR[langCode].reduce((col, item, i) => {
 
   :global(:root.theme-dark) .nav-link a[aria-current="page"] {
     color: hsla(var(--color-base-white), 100%, 1);
-  }
-
-  @media (min-width: 50em) {
-    .nav-groups {
-      padding: 0;
-    }
   }
 </style>
