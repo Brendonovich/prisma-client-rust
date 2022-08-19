@@ -10,6 +10,12 @@ First generate the Prisma client:
 $ cargo prisma generate
 ```
 
+Push schema to sqlite database
+
+```bash
+$ cargo prisma db push
+```
+
 Then run the server:
 
 ```
