@@ -10,7 +10,7 @@ First generate the Prisma client:
 $ cargo prisma generate
 ```
 
-Push schema to sqlite database
+Then push the database migrations:
 
 ```bash
 $ cargo prisma db push
