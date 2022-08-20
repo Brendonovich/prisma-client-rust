@@ -6,7 +6,7 @@
         <img src="https://img.shields.io/static/v1?label=prisma&message=v3.13.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 3.13.0">
     </a>
     <img src="https://img.shields.io/github/workflow/status/Brendonovich/prisma-client-rust/CI?label=tests&style=flat-square" alt="Test Status"/>
-    <a href="https://github.com/Brendonovich/prisma-client-rust/blob/dev/docs/README.md"/>
+    <a href="./docs/README.md"/>
     <img src="https://img.shields.io/badge/docs-latest-blue?style=flat-square" alt="Link to latest Documentation files">
     </a>
     <a href="https://github.com/Brendonovich/prisma-client-rust/discussions">
