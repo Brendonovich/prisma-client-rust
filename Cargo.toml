@@ -6,19 +6,10 @@ edition = "2021"
 description = "A prisma client for Rust"
 license = "MIT"
 
-exclude = [
-    "examples",
-    "integration-tests"
-]
+exclude = ["examples", "integration-tests"]
 
 [workspace]
-members = [
-    "examples/*",
-    "integration-tests",
-    "sdk",
-    "cli",
-    "prisma-cli"
-]
+members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -30,8 +21,8 @@ uuid = { version = "0.8", features = ["serde"] }
 indexmap = "1.8.2"
 serde-value = "0.7.0"
 
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5d34c9a567aaec4065a48d8cf6c2ee885e6ca281" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
