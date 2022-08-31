@@ -4,7 +4,8 @@ layout: ../../layouts/MainLayout.astro
 ---
 
 Using [with/fetch](fetch) for fetching relations is okay, but leaves something to be desired in terms of type safety.
-The select & include query builder functions & macros can help with this, providing an exact type for each field and relation you choose to fetch.
+The select & include query builder functions & macros can help with this,
+providing an exact type for each field and relation you choose to fetch.
 
 Select also provides the ability to only fetch specific fields, whereas include will fetch all scalar fields and any specified relations.
 
@@ -28,7 +29,7 @@ model Comment {
 
 ## Setup
 
-The `select` and `include` macros rely on recursion and call each other internally, so they have to be aware of the module path of the generated client.
+`select!` and `include!` rely on recursion and call each other internally, so they have to be aware of the module path of the generated client.
 By default this is `crate::prisma`, which assumes your client is generated to a file named `prisma.rs` and sits at the root of the crate it is in.
 If you have configured your client to have a different name or be located somewhere else,
 you will need to provide this location through the `module_path` generator option.
@@ -47,8 +48,8 @@ generator client {
 
 ## The Basics
 
-`select` and `include` are very similar in syntax, with their only difference being what they do and don't fetch.
-Every model module contains `select` and `include` macros,
+`select!` and `include!` are very similar in syntax, with their only difference being what they do and don't fetch.
+Every model module contains `select!` and `include!` macros,
 the result of which can be provided to their respective query builder functions.
 
 Fields to fetch can be specified as a space separated list inside `{}`:
@@ -82,7 +83,7 @@ struct Data {
 ## Nested Selections
 
 `select` and `include` can also be applied while fetching a relation, to any depth in fact.
-Simply specify whether you want to select or include on the relation and then add your selection:
+Simply add a `:`, specify whether you want to select or include on the relation, and add your selection:
 
 ```rust
 // Nested include inside select
@@ -132,7 +133,7 @@ mod comments {
 
 When fetching many-relations, the fetching statement can act as an equivalent call to `model::field::fetch`,
 allowing for filtering, pagination and ordering to occur.
-This works in `select` and `include`.
+This works in `select!` and `include!`.
 
 ```rust
 post::select!({
@@ -148,7 +149,7 @@ post::select!({
 
 ## Usage in Queries
 
-Just pass the result of `select` or `include` to an equivalent query builder function:
+Just pass the result of `select!` or `include!` to an equivalent query builder function:
 
 ```rust
 // Type is anonymous and does not exist outside of the call to `include`
@@ -186,7 +187,7 @@ This can be done by adding a name before the root selection.
 This will cause a module to be generated with that name and will contain a `Data` struct as well as either an `include` or `select` function, depending on what macro you use.
 
 ```rust
-post::select(post_only_title {
+post::select!(post_only_title {
     title
 })
 
@@ -219,7 +220,7 @@ they can be passed arguments defined within the macros using the following synta
 
 ```rust
 
-post::include((filters: Vec<comment::WhereParam>, skip: i64, take: i64) => post_with_comments {
+post::include!((filters: Vec<comment::WhereParam>, skip: i64, take: i64) => post_with_comments {
     comments(filters).skip(skip).take(take)
 })
 
