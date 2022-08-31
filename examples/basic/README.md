@@ -10,6 +10,12 @@ First generate the Prisma client:
 $ cargo prisma generate
 ```
 
+Then push the database migrations:
+
+```bash
+$ cargo prisma db push
+```
+
 Then run the server:
 
 ```
