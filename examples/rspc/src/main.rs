@@ -10,30 +10,32 @@ type Ctx = Arc<db::PrismaClient>;
 async fn main() {
     Router::<Ctx>::new()
         .config(Config::new().export_ts_bindings("./bindings.ts"))
-        .query("users", |db: Ctx, _: ()| async move {
+        .query("users", |db, _: ()| async move {
             db.user().find_many(vec![]).exec().await.map_err(Into::into)
         })
-        .query("userNames", |db: Ctx, _: ()| async move {
+        .query("userNames", |db, _: ()| async move {
             db.user()
                 .find_many(vec![])
-                .select(db::user::select!(display_name))
+                .select(db::user::select!({
+                    display_name
+                }))
                 .exec()
                 .await
                 .map_err(Into::into)
         })
-        .query("usersSelectPosts", |db: Ctx, _: ()| async move {
+        .query("usersSelectPosts", |db, _: ()| async move {
             db.user()
                 .find_many(vec![])
-                .select(db::user::select! {
-                    posts(vec![]).skip(1) {
+                .select(db::user::select!({
+                    posts(vec![]).skip(1): select {
                         id
                         content
-                        user {
+                        user: select {
                             id
                             display_name
                         }
                     }
-                })
+                }))
                 .exec()
                 .await
                 .map_err(Into::into)

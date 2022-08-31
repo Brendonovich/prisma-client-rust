@@ -9,6 +9,6 @@ export type Operations = {
     subscriptions: never
 };
 
-export interface User { id: string, displayName: string, posts: Array<Post> | null }
-
 export interface Post { id: string, content: string, user: User | null, userId: string }
+
+export interface User { id: string, displayName: string, posts: Array<Post> | null }

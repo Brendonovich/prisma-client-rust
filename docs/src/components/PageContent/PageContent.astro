@@ -9,9 +9,6 @@ const title = frontmatter.title;
 <article id="article" class="p-0 h-full flex flex-col content">
   <section class="mb-16">
     <h1 class="content-title" id="overview">{title}</h1>
-    <nav class="hidden md:block">
-      <TableOfContents {headings} />
-    </nav>
     <slot />
   </section>
 </article>
