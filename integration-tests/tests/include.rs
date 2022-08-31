@@ -1,32 +1,13 @@
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn scalars() -> TestResult {
-    let client = client().await;
-
-    client
-        .user()
-        .create("Brendan".to_string(), vec![])
-        .select(user::select!({
-            id
-            name
-            email
-            underscored_
-        }))
-        .exec()
-        .await?;
-
-    cleanup(client).await
-}
-
-#[tokio::test]
 async fn relations() -> TestResult {
     let client = client().await;
 
     client
         .user()
         .create("Brendan".to_string(), vec![])
-        .select(user::select!({
+        .include(user::include!({
             profile
             posts
             favourite_posts
@@ -44,11 +25,9 @@ async fn relations_nested() -> TestResult {
     client
         .user()
         .create("Brendan".to_string(), vec![])
-        .select(user::select!({
-            profile: select {
-                user_id
-                bio
-                city
+        .include(user::include!({
+            profile: include {
+                user
             }
             posts: select {
                 id
@@ -69,11 +48,9 @@ async fn many_relation_args() -> TestResult {
     client
         .user()
         .create("Brendan".to_string(), vec![])
-        .select(user::select!({
-            posts(vec![]).skip(3): select {
-                id
+        .include(user::include!({
+            posts(vec![]).skip(3): include {
                 author
-                desc
             }
             favourite_posts(vec![]).take(2)
         }))
@@ -94,11 +71,9 @@ async fn arguments() -> TestResult {
     client
         .user()
         .create("Brendan".to_string(), vec![])
-        .select(user::select!({
-            posts(filters).skip(skip): select {
-                id
+        .include(user::include!({
+            posts(filters).skip(skip): include {
                 author
-                desc
             }
             favourite_posts(vec![]).take(take)
         }))
@@ -112,7 +87,7 @@ async fn arguments() -> TestResult {
 async fn external_selection() -> TestResult {
     let client = client().await;
 
-    user::select!(user_posts {
+    user::include!(user_and_posts {
         posts(vec![]).skip(3): select {
             id
             author
@@ -121,26 +96,26 @@ async fn external_selection() -> TestResult {
         favourite_posts(vec![]).take(2)
     });
 
-    async fn returns_selection(client: &PrismaClient) -> user_posts::Data {
+    async fn returns_selection(client: &PrismaClient) -> user_and_posts::Data {
         client
             .user()
             .create("Brendan".to_string(), vec![])
-            .select(user_posts::select())
+            .include(user_and_posts::include())
             .exec()
             .await
             .unwrap()
     }
 
-    returns_selection(&client).await.posts;
+    returns_selection(&client).await;
 
     cleanup(client).await
 }
 
 #[tokio::test]
-async fn external_selection_arguments() -> TestResult {
+async fn external_selection_args() -> TestResult {
     let client = client().await;
 
-    user::select!((skip: i64, take: i64, filters: Vec<post::WhereParam>) => user_posts {
+    user::include!((skip: i64, take: i64, filters: Vec<post::WhereParam>) => user_and_posts {
         posts(filters).skip(skip): select {
             id
             author
@@ -149,7 +124,7 @@ async fn external_selection_arguments() -> TestResult {
         favourite_posts(vec![]).take(take)
     });
 
-    async fn returns_selection(client: &PrismaClient) -> user_posts::Data {
+    async fn returns_selection(client: &PrismaClient) -> user_and_posts::Data {
         let skip = 3;
         let take = 2;
         let filters = vec![post::title::contains("prisma".to_string())];
@@ -157,13 +132,13 @@ async fn external_selection_arguments() -> TestResult {
         client
             .user()
             .create("Brendan".to_string(), vec![])
-            .select(user_posts::select(skip, take, filters))
+            .include(user_and_posts::include(skip, take, filters))
             .exec()
             .await
             .unwrap()
     }
 
-    returns_selection(&client).await.posts;
+    returns_selection(&client).await;
 
     cleanup(client).await
 }

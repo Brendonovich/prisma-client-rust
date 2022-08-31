@@ -6,9 +6,6 @@ autotests = false
 autobenches = false
 edition = "2021"
 
-[dependencies]
-prisma-client-rust-cli = { path = "../cli", features = ["sqlite-create-many"] }
-
 [[test]]
 name = "integration_tests"
 path = "tests/lib.rs"
@@ -17,4 +14,4 @@ harness = true
 [dev-dependencies]
 tokio = { version = "1.17.0", features = ["rt", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
-prisma-client-rust = { path = ".." }
+prisma-client-rust = { path = "..", features = ["rspc", "sqlite-create-many"] }

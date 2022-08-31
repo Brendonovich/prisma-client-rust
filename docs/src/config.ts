@@ -55,7 +55,7 @@ export const SIDEBAR = {
       { text: "Pagination", link: 'pagination' },
       { text: "Ordering", link: 'order-by' },
       { text: "Counting Records", link: 'count' },
-      { text: "Selecting Fields", link: 'select' }
+      { text: "Select & Include", link: 'select-include' }
     ]),
     ...section("Writing Data", [
       { text: "Create Queries", link: 'create' },

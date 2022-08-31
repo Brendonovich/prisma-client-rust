@@ -18,7 +18,7 @@ This gives you direct access to the relation data, where it is wrapped inside an
 Doing this only recommended if you need to take ownership of the relation data, as dealing with nested options can be tricky and not as descriptive as the errors provided by accessor functions.
 
 Whether a relation has been loaded can only be guaranteed at compile time if the accessor's `Result` is not able to panic - ie. `unwrap`, `expect` etc are not called on it.
-See [Selecting Fields](select) for a completely type-safe way of fetching relations.
+See [Select & Include](select-include) for completely type-safe ways of fetching relations.
 
 The examples use the following schema:
 

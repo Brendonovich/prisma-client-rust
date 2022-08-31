@@ -144,7 +144,7 @@ allowing either `UniqueWhereParam` or `WhereParam` to be returned depending on w
 
 - Optional Unique Field: If being used somewhere expecting a `UniqueWhereParam`, takes a value matching the type of the field.
 If being used somewhere expecting a `WhereParam`, however, takes an `Option` of the type of the field.
-This is necessary as `find_unique` does not accept SQL's `NULL` as a filter, but all other find methods do.
+This is necessary as `find_unique` does not accept SQL `NULL` as a filter, but all other find methods do.
 
 #### Other Filters & Operations
 

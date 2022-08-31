@@ -35,17 +35,9 @@ impl GeneratorMetadata {
 }
 
 pub fn run_generator(generator: GeneratorMetadata, args: &Vec<String>) {
-    if args.len() > 0 {
+    if std::env::var("PRISMA_GENERATOR_INVOCATION").is_err() {
         prisma_cli::main(args);
         return;
-    }
-
-    if let Err(_) = std::env::var("PRISMA_GENERATOR_INVOCATION") {
-        println!(
-            "This command is only meant to be invoked internally. Please specify a command to run."
-        );
-
-        std::process::exit(1);
     }
 
     loop {

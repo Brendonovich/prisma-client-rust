@@ -1992,7 +1992,6 @@ name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "prisma-client-rust",
- "prisma-client-rust-cli",
  "serde",
  "tokio",
 ]

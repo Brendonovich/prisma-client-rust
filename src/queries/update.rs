@@ -5,6 +5,7 @@ use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::{
+    include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
     BatchQuery,
@@ -74,7 +75,7 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<Data>>(self, select: S) -> Select<'a, S::Data> {
+    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, S::Data> {
         let mut selection = Self::to_selection(self.info.model, self.where_param, self.set_params);
 
         selection.nested_selections(select.to_selections());
@@ -82,6 +83,16 @@ where
         let op = Operation::Write(selection.build());
 
         Select::new(self.ctx, op)
+    }
+
+    pub fn include<I: IncludeType<ModelData = Data>>(self, include: I) -> Include<'a, I::Data> {
+        let mut selection = Self::to_selection(self.info.model, self.where_param, self.set_params);
+
+        selection.nested_selections(include.to_selections());
+
+        let op = Operation::Write(selection.build());
+
+        Include::new(self.ctx, op)
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {

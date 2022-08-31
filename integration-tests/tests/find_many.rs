@@ -395,22 +395,22 @@ async fn select() -> TestResult {
     let users = client
         .user()
         .find_many(vec![])
-        .select(user::select! {
+        .select(user::select!({
             id
             name
-            profile {
+            profile: select {
                 id
             }
-            posts(vec![]).take(5) {
+            posts(vec![]).take(5): select {
                 id
                 title
                 desc
-                categories(vec![]).take(5) {
+                categories(vec![]).take(5): select {
                     id
                     name
                 }
             }
-        })
+        }))
         .exec()
         .await?;
 

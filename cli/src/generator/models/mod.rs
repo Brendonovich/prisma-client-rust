@@ -7,6 +7,7 @@ mod order_by;
 mod pagination;
 mod actions;
 mod create;
+mod include;
 
 use datamodel::dml::{Field, FieldArity, IndexType}; 
 use crate::generator::prelude::*;
@@ -541,9 +542,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             pub fn set(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
                                 SetParam::#set_variant(params)
                             }
-                        });
-                        
-                        field_query_module.add_struct(quote! {
+
                             pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
 
                             impl From<Connect> for SetParam {
@@ -597,7 +596,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 },
                 Field::ScalarField(field) => {
                     let field_set_variant = format_ident!("Set{}", field_name_pascal);
-
                     field_query_module.add_method(quote! {
                         pub fn set<T: From<Set>>(value: #field_type) -> T {
                             Set(value).into()
@@ -720,6 +718,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 _ => unreachable!("Cannot codegen for composite field")
             };
             
+            field_query_module.add_struct(include::field_module_enum(&root_field, &pcr));
+            field_query_module.add_struct(select::field_module_enum(&root_field, &pcr));
+            
             model_query_modules.add_field_module(field_query_module);
         }
         
@@ -732,6 +733,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
         let select_macro = select::generate_macro(model, &module_path);
+        let select_params_enum = select::model_module_enum(&model, &pcr);
+        let include_macro = include::generate_macro(model, &module_path);
+        let include_params_enum = include::model_module_enum(&model, &pcr);
         let actions_struct = actions::struct_definition(&model, args);
 
         quote! {
@@ -746,6 +750,10 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 #create_fn
                 
                 #select_macro
+                #select_params_enum
+
+                #include_macro
+                #include_params_enum
 
                 #data_struct
 
