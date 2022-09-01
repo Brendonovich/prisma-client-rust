@@ -21,7 +21,7 @@ let (user_one, user_two, user_count): (user::Data, user::Data, i64) = client
     ._batch((
         client.user().create(..),
         client.user().create(..),
-        client.user().count(),
+        client.user().count(vec![]),
     ))
     .exec()
     .await?;
