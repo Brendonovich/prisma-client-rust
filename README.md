@@ -9,8 +9,8 @@
     <a href="./docs/README.md"/>
     <img src="https://img.shields.io/badge/docs-latest-blue?style=flat-square" alt="Link to latest Documentation files">
     </a>
-    <a href="https://github.com/Brendonovich/prisma-client-rust/discussions">
-        <img src="https://img.shields.io/badge/chat-discussions-blue?style=flat-square&logo=github" alt="Prisma Client Rust uses GitHub Discussions as a place to chat and ask questions">
+    <a href="https://discord.gg/5M6fpszrry">
+        <img alt="Prisma Client Rust uses Discord as a place to chat and ask questions" src="https://img.shields.io/discord/1011665225809924136?color=blue&style=flat-square&logo=discord">
     </a>
 </div>
 
