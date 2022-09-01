@@ -66,7 +66,7 @@ use prisma::post;
 let updated_posts_count: i64 = client
     .post()
     .update_many(
-        vec![post::id::contains("id".to_string())], // Vec of unique filters
+        vec![post::id::contains("id".to_string())], // Vec of filters
         vec![post::content::set("new content".to_string())] // Updates to be applied to each record
     )
     .exec()
