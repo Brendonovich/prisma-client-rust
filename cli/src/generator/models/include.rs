@@ -119,6 +119,25 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     let specta_impl = cfg!(feature = "rspc").then(|| {
         let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
+        let object_scalar_fields = model.fields().filter_map(|f| {
+            let field_name_snake = snake_ident(f.name());
+            let field_type = f.type_tokens();
+
+            f.as_scalar_field().map(|_| 
+                quote!(#specta::ObjectField {
+                    name: stringify!(#field_name_snake).to_string(),
+                    optional: false,
+                    ty: <#field_type as #specta::Type>::reference(
+                        #specta::DefOpts {
+                            parent_inline: false,
+                            type_map: _opts.type_map
+                        },
+                        &[]
+                    )
+                },)
+            )
+        });
+
         quote! {
             impl #specta::Type for Data {
                 const NAME: &'static str = "Data";
@@ -128,7 +147,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         name: "Data".to_string(),
                         tag: None,
                         generics: vec![],
-                        fields: vec![$(#specta::ObjectField {
+                        fields: vec![#(#object_scalar_fields)* $(#specta::ObjectField {
                             name: stringify!($field).to_string(),
                             optional: false,
                             ty: <$crate::#module_path::#model_name_snake::include!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
@@ -392,6 +411,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 }
 
                 #[allow(warnings)]
+                #[derive(std::fmt::Debug)]
                 pub struct Data {
                     #(#data_struct_scalar_fields,)*
                     $(pub $field: $crate::#module_path::#model_name_snake::include!(@field_type; $field $(#selections_pattern_consume)?),)+

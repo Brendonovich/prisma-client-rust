@@ -2,9 +2,9 @@
 
 export type Operations = {
     queries: 
-        { key: ["userNames"], result: Array<{ display_name: string }> } | 
+        { key: ["usersWithPosts"], result: Array<{ id: string, display_name: string, posts: Array<{ id: string, content: string, user: { id: string, display_name: string } }> }> } | 
         { key: ["users"], result: Array<User> } | 
-        { key: ["usersSelectPosts"], result: Array<{ posts: Array<{ id: string, content: string, user: { id: string, display_name: string } }> }> },
+        { key: ["userNames"], result: Array<{ display_name: string }> },
     mutations: never,
     subscriptions: never
 };

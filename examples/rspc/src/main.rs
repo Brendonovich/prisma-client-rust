@@ -16,17 +16,15 @@ async fn main() {
         .query("userNames", |db, _: ()| async move {
             db.user()
                 .find_many(vec![])
-                .select(db::user::select!({
-                    display_name
-                }))
+                .select(db::user::select!({ display_name }))
                 .exec()
                 .await
                 .map_err(Into::into)
         })
-        .query("usersSelectPosts", |db, _: ()| async move {
+        .query("usersWithPosts", |db, _: ()| async move {
             db.user()
                 .find_many(vec![])
-                .select(db::user::select!({
+                .include(db::user::include!({
                     posts(vec![]).skip(1): select {
                         id
                         content
