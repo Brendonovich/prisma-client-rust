@@ -1,28 +1,6 @@
-use prisma_client_rust::{prisma_models::PrismaValue, raw, BatchResult};
+use prisma_client_rust::{prisma_models::PrismaValue, raw};
 
 use crate::{db::*, utils::*};
-
-#[tokio::test]
-async fn query_raw() -> TestResult {
-    let client = client().await;
-
-    client
-        .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
-        .exec()
-        .await?;
-
-    let result: Vec<BatchResult> = client
-        ._query_raw(raw!("SELECT COUNT(*) as count FROM Post"))
-        .await?;
-    assert_eq!(result.len(), 1);
-
-    cleanup(client).await
-}
 
 #[tokio::test]
 async fn query_raw_model() -> TestResult {
@@ -30,11 +8,7 @@ async fn query_raw_model() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 
@@ -43,7 +17,9 @@ async fn query_raw_model() -> TestResult {
             "SELECT * FROM Post WHERE id = {}",
             PrismaValue::String(post.id.clone())
         ))
+        .exec()
         .await?;
+
     assert_eq!(result.len(), 1);
     assert_eq!(&result[0].id, &post.id);
     assert_eq!(result[0].published, false);
@@ -60,6 +36,7 @@ async fn query_raw_no_result() -> TestResult {
             "SELECT * FROM Post WHERE id = {}",
             PrismaValue::String("sdldsd".to_string())
         ))
+        .exec()
         .await?;
     assert_eq!(result.len(), 0);
 
@@ -72,11 +49,7 @@ async fn execute_raw() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 
@@ -86,6 +59,7 @@ async fn execute_raw() -> TestResult {
             PrismaValue::String("My edited title".to_string()),
             PrismaValue::String(post.id.clone())
         ))
+        .exec()
         .await?;
     assert_eq!(count, 1);
 
@@ -112,6 +86,7 @@ async fn execute_raw_no_result() -> TestResult {
             PrismaValue::String("updated title".to_string()),
             PrismaValue::String("sdldsd".to_string())
         ))
+        .exec()
         .await?;
     assert_eq!(count, 0);
 

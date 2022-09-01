@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde_json::Value;
 
-use crate::raw::Raw;
+use crate::{raw::Raw, BatchQuery};
 
 use super::QueryContext;
 
@@ -19,21 +19,34 @@ impl<'a> ExecuteRaw<'a> {
         Self { ctx, sql, params }
     }
 
-    pub async fn exec(self) -> super::Result<i64> {
-        let Self {
-            ctx, sql, params, ..
-        } = self;
-
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
         let mut selection = Selection::builder("executeRaw".to_string());
 
-        selection.push_argument("query", PrismaValue::String(sql));
+        selection.push_argument("query", PrismaValue::String(self.sql));
         selection.push_argument(
             "parameters",
-            PrismaValue::String(serde_json::to_string(&params).unwrap()),
+            PrismaValue::String(serde_json::to_string(&self.params).unwrap()),
         );
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
+
+    pub async fn exec(self) -> super::Result<i64> {
+        let (op, ctx) = self.exec_operation();
 
         ctx.execute(op).await
+    }
+}
+
+impl<'a> BatchQuery for ExecuteRaw<'a> {
+    type RawType = i64;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }

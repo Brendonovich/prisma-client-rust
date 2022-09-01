@@ -1,10 +1,16 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation,  Selection};
+use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use super::{option_on_not_found, transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use crate::{
+    include::{Include, IncludeType},
+    select::{Select, SelectType},
+    BatchQuery,
+};
+
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct Delete<'a, Where, With, Data>
 where
@@ -44,36 +50,76 @@ where
         self
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
-        let Self {
-            ctx,
-            info,
-            where_param,
-            with_params,
-            ..
-        } = self;
-
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = info;
-
+    fn to_selection(model: &str, where_param: Where) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("deleteOne{}", model));
 
         selection.alias("result");
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(transform_equals(vec![where_param.into()].into_iter())),
+            PrismaValue::Object(vec![where_param.into().transform_equals()]),
         );
 
-        if with_params.len() > 0 {
-            scalar_selections.append(&mut with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
+        selection
+    }
+
+    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, S::Data> {
+        let mut selection = Self::to_selection(self.info.model, self.where_param);
+
+        selection.nested_selections(select.to_selections());
 
         let op = Operation::Write(selection.build());
 
-        option_on_not_found(ctx.execute(op).await)
+        Select::new(self.ctx, op)
+    }
+
+    pub fn include<I: IncludeType<ModelData = Data>>(self, select: I) -> Include<'a, I::Data> {
+        let mut selection = Self::to_selection(self.info.model, self.where_param);
+
+        selection.nested_selections(select.to_selections());
+
+        let op = Operation::Write(selection.build());
+
+        Include::new(self.ctx, op)
+    }
+
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+        let QueryInfo {
+            model,
+            mut scalar_selections,
+        } = self.info;
+
+        let mut selection = Self::to_selection(model, self.where_param);
+
+        if self.with_params.len() > 0 {
+            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
+        }
+        selection.nested_selections(scalar_selections);
+
+        (Operation::Write(selection.build()), self.ctx)
+    }
+
+    pub async fn exec(self) -> super::Result<Data> {
+        let (op, ctx) = self.exec_operation();
+
+        ctx.execute(op).await
+    }
+}
+
+impl<'a, Where, With, Data> BatchQuery for Delete<'a, Where, With, Data>
+where
+    Where: Into<SerializedWhere>,
+    With: Into<Selection>,
+    Data: DeserializeOwned,
+{
+    type RawType = Data;
+    type ReturnType = Data;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }

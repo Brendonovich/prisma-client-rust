@@ -7,25 +7,17 @@ async fn delete_many() -> TestResult {
     let posts = vec![
         client
             .post()
-            .create(
-                post::title::set("Foo post".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Foo post".to_string(), false, vec![])
             .exec()
             .await?,
         client
             .post()
-            .create(
-                post::title::set("Bar post".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Bar post".to_string(), false, vec![])
             .exec()
             .await?,
     ];
 
-    let count = client.post().find_many(vec![]).delete().exec().await?;
+    let count = client.post().delete_many(vec![]).exec().await?;
     assert!(count >= 1);
 
     for post in posts {

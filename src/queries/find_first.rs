@@ -1,17 +1,24 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection};
+use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use crate::{
+    include::{Include, IncludeType},
+    merged_object,
+    select::{Select, SelectType},
+    BatchQuery,
+};
+
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct FindFirst<'a, Where, With, OrderBy, Cursor, Data>
 where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Data: DeserializeOwned,
 {
     ctx: QueryContext<'a>,
@@ -30,7 +37,7 @@ where
     Where: Into<SerializedWhere>,
     With: Into<Selection>,
     OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
     Data: DeserializeOwned,
 {
     pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
@@ -72,36 +79,30 @@ where
         self
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            with_params,
-            order_by_params,
-            cursor_params,
-            skip,
-            take,
-            ..
-        } = self;
-
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = info;
-
+    fn to_selection(
+        model: &str,
+        where_params: Vec<Where>,
+        order_by_params: Vec<OrderBy>,
+        cursor_params: Vec<Cursor>,
+        skip: Option<i64>,
+        take: Option<i64>,
+    ) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("findFirst{}", model));
 
         selection.alias("result");
 
         if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
+            selection.push_argument(
+                "where",
+                merged_object(
+                    where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(|s| (s.field, s.value.into()))
+                        .collect(),
+                ),
+            );
         }
-
-        if with_params.len() > 0 {
-            scalar_selections.append(&mut with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
 
         if order_by_params.len() > 0 {
             selection.push_argument(
@@ -113,15 +114,108 @@ where
         if cursor_params.len() > 0 {
             selection.push_argument(
                 "cursor".to_string(),
-                PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect()),
+                PrismaValue::Object(
+                    cursor_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(Into::<SerializedWhere>::into)
+                        .map(SerializedWhere::transform_equals)
+                        .collect(),
+                ),
             );
         }
 
         skip.map(|skip| selection.push_argument("skip".to_string(), QueryValue::Int(skip as i64)));
         take.map(|take| selection.push_argument("take".to_string(), QueryValue::Int(take as i64)));
 
+        selection
+    }
+
+    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, Option<S::Data>> {
+        let mut selection = Self::to_selection(
+            self.info.model,
+            self.where_params,
+            self.order_by_params,
+            self.cursor_params,
+            self.skip,
+            self.take,
+        );
+
+        selection.nested_selections(select.to_selections());
+
         let op = Operation::Read(selection.build());
 
+        Select::new(self.ctx, op)
+    }
+
+    pub fn include<I: IncludeType<ModelData = Data>>(
+        self,
+        include: I,
+    ) -> Include<'a, Option<I::Data>> {
+        let mut selection = Self::to_selection(
+            self.info.model,
+            self.where_params,
+            self.order_by_params,
+            self.cursor_params,
+            self.skip,
+            self.take,
+        );
+
+        selection.nested_selections(include.to_selections());
+
+        let op = Operation::Read(selection.build());
+
+        Include::new(self.ctx, op)
+    }
+
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+        let QueryInfo {
+            model,
+            mut scalar_selections,
+            ..
+        } = self.info;
+
+        let mut selection = Self::to_selection(
+            model,
+            self.where_params,
+            self.order_by_params,
+            self.cursor_params,
+            self.skip,
+            self.take,
+        );
+
+        if self.with_params.len() > 0 {
+            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
+        }
+        selection.nested_selections(scalar_selections);
+
+        (Operation::Read(selection.build()), self.ctx)
+    }
+
+    pub async fn exec(self) -> super::Result<Option<Data>> {
+        let (op, ctx) = self.exec_operation();
+
         ctx.execute(op).await
+    }
+}
+
+impl<'a, Where, With, OrderBy, Cursor, Data> BatchQuery
+    for FindFirst<'a, Where, With, OrderBy, Cursor, Data>
+where
+    Where: Into<SerializedWhere>,
+    With: Into<Selection>,
+    OrderBy: Into<(String, PrismaValue)>,
+    Cursor: Into<Where>,
+    Data: DeserializeOwned,
+{
+    type RawType = Data;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }

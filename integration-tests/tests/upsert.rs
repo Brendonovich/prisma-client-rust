@@ -17,8 +17,8 @@ async fn upsert() -> TestResult {
         .user()
         .upsert(
             user::id::equals(user_id.to_string()),
-            (
-                user::name::set("Brendan".to_string()),
+            user::create(
+                "Brendan".to_string(),
                 vec![user::id::set(user_id.to_string())],
             ),
             vec![user::name::set("Brendan".to_string())],
@@ -33,14 +33,15 @@ async fn upsert() -> TestResult {
         .user()
         .upsert(
             user::id::equals(user_id.to_string()),
-            (
-                user::name::set("Oscar".to_string()),
+            user::create(
+                "Oscar".to_string(),
                 vec![user::id::set(user_id.to_string())],
             ),
             vec![user::name::set("Oscar".to_string())],
         )
         .exec()
         .await?;
+
     assert_eq!(user.id, user_id);
     assert_eq!(user.name, "Oscar");
 

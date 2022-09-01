@@ -9,20 +9,12 @@ async fn find_many() -> TestResult {
     let posts = vec![
         client
             .post()
-            .create(
-                post::title::set("Test post 1".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Test post 1".to_string(), false, vec![])
             .exec()
             .await?,
         client
             .post()
-            .create(
-                post::title::set("Test post 2".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Test post 2".to_string(), false, vec![])
             .exec()
             .await?,
     ];
@@ -107,38 +99,22 @@ async fn cursor() -> TestResult {
     let posts = vec![
         client
             .post()
-            .create(
-                post::title::set("Foo 1".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Foo 1".to_string(), false, vec![])
             .exec()
             .await?,
         client
             .post()
-            .create(
-                post::title::set("Foo 2".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Foo 2".to_string(), false, vec![])
             .exec()
             .await?,
         client
             .post()
-            .create(
-                post::title::set("Foo 3".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Foo 3".to_string(), false, vec![])
             .exec()
             .await?,
         client
             .post()
-            .create(
-                post::title::set("Foo 4".to_string()),
-                post::published::set(false),
-                vec![],
-            )
+            .create("Foo 4".to_string(), false, vec![])
             .exec()
             .await?,
     ];
@@ -146,7 +122,7 @@ async fn cursor() -> TestResult {
     let found = client
         .post()
         .find_many(vec![])
-        .cursor(post::id::cursor(posts[1].id.clone()))
+        .cursor(post::id::equals(posts[1].id.clone()))
         .exec()
         .await?;
     assert_eq!(found.len(), 3);
@@ -157,7 +133,7 @@ async fn cursor() -> TestResult {
     let found = client
         .post()
         .find_many(vec![])
-        .cursor(post::id::cursor(posts[3].id.clone()))
+        .cursor(post::id::equals(posts[3].id.clone()))
         .exec()
         .await?;
     assert_eq!(found.len(), 1);
@@ -173,16 +149,16 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(user::id::equals(
+            user::id::equals(
                 client
                     .user()
-                    .create(user::name::set("Brendan".to_string()), vec![])
+                    .create("Brendan".to_string(), vec![])
                     .exec()
                     .await?
                     .id,
-            )),
-            profile::bio::set("My very cool bio.".to_string()),
-            profile::country::set("Australia".to_string()),
+            ),
+            "My very cool bio.".to_string(),
+            "Australia".to_string(),
             vec![],
         )
         .exec()
@@ -191,16 +167,16 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(user::id::equals(
+            user::id::equals(
                 client
                     .user()
-                    .create(user::name::set("Oscar".to_string()), vec![])
+                    .create("Oscar".to_string(), vec![])
                     .exec()
                     .await?
                     .id,
-            )),
-            profile::bio::set("Hello world, this is my bio.".to_string()),
-            profile::country::set("Australia".to_string()),
+            ),
+            "Hello world, this is my bio.".to_string(),
+            "Australia".to_string(),
             vec![],
         )
         .exec()
@@ -208,7 +184,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
 
     client
         .user()
-        .create(user::name::set("Jamie".to_string()), vec![])
+        .create("Jamie".to_string(), vec![])
         .exec()
         .await?;
 
@@ -253,15 +229,15 @@ async fn filtering_one_to_many_relation() -> TestResult {
 
     let user = client
         .user()
-        .create(user::name::set("Brendan".to_string()), vec![])
+        .create("Brendan".to_string(), vec![])
         .exec()
         .await?;
 
     client
         .post()
         .create(
-            post::title::set("My first post".to_string()),
-            post::published::set(true),
+            "My first post".to_string(),
+            true,
             vec![post::author_id::set(Some(user.id.clone()))],
         )
         .exec()
@@ -270,24 +246,24 @@ async fn filtering_one_to_many_relation() -> TestResult {
     client
         .post()
         .create(
-            post::title::set("My second post".to_string()),
-            post::published::set(false),
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            "My second post".to_string(),
+            false,
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
 
     let user = client
         .user()
-        .create(user::name::set("Oscar".to_string()), vec![])
+        .create("Oscar".to_string(), vec![])
         .exec()
         .await?;
 
     client
         .post()
         .create(
-            post::title::set("Hello, world!".to_string()),
-            post::published::set(true),
+            "Hello, world!".to_string(),
+            true,
             vec![post::author_id::set(Some(user.id.clone()))],
         )
         .exec()
@@ -296,16 +272,16 @@ async fn filtering_one_to_many_relation() -> TestResult {
     client
         .post()
         .create(
-            post::title::set("My test post".to_string()),
-            post::published::set(false),
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            "My test post".to_string(),
+            false,
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
 
     client
         .user()
-        .create(user::name::set("Jamie".to_string()), vec![])
+        .create("Jamie".to_string(), vec![])
         .exec()
         .await?;
 
@@ -314,6 +290,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::every(vec![post::title::contains(
             "post".to_string(),
         )])])
+        .order_by(user::name::order(Direction::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -325,6 +302,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::some(vec![post::title::contains(
             "post".to_string(),
         )])])
+        .order_by(user::name::order(Direction::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -359,29 +337,17 @@ async fn ordering() -> TestResult {
 
     client
         .post()
-        .create(
-            post::title::set("Test post 1".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("Test post 1".to_string(), false, vec![])
         .exec()
         .await?;
     client
         .post()
-        .create(
-            post::title::set("Test post 2".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("Test post 2".to_string(), false, vec![])
         .exec()
         .await?;
     client
         .post()
-        .create(
-            post::title::set("Test post 3".to_string()),
-            post::published::set(true),
-            vec![],
-        )
+        .create("Test post 3".to_string(), true, vec![])
         .exec()
         .await?;
 
@@ -406,6 +372,54 @@ async fn ordering() -> TestResult {
     assert_eq!(found[0].published, true);
     assert_eq!(found[1].published, false);
     assert_eq!(found[2].published, false);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn select() -> TestResult {
+    let client = client().await;
+
+    client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
+
+    client
+        .user()
+        .create("Oscar".to_string(), vec![])
+        .exec()
+        .await?;
+
+    let users = client
+        .user()
+        .find_many(vec![])
+        .select(user::select!({
+            id
+            name
+            profile: select {
+                id
+            }
+            posts(vec![]).take(5): select {
+                id
+                title
+                desc
+                categories(vec![]).take(5): select {
+                    id
+                    name
+                }
+            }
+        }))
+        .exec()
+        .await?;
+
+    assert_eq!(users.len(), 2);
+    assert_eq!(users[0].name, "Brendan".to_string());
+    assert_eq!(users[1].name, "Oscar".to_string());
+    assert!(users[0].profile.is_none());
+    assert!(users[1].profile.is_none());
+    assert_eq!(users[0].posts.len(), 0);
 
     cleanup(client).await
 }

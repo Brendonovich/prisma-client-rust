@@ -1,6 +1,4 @@
-use datamodel::{
-    dml::{Field, FieldType, Model, ScalarField, ScalarType, FieldArity},
-};
+use datamodel::dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
@@ -79,7 +77,7 @@ impl FieldTypeExt for FieldType {
                 let model = format_ident!("{}", info.to.to_case(Case::Snake));
                 quote!(#model::Data)
             }
-            Self::Scalar(typ, _, _) => typ.to_tokens(),
+            Self::Scalar(typ, _) => typ.to_tokens(),
             _ => unimplemented!(),
         }
     }
@@ -91,14 +89,16 @@ impl FieldTypeExt for FieldType {
             var.clone()
         };
 
+        let v = quote!(::prisma_client_rust::PrismaValue);
+
         let scalar_converter = match self {
-            Self::Scalar(typ, _, _) => typ.to_prisma_value(&scalar_identifier),
-            Self::Enum(_) => quote!(PrismaValue::Enum(#scalar_identifier.to_string())),
+            Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
+            Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
             typ => unimplemented!("{:?}", typ),
         };
 
         if is_list {
-            quote!(PrismaValue::List(#var.into_iter().map(|v| #scalar_converter).collect()))
+            quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
         } else {
             scalar_converter
         }
@@ -112,30 +112,41 @@ pub trait ScalarTypeExt {
 
 impl ScalarTypeExt for ScalarType {
     fn to_tokens(&self) -> TokenStream {
+        let pcr = quote!(::prisma_client_rust);
+
         match self {
             ScalarType::Int => quote!(i32),
             ScalarType::BigInt => quote!(i64),
             ScalarType::Float | ScalarType::Decimal => quote!(f64),
             ScalarType::Boolean => quote!(bool),
             ScalarType::String => quote!(String),
-            ScalarType::Json => quote!(serde_json::Value),
-            ScalarType::DateTime => quote!(chrono::DateTime<chrono::FixedOffset>),
+            ScalarType::Json => quote!(#pcr::serde_json::Value),
+            ScalarType::DateTime => {
+                quote!(
+                    #pcr::chrono::DateTime<
+                        #pcr::chrono::FixedOffset,
+                    >
+                )
+            }
             ScalarType::Bytes => quote!(Vec<u8>),
         }
     }
 
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {
+        let pcr = quote!(::prisma_client_rust);
+        let v = quote!(#pcr::PrismaValue);
+
         match self {
-            ScalarType::Int => quote!(PrismaValue::Int(#var as i64)),
-            ScalarType::BigInt => quote!(PrismaValue::BigInt(#var)),
+            ScalarType::Int => quote!(#v::Int(#var as i64)),
+            ScalarType::BigInt => quote!(#v::BigInt(#var)),
             ScalarType::Float | ScalarType::Decimal => {
-                quote!(PrismaValue::Float(bigdecimal::BigDecimal::from_f64(#var).unwrap().normalized()))
+                quote!(#v::Float(<#pcr::bigdecimal::BigDecimal as #pcr::bigdecimal::FromPrimitive>::from_f64(#var).unwrap().normalized()))
             }
-            ScalarType::Boolean => quote!(PrismaValue::Boolean(#var)),
-            ScalarType::String => quote!(PrismaValue::String(#var)),
-            ScalarType::Json => quote!(PrismaValue::Json(serde_json::to_string(&#var).unwrap())),
-            ScalarType::DateTime => quote!(PrismaValue::DateTime(#var)),
-            ScalarType::Bytes => quote!(PrismaValue::Bytes(#var)),
+            ScalarType::Boolean => quote!(#v::Boolean(#var)),
+            ScalarType::String => quote!(#v::String(#var)),
+            ScalarType::Json => quote!(#v::Json(serde_json::to_string(&#var).unwrap())),
+            ScalarType::DateTime => quote!(#v::DateTime(#var)),
+            ScalarType::Bytes => quote!(#v::Bytes(#var)),
         }
     }
 }

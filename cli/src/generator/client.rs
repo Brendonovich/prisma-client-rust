@@ -11,8 +11,8 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
 
             quote! {
-                pub fn #model_name_snake(&self) -> #model_name_snake::Actions {
-                    #model_name_snake::Actions {
+                pub fn #model_name_snake(&self) -> super:: #model_name_snake::Actions {
+                    super::#model_name_snake::Actions {
                         client: &self,
                     }
                 }
@@ -20,55 +20,57 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    quote! {
-        use super::*;
-        use prisma_client_rust::{
-            queries::QueryContext,
-            query_core::{QueryExecutor, QuerySchema},
-            raw, QueryRaw, ExecuteRaw,
-        };
-        use serde::{Deserialize, Serialize};
-        use std::fmt;
-        use std::sync::Arc;
+    let pcr = quote!(::prisma_client_rust);
 
+    quote! {
         pub struct PrismaClient {
-            executor: Box<dyn QueryExecutor + Send + Sync + 'static>,
-            query_schema: Arc<QuerySchema>,
+            executor: #pcr::Executor,
+            query_schema: ::std::sync::Arc<#pcr::schema::QuerySchema>,
         }
 
-        impl fmt::Debug for PrismaClient {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        impl ::std::fmt::Debug for PrismaClient {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 f.debug_struct("PrismaClient")
                  .finish()
             }
         }
 
         impl PrismaClient {
-            pub(super) fn _new_query_context(&self) -> QueryContext {
-                QueryContext::new(&self.executor, self.query_schema.clone())
+            pub(super) fn _new_query_context(&self) -> #pcr::queries::QueryContext {
+                #pcr::queries::QueryContext::new(&self.executor, &self.query_schema)
             }
 
-            pub(super) fn _new(executor: Box<dyn QueryExecutor + Send + Sync + 'static>, query_schema: Arc<QuerySchema>) -> Self {
+            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>) -> Self {
                 Self {
                     executor,
                     query_schema,
                 }
             }
 
-            pub async fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: raw::Raw) -> QueryResult<Vec<T>> {
-                QueryRaw::new(
-                   QueryContext::new(&self.executor, self.query_schema.clone()),
-                   query,
-                   DATABASE_STR
-                ).exec().await
+            pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::raw::Raw) -> #pcr::QueryRaw<T> {
+                #pcr::QueryRaw::new(
+                   #pcr::queries::QueryContext::new(
+                        &self.executor,
+                        &self.query_schema
+                    ),
+                    query,
+                    super::DATABASE_STR
+                )
             }
 
-            pub async fn _execute_raw(&self, query: raw::Raw) -> QueryResult<i64> {
-                ExecuteRaw::new(
-                   QueryContext::new(&self.executor, self.query_schema.clone()),
-                   query,
-                   DATABASE_STR
-                ).exec().await
+            pub fn _execute_raw(&self, query: #pcr::raw::Raw) -> #pcr::ExecuteRaw {
+                #pcr::ExecuteRaw::new(
+                   #pcr::queries::QueryContext::new(
+                        &self.executor,
+                        &self.query_schema
+                    ),
+                    query,
+                    super::DATABASE_STR
+                )
+            }
+
+            pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::queries::Result<T::ReturnType> {
+                #pcr::batch(queries, &self.executor, &self.query_schema).await
             }
 
             #(#model_actions)*

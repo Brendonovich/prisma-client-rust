@@ -1,9 +1,9 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
-use crate::BatchResult;
+use crate::{merged_object, BatchQuery, BatchResult};
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct UpdateMany<'a, Where, Set>
 where
@@ -34,34 +34,58 @@ where
         }
     }
 
-    pub async fn exec(self) -> super::Result<i64> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            set_params,
-            ..
-        } = self;
-
-        let QueryInfo { model, .. } = info;
-
-        let mut selection = Selection::builder(format!("updateMany{}", model));
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+        let mut selection = Selection::builder(format!("updateMany{}", &self.info.model));
 
         selection.alias("result");
 
         selection.push_argument(
             "data",
-            PrismaValue::Object(set_params.into_iter().map(Into::into).collect()),
+            merged_object(self.set_params.into_iter().map(Into::into).collect()),
         );
 
-        if where_params.len() > 0 {
-            selection.push_argument("where", PrismaValue::Object(transform_equals(where_params.into_iter())));
+        if self.where_params.len() > 0 {
+            selection.push_argument(
+                "where",
+                merged_object(
+                    self.where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(|s| (s.field, s.value.into()))
+                        .collect(),
+                ),
+            );
         }
 
         selection.push_nested_selection(BatchResult::selection());
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
 
-        ctx.execute(op).await.map(|res: BatchResult| res.count)
+    pub(crate) fn convert(raw: BatchResult) -> i64 {
+        raw.count
+    }
+
+    pub async fn exec(self) -> super::Result<i64> {
+        let (op, ctx) = self.exec_operation();
+
+        ctx.execute(op).await.map(Self::convert)
+    }
+}
+
+impl<'a, Where, Set> BatchQuery for UpdateMany<'a, Where, Set>
+where
+    Where: Into<SerializedWhere>,
+    Set: Into<(String, PrismaValue)>,
+{
+    type RawType = BatchResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        Self::convert(raw)
     }
 }

@@ -1,0 +1,14 @@
+---
+import MoreMenu from "../RightSidebar/MoreMenu.astro";
+import TableOfContents from "../RightSidebar/TableOfContents";
+
+const { frontmatter, headings, githubEditUrl } = Astro.props;
+const title = frontmatter.title;
+---
+
+<article id="article" class="p-0 h-full flex flex-col content">
+  <section class="mb-16">
+    <h1 class="content-title" id="overview">{title}</h1>
+    <slot />
+  </section>
+</article>

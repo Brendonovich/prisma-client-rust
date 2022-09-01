@@ -1,22 +1,32 @@
 use std::str::FromStr;
 
 use convert_case::Case;
-use datamodel::dml::{FieldType, ScalarType, ScalarField, Field, FieldArity};
-use request_handlers::dmmf::schema::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use datamodel::{
+    builtin_connectors,
+    datamodel_connector::Connector,
+    dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
+};
+use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 
-use crate::{casing::Casing, dmmf::EngineDMMF};
+use crate::{casing::Casing, dmmf::Datasource};
 
-#[derive(Debug)]
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
-    pub root: EngineDMMF,
+    pub datamodel_str: String,
+    pub datasources: Vec<Datasource>,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
+    pub connector: &'static dyn Connector,
 }
 
 impl GenerateArgs {
-    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, root: EngineDMMF) -> Self {
+    pub fn new(
+        mut dml: datamodel::dml::Datamodel,
+        schema: DmmfSchema,
+        datamodel_str: String,
+        datasources: Vec<Datasource>,
+    ) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -170,7 +180,7 @@ impl GenerateArgs {
                             field.name.to_case(Case::Pascal),
                             field.name.clone(),
                             ScalarType::from_str(&type_name)
-                                .map(|t| FieldType::Scalar(t, None, None))
+                                .map(|t| FieldType::Scalar(t, None))
                                 .unwrap_or(FieldType::Enum(type_name)),
                             is_list,
                         ));
@@ -230,7 +240,6 @@ impl GenerateArgs {
                                     FieldType::Scalar(
                                         ScalarType::from_str(&type_name).unwrap(),
                                         None,
-                                        None,
                                     ),
                                     is_list,
                                 ));
@@ -250,17 +259,30 @@ impl GenerateArgs {
             filters
         };
 
+        use builtin_connectors::{COCKROACH, MONGODB, MSSQL, MYSQL, POSTGRES, SQLITE};
+        let connector = match &datasources[0].provider {
+            p if SQLITE.is_provider(p) => SQLITE,
+            p if POSTGRES.is_provider(p) => POSTGRES,
+            p if MSSQL.is_provider(p) => MSSQL,
+            p if MYSQL.is_provider(p) => MYSQL,
+            p if COCKROACH.is_provider(p) => COCKROACH,
+            p if MONGODB.is_provider(p) => MONGODB,
+            _ => unreachable!(),
+        };
+
         Self {
             dml,
-            root,
+            datamodel_str,
+            datasources,
             schema,
             read_filters,
             write_filters,
+            connector,
         }
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+        if let FieldType::Scalar(typ, _) = &field.field_type {
             let mut typ = typ.to_string();
 
             if field.arity.is_list() {
@@ -274,7 +296,7 @@ impl GenerateArgs {
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _, _) = &field.field_type {
+        if let FieldType::Scalar(typ, _) = &field.field_type {
             let mut typ = typ.to_string();
 
             if field.arity.is_list() {
@@ -336,13 +358,13 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
     if field.name == "equals" {
         return None;
     }
-    
+
     field.input_types.iter().find(|input_type|
         matches!(input_type.location, TypeLocation::Scalar | TypeLocation::EnumTypes if input_type.typ != "Null")
     ).map(|input_type| {
         let type_name = input_type.typ.clone();
         let is_list = input_type.is_list;
-        
+
         Method::new(
             // 'in' is a reserved keyword in Rust
             match field.name.as_str() {
@@ -352,7 +374,7 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
             },
             field.name.clone(),
             ScalarType::from_str(&type_name)
-                .map(|t| FieldType::Scalar(t, None, None))
+                .map(|t| FieldType::Scalar(t, None))
                 .unwrap_or(FieldType::Enum(type_name)),
             is_list,
         )

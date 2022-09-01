@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 description = "A prisma client for Rust"
@@ -8,8 +8,14 @@ license = "MIT"
 
 exclude = ["examples", "integration-tests"]
 
+[features]
+default = []
+rspc = ["dep:rspc"]
+sqlite-create-many = ["datamodel/sqlite-create-many"]
+
 [workspace]
 members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
+resolver = "2"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -20,9 +26,18 @@ bigdecimal = { version = "0.2.2", features = ["serde"] }
 uuid = { version = "0.8", features = ["serde"] }
 indexmap = "1.8.2"
 serde-value = "0.7.0"
+base64 = "0.13.0"
 
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "4bd782c1597ec84d8ed70082b8b2995df6a6f8d2" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+
+rspc = { version = "0.0.4", optional = true, features = [
+  "indexmap",
+  "chrono",
+  "uuid",
+] }

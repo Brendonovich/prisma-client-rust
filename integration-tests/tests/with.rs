@@ -1,11 +1,11 @@
-use prisma_client_rust::{or, queries::Error};
+use prisma_client_rust::{or, queries::QueryError};
 
 use crate::{db::*, utils::*};
 
-async fn setup(client: &PrismaClient) -> Result<String, Error> {
+async fn setup(client: &PrismaClient) -> Result<String, QueryError> {
     let user = client
         .user()
-        .create(user::name::set("Brendan".to_string()), vec![])
+        .create("Brendan".to_string(), vec![])
         .exec()
         .await?;
 
@@ -13,36 +13,36 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
         client
             .post()
             .create(
-                post::title::set("post 1".to_string()),
-                post::published::set(false),
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                "post 1".to_string(),
+                false,
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                post::title::set("post 2".to_string()),
-                post::published::set(true),
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                "post 2".to_string(),
+                true,
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                post::title::set("post 3".to_string()),
-                post::published::set(true),
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                "post 3".to_string(),
+                true,
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
         client
             .post()
             .create(
-                post::title::set("post 4".to_string()),
-                post::published::set(false),
-                vec![post::author::link(user::id::equals(user.id.clone()))],
+                "post 4".to_string(),
+                false,
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
             )
             .exec()
             .await?,
@@ -51,8 +51,8 @@ async fn setup(client: &PrismaClient) -> Result<String, Error> {
     client
         .category()
         .create(
-            category::name::set("My category".to_string()),
-            vec![category::posts::link(vec![
+            "My category".to_string(),
+            vec![category::posts::connect(vec![
                 post::id::equals(posts[0].id.clone()),
                 post::id::equals(posts[1].id.clone()),
             ])],
@@ -111,9 +111,9 @@ async fn find_unique_with_optional() -> TestResult {
     client
         .profile()
         .create(
-            profile::user::link(user::id::equals(user.id.clone())),
-            profile::bio::set("Bio".to_string()),
-            profile::country::set("Country".to_string()),
+            user::id::equals(user.id.clone()),
+            "Bio".to_string(),
+            "Country".to_string(),
             vec![],
         )
         .exec()
@@ -191,7 +191,7 @@ async fn find_unique_with_pagination() -> TestResult {
         .find_unique(user::id::equals(user_id.clone()))
         .with(
             user::posts::fetch(vec![])
-                .cursor(post::id::cursor(posts[0].id.clone()))
+                .cursor(post::id::equals(posts[0].id.clone()))
                 .take(1)
                 .skip(1),
         )
@@ -206,7 +206,7 @@ async fn find_unique_with_pagination() -> TestResult {
         .find_unique(user::id::equals(user_id.clone()))
         .with(
             user::posts::fetch(vec![])
-                .cursor(post::id::cursor(posts[1].id.clone()))
+                .cursor(post::id::equals(posts[1].id.clone()))
                 .take(-1)
                 .skip(1),
         )

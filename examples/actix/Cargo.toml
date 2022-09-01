@@ -1,0 +1,9 @@
+[package]
+name = "actix-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prisma-client-rust = { path="../../" }
+serde = { version = "1.0", features = ["derive"] }
+actix-web = "4"

@@ -6,11 +6,7 @@ async fn find_unique_id_field() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("My post title!".to_string()),
-            post::published::set(false),
-            vec![],
-        )
+        .create("My post title!".to_string(), false, vec![])
         .exec()
         .await?;
 
@@ -45,7 +41,7 @@ async fn find_unique_by_unique_field() -> TestResult {
     let user = client
         .user()
         .create(
-            user::name::set("Brendan".to_string()),
+            "Brendan".to_string(),
             vec![user::email::set(Some(
                 "brendonovich@outlook.com".to_string(),
             ))],
@@ -78,7 +74,7 @@ async fn find_unique_compound() -> TestResult {
     let user = client
         .user()
         .create(
-            user::name::set("Brendan".to_string()),
+            "Brendan".to_string(),
             vec![user::email::set(Some(
                 "brendonovich@outlook.com".to_string(),
             ))],
@@ -89,9 +85,9 @@ async fn find_unique_compound() -> TestResult {
     let post = client
         .post()
         .create(
-            post::title::set("Title".to_string()),
-            post::published::set(false),
-            vec![post::author::link(user::id::equals(user.id.clone()))],
+            "Title".to_string(),
+            false,
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;

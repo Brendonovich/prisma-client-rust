@@ -26,8 +26,8 @@ impl PostMutation {
         let created = db
             .post()
             .create(
-                post::content::set(input.content),
-                post::user::link(user::id::equals(input.user_id)),
+                input.content,
+                user::id::equals(input.user_id),
                 vec![],
             )
             .exec()

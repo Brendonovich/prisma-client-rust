@@ -1,3 +1,5 @@
+use prisma_client_rust::prisma_errors::query_engine::RecordRequiredButNotFound;
+
 use crate::{db::*, utils::*};
 
 #[tokio::test]
@@ -6,15 +8,15 @@ async fn delete() -> TestResult {
 
     let author = client
         .user()
-        .create(user::name::set("Brendan".to_string()), vec![])
+        .create("Brendan".to_string(), vec![])
         .exec()
         .await?;
 
     let post = client
         .post()
         .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(false),
+            "Hi from Prisma!".to_string(),
+            false,
             vec![post::author_id::set(Some(author.id.clone()))],
         )
         .with(post::author::fetch())
@@ -26,12 +28,10 @@ async fn delete() -> TestResult {
 
     let deleted = client
         .post()
-        .find_unique(post::id::equals(post.id.clone()))
-        .delete()
+        .delete(post::id::equals(post.id.clone()))
         .with(post::author::fetch())
         .exec()
-        .await?
-        .unwrap();
+        .await?;
     assert_eq!(deleted.title, "Hi from Prisma!");
     let author = deleted.author.unwrap().unwrap();
     assert_eq!(author.name, "Brendan");
@@ -57,13 +57,14 @@ async fn delete() -> TestResult {
 async fn delete_record_not_found() -> TestResult {
     let client = client().await;
 
-    let deleted = client
+    let error = client
         .post()
-        .find_unique(post::id::equals("sdlfskdf".to_string()))
-        .delete()
+        .delete(post::id::equals("sdlfskdf".to_string()))
         .exec()
-        .await?;
-    assert!(deleted.is_none());
+        .await
+        .unwrap_err();
+
+    assert!(error.is_prisma_error::<RecordRequiredButNotFound>());
 
     cleanup(client).await
 }

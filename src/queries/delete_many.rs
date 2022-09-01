@@ -1,9 +1,8 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
-use crate::BatchResult;
+use crate::{merged_object, BatchQuery, BatchResult};
 
-use super::{transform_equals, QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, QueryInfo, SerializedWhere};
 
 pub struct DeleteMany<'a, Where>
 where
@@ -26,33 +25,52 @@ where
         }
     }
 
-    pub async fn exec(self) -> super::Result<i64> {
-        let Self {
-            ctx,
-            info,
-            where_params,
-            ..
-        } = self;
-
-        let QueryInfo { model, .. } = info;
-
-        let mut selection = Selection::builder(format!("deleteMany{}", model));
+    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+        let mut selection = Selection::builder(format!("deleteMany{}", self.info.model));
 
         selection.alias("result");
 
-        if where_params.len() > 0 {
+        if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                PrismaValue::Object(transform_equals(
-                    where_params.into_iter().map(Into::into),
-                )),
+                merged_object(
+                    self.where_params
+                        .into_iter()
+                        .map(Into::<SerializedWhere>::into)
+                        .map(|s| (s.field, s.value.into()))
+                        .collect(),
+                ),
             );
         }
 
         selection.push_nested_selection(BatchResult::selection());
 
-        let op = Operation::Write(selection.build());
+        (Operation::Write(selection.build()), self.ctx)
+    }
 
-        ctx.execute(op).await.map(|r: BatchResult| r.count)
+    pub(crate) fn convert(raw: BatchResult) -> i64 {
+        raw.count
+    }
+
+    pub async fn exec(self) -> super::Result<i64> {
+        let (op, ctx) = self.exec_operation();
+
+        ctx.execute(op).await.map(Self::convert)
+    }
+}
+
+impl<'a, Where> BatchQuery for DeleteMany<'a, Where>
+where
+    Where: Into<SerializedWhere>,
+{
+    type RawType = BatchResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> Operation {
+        self.exec_operation().0
+    }
+
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        Self::convert(raw)
     }
 }

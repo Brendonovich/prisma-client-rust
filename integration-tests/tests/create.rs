@@ -8,8 +8,8 @@ async fn test_create() -> TestResult {
     let post = client
         .post()
         .create(
-            post::title::set("Hi from Prisma!".to_string()),
-            post::published::set(true),
+            "Hi from Prisma!".to_string(),
+            true,
             vec![post::desc::set(Some(
                 "Prisma is a database toolkit that makes databases easy.".to_string(),
             ))],
@@ -26,7 +26,7 @@ async fn test_create() -> TestResult {
 
     let user = client
         .user()
-        .create(user::name::set("Brendan".to_string()), vec![])
+        .create("Brendan".to_string(), vec![])
         .exec()
         .await?;
 
@@ -42,7 +42,7 @@ async fn test_create_unique_violation() -> TestResult {
     let user = client
         .user()
         .create(
-            user::name::set("Brendan".to_string()),
+            "Brendan".to_string(),
             vec![user::id::set("user-1".to_string())],
         )
         .exec()
@@ -54,7 +54,7 @@ async fn test_create_unique_violation() -> TestResult {
     let user = client
         .user()
         .create(
-            user::name::set("Brendan".to_string()),
+            "Brendan".to_string(),
             vec![user::id::set("user-1".to_string())],
         )
         .exec()
@@ -71,11 +71,7 @@ async fn test_setting_field_to_null() -> TestResult {
 
     let post = client
         .post()
-        .create(
-            post::title::set("Post".to_string()),
-            post::published::set(false),
-            vec![post::desc::set(None)],
-        )
+        .create("Post".to_string(), false, vec![post::desc::set(None)])
         .exec()
         .await?;
 

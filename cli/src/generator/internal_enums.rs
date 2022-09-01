@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
-use quote::{format_ident, quote};
 use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let internal_enums = args
@@ -36,7 +36,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 .collect::<Vec<_>>();
 
             quote! {
-                #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+                #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize)]
                 pub enum #name {
                     #(#variants),*
                 }
