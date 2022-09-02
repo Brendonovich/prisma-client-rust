@@ -41,11 +41,11 @@ function section(name: string, data: any[]) {
 export const SIDEBAR = {
   en: [
     { text: 'Introduction', link: 'introduction' },
+    { text: '0.6.0 Migration', link: '0.6.0-migration' },
     ...section("Getting Started", [
       { text: 'Installation', link: 'installation' },
       { text: 'Setup', link: 'setup' },
       { text: 'Structure', link: 'structure' },
-      { text: '0.6.0 Migration', link: '0.6.0-migration' }
     ]),
     ...section("Reading Data", [
       { text: "Find Queries", link: 'find' },
