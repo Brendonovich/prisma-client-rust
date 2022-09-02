@@ -2,13 +2,14 @@
 
 export type Operations = {
     queries: 
+        { key: ["userNames"], result: Array<{ display_name: string }> } | 
         { key: ["usersWithPosts"], result: Array<{ id: string, display_name: string, posts: Array<{ id: string, content: string, user: { id: string, display_name: string } }> }> } | 
         { key: ["users"], result: Array<User> } | 
-        { key: ["userNames"], result: Array<{ display_name: string }> },
+        { key: ["posts"], result: Array<Post> },
     mutations: never,
     subscriptions: never
 };
 
-export interface Post { id: string, content: string, user: User | null, userId: string }
+export interface Post { id: string, content: string, userId: string }
 
-export interface User { id: string, displayName: string, posts: Array<Post> | null }
+export interface User { id: string, displayName: string }

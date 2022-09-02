@@ -38,5 +38,8 @@ async fn main() {
                 .await
                 .map_err(Into::into)
         })
+        .query("posts", |db, _: ()| async move {
+            db.post().find_many(vec![]).exec().await.map_err(Into::into)
+        })
         .build();
 }
