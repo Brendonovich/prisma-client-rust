@@ -4,7 +4,7 @@ This is an example of using [Prisma Client Rust](https://github.com/Brendonovich
 
 ## Running
 
-Generate prisma schema
+Generate Prisma client
 
 ```bash
 cargo prisma generate

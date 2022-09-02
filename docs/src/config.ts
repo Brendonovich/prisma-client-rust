@@ -45,6 +45,7 @@ export const SIDEBAR = {
       { text: 'Installation', link: 'installation' },
       { text: 'Setup', link: 'setup' },
       { text: 'Structure', link: 'structure' },
+      { text: '0.6.0 Migration', link: '0.6.0-migration' }
     ]),
     ...section("Reading Data", [
       { text: "Find Queries", link: 'find' },
