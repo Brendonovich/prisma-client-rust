@@ -18,7 +18,7 @@ pub async fn batch<T: BatchContainer<Marker>, Marker>(
         .execute_all(None, container.graphql(), true, query_schema.clone(), None)
         .await;
 
-    let response = dbg!(response).map_err(|e| QueryError::Execute(e.into()))?;
+    let response = response.map_err(|e| QueryError::Execute(e.into()))?;
 
     let data = response
         .into_iter()
