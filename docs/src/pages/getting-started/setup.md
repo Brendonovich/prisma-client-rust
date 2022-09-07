@@ -4,7 +4,7 @@ desc: Setup instructions
 layout: ../../layouts/MainLayout.astro
 ---
 
-If you have completed the [installation steps](installation) and setup the `cargo prisma <command>` alias, you are ready to add the Prisma Cliet Rust generator to your [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema). Below is an example of a schema that exists at the root of the project, uses a SQLite database and generates the client at `src/prisma.rs`:
+If you have completed the [installation steps](installation) and setup the `cargo prisma <command>` alias, you are ready to add the Prisma Client Rust generator to your [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema). Below is an example of a schema that exists at the root of the project, uses a SQLite database and generates the client at `src/prisma.rs`:
 
 ```prisma
 datasource db {
@@ -31,7 +31,7 @@ Next, run `cargo prisma generate` to generate the client that will be used in yo
 
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime. Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
 
-Using the above schema for reference, this is how to create an instance of the Primsma client in a `main.rs` file right next to `prisma.rs`:
+Using the above schema for reference, this is how to create an instance of the Prisma client in a `main.rs` file right next to `prisma.rs`:
 
 ```rust
 mod prisma;
