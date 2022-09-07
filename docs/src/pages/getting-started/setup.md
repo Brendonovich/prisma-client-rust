@@ -31,7 +31,7 @@ Next, run `cargo prisma generate` to generate the client that will be used in yo
 
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime. Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
 
-Using the above schema for reference, this is how to create an instance of the Primsma client in a `main.rs` file right next to `prisma.rs`:
+Using the above schema for reference, this is how to create an instance of the Prisma client in a `main.rs` file right next to `prisma.rs`:
 
 ```rust
 mod prisma;
