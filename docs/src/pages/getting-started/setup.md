@@ -18,8 +18,8 @@ prisma/
     migrations/
 ```
 
-Below is an example of a schema that exists in a `prisma` folder,
-uses a SQLite database and generates the client at `src/prisma.rs`:
+Below is an example of a schema located at `prisma/schema.prisma`.
+It uses a SQLite database and generates the client at `src/prisma.rs`:
 
 ```prisma
 datasource db {
