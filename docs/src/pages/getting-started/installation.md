@@ -10,6 +10,8 @@ Prisma Client Rust's installation operates in a different way to most Rust proje
 
 `prisma-client-rust-cli` contains the Prisma generator and access to the Prisma CLI, but does not provide an executable binary - this must be created yourself.
 
+Prisma Client Rust requires a minimum Rust version of v1.62.0.
+
 ## Creating a CLI Binary
 
 ### Inside Your Crate
@@ -20,6 +22,12 @@ First, the main library and CLI package must be added to your project's Cargo.to
 [dependencies]
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.0" }
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.0" }
+```
+
+The generated client will need `serde`, so run `cargo add` to install it:
+
+```
+cargo add serde
 ```
 
 You'll also need to make sure you're using edition 2021 of Rust.

@@ -61,9 +61,9 @@ export type Operations = {
 };
 
 // rspc can export types that aren't even directly used in any operations!
-export interface Comment { id: string, content: string, postID: string, post: Post | null }
+export interface Comment { id: string, content: string, postID: string }
 
-export interface Post { id: string, title: string, comments: Array<Comment> | null }
+export interface Post { id: string, title: string }
 ```
 
 This also works for [select & include](/select-include):
@@ -100,6 +100,35 @@ export type Operations = {
     queries: { key: ["posts"], result: Array<{ id: string, title: string}> }
 };
 ```
+
+### Relation types
+
+It is important to note that the types generated for models do not have fields for relations.
+This is done to provide a better experience when using `include`,
+at the expense of a worse experience using `with`/`fetch` for fetching relations.
+
+This tradeoff was made as a result of our experience building [Spacedrive](https://spacedrive.com).
+Instead of all our TypeScript functions having to verify at runtime whether a relation had been loaded or not,
+as is the case when using `with/fetch`,
+each function has to explicitly specify the relations it wants loaded:
+
+```ts
+import { User, Post } from "./exported-types"
+
+// Only recieves scalar fields of User
+function needsOneUser(user: User) {}
+
+// Receives scalar fields + posts relation of User
+function needsOneUserWithPosts(user: User & { posts: Post[] }) {}
+```
+
+There are a few downsides to this approach:
+- It is necessary to know the name and type of the relation you are including in TypeScript
+  (though this is being worked on)
+- `with/fetch` can be modified dynamically
+- `with/fetch` provides better editor autocomplete
+
+However, we've found that these downsides are outweighed by the benefits of having full type-safety across your backend and frontend.
 
 ## Error Handling
 
