@@ -265,9 +265,9 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
-            ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_vis:vis $module_name:ident { $(#selection_pattern_produce)+ }) => {
+            ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_name:ident { $(#selection_pattern_produce)+ }) => {
                 #[allow(warnings)]
-                $module_vis mod $module_name {
+                pub mod $module_name {
                     $crate::#module_path::#model_name_snake::select!(@definitions; $(#selection_pattern_consume)+);
 
                     pub struct Select(Vec<::prisma_client_rust::Selection>);
