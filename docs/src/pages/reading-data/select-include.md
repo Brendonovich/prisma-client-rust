@@ -202,7 +202,7 @@ async fn do_query() -> Vec<post_only_title::Data> {
 }
 
 // Generated type is equivalent to
-mod post_only_title {
+pub mod post_only_title {
     pub struct Data {
         title: String
     }
@@ -239,7 +239,7 @@ async fn do_query() -> Vec<post_only_title::Data> {
 }
 
 // Generated type is equivalent to
-mod post_with_comments {
+pub mod post_with_comments {
     pub struct Data {
         id: String,
         title: String,
