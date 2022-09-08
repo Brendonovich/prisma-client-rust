@@ -7,7 +7,7 @@ layout: ../../layouts/MainLayout.astro
 If you have completed the [installation steps](installation) and setup the `cargo prisma <command>` alias,
 you are ready to add the Prisma Client Rust generator to your [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema).
 
-A common file layout is as below, where the schema and migrations exist in their own folder:
+A common file layout is to give the schema and migrations their own folder:
 
 ```
 Cargo.toml
@@ -50,7 +50,7 @@ First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) as
 Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
 
 Using the above schema for reference,
-this is how to create an instance of the Primsma client in a `main.rs` file right next to `prisma.rs`:
+this is how to create an instance of the client in a `main.rs` file right next to `prisma.rs`:
 
 ```rust
 mod prisma;

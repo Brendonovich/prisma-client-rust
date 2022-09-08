@@ -5,6 +5,7 @@ authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 description = "A prisma client for Rust"
 license = "MIT"
+rust-version = "1.62"
 
 exclude = ["examples", "integration-tests"]
 
