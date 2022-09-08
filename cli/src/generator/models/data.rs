@@ -96,8 +96,11 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                 },
             };
 
+            let specta_attrs = cfg!(feature = "rspc").then(|| quote!(#[specta(skip)]));
+
             quote! {
                 #attrs
+                #specta_attrs
                 pub #field_name_snake: Option<#typ>
             }
         }

@@ -322,11 +322,16 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     let serialize_impl = {
         let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
 
+        let state_def = quote!(serializer.serialize_struct("Data", [$(stringify!($field),)+ #(stringify!(#scalar_field_names_snake)),*].len())?);
+
+        let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
+
         quote! {
             use ::serde::ser::SerializeStruct;
 
-            let mut state = serializer.serialize_struct("Data", [$(stringify!($field),)+ #(stringify!(#scalar_field_names_snake)),*].len())?;
+            let mut state = #state_def;
             $(state.serialize_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field), &self.$field)?;)*
+            #(state.serialize_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake), &self.#scalar_field_names_snake)?;)*
             state.end()
         }
     };
