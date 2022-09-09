@@ -138,6 +138,8 @@ let posts: i64 = client
     .await?;
 ```
 
+### Skip Duplicates
+
 The `create_many` builder has a `skip_duplicates` function which can be used to stop an
 error from being thrown if a unique constraint is violated,
 instead conflicting records will be ignored and the rest will be created.
