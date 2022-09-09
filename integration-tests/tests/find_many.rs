@@ -142,6 +142,43 @@ async fn cursor() -> TestResult {
     cleanup(client).await
 }
 
+// From Spacedrive
+#[tokio::test]
+async fn cursor_order() -> TestResult {
+    let client = client().await;
+
+    let user = client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
+
+    client
+        .file_path()
+        .create_many(
+            (0..1000)
+                .into_iter()
+                .map(|id| file_path::create(id, format!("File Path {id}"), user.id.clone(), vec![]))
+                .collect(),
+        )
+        .exec()
+        .await?;
+
+    let file_paths = client
+        .file_path()
+        .find_many(vec![file_path::user_id::equals(user.id.clone())])
+        .cursor(file_path::user_id_local_id(user.id.clone(), 100))
+        .order_by(file_path::local_id::order(Direction::Asc))
+        .take(200)
+        .skip(1)
+        .exec()
+        .await?;
+
+    assert_eq!(file_paths[0].local_id, 101);
+
+    cleanup(client).await
+}
+
 #[tokio::test]
 async fn filtering_one_to_one_relation() -> TestResult {
     let client = client().await;

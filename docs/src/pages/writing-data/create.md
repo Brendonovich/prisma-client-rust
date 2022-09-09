@@ -101,12 +101,16 @@ setting `post_id` from the above example with `comment::post_id::set()`.
 ## Create Many
 
 `create_many` can be used to create many records of a single model type.
-It accepts a `Vec` of tuples with the same shape as the arguments to `create`, and returns the number of records that were created.
+It accepts a `Vec` of tuples with a similar shape as the arguments to `create`,
+
+IMPORTANT: Relation fields is not supported in `create_many`,
+so connecting relations must be done by setting foreign keys directly.
+Attempting to use a relation field will produce an error.
 
 SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
 
-To assist in constructing tuples of the right shape, each model module contains a `create` function
-that takes the same arguments as a `create` query, and returns the correct tuple.
+To assist in constructing tuples of the right shape,
+each model module contains a `create` function that accepts a model's scalar fields and returns the correct tuple.
 
 The following example iterates an array of titles, turns it into tuples and creates multiple posts.
 
@@ -135,3 +139,17 @@ let posts: i64 = client
     .exec()
     .await?;
 ```
+
+The `create_many` builder has a `skip_duplicates` function which can be used to stop an
+error from being thrown if a unique constraint is violated,
+instead conflicting records will be ignored and the rest will be created.
+
+```rust
+client
+    .post()
+    .create_many(..)
+    .skip_duplicates() // No error if unique violation is broken
+    .exec()
+    .await?
+```
+

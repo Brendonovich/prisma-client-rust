@@ -12,6 +12,7 @@ where
     ctx: QueryContext<'a>,
     info: QueryInfo,
     pub set_params: Vec<Vec<Set>>,
+    pub skip_duplicates: bool,
 }
 
 impl<'a, Set> CreateMany<'a, Set>
@@ -23,10 +24,20 @@ where
             ctx,
             info,
             set_params,
+            skip_duplicates: false,
         }
     }
 
-    fn to_selection(model: &str, set_params: Vec<Vec<Set>>) -> SelectionBuilder {
+    pub fn skip_duplicates(mut self) -> Self {
+        self.skip_duplicates = true;
+        self
+    }
+
+    fn to_selection(
+        model: &str,
+        set_params: Vec<Vec<Set>>,
+        skip_duplicates: bool,
+    ) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("createMany{}", model));
 
         selection.alias("result");
@@ -41,11 +52,14 @@ where
             ),
         );
 
+        selection.push_argument("skipDuplicates", PrismaValue::Boolean(skip_duplicates));
+
         selection
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection = Self::to_selection(self.info.model, self.set_params);
+        let mut selection =
+            Self::to_selection(self.info.model, self.set_params, self.skip_duplicates);
 
         selection.push_nested_selection(BatchResult::selection());
 

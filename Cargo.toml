@@ -29,13 +29,13 @@ indexmap = "1.8.2"
 serde-value = "0.7.0"
 base64 = "0.13.0"
 
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
-schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "dcea2c532cb777afb290a613f769140647a16804" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
 
 rspc = { version = "0.0.4", optional = true, features = [
   "indexmap",

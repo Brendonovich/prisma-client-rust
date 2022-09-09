@@ -6,7 +6,7 @@ use crate::utils::*;
 /// could cause problems
 
 #[tokio::test]
-async fn test_create_many() -> TestResult {
+async fn basic() -> TestResult {
     let client = client().await;
 
     let data = vec![
@@ -23,6 +23,31 @@ async fn test_create_many() -> TestResult {
     let posts_count = client.post().create_many(data).exec().await?;
 
     assert_eq!(posts_count, 1000);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn skip_duplicates() -> TestResult {
+    let client = client().await;
+
+    let data = vec![
+        post::create(
+            "Hi from Prisma!".to_string(),
+            true,
+            vec![post::id::set("0".to_string())],
+        );
+        1000
+    ];
+
+    let posts_count = client
+        .post()
+        .create_many(data)
+        .skip_duplicates()
+        .exec()
+        .await?;
+
+    assert_eq!(posts_count, 1);
 
     cleanup(client).await
 }

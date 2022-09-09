@@ -1,23 +1,28 @@
 use crate::generator::prelude::*;
 
 pub fn model_fn(model: &dml::Model) -> TokenStream {
-    let required_fields = super::required_fields(model);
-
-    let required_field_names = required_fields
+    let scalar_field_names = model
+        .required_scalar_fields()
         .iter()
-        .map(|field| snake_ident(field.name()));
-    let required_field_types = required_fields.iter().map(|field| &field.typ);
+        .map(|f| snake_ident(f.name()))
+        .collect::<Vec<_>>();
+
+    let scalar_field_types = model
+        .required_scalar_fields()
+        .iter()
+        .map(|f| f.type_tokens())
+        .collect::<Vec<_>>();
 
     let args = {
-        let required_field_names = required_field_names.clone();
-        let required_field_types = required_field_types.clone();
+        let scalar_field_names = scalar_field_names.clone();
+        let scalar_field_types = scalar_field_types.clone();
 
-        quote!(#(#required_field_names: #required_field_types,)* _params: Vec<SetParam>)
+        quote!(#(#scalar_field_names: #scalar_field_types,)* _params: Vec<SetParam>)
     };
 
     quote! {
-        pub fn create(#args) -> (#(#required_field_types,)* Vec<SetParam>) {
-            (#(#required_field_names,)* _params)
+        pub fn create(#args) -> (#(#scalar_field_types,)* Vec<SetParam>) {
+            (#(#scalar_field_names,)* _params)
         }
     }
 }

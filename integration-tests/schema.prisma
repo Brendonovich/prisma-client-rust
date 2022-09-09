@@ -33,14 +33,25 @@ model Post {
 }
 
 model User {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   name           String
-  email          String?  @unique
-  created_at     DateTime @default(now())
-  posts          Post[]   @relation("posts")
-  favouritePosts Post[]   @relation("favouritePosts") // #53
+  email          String?    @unique
+  created_at     DateTime   @default(now())
+  posts          Post[]     @relation("posts")
+  favouritePosts Post[]     @relation("favouritePosts") // #53
   profile        Profile?
   underscored_   Int?
+  FilePath       FilePath[]
+}
+
+model FilePath {
+  local_id Int
+  path     String
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  @@id([user_id, local_id])
 }
 
 model Category {

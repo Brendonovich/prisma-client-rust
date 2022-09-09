@@ -74,5 +74,10 @@ pub fn build_schema(datamodel: &Datamodel, configuration: &Configuration) -> Dat
         referential_integrity,
     ));
 
+    // std::fs::write(
+    //     "schema.graphql",
+    //     GraphQLSchemaRenderer::render(query_schema.clone()),
+    // );
+
     from_precomputed_parts(datamodel, query_schema)
 }

@@ -46,19 +46,23 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
 pub fn create_many_fn(model: &dml::Model) -> TokenStream {
     let model_name_str = &model.name;
 
-    let required_fields = required_fields(model);
-
-    let required_field_names = required_fields
+    let scalar_field_names = model
+        .required_scalar_fields()
         .iter()
-        .map(|field| snake_ident(field.name()));
-    let required_field_types = required_fields.iter().map(|field| &field.typ);
+        .map(|f| snake_ident(f.name()))
+        .collect::<Vec<_>>();
+    let scalar_field_names2 = scalar_field_names.clone();
 
-    let create_args_params_pushes = create_args_params_pushes(model);
+    let scalar_field_types = model
+        .required_scalar_fields()
+        .iter()
+        .map(|f| f.type_tokens())
+        .collect::<Vec<_>>();
 
     quote! {
-        pub fn create_many(self, data: Vec<(#(#required_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
-            let data = data.into_iter().map(|(#(#required_field_names,)* mut _params)| {
-                #(#create_args_params_pushes;)*
+        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
+            let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
+                #(_params.push(#scalar_field_names::set(#scalar_field_names));)*
 
                 _params
             }).collect();
@@ -107,8 +111,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
     let create_many_fn = (args
         .connector
         .capabilities()
-        .contains(&ConnectorCapability::CreateMany)
-        || cfg!(feature = "sqlite-create-many"))
+        .contains(&ConnectorCapability::CreateMany))
     .then(|| create_many_fn(model));
 
     let pcr = quote!(::prisma_client_rust);

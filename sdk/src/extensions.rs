@@ -6,6 +6,7 @@ use crate::{Case, Casing};
 
 pub trait ModelExt {
     fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool;
+    fn required_scalar_fields(&self) -> Vec<&Field>;
 }
 
 impl ModelExt for Model {
@@ -17,6 +18,12 @@ impl ModelExt for Model {
                 false
             }
         })
+    }
+
+    fn required_scalar_fields(&self) -> Vec<&Field> {
+        self.fields()
+            .filter(|f| f.required_on_create() && f.is_scalar_field())
+            .collect()
     }
 }
 
