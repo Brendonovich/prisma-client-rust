@@ -102,15 +102,13 @@ setting `post_id` from the above example with `comment::post_id::set()`.
 
 `create_many` can be used to create many records of a single model type.
 It accepts a `Vec` of tuples with a similar shape as the arguments to `create`,
-
-IMPORTANT: Relation fields is not supported in `create_many`,
-so connecting relations must be done by setting foreign keys directly.
-Attempting to use a relation field will produce an error.
-
-SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
+except only scalar fields can be provided.
+Connecting relations using relation field operations is not possible.
 
 To assist in constructing tuples of the right shape,
 each model module contains a `create` function that accepts a model's scalar fields and returns the correct tuple.
+
+SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
 
 The following example iterates an array of titles, turns it into tuples and creates multiple posts.
 
