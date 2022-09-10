@@ -23,7 +23,6 @@ let (user_one, user_two, user_count): (user::Data, user::Data, i64) = client
         client.user().create(..),
         client.user().count(vec![]),
     ))
-    .exec()
     .await?;
 
 assert_eq!(user_count, 2);
@@ -43,7 +42,6 @@ let users: Vec<user::Data> = client
         client.user().create(..),
         client.user().create(..)
     ])
-    .exec()
     .await?;
 
 assert_eq!(users.len(), 3);
@@ -65,7 +63,6 @@ let user_creates = user_ids
 
 let users: Vec<user::Data> = client
     ._batch(user_creates)
-    .exec()
     .await?;
 
 assert_eq!(users.len(), 5);
