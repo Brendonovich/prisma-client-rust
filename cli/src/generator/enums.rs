@@ -31,7 +31,17 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             })
             .collect::<Vec<_>>();
 
+        let specta_derive = cfg!(feature = "rspc").then(|| {
+            let model_name_pascal_str = name.to_string();
+    
+            quote! {
+                #[derive(::prisma_client_rust::rspc::Type)]
+                #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::rspc::internal::specta")]
+            }
+        });
+
         quote! {
+            #specta_derive
             #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize)]
             pub enum #name {
                 #(#variants),*

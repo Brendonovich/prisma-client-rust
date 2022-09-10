@@ -3884,9 +3884,9 @@ dependencies = [
 
 [[package]]
 name = "rspc"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "175b44c229ea6314902120dd1fa43181b3207a5eec18a7a3c9cbcc6ec6a780db"
+checksum = "443633b1d8808c9b4e27dce8797b9062f86ae214999c825fd9133a73d6550333"
 dependencies = [
  "futures",
  "nanoid",
@@ -4333,9 +4333,9 @@ dependencies = [
 
 [[package]]
 name = "specta"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8dfbc46bfad9289e01928a228b82fdf615131212aded5497cce2d460b452e94"
+checksum = "e4145d41e1881c57b714f979ef01c8add58a1984b46f8858ea67f35fd01ebd1e"
 dependencies = [
  "chrono",
  "convert_case 0.5.0",
@@ -4998,8 +4998,8 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
- "rand 0.7.3",
+ "cfg-if 1.0.0",
+ "rand 0.8.5",
  "static_assertions",
 ]
 

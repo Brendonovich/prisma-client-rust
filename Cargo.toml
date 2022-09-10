@@ -37,7 +37,7 @@ user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", r
 dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
 schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
 
-rspc = { version = "0.0.4", optional = true, features = [
+rspc = { version = "0.0.5", optional = true, features = [
   "indexmap",
   "chrono",
   "uuid",
