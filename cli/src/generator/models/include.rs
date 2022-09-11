@@ -416,7 +416,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 }
 
                 #[allow(warnings)]
-                #[derive(std::fmt::Debug)]
+                #[derive(std::fmt::Debug, Clone)]
                 pub struct Data {
                     #(#data_struct_scalar_fields,)*
                     $(pub $field: $crate::#module_path::#model_name_snake::include!(@field_type; $field $(#selections_pattern_consume)?),)+
