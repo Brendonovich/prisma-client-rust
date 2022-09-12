@@ -6,9 +6,15 @@ edition = "2021"
 rust-version = "1.62"
 
 [features]
-default = []
+default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = []
-sqlite-create-many = ["datamodel/sqlite-create-many"]
+sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
+
+mysql = ["prisma-client-rust-sdk/mysql"]
+sqlite = ["prisma-client-rust-sdk/sqlite"]
+mssql = ["prisma-client-rust-sdk/mssql"]
+postgresql = ["prisma-client-rust-sdk/postgresql"]
+mongodb = ["prisma-client-rust-sdk/mongodb"]
 
 [dependencies]
 serde_path_to_error = "0.1.7"
@@ -18,9 +24,4 @@ serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
 proc-macro2 = "1.0.39"
 
-prisma-client-rust-sdk = { path = "../sdk" }
-
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+prisma-client-rust-sdk = { path = "../sdk", default_features = false }

@@ -9,7 +9,7 @@ mod actions;
 mod create;
 mod include;
 
-use datamodel::dml::{Field, FieldArity, IndexType}; 
+use prisma_client_rust_sdk::{prisma_datamodel::dml::{Field, FieldArity, IndexType}}; 
 use crate::generator::prelude::*;
 use std::ops::Deref;
 
