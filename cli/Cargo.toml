@@ -9,6 +9,7 @@ rust-version = "1.62"
 default = []
 rspc = []
 sqlite-create-many = ["datamodel/sqlite-create-many"]
+migrations = []
 
 [dependencies]
 serde_path_to_error = "0.1.7"

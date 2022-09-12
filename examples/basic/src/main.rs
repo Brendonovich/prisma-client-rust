@@ -6,6 +6,8 @@ pub mod db;
 pub async fn main() {
     let client = new_client().await.unwrap();
 
+    client._migrate().await.unwrap();
+
     client
         .user()
         .find_many(vec![])

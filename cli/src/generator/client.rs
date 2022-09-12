@@ -26,6 +26,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         pub struct PrismaClient {
             executor: #pcr::Executor,
             query_schema: ::std::sync::Arc<#pcr::schema::QuerySchema>,
+            url: String,
         }
 
         impl ::std::fmt::Debug for PrismaClient {
@@ -40,10 +41,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::queries::QueryContext::new(&self.executor, &self.query_schema)
             }
 
-            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>) -> Self {
+            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>, url: String) -> Self {
                 Self {
                     executor,
                     query_schema,
+                    url,
                 }
             }
 
@@ -71,6 +73,34 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::queries::Result<T::ReturnType> {
                 #pcr::batch(queries, &self.executor, &self.query_schema).await
+            }
+
+            pub async fn _migrate(&self) -> Result<(), #pcr::migrations::MigrateError> {
+                #pcr::migrations::extract_and_run_migrations(&crate::MIGRATIONS_DIR, &mut self._migration_connector()).await
+            }
+
+            pub fn _migration_connector(&self) -> Result<(), #pcr::migrations::MigrateError> {
+                use #pcr::migrations::{ConnectionInfo, ConnectorParams, BitFlags, SqlMigrationConnector, MongoDbMigrationConnector};
+                let mut connector = match &ConnectionInfo::from_url(&self.url)? {
+                    ConnectionInfo::Postgres(_) => {
+                        if self.args.provider() == "cockroachdb" {
+                            SqlMigrationConnector::new_cockroach()
+                        } else {
+                            SqlMigrationConnector::new_postgres()
+                        }
+                    }
+                    ConnectionInfo::Mysql(_) => SqlMigrationConnector::new_mysql(),
+                    ConnectionInfo::Mssql(_) => SqlMigrationConnector::new_mssql(),
+                    ConnectionInfo::Sqlite { .. } => SqlMigrationConnector::new_sqlite(),
+                    ConnectionInfo::InMemorySqlite { .. } => unreachable!(), // This is how it is in the Prisma Rust tests
+                };
+                connector.set_params(ConnectorParams {
+                    connection_string: self.url.to_string(),
+                    preview_features: BitFlags::empty(),
+                    shadow_database_connection_string: None,
+                })?;
+
+                Ok(connector)
             }
 
             #(#model_actions)*

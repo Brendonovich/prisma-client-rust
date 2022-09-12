@@ -9,11 +9,23 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
     let pcr = quote!(::prisma_client_rust);
 
+    let migrations_include = cfg!(feature = "migrations")
+        .then(|| {
+            quote!(
+                use #pcr::migrations::include_dir;
+                pub static MIGRATIONS_DIR: #pcr::migrations::include_dir::Dir =
+                    #pcr::migrations::include_dir::include_dir!("$CARGO_MANIFEST_DIR/prisma/migrations");
+            )
+        })
+        .unwrap_or_default();
+
     quote! {
         #![allow(warnings, unused)]
 
-        static DATAMODEL_STR: &'static str = #datamodel;
+        pub static DATAMODEL_STR: &'static str = #datamodel;
         static DATABASE_STR: &'static str = #database_string;
+
+        #migrations_include
 
         pub async fn new_client() -> Result<PrismaClient, #pcr::NewClientError> {
             let config = #pcr::datamodel::parse_configuration(DATAMODEL_STR)?.subject;
@@ -61,9 +73,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 source.referential_integrity(),
             ));
             executor.primary_connector().get_connection().await?;
+            let url = url.to_string();
             Ok(PrismaClient::_new(
                 executor,
                 query_schema,
+                url,
             ))
         }
     }
