@@ -6,7 +6,8 @@ pub mod db;
 pub async fn main() {
     let client = new_client().await.unwrap();
 
-    client._migrate().await.unwrap();
+    #[cfg(debug_assertions)]
+    client._db_push(false).await.unwrap();
 
     client
         .user()

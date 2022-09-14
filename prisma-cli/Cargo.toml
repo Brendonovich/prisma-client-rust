@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 prisma-client-rust-cli = { features = [
   "sqlite-create-many",
+  "migrations",
   # "rspc",
-  "migrations"
 ], path = "../cli" }

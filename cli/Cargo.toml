@@ -21,7 +21,7 @@ proc-macro2 = "1.0.39"
 
 prisma-client-rust-sdk = { path = "../sdk" }
 
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "51d3b4bb966f7a5d29b4059822af6dd1d3c9642c" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "1a9235ce5c50bb629cb63235ca8b5ca82198cada" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "1a9235ce5c50bb629cb63235ca8b5ca82198cada" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "1a9235ce5c50bb629cb63235ca8b5ca82198cada" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "1a9235ce5c50bb629cb63235ca8b5ca82198cada" }

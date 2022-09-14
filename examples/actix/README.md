@@ -4,24 +4,18 @@ This is an example of using [Prisma Client Rust](https://github.com/Brendonovich
 
 ## Running
 
-Build prisma schema
+Generate the client:
 
 ```bash
 cargo prisma generate
 ```
 
-Push schema to database
-
-```bash
-cargo prisma db push
-```
-
-Run server
+Then run the server:
 
 ```bash
 cargo run
 ```
 
-the server will be on [http://localhost:3001](http://localhost:3001)
+The server will be on [http://localhost:3001](http://localhost:3001)
 
 Written by [spicyzboss](https://github.com/spicyzboss)

@@ -1,5 +1,17 @@
+use utils::{cleanup, TestResult};
+
 mod db;
 mod utils;
+
+// No need to migrate manually if db_push can do it for you!
+#[tokio::test]
+async fn aaaa_db_push() -> TestResult {
+    let client = db::new_client().await.unwrap();
+
+    client._db_push(false).await.unwrap();
+
+    cleanup(client).await
+}
 
 pub mod batch;
 mod count;
