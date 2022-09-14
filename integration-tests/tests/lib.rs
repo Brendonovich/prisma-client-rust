@@ -4,6 +4,7 @@ mod db;
 mod utils;
 
 // No need to migrate manually if db_push can do it for you!
+// funny name to make it run first
 #[tokio::test]
 async fn aaaa_db_push() -> TestResult {
     let client = db::new_client().await.unwrap();
