@@ -33,12 +33,14 @@ fn find_migrations_path() -> Result<PathBuf, ()> {
 }
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
-    let datamodel = &args.datamodel_str;
     let database_string = &args.datasources[0].provider;
 
     let pcr = quote!(::prisma_client_rust);
 
+    let schema_path = find_schema_path().expect("Schema not found!");
     let migrations_path = find_migrations_path().expect("Migrations folder not found!");
+
+    let schema_path = schema_path.to_str().expect("Invalid schema path");
     let migrations_path = migrations_path.to_str().expect("Invalid migrations path");
 
     let migrations_include = cfg!(feature = "migrations")
@@ -54,7 +56,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     quote! {
         #![allow(warnings, unused)]
 
-        pub static DATAMODEL_STR: &'static str = #datamodel;
+        pub static DATAMODEL_STR: &'static str = include_str!(#schema_path);
         static DATABASE_STR: &'static str = #database_string;
 
         #migrations_include
