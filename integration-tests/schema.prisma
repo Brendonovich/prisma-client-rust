@@ -36,7 +36,7 @@ model User {
   id             String     @id @default(cuid())
   name           String
   email          String?    @unique
-  created_at     DateTime   @default(now())
+  createdAt      DateTime   @default(now())
   posts          Post[]     @relation("posts")
   favouritePosts Post[]     @relation("favouritePosts") // #53
   profile        Profile?

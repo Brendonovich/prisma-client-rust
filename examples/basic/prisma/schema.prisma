@@ -1,24 +1,24 @@
 datasource db {
-    provider = "sqlite"
-    url      = "file:../dev.db"
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {
-    provider = "cargo prisma"
-    output   = "../src/db.rs"
+  provider = "cargo prisma"
+  output   = "../src/db.rs"
 }
 
 model User {
-    id          String @id
-    displayName String
+  id          String @id
+  displayName String
 
-    posts Post[]
+  posts Post[]
 }
 
 model Post {
-    id      String @id
-    content String
+  id      String @id
+  content String
 
-    user   User   @relation(fields: [userId], references: [id])
-    userId String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 }

@@ -22,10 +22,23 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
     let pcr = quote!(::prisma_client_rust);
 
+    let migrate_fns = cfg!(feature = "migrations").then(|| {
+        quote! {
+            pub async fn _migrate_deploy(&self) -> Result<(), #pcr::migrations::MigrateDeployError> {
+                #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url).await
+            }
+
+            pub async fn _db_push(&self, force_reset: bool) -> Result<u32, #pcr::migrations::DbPushError> {
+                #pcr::migrations::db_push(super::DATAMODEL_STR, &self.url, force_reset).await
+            }
+        }
+    });
+
     quote! {
         pub struct PrismaClient {
             executor: #pcr::Executor,
             query_schema: ::std::sync::Arc<#pcr::schema::QuerySchema>,
+            url: String,
         }
 
         impl ::std::fmt::Debug for PrismaClient {
@@ -40,10 +53,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::queries::QueryContext::new(&self.executor, &self.query_schema)
             }
 
-            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>) -> Self {
+            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>, url: String) -> Self {
                 Self {
                     executor,
                     query_schema,
+                    url,
                 }
             }
 
@@ -72,6 +86,8 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::queries::Result<T::ReturnType> {
                 #pcr::batch(queries, &self.executor, &self.query_schema).await
             }
+
+            #migrate_fns
 
             #(#model_actions)*
         }

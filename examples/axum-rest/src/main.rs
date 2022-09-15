@@ -8,6 +8,9 @@ pub mod routes;
 async fn main() {
     let prisma_client = Arc::new(db::new_client().await.unwrap());
 
+    #[cfg(debug)]
+    prisma_client._db_push(false).await.unwrap();
+
     let app = Router::new()
         .nest("/api", routes::create_route())
         .layer(Extension(prisma_client));

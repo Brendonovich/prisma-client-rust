@@ -14,4 +14,8 @@ harness = true
 [dev-dependencies]
 tokio = { version = "1.17.0", features = ["rt", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
-prisma-client-rust = { path = "..", features = ["rspc", "sqlite-create-many"] }
+prisma-client-rust = { path = "..", features = [
+  "rspc",
+  "sqlite-create-many",
+  "migrations",
+] }

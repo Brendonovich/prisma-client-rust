@@ -1,4 +1,6 @@
 mod errors;
+#[cfg(feature = "migrations")]
+pub mod migrations;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
