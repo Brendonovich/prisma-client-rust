@@ -18,7 +18,6 @@ migrations = [
   "include_dir",
   "tempdir",
   "tokio",
-  "enumflags2",
   "tracing",
 ]
 
@@ -50,7 +49,6 @@ migration-core = { git = "https://github.com/Brendonovich/prisma-engines.git", r
 include_dir = { version = "0.7.2", optional = true }
 tempdir = { version = "0.3.7", optional = true }
 tokio = { version = "1.21.0", features = ["fs"], optional = true }
-enumflags2 = { version = "0.7.5", optional = true }
 tracing = { version = "0.1.36", optional = true }
 
 # features = "rspc"

@@ -28,6 +28,10 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url).await
             }
 
+            pub async fn _migrate_resolve(&self, migration: &str) -> Result<(), #pcr::migrations::MigrateResolveError> {
+                #pcr::migrations::migrate_resolve(migration, super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url,).await
+            }
+
             pub async fn _db_push(&self, force_reset: bool) -> Result<u32, #pcr::migrations::DbPushError> {
                 #pcr::migrations::db_push(super::DATAMODEL_STR, &self.url, force_reset).await
             }
