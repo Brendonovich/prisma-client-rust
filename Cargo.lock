@@ -3436,7 +3436,6 @@ dependencies = [
  "chrono",
  "datamodel",
  "dmmf",
- "enumflags2",
  "include_dir",
  "indexmap",
  "migration-core",
