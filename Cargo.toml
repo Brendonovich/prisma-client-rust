@@ -9,20 +9,36 @@ rust-version = "1.62"
 
 exclude = ["examples", "integration-tests"]
 
+[workspace]
+members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
+resolver = "2"
+
+[workspace.dependencies]
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines.git", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }
+
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = ["dep:rspc"]
 sqlite-create-many = ["datamodel/sqlite-create-many"]
+migrations = ["migration-core", "include_dir", "tempdir", "tokio", "tracing"]
 
-mysql = ["query-core/mysql", "datamodel/sql"]
-sqlite = ["query-core/sqlite", "datamodel/sql"]
-mssql = ["query-core/mssql", "datamodel/sql"]
-postgresql = ["query-core/mssql", "datamodel/sql"]
-mongodb = ["query-core/mongodb", "datamodel/mongodb"]
-
-[workspace]
-members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
-resolver = "2"
+mysql = ["query-core/mysql", "datamodel/sql", "migration-core/mysql"]
+sqlite = ["query-core/sqlite", "datamodel/sql", "migration-core/sqlite"]
+mssql = ["query-core/mssql", "datamodel/sql", "migration-core/mssql"]
+postgresql = [
+  "query-core/postgresql",
+  "datamodel/sql",
+  "migration-core/postgresql",
+]
+mongodb = ["query-core/mongodb", "datamodel/mongodb", "migration-core/mongodb"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -35,14 +51,22 @@ indexmap = "1.8.2"
 serde-value = "0.7.0"
 base64 = "0.13.0"
 
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
+query-core = { workspace = true }
+query-connector = { workspace = true }
+prisma-models = { workspace = true }
+datamodel = { workspace = true }
+user-facing-errors = { workspace = true }
+dmmf = { workspace = true }
+schema = { workspace = true }
 
+# features = "migrations"
+migration-core = { workspace = true, optional = true }
+include_dir = { version = "0.7.2", optional = true }
+tempdir = { version = "0.3.7", optional = true }
+tokio = { version = "1.21.0", features = ["fs"], optional = true }
+tracing = { version = "0.1.36", optional = true }
+
+# features = "rspc"
 rspc = { version = "0.0.5", optional = true, features = [
   "indexmap",
   "chrono",

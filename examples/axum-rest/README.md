@@ -4,22 +4,16 @@ This is an example of how you could use [Prisma Client Rust](https://github.com/
 
 ## Running
 
-First generate the Prisma client:
+Generate the client:
 
-```
-$ cargo prisma generate
-```
-
-Setup database:
-
-```
-$ cargo prisma db push
+```bash
+cargo prisma generate
 ```
 
 Then run the server:
 
-```
-$ cargo run
+```bash
+cargo run
 ```
 
 ## Notes

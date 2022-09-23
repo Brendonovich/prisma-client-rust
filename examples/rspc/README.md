@@ -6,19 +6,13 @@ This is an example of using Prisma Client Rust with [rspc](https://rspc.otbeaumo
 
 First, uncomment the `rspc` feature in `prisma-cli` (at the root of this repository).
 
-Then generate the prisma client
+Then geenrate the client:
 
 ```bash
 cargo prisma generate
 ```
 
-Push schema to sqlite database
-
-```bash
-cargo prisma db push
-```
-
-Run router & generate TypeScript bindings
+Then run the example:
 
 ```bash
 cargo run

@@ -35,9 +35,9 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
         let use_query_mode = match &args.connector {
             #[cfg(feature = "postgresql")]
-            c if c.is_provider(prisma_datamodel::builtin_connectors::POSTGRES.name()) => true,
+            c if c.is_provider(datamodel::builtin_connectors::POSTGRES.name()) => true,
             #[cfg(feature = "mongodb")]
-            c if c.is_provider(prisma_datamodel::builtin_connectors::MONGODB.name()) => true,
+            c if c.is_provider(datamodel::builtin_connectors::MONGODB.name()) => true,
             _ => false,
         }
         .then(|| {

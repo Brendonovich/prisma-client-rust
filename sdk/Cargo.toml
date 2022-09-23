@@ -29,10 +29,10 @@ syn = "1.0.91"
 serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
 
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "75911613d4b8684840d656db22a25d9d3fb24414" }
+datamodel = { workspace = true }
+prisma-models = { workspace = true }
+request-handlers = { workspace = true }
+query-core = { workspace = true }
+dmmf = { workspace = true }
 
 proc-macro2 = "1.0.39"

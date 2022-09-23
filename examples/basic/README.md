@@ -1,23 +1,17 @@
-# Simple Example
+# Basic Example
 
 This is an example of using Prisma Client Rust with a simple Prisma schema. It creates some records, fetches them with some relations, and then deletes them. 
 
 ## Running
 
-First generate the Prisma client:
-
-```
-$ cargo prisma generate
-```
-
-Then push the database migrations:
+Generate the client:
 
 ```bash
-$ cargo prisma db push
+cargo prisma generate
 ```
 
-Then run the server:
+Then run the example:
 
-```
-$ cargo run
+```bash
+cargo run
 ```

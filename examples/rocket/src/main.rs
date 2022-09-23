@@ -32,7 +32,7 @@ async fn get_posts(ctx: &Ctx) -> Json<Vec<post::Data>> {
 #[get("/users?<load_posts>")]
 async fn get_users(ctx: &Ctx, load_posts: Option<bool>) -> Json<Vec<user::Data>> {
     let mut query = ctx.db.user().find_many(vec![]);
-    
+
     if load_posts.unwrap_or(true) {
         query = query.with(user::posts::fetch(vec![]));
     }
@@ -43,13 +43,16 @@ async fn get_users(ctx: &Ctx, load_posts: Option<bool>) -> Json<Vec<user::Data>>
 
 #[launch]
 async fn rocket() -> _ {
+    let db = Arc::new(
+        db::new_client()
+            .await
+            .expect("Failed to create Prisma client"),
+    );
+
+    #[cfg(debug_assert)]
+    db._db_push(false).await.unwrap();
+
     rocket::build()
-        .manage(Context {
-            db: Arc::new(
-                db::new_client()
-                    .await
-                    .expect("Failed to create Prisma client"),
-            ),
-        })
+        .manage(Context { db })
         .mount("/api", routes![get_posts, get_users])
 }

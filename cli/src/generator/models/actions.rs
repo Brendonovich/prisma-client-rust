@@ -1,7 +1,6 @@
 use crate::generator::prelude::*;
-use prisma_client_rust_sdk::{
-    prisma_datamodel::datamodel_connector::ConnectorCapability, GenerateArgs,
-};
+use datamodel::datamodel_connector::ConnectorCapability;
+use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 

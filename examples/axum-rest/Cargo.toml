@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-prisma-client-rust = { path = "../.." }
+prisma-client-rust = { path = "../..", features = ["migrations"] }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 axum = "0.5"

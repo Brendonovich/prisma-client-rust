@@ -8,6 +8,14 @@ type Ctx = Arc<db::PrismaClient>;
 
 #[tokio::main]
 async fn main() {
+    let client = db::new_client().await.unwrap();
+
+    #[cfg(debug_assertions)]
+    client._db_push(false).await.unwrap();
+
+    // A router doesn't do anything on its own, you need to use it with
+    // an integration to make it do anything: https://rspc.otbeaumont.me/
+
     Router::<Ctx>::new()
         .config(Config::new().export_ts_bindings("./bindings.ts"))
         .query("users", |db, _: ()| async move {

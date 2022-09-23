@@ -8,13 +8,14 @@ rust-version = "1.62"
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = []
+migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
 
-mysql = ["prisma-client-rust-sdk/mysql"]
-sqlite = ["prisma-client-rust-sdk/sqlite"]
-mssql = ["prisma-client-rust-sdk/mssql"]
-postgresql = ["prisma-client-rust-sdk/postgresql"]
-mongodb = ["prisma-client-rust-sdk/mongodb"]
+mysql = ["datamodel/sql", "prisma-client-rust-sdk/mysql"]
+sqlite = ["datamodel/sql", "prisma-client-rust-sdk/sqlite"]
+mssql = ["datamodel/sql", "prisma-client-rust-sdk/mssql"]
+postgresql = ["datamodel/sql", "prisma-client-rust-sdk/postgresql"]
+mongodb = ["datamodel/mongodb", "prisma-client-rust-sdk/mongodb"]
 
 [dependencies]
 serde_path_to_error = "0.1.7"
@@ -25,3 +26,5 @@ serde = { version = "1.0.136", features = ["derive"] }
 proc-macro2 = "1.0.39"
 
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
+
+datamodel = { workspace = true }
