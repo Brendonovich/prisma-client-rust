@@ -1,8 +1,10 @@
+use std::{future::Future, pin::Pin};
+
 pub use include_dir;
 pub use migration_core::CoreError;
 use migration_core::{
     commands,
-    json_rpc::types::{ApplyMigrationsInput, SchemaPushInput, MarkMigrationAppliedInput},
+    json_rpc::types::{ApplyMigrationsInput, MarkMigrationAppliedInput, SchemaPushInput},
     state::EngineState,
     GenericApi,
 };
@@ -25,37 +27,89 @@ pub enum DbPushError {
     Other(#[from] migration_core::CoreError),
 }
 
-pub async fn db_push(datamodel: &str, url: &str, force_reset: bool) -> Result<u32, DbPushError> {
-    let engine_state = EngineState::new(Some(datamodel.to_string()), None);
+pub struct DbPush<'a> {
+    datamodel: &'a str,
+    url: &'a str,
+    force_reset: bool,
+    accept_data_loss: bool,
+    fut: Option<Pin<Box<dyn Future<Output = Result<u32, DbPushError>>>>>,
+}
 
-    if force_reset {
-        engine_state
-            .reset()
-            .await
-            .map_err(DbPushError::ResetFailed)?;
+impl<'a> DbPush<'a> {
+    pub fn force_reset(self) -> Self {
+        Self {
+            force_reset: true,
+            ..self
+        }
     }
 
-    let input = SchemaPushInput {
-        force: force_reset,
-        schema: datamodel.to_string(),
-    };
-
-    let output = engine_state
-        .with_connector_for_url(
-            url.to_string(),
-            Box::new(|connector| Box::pin(commands::schema_push(input, connector))),
-        )
-        .await?;
-
-    if output.unexecutable.len() > 0 {
-        return Err(DbPushError::UnexecutableChanges(output.unexecutable));
+    pub fn accept_data_loss(self) -> Self {
+        Self {
+            accept_data_loss: true,
+            ..self
+        }
     }
+}
 
-    if output.warnings.len() > 0 {
-        return Err(DbPushError::PossibleDataLoss(output.warnings));
+impl<'a> Future for DbPush<'a> {
+    type Output = Result<u32, DbPushError>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.fut.is_none() {
+            let datamodel = self.datamodel.to_string();
+            let url = self.url.to_string();
+            let force_reset = self.force_reset;
+            let accept_data_loss = self.accept_data_loss;
+
+            self.fut = Some(Box::pin(async move {
+                let engine_state = EngineState::new(Some(datamodel.clone()), None);
+
+                if force_reset {
+                    engine_state
+                        .reset()
+                        .await
+                        .map_err(DbPushError::ResetFailed)?;
+                }
+
+                let input = SchemaPushInput {
+                    force: force_reset,
+                    schema: datamodel,
+                };
+
+                let output = engine_state
+                    .with_connector_for_url(
+                        url.to_string(),
+                        Box::new(|connector| Box::pin(commands::schema_push(input, connector))),
+                    )
+                    .await?;
+
+                if output.unexecutable.len() > 0 && !force_reset {
+                    return Err(DbPushError::UnexecutableChanges(output.unexecutable));
+                }
+
+                if output.warnings.len() > 0 && !accept_data_loss {
+                    return Err(DbPushError::PossibleDataLoss(output.warnings));
+                }
+
+                Ok(output.executed_steps)
+            }));
+        }
+
+        self.fut.as_mut().unwrap().as_mut().poll(cx)
     }
+}
 
-    Ok(output.executed_steps)
+pub fn db_push<'a>(datamodel: &'a str, url: &'a str) -> DbPush<'a> {
+    DbPush {
+        datamodel,
+        url,
+        force_reset: false,
+        accept_data_loss: false,
+        fut: None,
+    }
 }
 
 #[derive(Error, Debug)]
@@ -172,7 +226,6 @@ pub async fn migrate_resolve(
             Box::new(move |connector| Box::pin(commands::mark_migration_applied(input, connector))),
         )
         .await?;
-
 
     Ok(())
 }

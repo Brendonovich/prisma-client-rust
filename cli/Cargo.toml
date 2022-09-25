@@ -27,4 +27,4 @@ proc-macro2 = "1.0.39"
 
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
 
-datamodel = { workspace = true }
+datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b" }

@@ -9,7 +9,7 @@ mod utils;
 async fn aaaa_db_push() -> TestResult {
     let client = db::new_client().await.unwrap();
 
-    client._db_push(false).await.unwrap();
+    client._db_push().await.unwrap();
 
     cleanup(client).await
 }

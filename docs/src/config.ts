@@ -65,6 +65,7 @@ export const SIDEBAR = {
       { text: "Raw Queries", link: 'raw' },
       { text: "Batching Queries", link: 'batching' },
       { text: "Error Handling", link: "error-handling" },
+      { text: "Migrations", link: 'migrations' },
       { text: "rspc Integration", link: 'rspc' }
     ])
   ],
