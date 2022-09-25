@@ -6,7 +6,7 @@ layout: ../../layouts/MainLayout.astro
 Enabling the `migrations` feature for `prisma-client-rust` and `prisma-client-rust-cli`
 will cause the generated client to expose some methods for using Prisma's
 [migration engine](https://www.prisma.io/docs/concepts/components/prisma-migrate).
-Specifically, the Prisma CLI's `db push`, `migrate deploy` and `migrate resolve` functions will have equivalent functions in the cleint.
+Specifically, the Prisma CLI's `db push`, `migrate deploy` and `migrate resolve` functions will have equivalent functions in the client.
 
 Using the migration engine in this way is not recommended unless you can't use the Prisma CLI,
 such as for desktop apps (such as those built with [Tauri](https://tauri.app/))
