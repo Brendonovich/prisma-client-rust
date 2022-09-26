@@ -9,7 +9,7 @@ will cause the generated client to expose some methods for using Prisma's
 Specifically, the Prisma CLI's `db push`, `migrate deploy` and `migrate resolve` functions will have equivalent functions in the client.
 
 Using the migration engine in this way is not recommended unless you can't use the Prisma CLI,
-such as for desktop apps (such as those built with [Tauri](https://tauri.app/))
+such as for desktop apps (like those built with [Tauri](https://tauri.app/))
 and server deployments where the CLI is not available.
 When the CLI is available, use it manually or in CI to deploy migrations.
 
