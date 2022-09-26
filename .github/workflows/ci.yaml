@@ -55,13 +55,9 @@ jobs:
     - name: Cache Dependencies
       uses: Swatinem/rust-cache@ce325b60658c1b38465c06cc965b79baf32c1e72
     
-    - name: Setup Test Database
+    - name: Generate client
       working-directory: integration-tests
-      run: cargo prisma db push
-
-    - name: Compile
-      working-directory: integration-tests
-      run: cargo test --no-run --locked
+      run: cargo prisma generate
 
     - name: Test
       run: cargo run-tests

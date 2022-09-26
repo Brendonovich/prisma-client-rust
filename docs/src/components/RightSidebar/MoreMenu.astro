@@ -1,6 +1,8 @@
 ---
 import ThemeToggleButton from "./ThemeToggleButton";
 import * as CONFIG from "../../config";
+import PrismaLogo from "../PrismaLogo.astro";
+
 const { editHref } = Astro.props;
 const showMoreSection = CONFIG.COMMUNITY_INVITE_URL || editHref;
 ---
@@ -32,6 +34,12 @@ const showMoreSection = CONFIG.COMMUNITY_INVITE_URL || editHref;
         </path>
       </svg>
       <span>GitHub Repository</span>
+    </a>
+  </li>
+  <li class="heading-link depth-2">
+    <a class="-ml-0.5" href="https://prisma.io/docs" target="_blank">
+      <PrismaLogo size={20} />
+      <span>Prisma Docs</span>
     </a>
   </li>
   {

@@ -259,13 +259,19 @@ impl GenerateArgs {
             filters
         };
 
-        use builtin_connectors::{COCKROACH, MONGODB, MSSQL, MYSQL, POSTGRES, SQLITE};
+        use builtin_connectors::*;
         let connector = match &datasources[0].provider {
+            #[cfg(feature = "sqlite")]
             p if SQLITE.is_provider(p) => SQLITE,
+            #[cfg(feature = "postgresql")]
             p if POSTGRES.is_provider(p) => POSTGRES,
-            p if MSSQL.is_provider(p) => MSSQL,
-            p if MYSQL.is_provider(p) => MYSQL,
+            #[cfg(feature = "postgresql")]
             p if COCKROACH.is_provider(p) => COCKROACH,
+            #[cfg(feature = "mssql")]
+            p if MSSQL.is_provider(p) => MSSQL,
+            #[cfg(feature = "mysql")]
+            p if MYSQL.is_provider(p) => MYSQL,
+            #[cfg(feature = "mongodb")]
             p if MONGODB.is_provider(p) => MONGODB,
             _ => unreachable!(),
         };

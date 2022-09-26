@@ -16,7 +16,6 @@ use runtime::{run_generator, GeneratorMetadata};
 
 pub use args::GenerateArgs;
 pub use casing::*;
-pub use datamodel as prisma_datamodel;
 pub use extensions::*;
 
 pub trait PrismaGenerator: DeserializeOwned {
