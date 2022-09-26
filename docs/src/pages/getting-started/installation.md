@@ -20,8 +20,8 @@ First, the main library and CLI package must be added to your project's Cargo.to
 
 ```toml
 [dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.1" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.1" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
 ```
 
 The generated client will need `serde`, so run `cargo add` to install it:
@@ -110,6 +110,17 @@ resolver = "2"
 ```
 
 This is not necessary for regular workspaces & single packages since they can use `edition = "2021"`, but virtual workspaces are special for some reason.
+
+## Specifying Your Database
+
+As of version 0.6.2,
+Prisma Client Rust allows you to specify precisely which database connectors your project uses,
+in order to avoid compiling the other connectors that Prisma supports.
+This reduces compile times and binary sizes.
+
+To start, set `default-features = false` for both `prisma-client-rust` and `prisma-client-rust-cli`.
+Then add each database you would like to support as a feature for both crates.
+The possible values are `postgresql`, `mysql`, `sqlite`, `mssql` and `mongodb`.
 
 
 ## Why is a CLI Binary Not Provided?

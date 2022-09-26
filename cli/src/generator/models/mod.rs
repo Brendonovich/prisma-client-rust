@@ -9,7 +9,7 @@ mod actions;
 mod create;
 mod include;
 
-use datamodel::dml::{Field, FieldArity, IndexType}; 
+use datamodel::dml::{Field, FieldArity, IndexType};
 use crate::generator::prelude::*;
 use std::ops::Deref;
 
