@@ -32,7 +32,7 @@ pub struct DbPush<'a> {
     url: &'a str,
     force_reset: bool,
     accept_data_loss: bool,
-    fut: Option<Pin<Box<dyn Future<Output = Result<u32, DbPushError>>>>>,
+    fut: Option<Pin<Box<dyn Future<Output = Result<u32, DbPushError>> + Send>>>,
 }
 
 impl<'a> DbPush<'a> {
