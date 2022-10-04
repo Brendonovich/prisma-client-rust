@@ -158,7 +158,14 @@ async fn cursor_order() -> TestResult {
         .create_many(
             (0..1000)
                 .into_iter()
-                .map(|id| file_path::create(id, format!("File Path {id}"), user.id.clone(), vec![]))
+                .map(|id| {
+                    file_path::create_unchecked(
+                        id,
+                        format!("File Path {id}"),
+                        user.id.clone(),
+                        vec![],
+                    )
+                })
                 .collect(),
         )
         .exec()
