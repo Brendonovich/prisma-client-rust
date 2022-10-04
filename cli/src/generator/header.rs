@@ -38,13 +38,13 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let schema_path = find_schema_path().expect("Schema not found!");
-    let migrations_path = find_migrations_path().expect("Migrations folder not found!");
-
     let schema_path = schema_path.to_str().expect("Invalid schema path");
-    let migrations_path = migrations_path.to_str().expect("Invalid migrations path");
 
     let migrations_include = cfg!(feature = "migrations")
         .then(|| {
+            let migrations_path = find_migrations_path().expect("Migrations folder not found!");
+            let migrations_path = migrations_path.to_str().expect("Invalid migrations path");
+
             quote!(
                 use #pcr::migrations::include_dir;
                 pub static MIGRATIONS_DIR: &#pcr::migrations::include_dir::Dir =

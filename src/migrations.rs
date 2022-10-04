@@ -171,6 +171,8 @@ pub async fn migrate_deploy(
         tracing::debug!("Applied migration '{}'", migration);
     }
 
+    tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
     Ok(())
 }
 

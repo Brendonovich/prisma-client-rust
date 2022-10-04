@@ -729,7 +729,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let set_params_enum = set_params::enum_definition(&model, args);
         let order_by_params_enum = order_by::enum_definition(&model);
         let outputs_fn = outputs::model_fn(&model);
-        let create_fn = create::model_fn(&model);
+        let create_fn = create::model_fns(&model);
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
         let select_macro = select::generate_macro(model, &module_path);

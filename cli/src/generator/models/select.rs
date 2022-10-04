@@ -210,17 +210,14 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         }
     };
 
-    let serialize_impl = {
-        let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
+    let serialize_impl = quote! {
+        use ::serde::ser::SerializeStruct;
 
-        quote! {
-            use ::serde::ser::SerializeStruct;
-
-            let mut state = serializer.serialize_struct("Data", [$(stringify!($field),)+].len())?;
-            $(state.serialize_field($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field), &self.$field)?;)*
-            state.end()
-        }
+        let mut state = serializer.serialize_struct("Data", [$(stringify!($field),)+].len())?;
+        $(state.serialize_field($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field), &self.$field)?;)*
+        state.end()
     };
+    
 
     let specta_impl = cfg!(feature = "rspc").then(|| {
         let specta = quote!(prisma_client_rust::rspc::internal::specta);
