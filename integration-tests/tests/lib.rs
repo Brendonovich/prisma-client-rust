@@ -9,7 +9,13 @@ mod utils;
 async fn aaaa_db_push() -> TestResult {
     let client = db::new_client().await.unwrap();
 
-    client._db_push().await.unwrap();
+    client._migrate_deploy().await.unwrap();
+
+    client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
 
     cleanup(client).await
 }

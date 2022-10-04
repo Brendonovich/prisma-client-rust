@@ -25,7 +25,12 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     let migrate_fns = cfg!(feature = "migrations").then(|| {
         quote! {
             pub async fn _migrate_deploy(&self) -> Result<(), #pcr::migrations::MigrateDeployError> {
-                #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url).await
+                let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url).await;
+
+                // don't ask, just accept
+                tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+                res
             }
 
             pub async fn _migrate_resolve(&self, migration: &str) -> Result<(), #pcr::migrations::MigrateResolveError> {
