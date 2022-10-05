@@ -7,5 +7,5 @@ default-run = "rspc-example"
 [dependencies]
 prisma-client-rust = { features = ["rspc", "migrations"], path = "../../" }
 serde = { version = "1.0", features = ["derive"] }
-rspc = { version = "0.0.5" }
+rspc = { version = "0.1.2" }
 tokio = "1.20.1"
