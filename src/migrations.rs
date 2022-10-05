@@ -36,18 +36,14 @@ pub struct DbPush<'a> {
 }
 
 impl<'a> DbPush<'a> {
-    pub fn force_reset(self) -> Self {
-        Self {
-            force_reset: true,
-            ..self
-        }
+    pub fn force_reset(mut self) -> Self {
+        self.force_reset = true;
+        self
     }
 
-    pub fn accept_data_loss(self) -> Self {
-        Self {
-            accept_data_loss: true,
-            ..self
-        }
+    pub fn accept_data_loss(mut self) -> Self {
+        self.accept_data_loss = true;
+        self
     }
 }
 
@@ -126,54 +122,102 @@ pub enum MigrateDeployError {
     RemoveDir(std::io::Error),
 }
 
-pub async fn migrate_deploy(
-    datamodel: &str,
-    migrations: &include_dir::Dir<'_>,
-    url: &str,
-) -> Result<(), MigrateDeployError> {
-    let temp_dir = tempdir::TempDir::new("prisma-client-rust-migrations")
-        .map_err(MigrateDeployError::CreateDir)?
-        .into_path();
+pub struct MigrateDeploy<'a> {
+    datamodel: &'a str,
+    migrations: &'static include_dir::Dir<'static>,
+    url: &'a str,
+    temp_dir: Option<String>,
+    fut: Option<Pin<Box<dyn Future<Output = Result<(), MigrateDeployError>> + Send>>>,
+}
 
-    let temp_dir_str = match temp_dir.to_str() {
-        Some(p) => p.to_string(),
-        None => {
-            remove_dir_all(&temp_dir)
-                .await
-                .map_err(MigrateDeployError::RemoveDir)?;
-
-            return Err(MigrateDeployError::InvalidDirectory);
-        }
-    };
-
-    migrations
-        .extract(&temp_dir)
-        .map_err(MigrateDeployError::ExtractMigrations)?;
-
-    let engine_state = EngineState::new(Some(datamodel.to_string()), None);
-
-    let input = ApplyMigrationsInput {
-        migrations_directory_path: temp_dir_str.to_string(),
-    };
-
-    let output = engine_state
-        .with_connector_for_url(
-            url.to_string(),
-            Box::new(|connector| Box::pin(commands::apply_migrations(input, connector))),
-        )
-        .await;
-
-    remove_dir_all(&temp_dir)
-        .await
-        .map_err(MigrateDeployError::RemoveDir)?;
-
-    for migration in output?.applied_migration_names {
-        tracing::debug!("Applied migration '{}'", migration);
+impl<'a> MigrateDeploy<'a> {
+    pub fn with_temp_dir(mut self, dir: &str) -> Self {
+        self.temp_dir = Some(dir.to_string());
+        self
     }
+}
 
-    tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+pub fn migrate_deploy<'a>(
+    datamodel: &'a str,
+    migrations: &'static include_dir::Dir<'static>,
+    url: &'a str,
+) -> MigrateDeploy<'a> {
+    MigrateDeploy {
+        datamodel,
+        migrations,
+        url,
+        temp_dir: None,
+        fut: None,
+    }
+}
 
-    Ok(())
+impl<'a> Future for MigrateDeploy<'a> {
+    type Output = Result<(), MigrateDeployError>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.fut.is_none() {
+            let datamodel = self.datamodel.to_string();
+            let url = self.url.to_string();
+            let migrations = self.migrations;
+            let temp_dir = self.temp_dir;
+
+            self.fut = Some(Box::pin(async move {
+                let temp_dir = match temp_dir {
+                    Some(d) => d,
+                    None => tempdir::TempDir::new("prisma-client-rust-migrations")
+                        .map_err(MigrateDeployError::CreateDir)?
+                        .into_path()
+                };
+
+                let temp_dir_str = match temp_dir.to_str() {
+                    Some(p) => p.to_string(),
+                    None => {
+                        remove_dir_all(&temp_dir)
+                            .await
+                            .map_err(MigrateDeployError::RemoveDir)?;
+
+                        return Err(MigrateDeployError::InvalidDirectory);
+                    }
+                };
+
+                migrations
+                    .extract(&temp_dir)
+                    .map_err(MigrateDeployError::ExtractMigrations)?;
+
+                let engine_state = EngineState::new(Some(datamodel.to_string()), None);
+
+                let input = ApplyMigrationsInput {
+                    migrations_directory_path: temp_dir_str.to_string(),
+                };
+
+                let output = engine_state
+                    .with_connector_for_url(
+                        url.to_string(),
+                        Box::new(|connector| Box::pin(commands::apply_migrations(input, connector))),
+                    ) {
+                           
+                        }
+                    .await;
+
+                remove_dir_all(&temp_dir)
+                    .await
+                    .map_err(MigrateDeployError::RemoveDir)?;
+
+                for migration in output?.applied_migration_names {
+                    tracing::debug!("Applied migration '{}'", migration);
+                }
+
+                tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+
+                Ok(())
+            }));
+        }
+
+        self.fut.as_mut().unwrap().as_mut().poll(cx)
+    }
 }
 
 #[derive(Error, Debug)]
