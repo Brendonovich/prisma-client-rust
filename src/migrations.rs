@@ -162,25 +162,17 @@ impl<'a> Future for MigrateDeploy<'a> {
             let datamodel = self.datamodel.to_string();
             let url = self.url.to_string();
             let migrations = self.migrations;
-            let temp_dir = self.temp_dir;
+            let temp_dir = self.temp_dir.clone();
 
             self.fut = Some(Box::pin(async move {
                 let temp_dir = match temp_dir {
-                    Some(d) => d,
+                    Some(d) => d.to_string(),
                     None => tempdir::TempDir::new("prisma-client-rust-migrations")
                         .map_err(MigrateDeployError::CreateDir)?
                         .into_path()
-                };
-
-                let temp_dir_str = match temp_dir.to_str() {
-                    Some(p) => p.to_string(),
-                    None => {
-                        remove_dir_all(&temp_dir)
-                            .await
-                            .map_err(MigrateDeployError::RemoveDir)?;
-
-                        return Err(MigrateDeployError::InvalidDirectory);
-                    }
+                        .to_str()
+                        .unwrap()
+                        .to_string()
                 };
 
                 migrations
@@ -190,16 +182,14 @@ impl<'a> Future for MigrateDeploy<'a> {
                 let engine_state = EngineState::new(Some(datamodel.to_string()), None);
 
                 let input = ApplyMigrationsInput {
-                    migrations_directory_path: temp_dir_str.to_string(),
+                    migrations_directory_path: temp_dir.to_string(),
                 };
 
                 let output = engine_state
                     .with_connector_for_url(
                         url.to_string(),
                         Box::new(|connector| Box::pin(commands::apply_migrations(input, connector))),
-                    ) {
-                           
-                        }
+                    )
                     .await;
 
                 remove_dir_all(&temp_dir)
