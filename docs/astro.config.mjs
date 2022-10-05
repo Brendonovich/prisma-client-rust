@@ -1,13 +1,17 @@
-import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
+import { defineConfig } from "astro/config";
+import preact from "@astrojs/preact";
+
 import tailwind from "@astrojs/tailwind";
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [react(), tailwind({
-    config: {
-      applyBaseStyles: false
-    }
-  })],
-  site: `https://prisma.brendonovich.dev`
+  integrations: [
+    preact(),
+    tailwind({
+      config: {
+        applyBaseStyles: false,
+      },
+    }),
+  ],
+  site: `https://prisma.brendonovich.dev`,
 });
