@@ -200,6 +200,7 @@ impl<'a> Future for MigrateDeploy<'a> {
                     tracing::debug!("Applied migration '{}'", migration);
                 }
 
+                // apparently migrate deploy needs some time
                 tokio::time::sleep(core::time::Duration::from_millis(1)).await;
 
                 Ok(())
