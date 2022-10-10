@@ -10,7 +10,7 @@ async fn basic() -> TestResult {
     let client = client().await;
 
     let data = vec![
-        post::create(
+        post::create_unchecked(
             "Hi from Prisma!".to_string(),
             true,
             vec![post::desc::set(Some(
@@ -32,7 +32,7 @@ async fn skip_duplicates() -> TestResult {
     let client = client().await;
 
     let data = vec![
-        post::create(
+        post::create_unchecked(
             "Hi from Prisma!".to_string(),
             true,
             vec![post::id::set("0".to_string())],

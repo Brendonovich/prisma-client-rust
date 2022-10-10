@@ -132,7 +132,6 @@ it was possible to `cargo install prisma-client-rust-cli` and have a global inst
 This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly,
 plus it went against the recommmended installation instructions of Prisma Client 
 [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres),
-
 [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md),
 and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).
 
