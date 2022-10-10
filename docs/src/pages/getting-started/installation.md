@@ -70,7 +70,10 @@ Thankfully, there's a more reliable method:
 
 ### As a Workspace Crate
 
-Move the CLI binary to a separate crate and configure your project to use [Cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). Below is a sample project structure that has one binary target in `src/main.rs`, and a separate crate for the CLI named `prisma-cli`, which is included in the [workspace members](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html#:~:text=%5Bworkspace%5D-,members%20%3D%20%5B,-%22adder%22%2C%0A%5D) of `Cargo.toml`.
+Move the CLI binary to a separate crate and configure your project to use
+[Cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html).
+Below is a sample project structure that has one binary target in `src/main.rs`,
+and a separate crate for the CLI named `prisma-cli` which is included in the workspace members of `Cargo.toml`.
 
 ```
 Cargo.toml
@@ -122,7 +125,6 @@ To start, set `default-features = false` for both `prisma-client-rust` and `pris
 Then add each database you would like to support as a feature for both crates.
 The possible values are `postgresql`, `mysql`, `sqlite`, `mssql` and `mongodb`.
 
-
 ## Why is a CLI Binary Not Provided?
 
 In older versions of Prisma Client Rust,
@@ -130,6 +132,7 @@ it was possible to `cargo install prisma-client-rust-cli` and have a global inst
 This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly,
 plus it went against the recommmended installation instructions of Prisma Client 
 [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres),
+
 [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md),
 and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).
 
