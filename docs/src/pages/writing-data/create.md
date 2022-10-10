@@ -106,7 +106,9 @@ except only scalar fields can be provided.
 Connecting relations using relation field operations is not possible.
 
 To assist in constructing tuples of the right shape,
-each model module contains a `create` function that accepts a model's scalar fields and returns the correct tuple.
+each model module contains a `create_unchecked` function that accepts a model's scalar fields and returns the correct tuple.
+`unchecked` is a Prisma term,
+describing inputs that only accept a model's scalar fields.
 
 SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
 
@@ -126,8 +128,7 @@ let posts: i64 = client
     .create_many(
         titles
             .iter()
-            // Same shape as post().create()
-            .map(|title| post::create( 
+            .map(|title| post::create_unchecked( 
                 true,
                 title.to_string(),
                 vec![]
