@@ -160,4 +160,4 @@ fn main() -> Router {
 }
 ```
 
-For specifics on error handling in rpsc, see [the documentation](https://rspc.otbeaumont.me/server/error-handling/).
+For specifics on error handling in rpsc, see [the documentation](https://rspc.dev/server/error-handling/).
