@@ -49,7 +49,7 @@ dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97f
 schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
 
 # features = "migrations"
-migration-core = { git = "https://github.com/Brendonovich/prisma-engines.git", rev = "5bacc96c3527f6a9e50c8011528fb64ac04e350b", optional = true }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines.git", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93", optional = true }
 include_dir = { version = "0.7.2", optional = true }
 tempdir = { version = "0.3.7", optional = true }
 tokio = { version = "1.21.0", features = ["fs"], optional = true }

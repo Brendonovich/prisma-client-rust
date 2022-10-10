@@ -44,6 +44,11 @@ Next, run `cargo prisma generate` to generate the client that will be used in yo
 If you have `rustfmt` installed,
 the generated code will be formatted for easier exploration and debugging.
 
+NOTE: The generated client must not be checked into source control.
+It cannot be transferred between devices or operating systems.
+You will need to re-generate it wherever you build your project.
+If using git, add it to your `.gitignore` file.
+
 ## Creating the Client
 
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime.
