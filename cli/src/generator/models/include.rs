@@ -182,82 +182,17 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!((@field_serde_name; #field_name_snake) => { #field_name_str };)
     });
 
+    let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name)).collect::<Vec<_>>();
+
     let deserialize_impl = {
         let field_names_str = model.fields().map(|f| f.name());
 
-        let enum_def = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(enum Field {
-                $($field),+,
-                #(#scalar_field_names_snake),*
-            })
-        };
-
-        let expecting_str = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(concat!(
-                $($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field), ", "),+,
-                #($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake), ", "),*
-            ))
-        };
-
-        let visitor_matches = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(
-                $($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field) => Ok(Field::$field)),*,
-                #($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake) => Ok(Field::#scalar_field_names_snake)),*
-            )
-        };
-
-        let visit_map_inits = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(
-                $(let mut $field = None;)*
-                #(let mut #scalar_field_names_snake = None;)*
-            )
-        };
-
-        let visit_map_arms = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote! {
-                #(Field::#scalar_field_names_snake => {
-                    if #scalar_field_names_snake.is_some() {
-                        return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake)));
-                    }
-                    #scalar_field_names_snake = Some(map.next_value()?);
-                })*
-                $(Field::$field => {
-                    if $field.is_some() {
-                        return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field)));
-                    }
-                    $field = Some(map.next_value()?);
-                })*
-            }
-        };
-
-        let visit_map_validates = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(
-                $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field)))?;)*
-                #(let #scalar_field_names_snake = #scalar_field_names_snake.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake)))?;)*
-            )
-        };
-
-        let visit_map_return = {
-            let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-            quote!(Ok(Data { #(#scalar_field_names_snake),*, $($field),* }))
-        };
-
         quote! {
             #[allow(warnings)]
-            #enum_def
+            enum Field {
+                $($field),+,
+                #(#scalar_field_names_snake),*
+            }
 
             impl<'de> ::serde::Deserialize<'de> for Field {
                 fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
@@ -270,7 +205,10 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         type Value = Field;
 
                         fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                            formatter.write_str(#expecting_str)
+                            formatter.write_str(concat!(
+                                $($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field), ", "),+,
+                                #($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake), ", "),*
+                            ))
                         }
 
                         fn visit_str<E>(self, value: &str) -> Result<Field, E>
@@ -278,7 +216,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                             E: ::serde::de::Error,
                         {
                             match value {
-                                #visitor_matches,
+                                $($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field) => Ok(Field::$field)),*,
+                                #($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake) => Ok(Field::#scalar_field_names_snake)),*,
                                 _ => Err(::serde::de::Error::unknown_field(value, FIELDS)),
                             }
                         }
@@ -301,16 +240,30 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 where
                     V: ::serde::de::MapAccess<'de>,
                 {
-                    #visit_map_inits
+                    $(let mut $field = None;)*
+                    #(let mut #scalar_field_names_snake = None;)*
 
                     while let Some(key) = map.next_key()? {
                         match key {
-                            #visit_map_arms
+                            #(Field::#scalar_field_names_snake => {
+                                if #scalar_field_names_snake.is_some() {
+                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake)));
+                                }
+                                #scalar_field_names_snake = Some(map.next_value()?);
+                            })*
+                            $(Field::$field => {
+                                if $field.is_some() {
+                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field)));
+                                }
+                                $field = Some(map.next_value()?);
+                            })*
                         }
                     }
                     
-                    #visit_map_validates
-                    #visit_map_return
+                    $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field)))?;)*
+                    #(let #scalar_field_names_snake = #scalar_field_names_snake.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake)))?;)*
+
+                    Ok(Data { #(#scalar_field_names_snake),*, $($field),* })
                 }
             }
 
@@ -320,16 +273,16 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     };
 
     let serialize_impl = {
-        let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
-        let state_def = quote!(serializer.serialize_struct("Data", [$(stringify!($field),)+ #(stringify!(#scalar_field_names_snake)),*].len())?);
-
-        let scalar_field_names_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
-
         quote! {
             use ::serde::ser::SerializeStruct;
 
-            let mut state = #state_def;
+            let mut state = serializer.serialize_struct(
+                "Data", 
+                [
+                    $(stringify!($field),)+
+                    #(stringify!(#scalar_field_names_snake)),*
+                ].len()
+            )?;
             $(state.serialize_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; $field), &self.$field)?;)*
             #(state.serialize_field($crate::#module_path::#model_name_snake::include!(@field_serde_name; #scalar_field_names_snake), &self.#scalar_field_names_snake)?;)*
             state.end()

@@ -1,12 +1,14 @@
 ---
 import { getLanguageFromURL, KNOWN_LANGUAGE_CODES } from "../../languages";
 import * as CONFIG from "../../config";
-import AstroLogo from "./AstroLogo.astro";
+import PrismaLogo from "../PrismaLogo.astro";
 import SkipToContent from "./SkipToContent.astro";
 import SidebarToggle from "./SidebarToggle";
 import LanguageSelect from "./LanguageSelect";
-import Search from "./Search";
 
+interface Props {
+  currentPage: string;
+}
 const { currentPage } = Astro.props;
 const lang = currentPage && getLanguageFromURL(currentPage);
 ---
@@ -26,7 +28,7 @@ const lang = currentPage && getLanguageFromURL(currentPage);
         href="/"
         class="flex py-2 px-1 -my-2 -mx-1 font-bold decoration-none text-[color:var(--theme-text)] transition transition-color"
       >
-        <AstroLogo size={40} />
+        <PrismaLogo size={40} />
         <h1 class="logo-name decoration-none m-0 hidden md:block">
           {CONFIG.SITE.title ?? "Documentation"}
         </h1>

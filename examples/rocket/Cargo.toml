@@ -6,6 +6,6 @@ edition = "2021"
 default-run = "rocket-example"
 
 [dependencies]
-prisma-client-rust = { path="../../" }
+prisma-client-rust = { path = "../../", features = ["migrations"] }
 serde = { version = "1.0", features = ["derive"] }
-rocket =  { version = "0.5.0-rc.2", features =  ["json" ] }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }

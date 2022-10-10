@@ -4,25 +4,21 @@ This is an example of using [Prisma Client Rust](https://github.com/Brendonovich
 
 ## Running
 
-Generate Prisma client
+Generate the client:
 
 ```bash
 cargo prisma generate
 ```
 
-Push schema to sqlite database
-
-```bash
-cargo prisma db push
-```
-
-Run server
+Then run the server:
 
 ```bash
 cargo run
 ```
 
-Server is configured using `Rocket.toml` or environment variables. By default, this server is configured for [http://localhost:8080](http://localhost:8080). Read about Rocket configuration [here](https://rocket.rs/v0.5-rc/guide/configuration/).
+Server is configured using `Rocket.toml` or environment variables.
+By default, this server is configured for [http://localhost:8080](http://localhost:8080).
+Read about Rocket configuration [here](https://rocket.rs/v0.5-rc/guide/configuration/).
 
 Written by [Aaron Leopold](https://github.com/aaronleopold)
 

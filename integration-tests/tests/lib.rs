@@ -1,5 +1,22 @@
+use utils::{cleanup, TestResult};
+
 mod db;
 mod utils;
+
+#[tokio::test]
+async fn aaaa_run_migrations() -> TestResult {
+    let client = db::new_client().await.unwrap();
+
+    client._migrate_deploy().await.unwrap();
+
+    client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
+
+    cleanup(client).await
+}
 
 pub mod batch;
 mod count;

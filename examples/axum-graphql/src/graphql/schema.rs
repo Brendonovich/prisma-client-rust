@@ -13,6 +13,9 @@ pub async fn build_schema() -> AppSchema {
         .await
         .expect("Failed to create Prisma client");
 
+    #[cfg(debug_assertions)]
+    db._db_push(false).await.unwrap();
+
     // For more information about schema data, see: https://async-graphql.github.io/async-graphql/en/context.html#schema-data
     Schema::build(Query::default(), Mutation::default(), EmptySubscription)
         .data(db)

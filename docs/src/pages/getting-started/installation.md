@@ -20,8 +20,8 @@ First, the main library and CLI package must be added to your project's Cargo.to
 
 ```toml
 [dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.1" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.1" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
 ```
 
 The generated client will need `serde`, so run `cargo add` to install it:
@@ -37,7 +37,9 @@ You'll also need to make sure you're using edition 2021 of Rust.
 edition = "2021"
 ```
 
-The easiest way to create a binary to access the CLI through is by creating a `src/bin` folder if you don't already have one, and inside it creating a file called something like `prisma.rs` (This will determine the name of your binary). Inside this file insert the following:
+The easiest way to create a binary to access the CLI through is by creating a `src/bin` folder if you don't already have one,
+and inside it creating a file called something like `prisma.rs` (This will determine the name of your binary).
+Inside this file put the following:
 
 ```rust
 fn main() {
@@ -88,16 +90,15 @@ prisma-cli/
 For the above example,
 `Cargo.toml` would include `prisma-client-rust` as a dependency as it is required by the generated file,
 whereas `prisma-cli/Cargo.toml` would include `prisma-client-rust-cli` as a dependency,
-and so the binary in `src/main.rs` would not be bundled with all the CLI code, only the required library code.
+and so the binary in `src/main.rs` would not be bundled with all the CLI code,
+only the required library code.
 
-You will also need to modify your `cargo prisma` alias to run the new crate:
+You will also need to update the `cargo prisma` alias to run the new crate:
 
 ```toml
 [alias]
 prisma = "run -p <prisma crate name> --"
 ```
-
-Twhis 
 
 #### A Note on Virtual Workspaces
 
@@ -113,15 +114,25 @@ resolver = "2"
 
 This is not necessary for regular workspaces & single packages since they can use `edition = "2021"`, but virtual workspaces are special for some reason.
 
+## Specifying Your Database
+
+As of version 0.6.2,
+Prisma Client Rust allows you to specify precisely which database connectors your project uses,
+in order to avoid compiling the other connectors that Prisma supports.
+This reduces compile times and binary sizes.
+
+To start, set `default-features = false` for both `prisma-client-rust` and `prisma-client-rust-cli`.
+Then add each database you would like to support as a feature for both crates.
+The possible values are `postgresql`, `mysql`, `sqlite`, `mssql` and `mongodb`.
 
 ## Why is a CLI Binary Not Provided?
 
 In older versions of Prisma Client Rust,
 it was possible to `cargo install prisma-client-rust-cli` and have a global install of the CLI available to use at any time.
-This had a major problem though: Versioning.
-Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly,
-plus it went against the recommmended installation instructions of
-Prisma Client [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres),
+This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly,
+plus it went against the recommmended installation instructions of Prisma Client 
+[JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres),
+
 [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md),
 and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).
 
