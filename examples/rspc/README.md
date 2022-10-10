@@ -1,6 +1,6 @@
 # rspc Example
 
-This is an example of using Prisma Client Rust with [rspc](https://rspc.otbeaumont.me).
+This is an example of using Prisma Client Rust with [rspc](https://rspc.dev).
 
 ## Running
 
