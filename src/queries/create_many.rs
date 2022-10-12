@@ -12,7 +12,6 @@ where
     ctx: QueryContext<'a>,
     info: QueryInfo,
     pub set_params: Vec<Vec<Set>>,
-    #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
     pub skip_duplicates: bool,
 }
 
@@ -25,7 +24,6 @@ where
             ctx,
             info,
             set_params,
-            #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
             skip_duplicates: false,
         }
     }
@@ -39,7 +37,7 @@ where
     fn to_selection(
         model: &str,
         set_params: Vec<Vec<Set>>,
-        #[cfg(not(any(feature = "mongodb", feature = "mssql")))] skip_duplicates: bool,
+        skip_duplicates: bool,
     ) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("createMany{}", model));
 
@@ -62,12 +60,8 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
         let mut selection =
             Self::to_selection(self.info.model, self.set_params, self.skip_duplicates);
-
-        #[cfg(any(feature = "mongodb", feature = "mssql"))]
-        let mut selection = Self::to_selection(self.info.model, self.set_params);
 
         selection.push_nested_selection(BatchResult::selection());
 
