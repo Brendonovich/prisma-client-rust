@@ -28,6 +28,7 @@ where
         }
     }
 
+    #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
     pub fn skip_duplicates(mut self) -> Self {
         self.skip_duplicates = true;
         self
@@ -52,6 +53,7 @@ where
             ),
         );
 
+        #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
         selection.push_argument("skipDuplicates", PrismaValue::Boolean(skip_duplicates));
 
         selection
