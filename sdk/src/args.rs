@@ -288,30 +288,32 @@ impl GenerateArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.read_filters.iter().find(|f| f.name == typ)
             }
-
-            self.read_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.write_filters.iter().find(|f| f.name == typ)
             }
-
-            self.write_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 }

@@ -5,9 +5,10 @@ use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::{
+    include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    BatchQuery, include::{IncludeType, Include},
+    BatchQuery,
 };
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
@@ -109,7 +110,13 @@ where
         if order_by_params.len() > 0 {
             selection.push_argument(
                 "orderBy".to_string(),
-                PrismaValue::Object(order_by_params.into_iter().map(Into::into).collect()),
+                PrismaValue::List(
+                    order_by_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(|v| PrismaValue::Object(vec![v]))
+                        .collect(),
+                ),
             );
         }
 
@@ -150,7 +157,10 @@ where
         Select::new(self.ctx, op)
     }
 
-    pub fn include<I: IncludeType<ModelData = Data>>(self, include: I) -> Include<'a, Vec<I::Data>> {
+    pub fn include<I: IncludeType<ModelData = Data>>(
+        self,
+        include: I,
+    ) -> Include<'a, Vec<I::Data>> {
         let mut selection = Self::to_selection(
             self.info.model,
             self.where_params,
@@ -302,8 +312,14 @@ where
         if self.order_by_params.len() > 0 {
             arguments.push((
                 "orderBy".to_string(),
-                PrismaValue::Object(self.order_by_params.into_iter().map(Into::into).collect())
-                    .into(),
+                PrismaValue::List(
+                    self.order_by_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(|v| PrismaValue::Object(vec![v]))
+                        .collect(),
+                )
+                .into(),
             ));
         }
 

@@ -107,7 +107,13 @@ where
         if order_by_params.len() > 0 {
             selection.push_argument(
                 "orderBy".to_string(),
-                PrismaValue::Object(order_by_params.into_iter().map(Into::into).collect()),
+                PrismaValue::List(
+                    order_by_params
+                        .into_iter()
+                        .map(Into::into)
+                        .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
+                        .collect(),
+                ),
             );
         }
 
