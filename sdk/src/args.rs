@@ -7,8 +7,10 @@ use datamodel::{
     dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
 };
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use proc_macro2::TokenStream;
+use quote::quote;
 
-use crate::{casing::Casing, dmmf::Datasource};
+use crate::{casing::Casing, dmmf::Datasource, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
@@ -341,17 +343,25 @@ pub struct Method {
     pub name: String,
     pub action: String,
     pub is_list: bool,
-    pub typ: FieldType,
+    pub base_type: FieldType,
 }
 
 impl Method {
-    fn new(name: String, action: String, typ: FieldType, is_list: bool) -> Self {
+    fn new(name: String, action: String, base_type: FieldType, is_list: bool) -> Self {
         Method {
             name,
             action,
             is_list,
-            typ,
+            base_type,
         }
+    }
+
+    pub fn type_tokens(&self) -> TokenStream {
+        let base_type = &self.base_type.to_tokens();
+
+        self.is_list
+            .then(|| quote!(Vec<#base_type>))
+            .unwrap_or(base_type.clone())
     }
 }
 

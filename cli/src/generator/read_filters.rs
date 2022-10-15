@@ -5,15 +5,13 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
         let name = format_ident!("{}Filter", &filter.name);
 
         let method_tokens = filter.methods.iter().map(|method| {
-            let typ = method.typ.to_tokens();
-
             let variant_name = format_ident!("{}", method.name.to_case(Case::Pascal));
             let method_action_string = &method.action;
 
             let value_as_prisma_value = method
-                .typ
+                .base_type
                 .to_prisma_value(&format_ident!("value"), method.is_list);
-            let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
+            let typ = method.type_tokens();
 
             (
                 quote!(#variant_name(#typ)),

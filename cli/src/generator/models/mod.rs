@@ -673,13 +673,11 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         );
 
                         for method in &read_type.methods {
-                            let typ = method.typ.to_tokens();
-
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
                             let method_name_pascal =
                                 format_ident!("{}", method.name.to_case(Case::Pascal));
                             
-                            let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
+                            let typ = method.type_tokens();
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> WhereParam {
@@ -691,11 +689,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                     if let Some(write_type) = args.write_filter(&field) {
                         for method in &write_type.methods {
-                            let typ = method.typ.to_tokens();
-
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                            let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
+                            let typ = method.type_tokens();
 
                             let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_name_pascal);
 
