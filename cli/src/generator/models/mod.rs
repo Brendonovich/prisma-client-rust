@@ -678,14 +678,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
                             let method_name_pascal =
                                 format_ident!("{}", method.name.to_case(Case::Pascal));
-                            let method_action_string = &method.action;
                             
-                            let value_as_prisma_value = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
-                            let typ = if method.is_list {
-                                quote!(Vec<#typ>)
-                            } else {
-                                typ
-                            };
+                            let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> WhereParam {
@@ -701,9 +695,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                            let typ = if method.is_list {
-                                quote!(Vec<#typ>)
-                            } else { typ };
+                            let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
 
                             let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_name_pascal);
 
