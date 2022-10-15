@@ -660,36 +660,28 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     });
 
                     if let Some(read_type) = args.read_filter(&field) {
+                        let filter_enum = format_ident!("{}Filter", &read_type.name);
+
+                        model_where_params.add_variant(
+                            quote!(#field_name_pascal(read_filters::#filter_enum)),
+                            quote! {
+                                Self::#field_name_pascal(value) => #pcr::SerializedWhere::new(
+                                    #field_string,
+                                    value.into()
+                                )
+                            },
+                        );
+
                         for method in &read_type.methods {
-                            let typ = method.typ.to_tokens();
-
-                            let method_name = format_ident!("{}", method.name.to_case(Case::Snake));
-                            let variant_name =
-                                format_ident!("{}{}", &field_name_pascal, method.name.to_case(Case::Pascal));
-                            let method_action_string = &method.action;
-
-                            let field_name = field.name.to_string();
+                            let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
+                            let method_name_pascal =
+                                format_ident!("{}", method.name.to_case(Case::Pascal));
                             
-                            let value_as_prisma_value = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
-                            let typ = if method.is_list {
-                                quote!(Vec<#typ>)
-                            } else {
-                                typ
-                            };
-
-                            model_where_params.add_variant(
-                                quote!(#variant_name(#typ)),
-                                quote! {
-                                    Self::#variant_name(value) => #pcr::SerializedWhere::new(
-                                        #field_name,
-                                        #pcr::SerializedWhereValue::Object(vec![(#method_action_string.to_string(), #value_as_prisma_value)])
-                                    )
-                                },
-                            );
+                            let typ = method.type_tokens();
 
                             field_query_module.add_method(quote! {
-                                pub fn #method_name(value: #typ) -> WhereParam {
-                                    WhereParam::#variant_name(value)
+                                pub fn #method_name_snake(value: #typ) -> WhereParam {
+                                    WhereParam::#field_name_pascal(read_filters::#filter_enum::#method_name_pascal(value))
                                 }
                             });
                         }
@@ -697,13 +689,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                     if let Some(write_type) = args.write_filter(&field) {
                         for method in &write_type.methods {
-                            let typ = method.typ.to_tokens();
-
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                            let typ = if method.is_list {
-                                quote!(Vec<#typ>)
-                            } else { typ };
+                            let typ = method.type_tokens();
 
                             let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_name_pascal);
 

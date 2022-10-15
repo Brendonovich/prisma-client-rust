@@ -7,8 +7,10 @@ use datamodel::{
     dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
 };
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use proc_macro2::TokenStream;
+use quote::quote;
 
-use crate::{casing::Casing, dmmf::Datasource};
+use crate::{casing::Casing, dmmf::Datasource, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
@@ -288,30 +290,32 @@ impl GenerateArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.read_filters.iter().find(|f| f.name == typ)
             }
-
-            self.read_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.write_filters.iter().find(|f| f.name == typ)
             }
-
-            self.write_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 }
@@ -339,17 +343,25 @@ pub struct Method {
     pub name: String,
     pub action: String,
     pub is_list: bool,
-    pub typ: FieldType,
+    pub base_type: FieldType,
 }
 
 impl Method {
-    fn new(name: String, action: String, typ: FieldType, is_list: bool) -> Self {
+    fn new(name: String, action: String, base_type: FieldType, is_list: bool) -> Self {
         Method {
             name,
             action,
             is_list,
-            typ,
+            base_type,
         }
+    }
+
+    pub fn type_tokens(&self) -> TokenStream {
+        let base_type = &self.base_type.to_tokens();
+
+        self.is_list
+            .then(|| quote!(Vec<#base_type>))
+            .unwrap_or(base_type.clone())
     }
 }
 

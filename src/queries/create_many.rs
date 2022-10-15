@@ -37,7 +37,7 @@ where
     fn to_selection(
         model: &str,
         set_params: Vec<Vec<Set>>,
-        skip_duplicates: bool,
+        #[allow(unused_variables)] skip_duplicates: bool,
     ) -> SelectionBuilder {
         let mut selection = Selection::builder(format!("createMany{}", model));
 

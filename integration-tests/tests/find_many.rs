@@ -399,6 +399,7 @@ async fn ordering() -> TestResult {
         .post()
         .find_many(vec![post::title::contains("Test".to_string())])
         .order_by(post::published::order(Direction::Asc))
+        .order_by(post::id::order(Direction::Asc))
         .exec()
         .await?;
     assert_eq!(found.len(), 3);

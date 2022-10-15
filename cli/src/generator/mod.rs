@@ -3,7 +3,8 @@ mod enums;
 mod header;
 mod internal_enums;
 mod models;
-mod prelude;
+pub(crate) mod prelude;
+mod read_filters;
 
 use prelude::*;
 use serde::Deserialize;
@@ -46,10 +47,13 @@ impl PrismaGenerator for PrismaClientRustGenerator {
             )
         });
 
+        let read_filters_module = read_filters::generate_module(&args);
+
         header.extend(quote! {
             pub mod _prisma {
                 #client
                 #internal_enums
+                #read_filters_module
             }
 
             pub use _prisma::PrismaClient;
