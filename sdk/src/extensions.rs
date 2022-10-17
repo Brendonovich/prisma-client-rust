@@ -1,8 +1,6 @@
 use datamodel::dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
-use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
 
-use crate::{Case, Casing};
+use crate::prelude::*;
 
 pub trait ModelExt {
     fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool;

@@ -20,6 +20,8 @@ pub use query_core::Selection;
 pub use schema;
 pub use serde_json;
 use thiserror::Error;
+#[cfg(feature = "migrations")]
+pub use tokio;
 pub use user_facing_errors as prisma_errors;
 
 pub use errors::*;
