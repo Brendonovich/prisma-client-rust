@@ -2,7 +2,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn test_count() -> TestResult {
+async fn basic() -> TestResult {
     let client = client().await;
 
     client
@@ -19,7 +19,7 @@ async fn test_count() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_count_no_results() -> TestResult {
+async fn no_results() -> TestResult {
     let client = client().await;
 
     let count = client
@@ -34,7 +34,46 @@ async fn test_count_no_results() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_take() -> TestResult {
+async fn where_() -> TestResult {
+    let client = client().await;
+
+    client
+        .post()
+        .create("Hi from Prisma!".to_string(), true, vec![])
+        .exec()
+        .await?;
+
+    client
+        .post()
+        .create("Hi from Prisma!".to_string(), false, vec![])
+        .exec()
+        .await?;
+
+    client
+        .post()
+        .create("Hi from Prisma!".to_string(), true, vec![])
+        .exec()
+        .await?;
+
+    let published_count = client
+        .post()
+        .count(vec![post::published::equals(true)])
+        .exec()
+        .await?;
+    assert_eq!(published_count, 2);
+
+    let unpublished_count = client
+        .post()
+        .count(vec![post::published::equals(false)])
+        .exec()
+        .await?;
+    assert_eq!(unpublished_count, 1);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn take() -> TestResult {
     let client = client().await;
 
     client
@@ -63,7 +102,7 @@ async fn test_take() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_skip() -> TestResult {
+async fn skip() -> TestResult {
     let client = client().await;
 
     client
