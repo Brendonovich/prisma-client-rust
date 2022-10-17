@@ -192,7 +192,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
                 Count::new(
                     self.client._new_query_context(),
                     #pcr::QueryInfo::new(#model_name_str, _outputs()),
-                    vec![]
+                    _where.into()
                 )
             }
         }
