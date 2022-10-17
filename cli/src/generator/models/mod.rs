@@ -357,11 +357,13 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 },
                 false => quote! {
                     #pcr::SerializedWhereValue::Object(
-                        value
-                            .into_iter()
-                            .map(Into::<#pcr::SerializedWhere>::into)
-                            .map(Into::into)
-                            .collect()
+                        ::prisma_client_rust::merge_fields(
+                            value
+                                .into_iter()
+                                .map(Into::<#pcr::SerializedWhere>::into)
+                                .map(Into::into)
+                                .collect()
+                        )
                     )
                 },
             };

@@ -1,6 +1,7 @@
+use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
-use crate::{merged_object, BatchQuery, BatchResult};
+use crate::{merge_fields, BatchQuery, BatchResult};
 
 use super::{QueryContext, QueryInfo, SerializedWhere};
 
@@ -33,13 +34,13 @@ where
         if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                merged_object(
+                PrismaValue::Object(merge_fields(
                     self.where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
-                ),
+                )),
             );
         }
 

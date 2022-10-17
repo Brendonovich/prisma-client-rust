@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     include::{Include, IncludeType},
-    merged_object,
+    merge_fields,
     select::{Select, SelectType},
     BatchQuery,
 };
@@ -94,13 +94,13 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                merged_object(
+                PrismaValue::Object(merge_fields(
                     where_params
                         .into_iter()
                         .map(Into::<SerializedWhere>::into)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
-                ),
+                )),
             );
         }
 

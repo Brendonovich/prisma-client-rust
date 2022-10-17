@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     include::{Include, IncludeType},
-    merged_object,
+    merge_fields,
     select::{Select, SelectType},
     BatchQuery,
 };
@@ -54,7 +54,9 @@ where
 
         selection.push_argument(
             "data",
-            merged_object(set_params.into_iter().map(Into::into).collect()),
+            PrismaValue::Object(merge_fields(
+                set_params.into_iter().map(Into::into).collect(),
+            )),
         );
 
         selection
