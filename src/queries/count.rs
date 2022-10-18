@@ -3,7 +3,8 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merged_object, ModelAction, BatchQuery, ModelActions, PrismaClientInternals, SerializedWhere,
+    merged_object, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
+    PrismaClientInternals, SerializedWhere,
 };
 
 pub struct Count<'a, Actions>
@@ -24,7 +25,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "aggregate";
+    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::Count);
 }
 
 impl<'a, Actions> Count<'a, Actions>

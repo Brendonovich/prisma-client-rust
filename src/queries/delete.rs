@@ -4,7 +4,8 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    ModelAction, BatchQuery, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
+    PrismaClientInternals,
 };
 
 pub struct Delete<'a, Actions>
@@ -22,7 +23,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "deleteOne";
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Delete);
 }
 
 impl<'a, Actions> Delete<'a, Actions>
@@ -98,6 +99,7 @@ where
     pub async fn exec(self) -> super::Result<Actions::Data> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await
     }
 }

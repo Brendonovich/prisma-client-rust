@@ -1,7 +1,8 @@
 use query_core::Operation;
 
 use crate::{
-    merged_object, BatchQuery, BatchResult, ModelAction, ModelActions, PrismaClientInternals,
+    merged_object, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    ModelMutationType, PrismaClientInternals,
 };
 
 use super::SerializedWhere;
@@ -21,7 +22,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "updateMany";
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::UpdateMany);
 }
 
 impl<'a, Actions> UpdateMany<'a, Actions>
@@ -73,6 +74,7 @@ where
     pub async fn exec(self) -> super::Result<i64> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await.map(Self::convert)
     }
 }

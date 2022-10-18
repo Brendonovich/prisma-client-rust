@@ -67,8 +67,8 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 self
             }
 
-            pub fn with_action_callback(mut self, callback: impl Fn(&#pcr::ActionCallbackData) + 'static) -> Self {
-                self.action_notifier.action_callbacks.push(Box::new(callback));
+            pub fn with_model_action_callback(mut self, callback: impl Fn(#pcr::ModelActionCallbackData) + 'static) -> Self {
+                self.action_notifier.model_action_callbacks.push(Box::new(callback));
                 self
             }
 

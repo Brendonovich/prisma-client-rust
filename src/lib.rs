@@ -77,6 +77,18 @@ impl PrismaClientInternals {
 
         Ok(ret)
     }
+
+    pub fn notify_model_action<Action>(&self)
+    where
+        Action: ModelAction,
+    {
+        for callback in &self.action_notifier.model_action_callbacks {
+            (callback)(ModelActionCallbackData {
+                model: Action::Actions::MODEL,
+                action: Action::TYPE,
+            })
+        }
+    }
 }
 
 /// The return type of `findMany` queries.

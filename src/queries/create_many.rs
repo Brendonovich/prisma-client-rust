@@ -1,7 +1,10 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, SelectionBuilder};
 
-use crate::{merged_object, ModelAction, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
+use crate::{
+    merged_object, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    ModelMutationType, PrismaClientInternals,
+};
 
 pub struct CreateMany<'a, Actions>
 where
@@ -18,7 +21,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "createMany";
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::CreateMany);
 }
 
 impl<'a, Actions> CreateMany<'a, Actions>
@@ -76,6 +79,7 @@ where
     pub async fn exec(self) -> super::Result<i64> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await.map(Self::convert)
     }
 }

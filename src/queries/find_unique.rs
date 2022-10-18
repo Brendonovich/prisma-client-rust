@@ -6,7 +6,7 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType, PrismaClientInternals,
 };
 
 pub struct FindUnique<'a, Actions>
@@ -25,7 +25,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "findUnique";
+    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::FindUnique);
 }
 
 impl<'a, Actions> FindUnique<'a, Actions>
@@ -98,6 +98,7 @@ where
     pub async fn exec(self) -> super::Result<Option<Actions::Data>> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await
     }
 }

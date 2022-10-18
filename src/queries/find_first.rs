@@ -5,7 +5,7 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType, PrismaClientInternals,
 };
 
 use super::SerializedWhere;
@@ -29,7 +29,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "findFirst";
+    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::FindFirst);
 }
 
 impl<'a, Actions> FindFirst<'a, Actions>
@@ -188,6 +188,7 @@ where
     pub async fn exec(self) -> super::Result<Option<Actions::Data>> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await
     }
 }

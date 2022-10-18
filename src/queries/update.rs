@@ -5,7 +5,8 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
+    PrismaClientInternals,
 };
 
 pub struct Update<'a, Actions>
@@ -24,7 +25,7 @@ where
 {
     type Actions = Actions;
 
-    const NAME: &'static str = "updateOne";
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Update);
 }
 
 impl<'a, Actions> Update<'a, Actions>
@@ -110,6 +111,7 @@ where
     pub async fn exec(self) -> super::Result<Actions::Data> {
         let (op, client) = self.exec_operation();
 
+        client.notify_model_action::<Self>();
         client.execute(op).await
     }
 }
