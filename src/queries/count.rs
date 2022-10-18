@@ -126,9 +126,9 @@ where
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await.map(Self::convert)
+        client.execute(op).await.map(Self::convert)
     }
 }
 

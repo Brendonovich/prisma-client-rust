@@ -68,9 +68,9 @@ where
     }
 
     pub async fn exec(self) -> super::Result<Vec<Data>> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await.and_then(Self::convert)
+        client.execute(op).await.and_then(Self::convert)
     }
 }
 

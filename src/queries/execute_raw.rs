@@ -34,9 +34,9 @@ impl<'a> ExecuteRaw<'a> {
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await
+        client.execute(op).await
     }
 }
 

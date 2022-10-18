@@ -118,9 +118,9 @@ where
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await
+        client.execute(op).await
     }
 }
 
