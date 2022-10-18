@@ -1,6 +1,6 @@
 use query_core::Operation;
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
+use crate::{merged_object, ModelAction, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
 
 use super::SerializedWhere;
 
@@ -12,7 +12,7 @@ where
     pub where_params: Vec<Actions::Where>,
 }
 
-impl<'a, Actions> Action for DeleteMany<'a, Actions>
+impl<'a, Actions> ModelAction for DeleteMany<'a, Actions>
 where
     Actions: ModelActions,
 {

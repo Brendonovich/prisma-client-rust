@@ -1,6 +1,8 @@
 use query_core::Operation;
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
+use crate::{
+    merged_object, BatchQuery, BatchResult, ModelAction, ModelActions, PrismaClientInternals,
+};
 
 use super::SerializedWhere;
 
@@ -13,7 +15,7 @@ where
     pub set_params: Vec<Actions::Set>,
 }
 
-impl<'a, Actions> Action for UpdateMany<'a, Actions>
+impl<'a, Actions> ModelAction for UpdateMany<'a, Actions>
 where
     Actions: ModelActions,
 {

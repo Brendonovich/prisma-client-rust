@@ -6,7 +6,7 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActions, PrismaClientInternals,
 };
 
 pub struct FindUnique<'a, Actions>
@@ -19,7 +19,7 @@ where
     _data: PhantomData<(Actions::Set, Actions::Data)>,
 }
 
-impl<'a, Actions> Action for FindUnique<'a, Actions>
+impl<'a, Actions> ModelAction for FindUnique<'a, Actions>
 where
     Actions: ModelActions,
 {

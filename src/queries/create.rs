@@ -4,7 +4,7 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions, PrismaClientInternals,
+    ModelAction, BatchQuery, ModelActions, PrismaClientInternals,
 };
 
 pub struct Create<'a, Actions>
@@ -16,7 +16,7 @@ where
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> Action for Create<'a, Actions>
+impl<'a, Actions> ModelAction for Create<'a, Actions>
 where
     Actions: ModelActions,
 {

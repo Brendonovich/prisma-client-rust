@@ -4,7 +4,7 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions, PrismaClientInternals,
+    ModelAction, BatchQuery, ModelActions, PrismaClientInternals,
 };
 
 pub struct Delete<'a, Actions>
@@ -16,7 +16,7 @@ where
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> Action for Delete<'a, Actions>
+impl<'a, Actions> ModelAction for Delete<'a, Actions>
 where
     Actions: ModelActions,
 {

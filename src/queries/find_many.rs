@@ -6,7 +6,7 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    Action, BatchQuery, PrismaClientInternals,
+    BatchQuery, ModelAction, PrismaClientInternals,
 };
 
 use super::SerializedWhere;
@@ -24,7 +24,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> Action for FindMany<'a, Actions>
+impl<'a, Actions> ModelAction for FindMany<'a, Actions>
 where
     Actions: ModelActions,
 {

@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merged_object, Action, BatchQuery, ModelActions, PrismaClientInternals, SerializedWhere,
+    merged_object, ModelAction, BatchQuery, ModelActions, PrismaClientInternals, SerializedWhere,
 };
 
 pub struct Count<'a, Actions>
@@ -18,7 +18,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> Action for Count<'a, Actions>
+impl<'a, Actions> ModelAction for Count<'a, Actions>
 where
     Actions: ModelActions,
 {

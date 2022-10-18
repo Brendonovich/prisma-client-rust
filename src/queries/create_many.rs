@@ -1,7 +1,7 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, SelectionBuilder};
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
+use crate::{merged_object, ModelAction, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
 
 pub struct CreateMany<'a, Actions>
 where
@@ -12,7 +12,7 @@ where
     pub skip_duplicates: bool,
 }
 
-impl<'a, Actions> Action for CreateMany<'a, Actions>
+impl<'a, Actions> ModelAction for CreateMany<'a, Actions>
 where
     Actions: ModelActions,
 {

@@ -17,7 +17,7 @@ pub trait ModelActions {
     fn scalar_selections() -> Vec<Selection>;
 }
 
-pub trait Action {
+pub trait ModelAction {
     type Actions: ModelActions;
 
     const NAME: &'static str;

@@ -4,7 +4,7 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::Include,
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions, PrismaClientInternals,
+    BatchQuery, ModelAction, ModelActions, PrismaClientInternals,
 };
 
 pub struct Upsert<'a, Actions>
@@ -18,7 +18,7 @@ where
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> Action for Upsert<'a, Actions>
+impl<'a, Actions> ModelAction for Upsert<'a, Actions>
 where
     Actions: ModelActions,
 {
