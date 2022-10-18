@@ -1,21 +1,20 @@
 use std::collections::VecDeque;
 
 use query_core::Operation;
-use schema::QuerySchemaRef;
 use serde::{
     de::{DeserializeOwned, IntoDeserializer},
     Deserialize,
 };
 
-use crate::{prisma_value, Executor, QueryError};
+use crate::{prisma_value, QueryContext, QueryError};
 
 pub async fn batch<T: BatchContainer<Marker>, Marker>(
     container: T,
-    executor: &Executor,
-    query_schema: &QuerySchemaRef,
+    ctx: QueryContext<'_>,
 ) -> super::Result<T::ReturnType> {
-    let response = executor
-        .execute_all(None, container.graphql(), true, query_schema.clone(), None)
+    let response = ctx
+        .executor
+        .execute_all(None, container.graphql(), true, ctx.schema.clone(), None)
         .await;
 
     let response = response.map_err(|e| QueryError::Execute(e.into()))?;

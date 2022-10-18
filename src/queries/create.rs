@@ -1,56 +1,51 @@
-use std::marker::PhantomData;
-
-use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
-use serde::de::DeserializeOwned;
+use query_core::{Operation, SelectionBuilder};
 
 use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    BatchQuery,
+    Action, BatchQuery, ModelActions,
 };
 
-use super::{QueryContext, QueryInfo};
+use super::QueryContext;
 
-pub struct Create<'a, Set, With, Data>
+pub struct Create<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
     ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub set_params: Vec<Set>,
-    pub with_params: Vec<With>,
-    _data: PhantomData<Data>,
+    pub set_params: Vec<Actions::Set>,
+    pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Set, With, Data> Create<'a, Set, With, Data>
+impl<'a, Actions> Action for Create<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, set_params: Vec<Set>) -> Self {
+    type Actions = Actions;
+
+    const NAME: &'static str = "createOne";
+}
+
+impl<'a, Actions> Create<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(ctx: QueryContext<'a>, set_params: Vec<Actions::Set>) -> Self {
         Self {
             ctx,
-            info,
             set_params,
             with_params: vec![],
-            _data: PhantomData,
         }
     }
 
-    pub fn with(mut self, param: impl Into<With>) -> Self {
+    pub fn with(mut self, param: impl Into<Actions::With>) -> Self {
         self.with_params.push(param.into());
         self
     }
 
-    fn to_selection(model: &str, set_params: Vec<Set>) -> SelectionBuilder {
-        let mut selection = Selection::builder(format!("createOne{}", model));
-
-        selection.alias("result");
+    fn to_selection(set_params: Vec<Actions::Set>) -> SelectionBuilder {
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "data",
@@ -60,8 +55,11 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, S::Data> {
-        let mut selection = Self::to_selection(self.info.model, self.set_params);
+    pub fn select<S: SelectType<ModelData = Actions::Data>>(
+        self,
+        select: S,
+    ) -> Select<'a, S::Data> {
+        let mut selection = Self::to_selection(self.set_params);
 
         selection.nested_selections(select.to_selections());
 
@@ -70,8 +68,11 @@ where
         Select::new(self.ctx, op)
     }
 
-    pub fn include<I: IncludeType<ModelData = Data>>(self, include: I) -> Include<'a, I::Data> {
-        let mut selection = Self::to_selection(self.info.model, self.set_params);
+    pub fn include<I: IncludeType<ModelData = Actions::Data>>(
+        self,
+        include: I,
+    ) -> Include<'a, I::Data> {
+        let mut selection = Self::to_selection(self.set_params);
 
         selection.nested_selections(include.to_selections());
 
@@ -81,12 +82,8 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = self.info;
-
-        let mut selection = Self::to_selection(model, self.set_params);
+        let mut selection = Self::to_selection(self.set_params);
+        let mut scalar_selections = Actions::scalar_selections();
 
         if self.with_params.len() > 0 {
             scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
@@ -96,20 +93,18 @@ where
         (Operation::Write(selection.build()), self.ctx)
     }
 
-    pub async fn exec(self) -> super::Result<Data> {
+    pub async fn exec(self) -> super::Result<Actions::Data> {
         let (op, ctx) = self.exec_operation();
 
         ctx.execute(op).await
     }
 }
 
-impl<'a, Set, With, Data> BatchQuery for Create<'a, Set, With, Data>
+impl<'a, Actions> BatchQuery for Create<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    type RawType = Data;
+    type RawType = Actions::Data;
     type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {

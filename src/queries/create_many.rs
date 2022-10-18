@@ -1,28 +1,35 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
+use query_core::{Operation, SelectionBuilder};
 
-use crate::{merged_object, BatchQuery, BatchResult};
+use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions};
 
-use super::{QueryContext, QueryInfo};
+use super::QueryContext;
 
-pub struct CreateMany<'a, Set>
+pub struct CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
     ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub set_params: Vec<Vec<Set>>,
+    pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
 
-impl<'a, Set> CreateMany<'a, Set>
+impl<'a, Actions> Action for CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, set_params: Vec<Vec<Set>>) -> Self {
+    type Actions = Actions;
+
+    const NAME: &'static str = "createMany";
+}
+
+impl<'a, Actions> CreateMany<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(ctx: QueryContext<'a>, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
             ctx,
-            info,
             set_params,
             skip_duplicates: false,
         }
@@ -35,13 +42,10 @@ where
     }
 
     fn to_selection(
-        model: &str,
-        set_params: Vec<Vec<Set>>,
+        set_params: Vec<Vec<Actions::Set>>,
         #[allow(unused_variables)] skip_duplicates: bool,
     ) -> SelectionBuilder {
-        let mut selection = Selection::builder(format!("createMany{}", model));
-
-        selection.alias("result");
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "data",
@@ -60,8 +64,7 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection =
-            Self::to_selection(self.info.model, self.set_params, self.skip_duplicates);
+        let mut selection = Self::to_selection(self.set_params, self.skip_duplicates);
 
         selection.push_nested_selection(BatchResult::selection());
 
@@ -79,9 +82,9 @@ where
     }
 }
 
-impl<'a, Set> BatchQuery for CreateMany<'a, Set>
+impl<'a, Actions> BatchQuery for CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
     type RawType = BatchResult;
     type ReturnType = i64;

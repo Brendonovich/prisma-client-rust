@@ -1,34 +1,36 @@
-use query_core::{Operation, Selection};
+use query_core::Operation;
 
-use crate::{merged_object, BatchQuery, BatchResult};
+use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions};
 
-use super::{QueryContext, QueryInfo, SerializedWhere};
+use super::{QueryContext, SerializedWhere};
 
-pub struct DeleteMany<'a, Where>
+pub struct DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
     ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_params: Vec<Where>,
+    pub where_params: Vec<Actions::Where>,
 }
 
-impl<'a, Where> DeleteMany<'a, Where>
+impl<'a, Actions> Action for DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
-        Self {
-            ctx,
-            info,
-            where_params,
-        }
+    type Actions = Actions;
+
+    const NAME: &'static str = "deleteMany";
+}
+
+impl<'a, Actions> DeleteMany<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(ctx: QueryContext<'a>, where_params: Vec<Actions::Where>) -> Self {
+        Self { ctx, where_params }
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection = Selection::builder(format!("deleteMany{}", self.info.model));
-
-        selection.alias("result");
+        let mut selection = Self::base_selection();
 
         if self.where_params.len() > 0 {
             selection.push_argument(
@@ -59,9 +61,9 @@ where
     }
 }
 
-impl<'a, Where> BatchQuery for DeleteMany<'a, Where>
+impl<'a, Actions> BatchQuery for DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
     type RawType = BatchResult;
     type ReturnType = i64;

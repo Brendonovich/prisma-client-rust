@@ -1,10 +1,14 @@
-use crate::db::{new_client, PrismaClient};
+use crate::db::PrismaClient;
 use prisma_client_rust::queries::QueryError;
 
 pub type TestResult = Result<(), QueryError>;
 
 pub async fn client() -> PrismaClient {
-    let client = new_client().await.unwrap();
+    let client = PrismaClient::_builder()
+        .with_operation_callback(|op| println!("{op:?}"))
+        .build()
+        .await
+        .unwrap();
 
     client
         ._batch((

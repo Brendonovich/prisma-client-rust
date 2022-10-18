@@ -753,20 +753,22 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 #where_params
 
-                pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<WithParam>;
-                pub type ManyArgs = ::prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, UniqueWhereParam>;
+                // 'static since the actions struct is only used for types
+
+                pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<Actions<'static>>;
+                pub type ManyArgs = ::prisma_client_rust::ManyArgs<Actions<'static>>;
                 
-                pub type Count<'a> = ::prisma_client_rust::Count<'a, WhereParam, OrderByParam, UniqueWhereParam>;
-                pub type Create<'a> = ::prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
-                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, SetParam>;
-                pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
-                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, SetParam, Data>;
-                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, Data>;
-                pub type Update<'a> = ::prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
-                pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
-                pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
-                pub type Delete<'a> = ::prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
-                pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, WhereParam>;
+                pub type Count<'a> = ::prisma_client_rust::Count<'a, Actions<'static>>;
+                pub type Create<'a> = ::prisma_client_rust::Create<'a, Actions<'static>>;
+                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, Actions<'static>>;
+                pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, Actions<'static>>;
+                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, Actions<'static>>;
+                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, Actions<'static>>;
+                pub type Update<'a> = ::prisma_client_rust::Update<'a, Actions<'static>>;
+                pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, Actions<'static>>;
+                pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, Actions<'static>>;
+                pub type Delete<'a> = ::prisma_client_rust::Delete<'a, Actions<'static>>;
+                pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, Actions<'static>>;
               
                 #actions_struct
             }

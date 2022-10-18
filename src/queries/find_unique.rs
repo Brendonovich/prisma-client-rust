@@ -1,57 +1,55 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
-use serde::de::DeserializeOwned;
+use query_core::{Operation, SelectionBuilder};
 
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    BatchQuery,
+    Action, BatchQuery, ModelActions,
 };
 
-use super::{QueryContext, QueryInfo, SerializedWhere};
+use super::QueryContext;
 
-pub struct FindUnique<'a, Where, With, Set, Data>
+pub struct FindUnique<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    With: Into<Selection>,
-    Set: Into<(String, PrismaValue)>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
     ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_param: Where,
-    pub with_params: Vec<With>,
-    _data: PhantomData<(Set, Data)>,
+    pub where_param: Actions::Where,
+    pub with_params: Vec<Actions::With>,
+    _data: PhantomData<(Actions::Set, Actions::Data)>,
 }
 
-impl<'a, Where, With, Set, Data> FindUnique<'a, Where, With, Set, Data>
+impl<'a, Actions> Action for FindUnique<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    With: Into<Selection>,
-    Set: Into<(String, PrismaValue)>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_param: Where) -> Self {
+    type Actions = Actions;
+
+    const NAME: &'static str = "findUnique";
+}
+
+impl<'a, Actions> FindUnique<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(ctx: QueryContext<'a>, where_param: Actions::Where) -> Self {
         Self {
             ctx,
-            info,
             where_param,
             with_params: vec![],
             _data: PhantomData,
         }
     }
 
-    pub fn with(mut self, param: impl Into<With>) -> Self {
+    pub fn with(mut self, param: impl Into<Actions::With>) -> Self {
         self.with_params.push(param.into());
         self
     }
 
-    fn to_selection(model: &str, where_param: Where) -> SelectionBuilder {
-        let mut selection = Selection::builder(format!("findUnique{}", model));
-
-        selection.alias("result");
+    fn to_selection(where_param: Actions::Where) -> SelectionBuilder {
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "where",
@@ -61,8 +59,11 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, Option<S::Data>> {
-        let mut selection = Self::to_selection(self.info.model, self.where_param);
+    pub fn select<S: SelectType<ModelData = Actions::Data>>(
+        self,
+        select: S,
+    ) -> Select<'a, Option<S::Data>> {
+        let mut selection = Self::to_selection(self.where_param);
 
         selection.nested_selections(select.to_selections());
 
@@ -71,11 +72,11 @@ where
         Select::new(self.ctx, op)
     }
 
-    pub fn include<I: IncludeType<ModelData = Data>>(
+    pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         include: I,
     ) -> Include<'a, Option<I::Data>> {
-        let mut selection = Self::to_selection(self.info.model, self.where_param);
+        let mut selection = Self::to_selection(self.where_param);
 
         selection.nested_selections(include.to_selections());
 
@@ -85,12 +86,8 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = self.info;
-
-        let mut selection = Self::to_selection(model, self.where_param);
+        let mut selection = Self::to_selection(self.where_param);
+        let mut scalar_selections = Actions::scalar_selections();
 
         if self.with_params.len() > 0 {
             scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
@@ -100,21 +97,18 @@ where
         (Operation::Read(selection.build()), self.ctx)
     }
 
-    pub async fn exec(self) -> super::Result<Option<Data>> {
+    pub async fn exec(self) -> super::Result<Option<Actions::Data>> {
         let (op, ctx) = self.exec_operation();
 
         ctx.execute(op).await
     }
 }
 
-impl<'a, Where, With, Set, Data> BatchQuery for FindUnique<'a, Where, With, Set, Data>
+impl<'a, Actions> BatchQuery for FindUnique<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    With: Into<Selection>,
-    Set: Into<(String, PrismaValue)>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    type RawType = Option<Data>;
+    type RawType = Option<Actions::Data>;
     type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {
@@ -127,16 +121,16 @@ where
 }
 
 #[derive(Clone)]
-pub struct UniqueArgs<With>
+pub struct UniqueArgs<Actions>
 where
-    With: Into<Selection>,
+    Actions: ModelActions,
 {
-    pub with_params: Vec<With>,
+    pub with_params: Vec<Actions::With>,
 }
 
-impl<With> UniqueArgs<With>
+impl<Actions> UniqueArgs<Actions>
 where
-    With: Into<Selection>,
+    Actions: ModelActions,
 {
     pub fn new() -> Self {
         Self {
@@ -144,7 +138,7 @@ where
         }
     }
 
-    pub fn with(mut self, with: impl Into<With>) -> Self {
+    pub fn with(mut self, with: impl Into<Actions::With>) -> Self {
         self.with_params.push(with.into());
         self
     }

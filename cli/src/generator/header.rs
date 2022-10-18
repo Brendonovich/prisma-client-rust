@@ -112,6 +112,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 executor,
                 query_schema,
                 url,
+                vec![]
             ))
         }
     }

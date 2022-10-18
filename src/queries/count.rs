@@ -2,30 +2,38 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
-use crate::{merged_object, BatchQuery, SerializedWhere};
+use crate::{merged_object, Action, BatchQuery, ModelActions, SerializedWhere};
 
-use super::{QueryContext, QueryInfo};
+use super::QueryContext;
 
-pub struct Count<'a, Where, OrderBy, Cursor> {
+pub struct Count<'a, Actions>
+where
+    Actions: ModelActions,
+{
     ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_params: Vec<Where>,
-    pub order_by_params: Vec<OrderBy>,
-    pub cursor_params: Vec<Cursor>,
+    pub where_params: Vec<Actions::Where>,
+    pub order_by_params: Vec<Actions::OrderBy>,
+    pub cursor_params: Vec<Actions::Cursor>,
     pub skip: Option<i64>,
     pub take: Option<i64>,
 }
 
-impl<'a, Where, OrderBy, Cursor> Count<'a, Where, OrderBy, Cursor>
+impl<'a, Actions> Action for Count<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<Where>,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
+    type Actions = Actions;
+
+    const NAME: &'static str = "aggregate";
+}
+
+impl<'a, Actions> Count<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(ctx: QueryContext<'a>, where_params: Vec<Actions::Where>) -> Self {
         Self {
             ctx,
-            info,
             where_params,
             order_by_params: vec![],
             cursor_params: vec![],
@@ -34,12 +42,12 @@ where
         }
     }
 
-    pub fn order_by(mut self, param: OrderBy) -> Self {
+    pub fn order_by(mut self, param: Actions::OrderBy) -> Self {
         self.order_by_params.push(param);
         self
     }
 
-    pub fn cursor(mut self, param: Cursor) -> Self {
+    pub fn cursor(mut self, param: Actions::Cursor) -> Self {
         self.cursor_params.push(param);
         self
     }
@@ -55,7 +63,7 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection = Selection::builder(format!("aggregate{}", &self.info.model));
+        let mut selection = Self::base_selection();
 
         selection.alias("result");
 
@@ -134,11 +142,9 @@ pub struct CountResult {
     _all: i64,
 }
 
-impl<'a, Where, OrderBy, Cursor> BatchQuery for Count<'a, Where, OrderBy, Cursor>
+impl<'a, Actions> BatchQuery for Count<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    OrderBy: Into<(String, PrismaValue)>,
-    Cursor: Into<Where>,
+    Actions: ModelActions,
 {
     type RawType = CountAggregateResult;
     type ReturnType = i64;

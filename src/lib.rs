@@ -1,3 +1,4 @@
+pub mod actions;
 mod errors;
 #[cfg(feature = "migrations")]
 pub mod migrations;
@@ -22,6 +23,7 @@ pub use serde_json;
 use thiserror::Error;
 pub use user_facing_errors as prisma_errors;
 
+pub use actions::*;
 pub use errors::*;
 pub use operator::Operator;
 pub use queries::*;

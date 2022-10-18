@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use crate::{BatchQuery, QueryContext};
 
 pub trait SelectType {
+    // TODO: ModelActions
     type Data: DeserializeOwned;
     type ModelData;
 
