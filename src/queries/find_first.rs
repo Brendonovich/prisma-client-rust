@@ -5,16 +5,16 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions,
+    Action, BatchQuery, ModelActions, PrismaClientInternals,
 };
 
-use super::{QueryContext, SerializedWhere};
+use super::SerializedWhere;
 
 pub struct FindFirst<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -36,9 +36,9 @@ impl<'a, Actions> FindFirst<'a, Actions>
 where
     Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, where_params: Vec<Actions::Where>) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
-            ctx,
+            client,
             where_params,
             with_params: vec![],
             order_by_params: vec![],
@@ -144,7 +144,7 @@ where
 
         let op = Operation::Read(selection.build());
 
-        Select::new(self.ctx, op)
+        Select::new(self.client, op)
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
@@ -163,10 +163,10 @@ where
 
         let op = Operation::Read(selection.build());
 
-        Include::new(self.ctx, op)
+        Include::new(self.client, op)
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
         let mut selection = Self::to_selection(
@@ -182,7 +182,7 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        (Operation::Read(selection.build()), self.ctx)
+        (Operation::Read(selection.build()), self.client)
     }
 
     pub async fn exec(self) -> super::Result<Option<Actions::Data>> {

@@ -11,9 +11,9 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
 
             quote! {
-                pub fn #model_name_snake(&self) -> super:: #model_name_snake::Actions {
+                pub fn #model_name_snake(&self) -> super::#model_name_snake::Actions {
                     super::#model_name_snake::Actions {
-                        client: &self,
+                        client: &self.0,
                     }
                 }
             }
@@ -25,7 +25,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     let migrate_fns = cfg!(feature = "migrations").then(|| {
         quote! {
             pub async fn _migrate_deploy(&self) -> Result<(), #pcr::migrations::MigrateDeployError> {
-                let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url).await;
+                let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url).await;
 
                 // don't ask, just accept
                 tokio::time::sleep(core::time::Duration::from_millis(1)).await;
@@ -34,11 +34,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
 
             pub async fn _migrate_resolve(&self, migration: &str) -> Result<(), #pcr::migrations::MigrateResolveError> {
-                #pcr::migrations::migrate_resolve(migration, super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.url,).await
+                #pcr::migrations::migrate_resolve(migration, super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url,).await
             }
 
             pub fn _db_push(&self) -> #pcr::migrations::DbPush {
-                #pcr::migrations::db_push(super::DATAMODEL_STR, &self.url)
+                #pcr::migrations::db_push(super::DATAMODEL_STR, &self.0.url)
             }
         }
     });
@@ -46,14 +46,14 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     quote! {
         pub struct PrismaClientBuilder {
             url: Option<String>,
-            operation_callbacks: Vec<#pcr::OperationCallback>
+            action_notifier: #pcr::ActionNotifier,
         }
 
         impl PrismaClientBuilder {
             pub fn new() -> Self {
                 Self {
                     url: None,
-                    operation_callbacks: vec![]
+                    action_notifier: #pcr::ActionNotifier::new()
                 }
             }
 
@@ -63,7 +63,12 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
 
             pub fn with_operation_callback(mut self, callback: impl Fn(&#pcr::Operation) + 'static) -> Self {
-                self.operation_callbacks.push(Box::new(callback));
+                self.action_notifier.operation_callbacks.push(Box::new(callback));
+                self
+            }
+
+            pub fn with_action_callback(mut self, callback: impl Fn(&#pcr::ActionCallbackData) + 'static) -> Self {
+                self.action_notifier.action_callbacks.push(Box::new(callback));
                 self
             }
 
@@ -110,21 +115,16 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
                 executor.primary_connector().get_connection().await?;
 
-                Ok(PrismaClient::_new(
+                Ok(PrismaClient(#pcr::PrismaClientInternals {
                     executor,
                     query_schema,
                     url,
-                    self.operation_callbacks
-                ))
+                    action_notifier: self.action_notifier
+                }))
             }
         }
 
-        pub struct PrismaClient {
-            executor: #pcr::Executor,
-            query_schema: ::std::sync::Arc<#pcr::schema::QuerySchema>,
-            url: String,
-            operation_callbacks: Vec<#pcr::OperationCallback>
-        }
+        pub struct PrismaClient(#pcr::PrismaClientInternals);
 
         impl ::std::fmt::Debug for PrismaClient {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
@@ -134,41 +134,28 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
 
         impl PrismaClient {
-            pub(super) fn _new_query_context(&self) -> #pcr::queries::QueryContext {
-                #pcr::queries::QueryContext::new(&self.executor, &self.query_schema, &self.operation_callbacks)
-            }
-
-            pub(super) fn _new(executor: #pcr::Executor, query_schema: std::sync::Arc<#pcr::schema::QuerySchema>, url: String, operation_callbacks: Vec<#pcr::OperationCallback>) -> Self {
-                Self {
-                    executor,
-                    query_schema,
-                    url,
-                    operation_callbacks
-                }
-            }
-
             pub fn _builder() -> PrismaClientBuilder {
                 PrismaClientBuilder::new()
             }
 
-            pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::raw::Raw) -> #pcr::QueryRaw<T> {
+            pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
                 #pcr::QueryRaw::new(
-                    self._new_query_context(),
+                    &self.0,
                     query,
                     super::DATABASE_STR,
                 )
             }
 
-            pub fn _execute_raw(&self, query: #pcr::raw::Raw) -> #pcr::ExecuteRaw {
+            pub fn _execute_raw(&self, query: #pcr::Raw) -> #pcr::ExecuteRaw {
                 #pcr::ExecuteRaw::new(
-                    self._new_query_context(),
+                    &self.0,
                     query,
                     super::DATABASE_STR,
                 )
             }
 
-            pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::queries::Result<T::ReturnType> {
-                #pcr::batch(queries, self._new_query_context()).await
+            pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::Result<T::ReturnType> {
+                #pcr::batch(queries, &self.0).await
             }
 
             #migrate_fns

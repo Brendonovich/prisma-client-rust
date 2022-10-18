@@ -1,5 +1,5 @@
 use crate::db::PrismaClient;
-use prisma_client_rust::queries::QueryError;
+use prisma_client_rust::QueryError;
 
 pub type TestResult = Result<(), QueryError>;
 

@@ -1,14 +1,14 @@
 use query_core::Operation;
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions};
+use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
 
-use super::{QueryContext, SerializedWhere};
+use super::SerializedWhere;
 
 pub struct DeleteMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
 }
 
@@ -25,11 +25,14 @@ impl<'a, Actions> DeleteMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, where_params: Vec<Actions::Where>) -> Self {
-        Self { ctx, where_params }
+    pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
+        Self {
+            client,
+            where_params,
+        }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::base_selection();
 
         if self.where_params.len() > 0 {
@@ -47,7 +50,7 @@ where
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {

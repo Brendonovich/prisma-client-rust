@@ -4,16 +4,14 @@ use crate::{
     include::{Include, IncludeType},
     merged_object,
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions,
+    Action, BatchQuery, ModelActions, PrismaClientInternals,
 };
-
-use super::QueryContext;
 
 pub struct Create<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub set_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
@@ -31,9 +29,9 @@ impl<'a, Actions> Create<'a, Actions>
 where
     Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, set_params: Vec<Actions::Set>) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::Set>) -> Self {
         Self {
-            ctx,
+            client,
             set_params,
             with_params: vec![],
         }
@@ -65,7 +63,7 @@ where
 
         let op = Operation::Write(selection.build());
 
-        Select::new(self.ctx, op)
+        Select::new(self.client, op)
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
@@ -78,10 +76,10 @@ where
 
         let op = Operation::Write(selection.build());
 
-        Include::new(self.ctx, op)
+        Include::new(self.client, op)
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::to_selection(self.set_params);
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -90,13 +88,13 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await
+        client.execute(op).await
     }
 }
 

@@ -6,15 +6,21 @@ use serde::{
     Deserialize,
 };
 
-use crate::{prisma_value, QueryContext, QueryError};
+use crate::{prisma_value, PrismaClientInternals, QueryError};
 
 pub async fn batch<T: BatchContainer<Marker>, Marker>(
     container: T,
-    ctx: QueryContext<'_>,
+    client: &PrismaClientInternals,
 ) -> super::Result<T::ReturnType> {
-    let response = ctx
+    let response = client
         .executor
-        .execute_all(None, container.graphql(), true, ctx.schema.clone(), None)
+        .execute_all(
+            None,
+            container.graphql(),
+            true,
+            client.query_schema.clone(),
+            None,
+        )
         .await;
 
     let response = response.map_err(|e| QueryError::Execute(e.into()))?;

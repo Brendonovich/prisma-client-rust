@@ -1,15 +1,13 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, SelectionBuilder};
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions};
-
-use super::QueryContext;
+use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
 
 pub struct CreateMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
@@ -27,9 +25,9 @@ impl<'a, Actions> CreateMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, set_params: Vec<Vec<Actions::Set>>) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
-            ctx,
+            client,
             set_params,
             skip_duplicates: false,
         }
@@ -63,12 +61,12 @@ where
         selection
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::to_selection(self.set_params, self.skip_duplicates);
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {

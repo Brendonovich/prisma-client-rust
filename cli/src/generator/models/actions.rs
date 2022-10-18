@@ -49,7 +49,7 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
             #(#create_args_params_pushes;)*
 
             Create::new(
-                self.new_query_context(),
+                self.client,
                 _params
             )
         }
@@ -79,7 +79,7 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
             }).collect();
 
             CreateMany::new(
-                self.new_query_context(),
+                self.client,
                 data
             )
         }
@@ -100,7 +100,7 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
             #(#create_args_params_pushes;)*
 
             Upsert::new(
-                self.new_query_context(),
+                self.client,
                 _where.into(),
                 _params,
                 _update
@@ -128,7 +128,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
     quote! {
         #[derive(Clone)]
         pub struct Actions<'a> {
-            pub client: &'a PrismaClient,
+            pub client: &'a #pcr::PrismaClientInternals,
         }
 
         impl #pcr::ModelActions for Actions<'_> {
@@ -145,27 +145,23 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
         }
 
         impl<'a> Actions<'a> {
-            fn new_query_context(&self) -> #pcr::queries::QueryContext<'a> {
-                self.client._new_query_context()
-            }
-
             pub fn find_unique(self, _where: UniqueWhereParam) -> FindUnique<'a> {
                 FindUnique::new(
-                    self.new_query_context(),
+                    self.client,
                     _where.into()
                 )
             }
 
             pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirst<'a> {
                 FindFirst::new(
-                    self.new_query_context(),
+                    self.client,
                     _where
                 )
             }
 
             pub fn find_many(self, _where: Vec<WhereParam>) -> FindMany<'a> {
                 FindMany::new(
-                    self.new_query_context(),
+                    self.client,
                     _where
                 )
             }
@@ -176,7 +172,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
 
             pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
                 Update::new(
-                    self.new_query_context(),
+                    self.client,
                     _where.into(),
                     _params,
                     vec![]
@@ -185,7 +181,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
 
             pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
                 UpdateMany::new(
-                    self.new_query_context(),
+                    self.client,
                     _where,
                     _params,
                 )
@@ -195,7 +191,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
 
             pub fn delete(self, _where: UniqueWhereParam) -> Delete<'a> {
                 Delete::new(
-                    self.new_query_context(),
+                    self.client,
                     _where.into(),
                     vec![]
                 )
@@ -203,14 +199,14 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
 
             pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteMany<'a> {
                 DeleteMany::new(
-                    self.new_query_context(),
+                    self.client,
                     _where
                 )
             }
 
             pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
                 Count::new(
-                    self.new_query_context(),
+                    self.client,
                     _where
                 )
             }

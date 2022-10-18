@@ -4,16 +4,14 @@ use query_core::{Operation, SelectionBuilder};
 use crate::{
     include::{Include, IncludeType},
     select::{Select, SelectType},
-    Action, BatchQuery, ModelActions,
+    Action, BatchQuery, ModelActions, PrismaClientInternals,
 };
-
-use super::QueryContext;
 
 pub struct Delete<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub with_params: Vec<Actions::With>,
 }
@@ -32,12 +30,12 @@ where
     Actions: ModelActions,
 {
     pub fn new(
-        ctx: QueryContext<'a>,
+        client: &'a PrismaClientInternals,
         where_param: Actions::Where,
         with_params: Vec<Actions::With>,
     ) -> Self {
         Self {
-            ctx,
+            client,
             where_param,
             with_params,
         }
@@ -69,7 +67,7 @@ where
 
         let op = Operation::Write(selection.build());
 
-        Select::new(self.ctx, op)
+        Select::new(self.client, op)
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
@@ -82,10 +80,10 @@ where
 
         let op = Operation::Write(selection.build());
 
-        Include::new(self.ctx, op)
+        Include::new(self.client, op)
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::to_selection(self.where_param);
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -94,7 +92,7 @@ where
         }
         selection.nested_selections(scalar_selections);
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {

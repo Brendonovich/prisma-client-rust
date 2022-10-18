@@ -1,5 +1,5 @@
 use prisma_models::PrismaValue;
-use query_core::{Selection, SelectionBuilder};
+use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::SerializedWhere;
@@ -28,5 +28,27 @@ pub trait Action {
         selection.alias("result");
 
         selection
+    }
+}
+
+pub struct ActionCallbackData {
+    pub action: &'static str,
+    pub model: &'static str,
+}
+
+pub type OperationCallback = Box<dyn Fn(&Operation)>;
+pub type ActionCallback = Box<dyn Fn(&ActionCallbackData)>;
+
+pub struct ActionNotifier {
+    pub operation_callbacks: Vec<super::OperationCallback>,
+    pub action_callbacks: Vec<ActionCallback>,
+}
+
+impl ActionNotifier {
+    pub fn new() -> Self {
+        Self {
+            operation_callbacks: vec![],
+            action_callbacks: vec![],
+        }
     }
 }

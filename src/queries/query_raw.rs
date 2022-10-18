@@ -7,16 +7,14 @@ use serde_json::Value;
 
 use crate::{
     raw::{Raw, RawOperationData, RawPrismaValue},
-    BatchQuery,
+    BatchQuery, PrismaClientInternals,
 };
-
-use super::QueryContext;
 
 pub struct QueryRaw<'a, Data>
 where
     Data: DeserializeOwned,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     sql: String,
     params: Vec<Value>,
     _data: PhantomData<Data>,
@@ -26,18 +24,18 @@ impl<'a, Data> QueryRaw<'a, Data>
 where
     Data: DeserializeOwned,
 {
-    pub fn new(ctx: QueryContext<'a>, query: Raw, database: &'static str) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, query: Raw, database: &'static str) -> Self {
         let (sql, params) = query.convert(database);
 
         Self {
-            ctx,
+            client,
             sql,
             params,
             _data: PhantomData,
         }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Selection::builder("queryRaw".to_string());
 
         selection.push_argument("query", PrismaValue::String(self.sql));
@@ -46,7 +44,7 @@ where
             PrismaValue::String(serde_json::to_string(&self.params).unwrap()),
         );
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: RawOperationData) -> super::Result<Vec<Data>> {

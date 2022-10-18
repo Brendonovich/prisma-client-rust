@@ -5,11 +5,11 @@ pub mod migrations;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
-pub mod raw;
+mod raw;
 pub mod serde;
-pub mod traits;
+mod traits;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 pub use bigdecimal;
 pub use chrono;
@@ -19,10 +19,12 @@ pub use prisma_models::{self, PrismaValue};
 pub use query_core;
 pub use query_core::Selection;
 pub use schema;
+use schema::QuerySchema;
 pub use serde_json;
 use thiserror::Error;
 pub use user_facing_errors as prisma_errors;
 
+pub use actions::*;
 pub use actions::*;
 pub use errors::*;
 pub use operator::Operator;
@@ -33,9 +35,49 @@ pub use traits::*;
 #[cfg(feature = "rspc")]
 pub use rspc;
 
-use ::serde::{Deserialize, Serialize};
+use ::serde::{
+    de::{DeserializeOwned, IntoDeserializer},
+    Deserialize, Serialize,
+};
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
+
+/// The data held by the generated PrismaClient
+/// Do not use this in your own code!
+pub struct PrismaClientInternals {
+    pub executor: Executor,
+    pub query_schema: Arc<QuerySchema>,
+    pub url: String,
+    pub action_notifier: ActionNotifier,
+}
+
+impl PrismaClientInternals {
+    // reduce monomorphization a lil bit
+    async fn execute_inner<'a>(&self, op: Operation) -> Result<serde_value::Value> {
+        for callback in &self.action_notifier.operation_callbacks {
+            (callback)(&op);
+        }
+
+        let response = self
+            .executor
+            .execute(None, op, self.query_schema.clone(), None)
+            .await
+            .map_err(|e| QueryError::Execute(e.into()))?;
+
+        let data: prisma_value::Item = response.data.into();
+
+        Ok(serde_value::to_value(data)?)
+    }
+
+    pub async fn execute<T: DeserializeOwned>(&self, operation: Operation) -> Result<T> {
+        let value = self.execute_inner(operation).await?;
+        // let value = dbg!(value);
+
+        let ret = T::deserialize(value.into_deserializer())?;
+
+        Ok(ret)
+    }
+}
 
 /// The return type of `findMany` queries.
 #[derive(Deserialize)]

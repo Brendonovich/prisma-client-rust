@@ -2,15 +2,15 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
-use crate::{merged_object, Action, BatchQuery, ModelActions, SerializedWhere};
-
-use super::QueryContext;
+use crate::{
+    merged_object, Action, BatchQuery, ModelActions, PrismaClientInternals, SerializedWhere,
+};
 
 pub struct Count<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub order_by_params: Vec<Actions::OrderBy>,
     pub cursor_params: Vec<Actions::Cursor>,
@@ -31,9 +31,9 @@ impl<'a, Actions> Count<'a, Actions>
 where
     Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, where_params: Vec<Actions::Where>) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
-            ctx,
+            client,
             where_params,
             order_by_params: vec![],
             cursor_params: vec![],
@@ -62,7 +62,7 @@ where
         self
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::base_selection();
 
         selection.alias("result");
@@ -118,7 +118,7 @@ where
         self.take
             .map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
 
-        (Operation::Read(selection.build()), self.ctx)
+        (Operation::Read(selection.build()), self.client)
     }
 
     pub(crate) fn convert(data: CountAggregateResult) -> i64 {

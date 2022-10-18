@@ -31,11 +31,8 @@ pub use update_many::*;
 pub use upsert::*;
 
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
-use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 use user_facing_errors::UserFacingError;
-
-use crate::{prisma_value, Executor};
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -91,55 +88,6 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhere {
     fn into(self) -> (String, prisma_models::PrismaValue) {
         let SerializedWhere { field, value } = self;
         (field, value.into())
-    }
-}
-
-pub type OperationCallback = Box<dyn Fn(&Operation)>;
-
-#[derive()]
-pub struct QueryContext<'a> {
-    pub executor: &'a Executor,
-    pub schema: &'a QuerySchemaRef,
-    pub operation_callbacks: &'a [OperationCallback],
-}
-
-impl<'a> QueryContext<'a> {
-    pub fn new(
-        executor: &'a Executor,
-        schema: &'a QuerySchemaRef,
-        operation_callbacks: &'a [OperationCallback],
-    ) -> Self {
-        Self {
-            executor,
-            schema,
-            operation_callbacks,
-        }
-    }
-
-    pub async fn execute<T: DeserializeOwned>(self, operation: Operation) -> Result<T> {
-        // reduce monomorphization a lil bit
-        async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<serde_value::Value> {
-            for callback in ctx.operation_callbacks {
-                (callback)(&op);
-            }
-
-            let response = ctx
-                .executor
-                .execute(None, op, ctx.schema.clone(), None)
-                .await
-                .map_err(|e| QueryError::Execute(e.into()))?;
-
-            let data: prisma_value::Item = response.data.into();
-
-            Ok(serde_value::to_value(data)?)
-        }
-
-        let value = inner(self, operation).await?;
-        // let value = dbg!(value);
-
-        let ret = T::deserialize(value.into_deserializer())?;
-
-        Ok(ret)
     }
 }
 

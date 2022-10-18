@@ -1,14 +1,14 @@
 use query_core::Operation;
 
-use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions};
+use crate::{merged_object, Action, BatchQuery, BatchResult, ModelActions, PrismaClientInternals};
 
-use super::{QueryContext, SerializedWhere};
+use super::SerializedWhere;
 
 pub struct UpdateMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub set_params: Vec<Actions::Set>,
 }
@@ -27,18 +27,18 @@ where
     Actions: ModelActions,
 {
     pub fn new(
-        ctx: QueryContext<'a>,
+        client: &'a PrismaClientInternals,
         where_params: Vec<Actions::Where>,
         set_params: Vec<Actions::Set>,
     ) -> Self {
         Self {
-            ctx,
+            client,
             where_params,
             set_params,
         }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
         let mut selection = Self::base_selection();
 
         selection.push_argument(
@@ -61,7 +61,7 @@ where
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {
