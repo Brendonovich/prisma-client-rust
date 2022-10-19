@@ -15,4 +15,3 @@ pub fn and<T: From<Operator<T>>>(params: Vec<T>) -> T {
 pub fn or<T: From<Operator<T>>>(params: Vec<T>) -> T {
     Operator::Or(params).into()
 }
-
