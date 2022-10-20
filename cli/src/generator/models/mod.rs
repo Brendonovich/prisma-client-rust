@@ -664,7 +664,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         let filter_enum = format_ident!("{}Filter", &read_type.name);
 
                         model_where_params.add_variant(
-                            quote!(#field_name_pascal(read_filters::#filter_enum)),
+                            quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
                             quote! {
                                 Self::#field_name_pascal(value) => (
                                     #field_string,
@@ -682,7 +682,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> WhereParam {
-                                    WhereParam::#field_name_pascal(read_filters::#filter_enum::#method_name_pascal(value))
+                                    WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
                                 }
                             });
                         }
