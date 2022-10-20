@@ -4,11 +4,8 @@ use std::process::Command;
 
 pub fn main(args: &Vec<String>) {
     let dir = binaries::global_cache_dir();
-
     binaries::fetch_native(&dir).unwrap();
-
     let prisma = binaries::prisma_cli_name();
-
     let mut cmd = Command::new(dir.join(prisma));
     let binary_name =
         platform::check_for_extension(&platform::name(), &platform::binary_platform_name());
@@ -18,6 +15,11 @@ pub fn main(args: &Vec<String>) {
     cmd.envs(env::vars());
     cmd.env("PRISMA_HIDE_UPDATE_MESSAGE", "true");
     cmd.env("PRISMA_CLI_QUERY_ENGINE_TYPE", "binary");
+    // TODO: This can't be merged. Find a better way to extract it
+    cmd.env(
+        "PRISMA_CUSOTM_SCHEMA_PATH",
+        args.last().unwrap().replace("--schema=", ""),
+    );
 
     for e in ENGINES {
         match env::var(e.env) {

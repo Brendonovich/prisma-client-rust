@@ -13,6 +13,16 @@ fn find_schema_path() -> Result<PathBuf, ()> {
 
     let root_file_path = current_dir.join(SCHEMA_PRISMA);
     let nested_file_path = current_dir.join("prisma").join(SCHEMA_PRISMA);
+    let custom_file_path =
+        std::env::var("PRISMA_CUSOTM_SCHEMA_PATH").map(|custom| current_dir.join(custom));
+
+    if let Ok(custom_path) = custom_file_path {
+        if custom_path.exists() {
+            return Ok(custom_path);
+        } else {
+            return Err(());
+        }
+    }
 
     match root_file_path.exists() {
         true => Ok(root_file_path),
