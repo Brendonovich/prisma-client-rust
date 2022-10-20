@@ -1,48 +1,30 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use std::env::current_dir;
 use std::path::*;
 
 use crate::generator::GenerateArgs;
 
-static SCHEMA_PRISMA: &'static str = "schema.prisma";
-
-fn find_schema_path() -> Result<PathBuf, ()> {
-    let current_dir = current_dir().expect("Failed to get current directory");
-    let current_dir = Path::new(&current_dir);
-
-    let root_file_path = current_dir.join(SCHEMA_PRISMA);
-    let nested_file_path = current_dir.join("prisma").join(SCHEMA_PRISMA);
-
-    match root_file_path.exists() {
-        true => Ok(root_file_path),
-        false if nested_file_path.exists() => Ok(nested_file_path),
-        _ => Err(()),
-    }
-}
-
-fn find_migrations_path() -> Result<PathBuf, ()> {
-    let schema_path = find_schema_path()?;
-
-    let migrations_path = schema_path
+fn find_migrations_path(schema_path: &PathBuf) -> PathBuf {
+    schema_path
         .parent()
-        .expect("Schema path has no parent!")
-        .join("migrations");
-
-    migrations_path.exists().then(|| migrations_path).ok_or(())
+        .map(|p| p.join("migrations"))
+        .filter(|p| p.exists())
+        .expect("Migrations folder not found!")
 }
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
-    let database_string = &args.datasources[0].provider;
+    let database_string = &args.ctx.datasources[0].provider;
 
     let pcr = quote!(::prisma_client_rust);
 
-    let schema_path = find_schema_path().expect("Schema not found!");
-    let schema_path = schema_path.to_str().expect("Invalid schema path");
+    let schema_path_str = &args.ctx.schema_path;
+    let schema_path = schema_path_str
+        .parse()
+        .expect("Failed to parse schema path!");
 
     let migrations_include = cfg!(feature = "migrations")
         .then(|| {
-            let migrations_path = find_migrations_path().expect("Migrations folder not found!");
+            let migrations_path = find_migrations_path(&schema_path);
             let migrations_path = migrations_path.to_str().expect("Invalid migrations path");
 
             quote!(
@@ -56,7 +38,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     quote! {
         #![allow(warnings, unused)]
 
-        pub static DATAMODEL_STR: &'static str = include_str!(#schema_path);
+        pub static DATAMODEL_STR: &'static str = include_str!(#schema_path_str);
         static DATABASE_STR: &'static str = #database_string;
 
         #migrations_include
