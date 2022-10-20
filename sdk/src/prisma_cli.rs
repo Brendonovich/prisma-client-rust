@@ -15,11 +15,11 @@ pub fn main(args: &Vec<String>) {
     cmd.envs(env::vars());
     cmd.env("PRISMA_HIDE_UPDATE_MESSAGE", "true");
     cmd.env("PRISMA_CLI_QUERY_ENGINE_TYPE", "binary");
-    // TODO: This can't be merged. Find a better way to extract it
-    cmd.env(
-        "PRISMA_CUSOTM_SCHEMA_PATH",
-        args.last().unwrap().replace("--schema=", ""),
-    );
+    // TODO: Do we need to support --schema, "path" in addtion to --schema=""?
+    args.iter()
+        .find(|arg| arg.contains("--schema="))
+        .map(|arg| arg.replace("--schema=", ""))
+        .map(|path| cmd.env("PRISMA_CUSOTM_SCHEMA_PATH", path));
 
     for e in ENGINES {
         match env::var(e.env) {
