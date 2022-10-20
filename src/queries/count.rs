@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     merged_object, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
-    PrismaClientInternals, SerializedWhere,
+    PrismaClientInternals, SerializedWhereInput, WhereInput,
 };
 
 pub struct Count<'a, Actions>
@@ -74,7 +74,7 @@ where
                 merged_object(
                     self.where_params
                         .into_iter()
-                        .map(Into::<SerializedWhere>::into)
+                        .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
@@ -107,8 +107,8 @@ where
                     self.cursor_params
                         .into_iter()
                         .map(Into::into)
-                        .map(Into::<SerializedWhere>::into)
-                        .map(SerializedWhere::transform_equals)
+                        .map(WhereInput::serialize)
+                        .map(SerializedWhereInput::transform_equals)
                         .collect(),
                 ),
             );

@@ -6,9 +6,10 @@ use crate::{
     merged_object,
     select::{Select, SelectType},
     BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType, PrismaClientInternals,
+    WhereInput,
 };
 
-use super::SerializedWhere;
+use super::SerializedWhereInput;
 
 pub struct FindFirst<'a, Actions>
 where
@@ -88,7 +89,7 @@ where
                 merged_object(
                     where_params
                         .into_iter()
-                        .map(Into::<SerializedWhere>::into)
+                        .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),
@@ -115,8 +116,8 @@ where
                     cursor_params
                         .into_iter()
                         .map(Into::into)
-                        .map(Into::<SerializedWhere>::into)
-                        .map(SerializedWhere::transform_equals)
+                        .map(WhereInput::serialize)
+                        .map(SerializedWhereInput::transform_equals)
                         .collect(),
                 ),
             );

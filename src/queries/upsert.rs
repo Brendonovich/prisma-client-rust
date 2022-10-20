@@ -5,7 +5,7 @@ use crate::{
     include::Include,
     select::{Select, SelectType},
     BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals,
+    PrismaClientInternals, WhereInput,
 };
 
 pub struct Upsert<'a, Actions>
@@ -61,7 +61,7 @@ where
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(vec![where_param.into().transform_equals()]),
+            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
         );
 
         selection.push_argument(

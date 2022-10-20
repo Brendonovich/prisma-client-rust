@@ -124,8 +124,8 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                                             where_params
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<#pcr::SerializedWhere>::into)
-                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
                                                 .map(|v| #pcr::PrismaValue::Object(vec![v]))
                                                 .collect()
                                         )
@@ -148,8 +148,8 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                                             [where_param]
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<#pcr::SerializedWhere>::into)
-                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
                                                 .collect()
                                         )
                                     )]

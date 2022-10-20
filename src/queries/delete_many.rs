@@ -2,10 +2,8 @@ use query_core::Operation;
 
 use crate::{
     merged_object, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
-    ModelMutationType, PrismaClientInternals,
+    ModelMutationType, PrismaClientInternals, WhereInput,
 };
-
-use super::SerializedWhere;
 
 pub struct DeleteMany<'a, Actions>
 where
@@ -44,7 +42,7 @@ where
                 merged_object(
                     self.where_params
                         .into_iter()
-                        .map(Into::<SerializedWhere>::into)
+                        .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
                 ),

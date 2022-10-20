@@ -2,11 +2,11 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::{ModelActionType, SerializedWhere};
+use crate::{ModelActionType, SerializedWhereInput};
 
 pub trait ModelActions {
     type Data: DeserializeOwned;
-    type Where: Into<SerializedWhere>;
+    type Where: WhereInput;
     type Set: Into<(String, PrismaValue)>;
     type With: Into<Selection>;
     type OrderBy: Into<(String, PrismaValue)>;
@@ -15,6 +15,10 @@ pub trait ModelActions {
     const MODEL: &'static str;
 
     fn scalar_selections() -> Vec<Selection>;
+}
+
+pub trait WhereInput {
+    fn serialize(self) -> SerializedWhereInput;
 }
 
 pub trait ModelAction {
