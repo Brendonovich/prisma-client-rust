@@ -26,11 +26,13 @@ pub use find_first::*;
 pub use find_many::*;
 pub use find_unique::*;
 pub use query_raw::*;
+use thiserror::Error;
 pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
+use user_facing_errors::UserFacingError;
 
 #[derive(Debug)]
 pub enum ModelQueryType {
@@ -67,9 +69,9 @@ impl ModelMutationType {
         match self {
             Self::Create => "createOne",
             Self::CreateMany => "createMany",
-            Self::Update => "update",
+            Self::Update => "updateOne",
             Self::UpdateMany => "updateMany",
-            Self::Delete => "delete",
+            Self::Delete => "deleteOne",
             Self::DeleteMany => "deleteMany",
             Self::Upsert => "upsertOne",
         }
@@ -145,5 +147,42 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhere {
     fn into(self) -> (String, prisma_models::PrismaValue) {
         let SerializedWhere { field, value } = self;
         (field, value.into())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum QueryError {
+    #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
+    Execute(user_facing_errors::Error),
+
+    #[error("Error serializing query result: {0}")]
+    Serialize(#[from] serde_value::SerializerError),
+
+    #[error("Error deserializing query result into return type: {0}")]
+    Deserialize(#[from] serde_value::DeserializerError),
+}
+
+impl QueryError {
+    pub fn is_prisma_error<T: UserFacingError>(&self) -> bool {
+        match self {
+            Self::Execute(error) => error
+                .as_known()
+                .map(|e| e.error_code == <T as UserFacingError>::ERROR_CODE)
+                .unwrap_or(false),
+            _ => false,
+        }
+    }
+}
+
+pub type Result<T> = std::result::Result<T, QueryError>;
+
+#[cfg(feature = "rspc")]
+impl From<QueryError> for rspc::Error {
+    fn from(err: QueryError) -> Self {
+        rspc::Error::with_cause(
+            rspc::ErrorCode::InternalServerError,
+            "Internal server error occurred while completing database operation!".into(),
+            err,
+        )
     }
 }

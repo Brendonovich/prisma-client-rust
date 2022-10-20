@@ -1,5 +1,5 @@
 pub mod actions;
-mod errors;
+mod client;
 #[cfg(feature = "migrations")]
 pub mod migrations;
 pub mod operator;
@@ -9,7 +9,7 @@ mod raw;
 pub mod serde;
 mod traits;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
@@ -19,14 +19,12 @@ pub use prisma_models::{self, PrismaValue};
 pub use query_core;
 pub use query_core::Selection;
 pub use schema;
-use schema::QuerySchema;
 pub use serde_json;
 use thiserror::Error;
 pub use user_facing_errors as prisma_errors;
 
 pub use actions::*;
-pub use actions::*;
-pub use errors::*;
+pub use client::*;
 pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
@@ -35,61 +33,7 @@ pub use traits::*;
 #[cfg(feature = "rspc")]
 pub use rspc;
 
-use ::serde::{
-    de::{DeserializeOwned, IntoDeserializer},
-    Deserialize, Serialize,
-};
-
-pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
-
-/// The data held by the generated PrismaClient
-/// Do not use this in your own code!
-pub struct PrismaClientInternals {
-    pub executor: Executor,
-    pub query_schema: Arc<QuerySchema>,
-    pub url: String,
-    pub action_notifier: ActionNotifier,
-}
-
-impl PrismaClientInternals {
-    // reduce monomorphization a lil bit
-    async fn execute_inner<'a>(&self, op: Operation) -> Result<serde_value::Value> {
-        for callback in &self.action_notifier.operation_callbacks {
-            (callback)(&op);
-        }
-
-        let response = self
-            .executor
-            .execute(None, op, self.query_schema.clone(), None)
-            .await
-            .map_err(|e| QueryError::Execute(e.into()))?;
-
-        let data: prisma_value::Item = response.data.into();
-
-        Ok(serde_value::to_value(data)?)
-    }
-
-    pub async fn execute<T: DeserializeOwned>(&self, operation: Operation) -> Result<T> {
-        let value = self.execute_inner(operation).await?;
-        // let value = dbg!(value);
-
-        let ret = T::deserialize(value.into_deserializer())?;
-
-        Ok(ret)
-    }
-
-    pub fn notify_model_action<Action>(&self)
-    where
-        Action: ModelAction,
-    {
-        for callback in &self.action_notifier.model_action_callbacks {
-            (callback)(ModelActionCallbackData {
-                model: Action::Actions::MODEL,
-                action: Action::TYPE,
-            })
-        }
-    }
-}
+use ::serde::{Deserialize, Serialize};
 
 /// The return type of `findMany` queries.
 #[derive(Deserialize)]
