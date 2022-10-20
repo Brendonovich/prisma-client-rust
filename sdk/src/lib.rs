@@ -18,6 +18,14 @@ pub use args::GenerateArgs;
 pub use casing::*;
 pub use extensions::*;
 
+pub mod prisma {
+    pub use datamodel;
+    pub use dmmf;
+    pub use prisma_models;
+    pub use query_core;
+    pub use request_handlers;
+}
+
 pub trait PrismaGenerator: DeserializeOwned {
     const NAME: &'static str;
     const DEFAULT_OUTPUT: &'static str;

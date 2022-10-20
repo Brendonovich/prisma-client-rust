@@ -1,5 +1,7 @@
-pub use datamodel::dml;
-pub use prisma_client_rust_sdk::*;
+pub use prisma_client_rust_sdk::{
+    prisma::{datamodel::dml, *},
+    *,
+};
 pub use proc_macro2::*;
 pub use quote::*;
 pub use syn::Ident;

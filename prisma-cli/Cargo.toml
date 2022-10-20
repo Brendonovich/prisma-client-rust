@@ -3,10 +3,12 @@ name = "prisma-cli"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+rspc = ["prisma-client-rust-cli/rspc"]
+
 [dependencies]
 prisma-client-rust-cli = { features = [
   "sqlite-create-many",
   "sqlite",
   "migrations",
-  # "rspc",
 ], default_features = false, path = "../cli" }

@@ -9,7 +9,6 @@ mod actions;
 mod create;
 mod include;
 
-use datamodel::dml::{Field, FieldArity, IndexType};
 use crate::generator::prelude::*;
 use std::ops::Deref;
 
@@ -44,7 +43,7 @@ struct FieldQueryModule {
 }
 
 impl FieldQueryModule {
-    pub fn new(field: &Field) -> Self {
+    pub fn new(field: &dml::Field) -> Self {
         Self {
             name: format_ident!("{}", field.name().to_case(Case::Snake)),
             methods: vec![],
@@ -152,8 +151,8 @@ impl WhereParams {
         self.to_serialized_where.push(match_arm);
     }
 
-    pub fn add_unique_variant(&mut self, field: &Field) {
-        if matches!(field.arity(), FieldArity::Optional) {
+    pub fn add_unique_variant(&mut self, field: &dml::Field) {
+        if matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_unique_variant cannot add optional fields. Perhaps you meant add_optional_unique_variant?");
         }
         
@@ -172,9 +171,9 @@ impl WhereParams {
 
     pub fn add_optional_unique_variant(
         &mut self,
-        field: &Field
+        field: &dml::Field
     ) {
-        if !matches!(field.arity(), FieldArity::Optional) {
+        if !matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
         }
         
@@ -377,12 +376,12 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             );
         }
 
-        let mut add_unique_variant = |fields: Vec<&Field>| {
+        let mut add_unique_variant = |fields: Vec<&dml::Field>| {
             if fields.len() == 1 {
                 let field = fields[0];
                 
                 match field.arity()  {
-                    FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
+                    dml::FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
                     _ => model_where_params.add_unique_variant(field),
                 }
             } else {
@@ -431,7 +430,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         };
         
         for unique in &model.indices {
-            if unique.tpe != IndexType::Unique { continue }
+            if unique.tpe != dml::IndexType::Unique { continue }
             
             add_unique_variant(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
         }
@@ -440,7 +439,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             // if primary key is marked as unique, skip primary key handling
             if (primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name.as_str())) || (!model.indices
                 .iter()
-                .filter(|i| i.tpe == IndexType::Unique)
+                .filter(|i| i.tpe == dml::IndexType::Unique)
                 .any(|i|
                     i.fields
                         .iter()
@@ -467,7 +466,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             let set_variant = format_ident!("Set{}", field_name_pascal);
 
             match root_field {
-                Field::RelationField(field) => {
+                dml::Field::RelationField(field) => {
                     let connect_variant = format_ident!("Connect{}", field_name_pascal);
                     let disconnect_variant = format_ident!("Disconnect{}", field_name_pascal);
                     
@@ -594,7 +593,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         }
                     }
                 },
-                Field::ScalarField(field) => {
+                dml::Field::ScalarField(field) => {
                     let field_set_variant = format_ident!("Set{}", field_name_pascal);
                     field_query_module.add_method(quote! {
                         pub fn set<T: From<Set>>(value: #field_type) -> T {

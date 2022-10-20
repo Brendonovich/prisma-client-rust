@@ -1,5 +1,4 @@
-use crate::generator::prelude::*;
-use datamodel::datamodel_connector::ConnectorCapability;
+use crate::generator::prelude::{prisma::datamodel::datamodel_connector, *};
 use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
@@ -120,7 +119,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
     let create_many_fn = (args
         .connector
         .capabilities()
-        .contains(&ConnectorCapability::CreateMany))
+        .contains(&datamodel_connector::ConnectorCapability::CreateMany))
     .then(|| create_many_fn(model));
 
     let scalar_selections_fn = scalar_selections_fn(model);

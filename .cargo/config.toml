@@ -1,4 +1,4 @@
 [alias]
 run-tests = "test -p integration-tests -- --test-threads 1"
-prisma = "run -p prisma-cli --bin prisma --"
-prisma-gql = "run -p prisma-cli --bin gql --"
+prisma = "run -p prisma-cli --"
+
