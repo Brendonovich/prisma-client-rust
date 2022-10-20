@@ -275,7 +275,9 @@ impl GenerateArgs {
             p if MYSQL.is_provider(p) => MYSQL,
             #[cfg(feature = "mongodb")]
             p if MONGODB.is_provider(p) => MONGODB,
-            _ => unreachable!(),
+            p => panic!(
+                "Database provider {p} is not available. Have you enabled its Cargo.toml feature?"
+            ),
         };
 
         Self {
