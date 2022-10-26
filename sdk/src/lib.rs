@@ -9,6 +9,7 @@ mod prisma_cli;
 mod runtime;
 mod utils;
 
+use proc_macro2::TokenStream;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
@@ -17,14 +18,45 @@ use runtime::{run_generator, GeneratorMetadata};
 pub use args::GenerateArgs;
 pub use casing::*;
 pub use extensions::*;
+pub use quote::quote;
+
+pub mod prisma {
+    pub use datamodel;
+    pub use dmmf;
+    pub use prisma_models;
+    pub use query_core;
+    pub use request_handlers;
+}
+
+pub mod prelude {
+    pub use super::{
+        prisma::{datamodel::dml, *},
+        *,
+    };
+    pub use proc_macro2::*;
+    pub use quote::*;
+    pub use syn::Ident;
+
+    pub fn ident(name: &str) -> Ident {
+        format_ident!("{name}")
+    }
+
+    pub fn snake_ident(name: &str) -> Ident {
+        format_ident!("{}", name.to_case(Case::Snake))
+    }
+
+    pub fn pascal_ident(name: &str) -> Ident {
+        format_ident!("{}", name.to_case(Case::Pascal))
+    }
+}
 
 pub trait PrismaGenerator: DeserializeOwned {
     const NAME: &'static str;
     const DEFAULT_OUTPUT: &'static str;
 
-    fn generate(self, args: GenerateArgs) -> String;
+    fn generate(self, args: GenerateArgs) -> TokenStream;
 
-    fn erased_generate(args: GenerateArgs, config: Map<String, Value>) -> String
+    fn erased_generate(args: GenerateArgs, config: Map<String, Value>) -> TokenStream
     where
         Self: Sized,
     {

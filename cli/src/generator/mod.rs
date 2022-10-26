@@ -3,17 +3,15 @@ mod enums;
 mod header;
 mod internal_enums;
 mod models;
-pub(crate) mod prelude;
 mod read_filters;
 
-use prelude::*;
-use serde::Deserialize;
+use prisma_client_rust_sdk::prelude::*;
 
 fn default_module_path() -> String {
     "prisma".to_string()
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct PrismaClientRustGenerator {
     #[serde(default = "default_module_path")]
     module_path: String,
@@ -21,15 +19,15 @@ pub struct PrismaClientRustGenerator {
 
 impl PrismaGenerator for PrismaClientRustGenerator {
     const NAME: &'static str = "Prisma Client Rust";
-    const DEFAULT_OUTPUT: &'static str = "./prisma.rs";
+    const DEFAULT_OUTPUT: &'static str = "../src/prisma.rs";
 
-    fn generate(self, args: GenerateArgs) -> String {
-        let mut header = header::generate(&args);
+    fn generate(self, args: GenerateArgs) -> TokenStream {
+        let header = header::generate(&args);
 
-        header.extend(models::generate(
+        let models = models::generate(
             &args,
             self.module_path.parse().expect("Invalid module path"),
-        ));
+        );
 
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);
@@ -46,10 +44,14 @@ impl PrismaGenerator for PrismaClientRustGenerator {
                 pub use _prisma::QueryMode;
             )
         });
-
         let read_filters_module = read_filters::generate_module(&args);
+        let enums = enums::generate(&args);
 
-        header.extend(quote! {
+        quote! {
+            #header
+
+            #(#models)*
+
             pub mod _prisma {
                 #client
                 #internal_enums
@@ -58,10 +60,8 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
             pub use _prisma::PrismaClient;
             #use_query_mode
-        });
 
-        header.extend(enums::generate(&args));
-
-        header.to_string()
+            #enums
+        }
     }
 }
