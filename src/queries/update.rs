@@ -111,8 +111,12 @@ where
     pub async fn exec(self) -> super::Result<Actions::Data> {
         let (op, client) = self.exec_operation();
 
-        client.notify_model_action::<Self>();
-        client.execute(op).await
+        let res = client.execute(op).await?;
+
+        #[cfg(feature = "mutation-callbacks")]
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 

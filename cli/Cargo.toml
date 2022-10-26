@@ -10,6 +10,7 @@ default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = []
 migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
+mutation-callbacks = []
 
 mysql = ["prisma-client-rust-sdk/mysql"]
 sqlite = ["prisma-client-rust-sdk/sqlite"]

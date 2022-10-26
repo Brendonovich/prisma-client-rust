@@ -26,15 +26,15 @@ pub use find_first::*;
 pub use find_many::*;
 pub use find_unique::*;
 pub use query_raw::*;
-use thiserror::Error;
 pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
+use thiserror::Error;
 use user_facing_errors::UserFacingError;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModelQueryType {
     FindUnique,
     FindFirst,
@@ -53,7 +53,7 @@ impl ModelQueryType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModelMutationType {
     Create,
     CreateMany,
@@ -78,7 +78,7 @@ impl ModelMutationType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModelActionType {
     Query(ModelQueryType),
     Mutation(ModelMutationType),

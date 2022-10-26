@@ -1,8 +1,8 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
+use query_core::{Selection, SelectionBuilder};
 use serde::de::DeserializeOwned;
 
-use crate::{ModelActionType, SerializedWhereInput};
+use crate::{ModelActionType, ModelMutationType, SerializedWhereInput};
 
 pub trait ModelActions {
     type Data: DeserializeOwned;
@@ -36,25 +36,22 @@ pub trait ModelAction {
     }
 }
 
-#[derive(Debug)]
-pub struct ModelActionCallbackData {
-    pub action: ModelActionType,
+#[derive(Debug, PartialEq, Eq)]
+pub struct ModelMutationCallbackData {
+    pub action: ModelMutationType,
     pub model: &'static str,
 }
 
-pub type OperationCallback = Box<dyn Fn(&Operation)>;
-pub type ModelActionCallback = Box<dyn Fn(ModelActionCallbackData)>;
+pub type ModelMutationCallback = Box<dyn Fn(ModelMutationCallbackData)>;
 
 pub struct ActionNotifier {
-    pub operation_callbacks: Vec<super::OperationCallback>,
-    pub model_action_callbacks: Vec<ModelActionCallback>,
+    pub model_mutation_callbacks: Vec<ModelMutationCallback>,
 }
 
 impl ActionNotifier {
     pub fn new() -> Self {
         Self {
-            operation_callbacks: vec![],
-            model_action_callbacks: vec![],
+            model_mutation_callbacks: vec![],
         }
     }
 }

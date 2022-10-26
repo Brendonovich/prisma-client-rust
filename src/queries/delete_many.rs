@@ -61,8 +61,12 @@ where
     pub async fn exec(self) -> super::Result<i64> {
         let (op, client) = self.exec_operation();
 
-        client.notify_model_action::<Self>();
-        client.execute(op).await.map(Self::convert)
+        let res = client.execute(op).await.map(Self::convert)?;
+
+        #[cfg(feature = "mutation-callbacks")]
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 

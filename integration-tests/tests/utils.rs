@@ -4,14 +4,7 @@ use prisma_client_rust::QueryError;
 pub type TestResult = Result<(), QueryError>;
 
 pub async fn client() -> PrismaClient {
-    let client = PrismaClient::_builder()
-        // .with_operation_callback(|op| println!("{op:?}"))
-        .with_model_action_callback(|data| {
-            println!("{data:?}");
-        })
-        .build()
-        .await
-        .unwrap();
+    let client = PrismaClient::_builder().build().await.unwrap();
 
     client
         ._batch((

@@ -7,8 +7,8 @@ use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 
 use crate::{
-    prisma_value, ActionNotifier, ModelAction, ModelActionCallbackData, ModelActions, QueryError,
-    Result,
+    prisma_value, ModelAction, ModelActionType, ModelActions, ModelMutationCallbackData,
+    QueryError, Result,
 };
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
@@ -19,16 +19,12 @@ pub struct PrismaClientInternals {
     pub executor: Executor,
     pub query_schema: Arc<QuerySchema>,
     pub url: String,
-    pub action_notifier: ActionNotifier,
+    pub action_notifier: crate::ActionNotifier,
 }
 
 impl PrismaClientInternals {
     // reduce monomorphization a lil bit
     async fn execute_inner<'a>(&self, op: Operation) -> Result<serde_value::Value> {
-        for callback in &self.action_notifier.operation_callbacks {
-            (callback)(&op);
-        }
-
         let response = self
             .executor
             .execute(None, op, self.query_schema.clone(), None)
@@ -49,15 +45,22 @@ impl PrismaClientInternals {
         Ok(ret)
     }
 
-    pub fn notify_model_action<Action>(&self)
+    pub fn notify_model_mutation<Action>(&self)
     where
         Action: ModelAction,
     {
-        for callback in &self.action_notifier.model_action_callbacks {
-            (callback)(ModelActionCallbackData {
-                model: Action::Actions::MODEL,
-                action: Action::TYPE,
-            })
+        match Action::TYPE {
+            ModelActionType::Mutation(action) => {
+                for callback in &self.action_notifier.model_mutation_callbacks {
+                    (callback)(ModelMutationCallbackData {
+                        model: Action::Actions::MODEL,
+                        action,
+                    })
+                }
+            }
+            ModelActionType::Query(_) => {
+                println!("notify_model_mutation only acceps mutations, not queries!")
+            }
         }
     }
 }

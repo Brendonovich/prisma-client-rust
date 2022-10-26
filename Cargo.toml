@@ -17,6 +17,7 @@ default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = ["dep:rspc"]
 sqlite-create-many = ["datamodel/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio", "tracing"]
+mutation-callbacks = []
 
 mysql = ["query-core/mysql", "datamodel/sql", "migration-core/mysql"]
 sqlite = ["query-core/sqlite", "datamodel/sql", "migration-core/sqlite"]

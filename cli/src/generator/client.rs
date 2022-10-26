@@ -43,6 +43,15 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
     });
 
+    let callback_fn = cfg!(feature = "mutation-callbacks").then(|| {
+        quote! {
+            pub fn with_model_mutation_callback(mut self, callback: impl Fn(#pcr::ModelMutationCallbackData) + 'static) -> Self {
+                self.action_notifier.model_mutation_callbacks.push(Box::new(callback));
+                self
+            }
+        }
+    });
+
     quote! {
         pub struct PrismaClientBuilder {
             url: Option<String>,
@@ -62,15 +71,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 self
             }
 
-            pub fn with_operation_callback(mut self, callback: impl Fn(&#pcr::Operation) + 'static) -> Self {
-                self.action_notifier.operation_callbacks.push(Box::new(callback));
-                self
-            }
-
-            pub fn with_model_action_callback(mut self, callback: impl Fn(#pcr::ModelActionCallbackData) + 'static) -> Self {
-                self.action_notifier.model_action_callbacks.push(Box::new(callback));
-                self
-            }
+            #callback_fn
 
             pub async fn build(self) -> Result<PrismaClient, #pcr::NewClientError> {
                 let config = #pcr::datamodel::parse_configuration(super::DATAMODEL_STR)?.subject;

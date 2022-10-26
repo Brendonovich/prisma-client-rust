@@ -189,7 +189,6 @@ where
     pub async fn exec(self) -> super::Result<Vec<Actions::Data>> {
         let (op, client) = self.exec_operation();
 
-        client.notify_model_action::<Self>();
         client.execute(op).await
     }
 }
