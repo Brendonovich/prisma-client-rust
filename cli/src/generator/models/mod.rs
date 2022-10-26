@@ -1,5 +1,4 @@
 mod select;
-mod outputs;
 mod set_params;
 mod with_params;
 mod data;
@@ -717,7 +716,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let with_params_enum = with_params::enum_definition(&model);
         let set_params_enum = set_params::enum_definition(&model, args);
         let order_by_params_enum = order_by::enum_definition(&model);
-        let outputs_fn = outputs::model_fn(&model);
         let create_fn = create::model_fns(&model);
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
@@ -733,8 +731,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 use super::_prisma::*;
                 
                 #query_modules
-                
-                #outputs_fn
 
                 #create_fn
                 
