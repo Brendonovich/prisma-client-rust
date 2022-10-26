@@ -4305,6 +4305,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdk-example-app"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "sdk-example-lib",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "sdk-example-generator"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust-sdk",
+ "serde",
+]
+
+[[package]]
+name = "sdk-example-lib"
+version = "0.1.0"
+
+[[package]]
+name = "sdk-example-prisma-cli"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust-cli",
+ "sdk-example-generator",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

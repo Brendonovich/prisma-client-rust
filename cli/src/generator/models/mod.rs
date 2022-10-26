@@ -8,7 +8,7 @@ mod actions;
 mod create;
 mod include;
 
-use crate::generator::prelude::*;
+use prisma_client_rust_sdk::prelude::*;
 use std::ops::Deref;
 
 pub struct Operator {
@@ -357,11 +357,13 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 },
                 false => quote! {
                     #pcr::SerializedWhereValue::Object(
-                        value
-                            .into_iter()
-                            .map(#pcr::WhereInput::serialize)
-                            .map(Into::into)
-                            .collect()
+                        ::prisma_client_rust::merge_fields(
+                            value
+                                .into_iter()
+                                .map(#pcr::WhereInput::serialize)
+                                .map(Into::into)
+                                .collect()
+                        )
                     )
                 },
             };

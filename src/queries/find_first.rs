@@ -3,7 +3,7 @@ use query_core::{Operation, QueryValue, SelectionBuilder};
 
 use crate::{
     include::{Include, IncludeType},
-    merged_object,
+    merge_fields,
     select::{Select, SelectType},
     BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType, PrismaClientInternals,
     WhereInput,
@@ -86,13 +86,13 @@ where
         if where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                merged_object(
+                PrismaValue::Object(merge_fields(
                     where_params
                         .into_iter()
                         .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
-                ),
+                )),
             );
         }
 

@@ -9,7 +9,14 @@ rust-version = "1.62"
 exclude = ["examples", "integration-tests"]
 
 [workspace]
-members = ["examples/*", "integration-tests", "sdk", "cli", "prisma-cli"]
+members = [
+  "examples/*",
+  "integration-tests",
+  "sdk",
+  "sdk/example/*",
+  "cli",
+  "prisma-cli",
+]
 resolver = "2"
 
 [features]

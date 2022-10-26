@@ -27,8 +27,9 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             pub async fn _migrate_deploy(&self) -> Result<(), #pcr::migrations::MigrateDeployError> {
                 let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url).await;
 
-                // don't ask, just accept
-                tokio::time::sleep(core::time::Duration::from_millis(1)).await;
+                // don't ask, just accept.
+                // migration engine seems to want some time to process things
+                #pcr::tokio::time::sleep(core::time::Duration::from_millis(1)).await;
 
                 res
             }

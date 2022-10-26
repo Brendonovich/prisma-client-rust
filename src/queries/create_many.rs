@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, SelectionBuilder};
 
 use crate::{
-    merged_object, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
     ModelMutationType, PrismaClientInternals,
 };
 
@@ -53,7 +53,11 @@ where
             PrismaValue::List(
                 set_params
                     .into_iter()
-                    .map(|fields| merged_object(fields.into_iter().map(Into::into).collect()))
+                    .map(|fields| {
+                        PrismaValue::Object(merge_fields(
+                            fields.into_iter().map(Into::into).collect(),
+                        ))
+                    })
                     .collect(),
             ),
         );

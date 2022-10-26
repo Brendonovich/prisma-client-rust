@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merged_object, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
+    merge_fields, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
     PrismaClientInternals, SerializedWhereInput, WhereInput,
 };
 
@@ -71,13 +71,13 @@ where
         if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                merged_object(
+                PrismaValue::Object(merge_fields(
                     self.where_params
                         .into_iter()
                         .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
-                ),
+                )),
             );
         }
 

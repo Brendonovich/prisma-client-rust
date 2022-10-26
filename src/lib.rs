@@ -21,6 +21,8 @@ pub use query_core::Selection;
 pub use schema;
 pub use serde_json;
 use thiserror::Error;
+#[cfg(feature = "migrations")]
+pub use tokio;
 pub use user_facing_errors as prisma_errors;
 
 pub use actions::*;
@@ -110,12 +112,14 @@ macro_rules! or {
     };
 }
 
+pub type ObjectFields = Vec<(String, PrismaValue)>;
+
 /// Creates a PrismaValue::Object from a list of key-value pairs.
 /// If a key has multiple values that are PrismaValue::Objects, they will be merged.
-pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
+pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
     let mut merged = HashMap::new();
 
-    for el in elements {
+    for el in fields {
         match (merged.get_mut(&el.0), el.1) {
             (Some(PrismaValue::Object(existing)), PrismaValue::Object(incoming)) => {
                 existing.extend(incoming);
@@ -129,5 +133,5 @@ pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
         }
     }
 
-    PrismaValue::Object(merged.into_iter().collect())
+    merged.into_iter().collect()
 }
