@@ -1,69 +1,79 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
+use query_core::{Operation, SelectionBuilder};
 
-use crate::{merged_object, BatchQuery, BatchResult};
+use crate::{
+    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    ModelMutationType, PrismaClientInternals,
+};
 
-use super::{QueryContext, QueryInfo};
-
-pub struct CreateMany<'a, Set>
+pub struct CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub set_params: Vec<Vec<Set>>,
+    client: &'a PrismaClientInternals,
+    pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
 
-impl<'a, Set> CreateMany<'a, Set>
+impl<'a, Actions> ModelAction for CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, set_params: Vec<Vec<Set>>) -> Self {
+    type Actions = Actions;
+
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::CreateMany);
+}
+
+impl<'a, Actions> CreateMany<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
-            ctx,
-            info,
+            client,
             set_params,
             skip_duplicates: false,
         }
     }
 
+    #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
     pub fn skip_duplicates(mut self) -> Self {
         self.skip_duplicates = true;
         self
     }
 
     fn to_selection(
-        model: &str,
-        set_params: Vec<Vec<Set>>,
-        skip_duplicates: bool,
+        set_params: Vec<Vec<Actions::Set>>,
+        #[allow(unused_variables)] skip_duplicates: bool,
     ) -> SelectionBuilder {
-        let mut selection = Selection::builder(format!("createMany{}", model));
-
-        selection.alias("result");
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "data",
             PrismaValue::List(
                 set_params
                     .into_iter()
-                    .map(|fields| merged_object(fields.into_iter().map(Into::into).collect()))
+                    .map(|fields| {
+                        PrismaValue::Object(merge_fields(
+                            fields.into_iter().map(Into::into).collect(),
+                        ))
+                    })
                     .collect(),
             ),
         );
 
+        #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
         selection.push_argument("skipDuplicates", PrismaValue::Boolean(skip_duplicates));
 
         selection
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection =
-            Self::to_selection(self.info.model, self.set_params, self.skip_duplicates);
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut selection = Self::to_selection(self.set_params, self.skip_duplicates);
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {
@@ -71,15 +81,20 @@ where
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await.map(Self::convert)
+        let res = client.execute(op).await.map(Self::convert)?;
+
+        #[cfg(feature = "mutation-callbacks")]
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 
-impl<'a, Set> BatchQuery for CreateMany<'a, Set>
+impl<'a, Actions> BatchQuery for CreateMany<'a, Actions>
 where
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
     type RawType = BatchResult;
     type ReturnType = i64;

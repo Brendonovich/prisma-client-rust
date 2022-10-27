@@ -1,4 +1,5 @@
-mod errors;
+pub mod actions;
+mod client;
 #[cfg(feature = "migrations")]
 pub mod migrations;
 pub mod operator;
@@ -6,7 +7,7 @@ mod prisma_value;
 pub mod queries;
 pub mod raw;
 pub mod serde;
-pub mod traits;
+mod traits;
 
 use std::collections::HashMap;
 
@@ -20,9 +21,12 @@ pub use query_core::Selection;
 pub use schema;
 pub use serde_json;
 use thiserror::Error;
+#[cfg(feature = "migrations")]
+pub use tokio;
 pub use user_facing_errors as prisma_errors;
 
-pub use errors::*;
+pub use actions::*;
+pub use client::*;
 pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
@@ -32,8 +36,6 @@ pub use traits::*;
 pub use rspc;
 
 use ::serde::{Deserialize, Serialize};
-
-pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
 /// The return type of `findMany` queries.
 #[derive(Deserialize)]
@@ -110,12 +112,14 @@ macro_rules! or {
     };
 }
 
+pub type ObjectFields = Vec<(String, PrismaValue)>;
+
 /// Creates a PrismaValue::Object from a list of key-value pairs.
 /// If a key has multiple values that are PrismaValue::Objects, they will be merged.
-pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
+pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
     let mut merged = HashMap::new();
 
-    for el in elements {
+    for el in fields {
         match (merged.get_mut(&el.0), el.1) {
             (Some(PrismaValue::Object(existing)), PrismaValue::Object(incoming)) => {
                 existing.extend(incoming);
@@ -129,5 +133,5 @@ pub fn merged_object(elements: Vec<(String, PrismaValue)>) -> PrismaValue {
         }
     }
 
-    PrismaValue::Object(merged.into_iter().collect())
+    merged.into_iter().collect()
 }

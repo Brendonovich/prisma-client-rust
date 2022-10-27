@@ -3,32 +3,42 @@ mod enums;
 mod header;
 mod internal_enums;
 mod models;
-mod prelude;
+mod read_filters;
 
-use prelude::*;
-use serde::Deserialize;
+use prisma_client_rust_sdk::prelude::*;
+use serde::Serialize;
 
 fn default_module_path() -> String {
     "prisma".to_string()
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct PrismaClientRustGenerator {
     #[serde(default = "default_module_path")]
     module_path: String,
 }
 
+#[derive(Debug, Serialize, thiserror::Error)]
+pub enum Error {
+    #[error("Failed to parse module_path")]
+    InvalidModulePath,
+}
+
 impl PrismaGenerator for PrismaClientRustGenerator {
     const NAME: &'static str = "Prisma Client Rust";
-    const DEFAULT_OUTPUT: &'static str = "./prisma.rs";
+    const DEFAULT_OUTPUT: &'static str = "../src/prisma.rs";
 
-    fn generate(self, args: GenerateArgs) -> String {
-        let mut header = header::generate(&args);
+    type Error = Error;
 
-        header.extend(models::generate(
+    fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
+        let header = header::generate(&args);
+
+        let models = models::generate(
             &args,
-            self.module_path.parse().expect("Invalid module path"),
-        ));
+            self.module_path
+                .parse()
+                .map_err(|_| Error::InvalidModulePath)?,
+        );
 
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);
@@ -46,18 +56,26 @@ impl PrismaGenerator for PrismaClientRustGenerator {
             )
         });
 
-        header.extend(quote! {
+        let read_filters_module = read_filters::generate_module(&args);
+        let enums = enums::generate(&args);
+
+        let tokens = quote! {
+            #header
+
+            #(#models)*
+
             pub mod _prisma {
                 #client
                 #internal_enums
+                #read_filters_module
             }
 
             pub use _prisma::PrismaClient;
             #use_query_mode
-        });
 
-        header.extend(enums::generate(&args));
+            #enums
+        };
 
-        header.to_string()
+        Ok(tokens.to_string())
     }
 }

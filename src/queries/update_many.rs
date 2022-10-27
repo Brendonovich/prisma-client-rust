@@ -1,65 +1,71 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection};
+use query_core::Operation;
 
-use crate::{merged_object, BatchQuery, BatchResult};
+use crate::{
+    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    ModelMutationType, PrismaClientInternals, WhereInput,
+};
 
-use super::{QueryContext, QueryInfo, SerializedWhere};
-
-pub struct UpdateMany<'a, Where, Set>
+pub struct UpdateMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_params: Vec<Where>,
-    pub set_params: Vec<Set>,
+    client: &'a PrismaClientInternals,
+    pub where_params: Vec<Actions::Where>,
+    pub set_params: Vec<Actions::Set>,
 }
-impl<'a, Where, Set> UpdateMany<'a, Where, Set>
+
+impl<'a, Actions> ModelAction for UpdateMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
+{
+    type Actions = Actions;
+
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::UpdateMany);
+}
+
+impl<'a, Actions> UpdateMany<'a, Actions>
+where
+    Actions: ModelActions,
 {
     pub fn new(
-        ctx: QueryContext<'a>,
-        info: QueryInfo,
-        where_params: Vec<Where>,
-        set_params: Vec<Set>,
+        client: &'a PrismaClientInternals,
+        where_params: Vec<Actions::Where>,
+        set_params: Vec<Actions::Set>,
     ) -> Self {
         Self {
-            ctx,
-            info,
+            client,
             where_params,
             set_params,
         }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection = Selection::builder(format!("updateMany{}", &self.info.model));
-
-        selection.alias("result");
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "data",
-            merged_object(self.set_params.into_iter().map(Into::into).collect()),
+            PrismaValue::Object(merge_fields(
+                self.set_params.into_iter().map(Into::into).collect(),
+            )),
         );
 
         if self.where_params.len() > 0 {
             selection.push_argument(
                 "where",
-                merged_object(
+                PrismaValue::Object(merge_fields(
                     self.where_params
                         .into_iter()
-                        .map(Into::<SerializedWhere>::into)
+                        .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
-                ),
+                )),
             );
         }
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {
@@ -67,16 +73,20 @@ where
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await.map(Self::convert)
+        let res = client.execute(op).await.map(Self::convert)?;
+
+        #[cfg(feature = "mutation-callbacks")]
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 
-impl<'a, Where, Set> BatchQuery for UpdateMany<'a, Where, Set>
+impl<'a, Actions> BatchQuery for UpdateMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
+    Actions: ModelActions,
 {
     type RawType = BatchResult;
     type ReturnType = i64;

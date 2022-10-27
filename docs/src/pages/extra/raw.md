@@ -34,7 +34,7 @@ Use `_query_raw` for reading data.
 The return type is a `Vec` of a generic you specify, which must implement `serde::Deserialize`.
 The generic represents the shape of a row returned by the query.
 
-See <a href="https://github.com/Brendonovich/prisma-client-rust/blob/0.6.2/src/raw.rs#L119-L139" target="_blank">this enum</a> for a reference of how database types map to Rust types.
+See <a href="https://github.com/Brendonovich/prisma-client-rust/blob/0.6.3/src/raw.rs#L119-L139" target="_blank">this enum</a> for a reference of how database types map to Rust types.
 
 ```rust
 use prisma_client_rust::{raw, PrismaValue};

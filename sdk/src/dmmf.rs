@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 
+/// Provided by Prisma CLI to generators
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EngineDMMF {
@@ -17,6 +18,7 @@ pub struct Generator {
     pub name: String,
     pub binary_targets: Vec<String>,
     pub provider: EnvValue,
+    #[serde(default)]
     pub is_custom_output: bool,
     pub preview_features: Vec<String>,
     pub config: Map<String, serde_json::Value>,
@@ -39,15 +41,15 @@ pub struct EnvValue {
 
 impl EnvValue {
     pub fn get_value(&self) -> String {
-        match &self.from_env_var {
-            Some(env_var) => match std::env::var(env_var) {
-                Ok(val) => val,
-                Err(_) => panic!("env var {} not found", env_var),
-            },
-            None => match &self.value {
-                Some(val) => val.clone(),
-                None => panic!("value not found"),
-            },
-        }
+        self.from_env_var
+            .as_ref()
+            .and_then(|o| match o.as_str() {
+                // dmmf is cringe apparently?
+                "null" => None,
+                env_var => {
+                    Some(std::env::var(env_var).expect(&format!("env var {env_var} not found")))
+                }
+            })
+            .unwrap_or_else(|| self.value.clone().expect("value not found"))
     }
 }

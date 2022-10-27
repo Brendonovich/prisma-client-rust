@@ -7,13 +7,14 @@ use datamodel::{
     dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
 };
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use proc_macro2::TokenStream;
+use quote::quote;
 
-use crate::{casing::Casing, dmmf::Datasource};
+use crate::{casing::Casing, dmmf::EngineDMMF, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
-    pub datamodel_str: String,
-    pub datasources: Vec<Datasource>,
+    pub dmmf: EngineDMMF,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
@@ -21,12 +22,7 @@ pub struct GenerateArgs {
 }
 
 impl GenerateArgs {
-    pub fn new(
-        mut dml: datamodel::dml::Datamodel,
-        schema: DmmfSchema,
-        datamodel_str: String,
-        datasources: Vec<Datasource>,
-    ) -> Self {
+    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, dmmf: EngineDMMF) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -260,7 +256,7 @@ impl GenerateArgs {
         };
 
         use builtin_connectors::*;
-        let connector = match &datasources[0].provider {
+        let connector = match &dmmf.datasources[0].provider {
             #[cfg(feature = "sqlite")]
             p if SQLITE.is_provider(p) => SQLITE,
             #[cfg(feature = "postgresql")]
@@ -273,13 +269,14 @@ impl GenerateArgs {
             p if MYSQL.is_provider(p) => MYSQL,
             #[cfg(feature = "mongodb")]
             p if MONGODB.is_provider(p) => MONGODB,
-            _ => unreachable!(),
+            p => panic!(
+                "Database provider {p} is not available. Have you enabled its Cargo.toml feature?"
+            ),
         };
 
         Self {
             dml,
-            datamodel_str,
-            datasources,
+            dmmf,
             schema,
             read_filters,
             write_filters,
@@ -288,30 +285,32 @@ impl GenerateArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.read_filters.iter().find(|f| f.name == typ)
             }
-
-            self.read_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        if let FieldType::Scalar(typ, _) = &field.field_type {
-            let mut typ = typ.to_string();
+        match &field.field_type {
+            FieldType::Scalar(typ, _) => {
+                let mut typ = typ.to_string();
 
-            if field.arity.is_list() {
-                typ += "List";
+                if field.arity.is_list() {
+                    typ += "List";
+                }
+
+                self.write_filters.iter().find(|f| f.name == typ)
             }
-
-            self.write_filters.iter().find(|f| f.name == typ)
-        } else {
-            None
+            _ => None,
         }
     }
 }
@@ -322,15 +321,11 @@ trait DmmfSchemaExt {
 
 impl DmmfSchemaExt for DmmfSchema {
     fn find_input_type(&self, potential_names: Vec<String>) -> Option<&DmmfInputType> {
-        for name in potential_names {
-            for i in self.input_object_types.get("prisma").unwrap() {
-                if &i.name == &name {
-                    return Some(i);
-                }
-            }
-        }
+        let object_types = self.input_object_types.get("prisma").unwrap();
 
-        None
+        potential_names
+            .iter()
+            .find_map(|name| object_types.iter().find(|i| &i.name == name))
     }
 }
 
@@ -339,17 +334,25 @@ pub struct Method {
     pub name: String,
     pub action: String,
     pub is_list: bool,
-    pub typ: FieldType,
+    pub base_type: FieldType,
 }
 
 impl Method {
-    fn new(name: String, action: String, typ: FieldType, is_list: bool) -> Self {
+    fn new(name: String, action: String, base_type: FieldType, is_list: bool) -> Self {
         Method {
             name,
             action,
             is_list,
-            typ,
+            base_type,
         }
+    }
+
+    pub fn type_tokens(&self) -> TokenStream {
+        let base_type = &self.base_type.to_tokens();
+
+        self.is_list
+            .then(|| quote!(Vec<#base_type>))
+            .unwrap_or(base_type.clone())
     }
 }
 

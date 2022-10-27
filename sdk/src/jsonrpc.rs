@@ -26,8 +26,16 @@ pub struct Request {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum ResponseData {
+    Result(Value),
+    Error { code: i32, message: String },
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
     pub jsonrpc: String,
     pub id: i32,
-    pub result: Value,
+    #[serde(flatten)]
+    pub data: ResponseData,
 }

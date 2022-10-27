@@ -79,10 +79,9 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
-                    let typ = method.typ.to_tokens();
-                    let typ = method.is_list.then(|| quote!(Vec<#typ>)).unwrap_or(typ);
+                    let typ = method.type_tokens();
                     
-                    let prisma_value_converter = method.typ.to_prisma_value(&format_ident!("value"), method.is_list);
+                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), method.is_list);
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
                     
@@ -125,8 +124,8 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                                             where_params
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<#pcr::SerializedWhere>::into)
-                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
                                                 .map(|v| #pcr::PrismaValue::Object(vec![v]))
                                                 .collect()
                                         )
@@ -149,8 +148,8 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                                             [where_param]
                                                 .into_iter()
                                                 .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(Into::<#pcr::SerializedWhere>::into)
-                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
                                                 .collect()
                                         )
                                     )]

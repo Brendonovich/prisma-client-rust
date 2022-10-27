@@ -8,10 +8,10 @@ use serde_json::{json, Value};
 #[macro_export]
 macro_rules! raw {
     ($e: expr) => {
-        $crate::raw::Raw::new($e, vec![]);
+        $crate::Raw::new($e, vec![]);
     };
     ($e: expr, $($params:expr),+) => {
-        $crate::raw::Raw::new($e, vec![$($params),+])
+        $crate::Raw::new($e, vec![$($params),+])
     };
 }
 

@@ -18,7 +18,8 @@ async fn aaaa_run_migrations() -> TestResult {
     cleanup(client).await
 }
 
-pub mod batch;
+mod batch;
+mod callbacks;
 mod count;
 mod create;
 mod create_many;

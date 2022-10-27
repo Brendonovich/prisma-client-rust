@@ -3429,7 +3429,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "base64 0.13.0",
  "bigdecimal 0.2.2",
@@ -3457,8 +3457,9 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
+ "datamodel",
  "prisma-client-rust-sdk",
  "proc-macro2",
  "quote",
@@ -3466,11 +3467,12 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "syn",
+ "thiserror",
 ]
 
 [[package]]
 name = "prisma-client-rust-sdk"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "convert_case 0.5.0",
  "datamodel",
@@ -3489,6 +3491,7 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "syn",
+ "thiserror",
 ]
 
 [[package]]
@@ -4302,6 +4305,36 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "sdk-example-app"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "sdk-example-lib",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "sdk-example-generator"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust-sdk",
+ "serde",
+]
+
+[[package]]
+name = "sdk-example-lib"
+version = "0.1.0"
+
+[[package]]
+name = "sdk-example-prisma-cli"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust-cli",
+ "sdk-example-generator",
 ]
 
 [[package]]

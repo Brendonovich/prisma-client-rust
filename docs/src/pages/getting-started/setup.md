@@ -54,8 +54,10 @@ If using git, add it to your `.gitignore` file.
 First, make sure you are using the [Tokio](https://github.com/tokio-rs/tokio) async runtime.
 Other runtimes have not been tested, but since the [Prisma Engines](https://github.com/prisma/prisma-engines) use it there is likely no other option.
 
+`PrismaClient::_builder()` provides a builder API for customising the generated client.
+The simplest use of this is calling `.build()` directly on the builder.
 Using the above schema for reference,
-this is how to create an instance of the client in a `main.rs` file right next to `prisma.rs`:
+this builder creates a client in a `main.rs` file right next to `prisma.rs`:
 
 ```rust
 mod prisma;
@@ -65,13 +67,17 @@ use prisma_client_rust::NewClientError;
 
 #[tokio::main]
 async fn main() {
-    let client: Result<PrismaClient, NewClientError> = prisma::new_client().await;
+    let client: Result<PrismaClient, NewClientError> = PrismaClient::_builder().build().await;
 }
 ```
+
+The `with_url` builder method can be used to customise which database the client connects to.
+In most cases it is recommended to control this with an environment variable in your schema,
+but for some cases (eg. desktop apps with multiple databases) environment variables cannot be customised.
 
 ## Naming Clashes
 
 Rust has a [reserved set of keywords](https://doc.rust-lang.org/reference/keywords.html) that cannot be used as names in your code.
 If you name a model or field something that after conversion to `snake_case` will be a restricted keyword,
-you will almost assuredly not be able to compile your project.
+the generator will like give you an error.
 While this is annoying, it is an unavoidable consequence of using Rust.
