@@ -28,3 +28,4 @@ proc-macro2 = "1.0.39"
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
 
 datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
+thiserror = "1.0.37"

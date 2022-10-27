@@ -7,7 +7,7 @@ pub(crate) mod prelude;
 mod read_filters;
 
 use prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 fn default_module_path() -> String {
     "prisma".to_string()
@@ -19,16 +19,28 @@ pub struct PrismaClientRustGenerator {
     module_path: String,
 }
 
+#[derive(Debug, Serialize, thiserror::Error)]
+pub enum Error {
+    #[error("Failed to parse module_path")]
+    InvalidModulePath,
+}
+
 impl PrismaGenerator for PrismaClientRustGenerator {
     const NAME: &'static str = "Prisma Client Rust";
     const DEFAULT_OUTPUT: &'static str = "./prisma.rs";
 
-    fn generate(self, args: GenerateArgs) -> String {
+    type Error = Error;
+
+    fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
         let mut header = header::generate(&args);
+
+        return Err(Error::InvalidModulePath);
 
         header.extend(models::generate(
             &args,
-            self.module_path.parse().expect("Invalid module path"),
+            self.module_path
+                .parse()
+                .map_err(|_| Error::InvalidModulePath)?,
         ));
 
         let internal_enums = internal_enums::generate(&args);
@@ -62,6 +74,6 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
         header.extend(enums::generate(&args));
 
-        header.to_string()
+        Ok(header.to_string())
     }
 }
