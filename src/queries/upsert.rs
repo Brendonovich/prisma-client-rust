@@ -1,76 +1,67 @@
-use std::marker::PhantomData;
-
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionBuilder};
-use serde::de::DeserializeOwned;
+use query_core::{Operation, SelectionBuilder};
 
 use crate::{
     include::Include,
     select::{Select, SelectType},
-    BatchQuery,
+    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
+    PrismaClientInternals, WhereInput,
 };
 
-use super::{QueryContext, QueryInfo, SerializedWhere};
-
-pub struct Upsert<'a, Where, Set, With, Data>
+pub struct Upsert<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_param: Where,
-    pub create_params: Vec<Set>,
-    pub update_params: Vec<Set>,
-    pub with_params: Vec<With>,
-    _data: PhantomData<Data>,
+    client: &'a PrismaClientInternals,
+    pub where_param: Actions::Where,
+    pub create_params: Vec<Actions::Set>,
+    pub update_params: Vec<Actions::Set>,
+    pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Where, Set, With, Data> Upsert<'a, Where, Set, With, Data>
+impl<'a, Actions> ModelAction for Upsert<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
+{
+    type Actions = Actions;
+
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Upsert);
+}
+
+impl<'a, Actions> Upsert<'a, Actions>
+where
+    Actions: ModelActions,
 {
     pub fn new(
-        ctx: QueryContext<'a>,
-        info: QueryInfo,
-        where_param: Where,
-        create_params: Vec<Set>,
-        update_params: Vec<Set>,
+        client: &'a PrismaClientInternals,
+        where_param: Actions::Where,
+        create_params: Vec<Actions::Set>,
+        update_params: Vec<Actions::Set>,
     ) -> Self {
         Self {
-            ctx,
-            info,
+            client,
             where_param,
             create_params,
             update_params,
             with_params: vec![],
-            _data: PhantomData,
         }
     }
 
-    pub fn with(mut self, param: impl Into<With>) -> Self {
+    pub fn with(mut self, param: impl Into<Actions::With>) -> Self {
         self.with_params.push(param.into());
         self
     }
 
     fn to_selection(
-        model: &str,
-        where_param: Where,
-        create_params: Vec<Set>,
-        update_params: Vec<Set>,
+        where_param: Actions::Where,
+        create_params: Vec<Actions::Set>,
+        update_params: Vec<Actions::Set>,
     ) -> SelectionBuilder {
-        let mut selection = Selection::builder(format!("upsertOne{}", model));
-
-        selection.alias("result");
+        let mut selection = Self::base_selection();
 
         selection.push_argument(
             "where",
-            PrismaValue::Object(vec![where_param.into().transform_equals()]),
+            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
         );
 
         selection.push_argument(
@@ -86,72 +77,62 @@ where
         selection
     }
 
-    pub fn select<S: SelectType<ModelData = Data>>(self, select: S) -> Select<'a, S::Data> {
-        let mut selection = Self::to_selection(
-            self.info.model,
-            self.where_param,
-            self.create_params,
-            self.update_params,
-        );
+    pub fn select<S: SelectType<ModelData = Actions::Data>>(
+        self,
+        select: S,
+    ) -> Select<'a, S::Data> {
+        let mut selection =
+            Self::to_selection(self.where_param, self.create_params, self.update_params);
 
         selection.nested_selections(select.to_selections());
 
         let op = Operation::Write(selection.build());
 
-        Select::new(self.ctx, op)
+        Select::new(self.client, op)
     }
 
-    pub fn include<I: SelectType<ModelData = Data>>(self, select: I) -> Include<'a, I::Data> {
-        let mut selection = Self::to_selection(
-            self.info.model,
-            self.where_param,
-            self.create_params,
-            self.update_params,
-        );
+    pub fn include<I: SelectType<ModelData = Actions::Data>>(
+        self,
+        select: I,
+    ) -> Include<'a, I::Data> {
+        let mut selection =
+            Self::to_selection(self.where_param, self.create_params, self.update_params);
 
         selection.nested_selections(select.to_selections());
 
         let op = Operation::Write(selection.build());
 
-        Include::new(self.ctx, op)
+        Include::new(self.client, op)
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let QueryInfo {
-            model,
-            mut scalar_selections,
-        } = self.info;
-
-        let mut selection = Self::to_selection(
-            model,
-            self.where_param,
-            self.create_params,
-            self.update_params,
-        );
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut selection =
+            Self::to_selection(self.where_param, self.create_params, self.update_params);
+        let mut scalar_selections = Actions::scalar_selections();
 
         if self.with_params.len() > 0 {
             scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
         }
         selection.nested_selections(scalar_selections);
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
-    pub async fn exec(self) -> super::Result<Data> {
-        let (op, ctx) = self.exec_operation();
+    pub async fn exec(self) -> super::Result<Actions::Data> {
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await
+        let res = client.execute(op).await?;
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 
-impl<'a, Where, Set, With, Data> BatchQuery for Upsert<'a, Where, Set, With, Data>
+impl<'a, Actions> BatchQuery for Upsert<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
-    Set: Into<(String, PrismaValue)>,
-    With: Into<Selection>,
-    Data: DeserializeOwned,
+    Actions: ModelActions,
 {
-    type RawType = Data;
+    type RawType = Actions::Data;
     type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {

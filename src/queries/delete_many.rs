@@ -1,35 +1,41 @@
+use query_core::Operation;
+
+use crate::{
+    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
+    ModelMutationType, PrismaClientInternals, WhereInput,
+};
 use prisma_models::PrismaValue;
-use query_core::{Operation, Selection};
 
-use crate::{merge_fields, BatchQuery, BatchResult};
-
-use super::{QueryContext, QueryInfo, SerializedWhere};
-
-pub struct DeleteMany<'a, Where>
+pub struct DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
-    ctx: QueryContext<'a>,
-    info: QueryInfo,
-    pub where_params: Vec<Where>,
+    client: &'a PrismaClientInternals,
+    pub where_params: Vec<Actions::Where>,
 }
 
-impl<'a, Where> DeleteMany<'a, Where>
+impl<'a, Actions> ModelAction for DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
-    pub fn new(ctx: QueryContext<'a>, info: QueryInfo, where_params: Vec<Where>) -> Self {
+    type Actions = Actions;
+
+    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::DeleteMany);
+}
+
+impl<'a, Actions> DeleteMany<'a, Actions>
+where
+    Actions: ModelActions,
+{
+    pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
-            ctx,
-            info,
+            client,
             where_params,
         }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, QueryContext<'a>) {
-        let mut selection = Selection::builder(format!("deleteMany{}", self.info.model));
-
-        selection.alias("result");
+    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut selection = Self::base_selection();
 
         if self.where_params.len() > 0 {
             selection.push_argument(
@@ -37,7 +43,7 @@ where
                 PrismaValue::Object(merge_fields(
                     self.where_params
                         .into_iter()
-                        .map(Into::<SerializedWhere>::into)
+                        .map(WhereInput::serialize)
                         .map(|s| (s.field, s.value.into()))
                         .collect(),
                 )),
@@ -46,7 +52,7 @@ where
 
         selection.push_nested_selection(BatchResult::selection());
 
-        (Operation::Write(selection.build()), self.ctx)
+        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {
@@ -54,15 +60,20 @@ where
     }
 
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, ctx) = self.exec_operation();
+        let (op, client) = self.exec_operation();
 
-        ctx.execute(op).await.map(Self::convert)
+        let res = client.execute(op).await.map(Self::convert)?;
+
+        #[cfg(feature = "mutation-callbacks")]
+        client.notify_model_mutation::<Self>();
+
+        Ok(res)
     }
 }
 
-impl<'a, Where> BatchQuery for DeleteMany<'a, Where>
+impl<'a, Actions> BatchQuery for DeleteMany<'a, Actions>
 where
-    Where: Into<SerializedWhere>,
+    Actions: ModelActions,
 {
     type RawType = BatchResult;
     type ReturnType = i64;

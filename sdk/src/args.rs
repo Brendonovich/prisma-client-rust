@@ -10,12 +10,11 @@ use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::{casing::Casing, dmmf::Datasource, FieldTypeExt};
+use crate::{casing::Casing, dmmf::GeneratorCtx, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
-    pub datamodel_str: String,
-    pub datasources: Vec<Datasource>,
+    pub ctx: GeneratorCtx,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
@@ -23,12 +22,7 @@ pub struct GenerateArgs {
 }
 
 impl GenerateArgs {
-    pub fn new(
-        mut dml: datamodel::dml::Datamodel,
-        schema: DmmfSchema,
-        datamodel_str: String,
-        datasources: Vec<Datasource>,
-    ) -> Self {
+    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, ctx: GeneratorCtx) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -262,7 +256,7 @@ impl GenerateArgs {
         };
 
         use builtin_connectors::*;
-        let connector = match &datasources[0].provider {
+        let connector = match &ctx.datasources[0].provider {
             #[cfg(feature = "sqlite")]
             p if SQLITE.is_provider(p) => SQLITE,
             #[cfg(feature = "postgresql")]
@@ -282,8 +276,7 @@ impl GenerateArgs {
 
         Self {
             dml,
-            datamodel_str,
-            datasources,
+            ctx,
             schema,
             read_filters,
             write_filters,
@@ -328,15 +321,11 @@ trait DmmfSchemaExt {
 
 impl DmmfSchemaExt for DmmfSchema {
     fn find_input_type(&self, potential_names: Vec<String>) -> Option<&DmmfInputType> {
-        for name in potential_names {
-            for i in self.input_object_types.get("prisma").unwrap() {
-                if &i.name == &name {
-                    return Some(i);
-                }
-            }
-        }
+        let object_types = self.input_object_types.get("prisma").unwrap();
 
-        None
+        potential_names
+            .iter()
+            .find_map(|name| object_types.iter().find(|i| &i.name == name))
     }
 }
 

@@ -8,7 +8,7 @@ use datamodel::parse_schema;
 
 use crate::{
     args::GenerateArgs,
-    dmmf::EngineDMMF,
+    dmmf::GeneratorCtx,
     jsonrpc, prisma_cli,
     utils::{build_schema, rustfmt, validate_names},
     GenerateFn, GeneratorError,
@@ -61,7 +61,7 @@ pub fn run_generator(generator: GeneratorMetadata, args: &Vec<String>) {
 
                 let deserializer = &mut serde_json::Deserializer::from_str(&params_str);
 
-                let dmmf = serde_path_to_error::deserialize(deserializer)
+                let generator_ctx = serde_path_to_error::deserialize(deserializer)
                     .expect("Failed to deserialize DMMF from Prisma engines");
 
                 match generate(&generator, dmmf) {
@@ -103,15 +103,15 @@ pub fn run_generator(generator: GeneratorMetadata, args: &Vec<String>) {
 fn generate(generator: &GeneratorMetadata, dmmf: EngineDMMF) -> Result<(), GeneratorError> {
     let (configuration, datamodel) =
         parse_schema(&dmmf.datamodel).expect("Failed to parse datamodel"); // Verified by CLI
-                                                                           // before generating
+                      
     let schema = build_schema(&datamodel, &configuration);
 
-    let output_str = dmmf.generator.output.get_value();
+    let output_str = ctx.generator.output.get_value();
     let output_path = Path::new(&output_str);
 
     let mut file = create_generated_file(&output_path)?;
 
-    let args = GenerateArgs::new(datamodel, schema.schema, dmmf.datamodel, dmmf.datasources);
+    let args = GenerateArgs::new(datamodel, schema.schema, ctx);
 
     validate_names(&args)?;
 
