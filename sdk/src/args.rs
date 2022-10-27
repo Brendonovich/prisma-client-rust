@@ -10,11 +10,11 @@ use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::{casing::Casing, dmmf::GeneratorCtx, FieldTypeExt};
+use crate::{casing::Casing, dmmf::EngineDMMF, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: datamodel::dml::Datamodel,
-    pub ctx: GeneratorCtx,
+    pub dmmf: EngineDMMF,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
@@ -22,7 +22,7 @@ pub struct GenerateArgs {
 }
 
 impl GenerateArgs {
-    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, ctx: GeneratorCtx) -> Self {
+    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, dmmf: EngineDMMF) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {
@@ -256,7 +256,7 @@ impl GenerateArgs {
         };
 
         use builtin_connectors::*;
-        let connector = match &ctx.datasources[0].provider {
+        let connector = match &dmmf.datasources[0].provider {
             #[cfg(feature = "sqlite")]
             p if SQLITE.is_provider(p) => SQLITE,
             #[cfg(feature = "postgresql")]
@@ -269,12 +269,14 @@ impl GenerateArgs {
             p if MYSQL.is_provider(p) => MYSQL,
             #[cfg(feature = "mongodb")]
             p if MONGODB.is_provider(p) => MONGODB,
-            _ => unreachable!(),
+            p => panic!(
+                "Database provider {p} is not available. Have you enabled its Cargo.toml feature?"
+            ),
         };
 
         Self {
             dml,
-            ctx,
+            dmmf,
             schema,
             read_filters,
             write_filters,

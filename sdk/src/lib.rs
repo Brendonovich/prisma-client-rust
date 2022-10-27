@@ -9,9 +9,9 @@ mod prisma_cli;
 mod runtime;
 mod utils;
 
-use proc_macro2::TokenStream;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map, Value};
+use thiserror::Error;
 
 use runtime::{run_generator, GeneratorMetadata};
 
@@ -50,19 +50,44 @@ pub mod prelude {
     }
 }
 
+pub type GenerateFn = fn(GenerateArgs, Map<String, Value>) -> GenerateResult;
+pub type GenerateResult = Result<String, GeneratorError>;
+
+#[derive(Debug, Error)]
+pub enum GeneratorError {
+    #[error("Schema contains invalid names \n{0}")]
+    ReservedNames(String),
+    #[error("Failed to create client file")]
+    FileCreate(std::io::Error),
+    #[error("Failed to write generated client to file")]
+    FileWrite(std::io::Error),
+    #[error("Failed to deserialize generator arguments")]
+    ArgDeserialize(serde_json::Error),
+    #[error("Generator {name} failed: \n{message}")]
+    InternalError { name: &'static str, message: String },
+}
+
 pub trait PrismaGenerator: DeserializeOwned {
     const NAME: &'static str;
     const DEFAULT_OUTPUT: &'static str;
 
-    fn generate(self, args: GenerateArgs) -> TokenStream;
+    type Error: Serialize + std::error::Error;
 
-    fn erased_generate(args: GenerateArgs, config: Map<String, Value>) -> TokenStream
+    fn generate(self, args: GenerateArgs) -> Result<String, Self::Error>;
+
+    fn erased_generate(args: GenerateArgs, config: Map<String, Value>) -> GenerateResult
     where
         Self: Sized,
     {
-        serde_json::from_value::<Self>(Value::Object(config))
-            .unwrap()
+        let generator = serde_json::from_value::<Self>(Value::Object(config))
+            .map_err(GeneratorError::ArgDeserialize)?;
+
+        generator
             .generate(args)
+            .map_err(|e| GeneratorError::InternalError {
+                name: Self::NAME,
+                message: e.to_string(),
+            })
     }
 }
 

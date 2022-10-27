@@ -4,11 +4,10 @@ use serde_json::Map;
 /// Provided by Prisma CLI to generators
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GeneratorCtx {
+pub struct EngineDMMF {
     pub generator: Generator,
     pub schema_path: String,
-    #[serde(rename = "datamodel")]
-    pub datamodel_str: String,
+    pub datamodel: String,
     pub datasources: Vec<Datasource>,
 }
 
