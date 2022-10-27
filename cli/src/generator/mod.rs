@@ -34,8 +34,6 @@ impl PrismaGenerator for PrismaClientRustGenerator {
     fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
         let mut header = header::generate(&args);
 
-        return Err(Error::InvalidModulePath);
-
         header.extend(models::generate(
             &args,
             self.module_path
