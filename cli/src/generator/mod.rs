@@ -6,7 +6,7 @@ mod models;
 mod read_filters;
 
 use prisma_client_rust_sdk::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 fn default_module_path() -> String {
     "prisma".to_string()
@@ -31,7 +31,7 @@ impl PrismaGenerator for PrismaClientRustGenerator {
     type Error = Error;
 
     fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
-        let mut header = header::generate(&args);
+        let header = header::generate(&args);
 
         let models = models::generate(
             &args,
