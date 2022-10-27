@@ -2,7 +2,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn test_create() -> TestResult {
+async fn create() -> TestResult {
     let client = client().await;
 
     let post = client
@@ -36,7 +36,7 @@ async fn test_create() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_create_unique_violation() -> TestResult {
+async fn unique_violation() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -66,7 +66,7 @@ async fn test_create_unique_violation() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_setting_field_to_null() -> TestResult {
+async fn setting_field_to_null() -> TestResult {
     let client = client().await;
 
     let post = client

@@ -10,12 +10,13 @@ default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = []
 migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
+mutation-callbacks = []
 
-mysql = ["datamodel/sql", "prisma-client-rust-sdk/mysql"]
-sqlite = ["datamodel/sql", "prisma-client-rust-sdk/sqlite"]
-mssql = ["datamodel/sql", "prisma-client-rust-sdk/mssql"]
-postgresql = ["datamodel/sql", "prisma-client-rust-sdk/postgresql"]
-mongodb = ["datamodel/mongodb", "prisma-client-rust-sdk/mongodb"]
+mysql = ["prisma-client-rust-sdk/mysql"]
+sqlite = ["prisma-client-rust-sdk/sqlite"]
+mssql = ["prisma-client-rust-sdk/mssql"]
+postgresql = ["prisma-client-rust-sdk/postgresql"]
+mongodb = ["prisma-client-rust-sdk/mongodb"]
 
 [dependencies]
 serde_path_to_error = "0.1.7"

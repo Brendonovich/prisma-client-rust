@@ -4,9 +4,7 @@ This is an example of using Prisma Client Rust with [rspc](https://rspc.dev).
 
 ## Running
 
-First, uncomment the `rspc` feature in `prisma-cli` (at the root of this repository).
-
-Then geenrate the client:
+Generate the client:
 
 ```bash
 cargo prisma generate

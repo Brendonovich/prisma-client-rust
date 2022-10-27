@@ -18,6 +18,37 @@ use runtime::{run_generator, GeneratorMetadata};
 pub use args::GenerateArgs;
 pub use casing::*;
 pub use extensions::*;
+pub use quote::quote;
+
+pub mod prisma {
+    pub use datamodel;
+    pub use dmmf;
+    pub use prisma_models;
+    pub use query_core;
+    pub use request_handlers;
+}
+
+pub mod prelude {
+    pub use super::{
+        prisma::{datamodel::dml, *},
+        *,
+    };
+    pub use proc_macro2::*;
+    pub use quote::*;
+    pub use syn::Ident;
+
+    pub fn ident(name: &str) -> Ident {
+        format_ident!("{name}")
+    }
+
+    pub fn snake_ident(name: &str) -> Ident {
+        format_ident!("{}", name.to_case(Case::Snake))
+    }
+
+    pub fn pascal_ident(name: &str) -> Ident {
+        format_ident!("{}", name.to_case(Case::Pascal))
+    }
+}
 
 pub type GenerateFn = fn(GenerateArgs, Map<String, Value>) -> GenerateResult;
 pub type GenerateResult = Result<String, GeneratorError>;

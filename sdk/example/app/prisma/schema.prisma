@@ -1,0 +1,30 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "cargo prisma"
+  output   = "../src/db.rs"
+}
+
+generator custom_generator {
+  provider    = "cargo custom-generator"
+  output      = "../src/db_custom_generator.rs"
+  client_path = "db"
+}
+
+model User {
+  id          String @id
+  displayName String
+
+  posts Post[]
+}
+
+model Post {
+  id      String @id
+  content String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}

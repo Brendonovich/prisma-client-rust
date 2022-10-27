@@ -422,7 +422,7 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                 },
                                 Self::Fetch(args) => {
                                     selection.set_arguments(args.to_graphql().0);
-                                    selection.nested_selections(#relation_model_name_snake::_outputs());
+                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
                                 }
                             }
 
@@ -463,7 +463,7 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                     selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
                                 },
                                 Self::Fetch => {
-                                    selection.nested_selections(#relation_model_name_snake::_outputs());
+                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
                                 }
                             }
 

@@ -1,5 +1,4 @@
 mod select;
-mod outputs;
 mod set_params;
 mod with_params;
 mod data;
@@ -9,8 +8,7 @@ mod actions;
 mod create;
 mod include;
 
-use datamodel::dml::{Field, FieldArity, IndexType};
-use crate::generator::prelude::*;
+use prisma_client_rust_sdk::prelude::*;
 use std::ops::Deref;
 
 pub struct Operator {
@@ -44,7 +42,7 @@ struct FieldQueryModule {
 }
 
 impl FieldQueryModule {
-    pub fn new(field: &Field) -> Self {
+    pub fn new(field: &dml::Field) -> Self {
         Self {
             name: format_ident!("{}", field.name().to_case(Case::Snake)),
             methods: vec![],
@@ -152,8 +150,8 @@ impl WhereParams {
         self.to_serialized_where.push(match_arm);
     }
 
-    pub fn add_unique_variant(&mut self, field: &Field) {
-        if matches!(field.arity(), FieldArity::Optional) {
+    pub fn add_unique_variant(&mut self, field: &dml::Field) {
+        if matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_unique_variant cannot add optional fields. Perhaps you meant add_optional_unique_variant?");
         }
         
@@ -172,9 +170,9 @@ impl WhereParams {
 
     pub fn add_optional_unique_variant(
         &mut self,
-        field: &Field
+        field: &dml::Field
     ) {
-        if !matches!(field.arity(), FieldArity::Optional) {
+        if !matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
         }
         
@@ -243,11 +241,13 @@ impl WhereParams {
                 #(#variants),*
             }
 
-            impl Into<::prisma_client_rust::SerializedWhere> for WhereParam {
-                fn into(self) -> ::prisma_client_rust::SerializedWhere {
-                    match self {
+            impl #pcr::WhereInput for WhereParam {
+                fn serialize(self) -> #pcr::SerializedWhereInput {
+                    let (name, value) = match self {
                         #(#to_serialized_where),*
-                    }
+                    };
+
+                    #pcr::SerializedWhereInput::new(name, value.into())
                 }
             }
 
@@ -348,7 +348,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     #pcr::SerializedWhereValue::List(
                         value
                             .into_iter()
-                            .map(Into::<#pcr::SerializedWhere>::into)
+                            .map(#pcr::WhereInput::serialize)
                             .map(Into::into)
                             .map(|v| vec![v])
                             .map(#pcr::PrismaValue::Object)
@@ -360,7 +360,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         ::prisma_client_rust::merge_fields(
                             value
                                 .into_iter()
-                                .map(Into::<#pcr::SerializedWhere>::into)
+                                .map(#pcr::WhereInput::serialize)
                                 .map(Into::into)
                                 .collect()
                         )
@@ -371,7 +371,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             model_where_params.add_variant(
                 quote!(#variant_name(Vec<WhereParam>)),
                 quote! {
-                    Self::#variant_name(value) => #pcr::SerializedWhere::new(
+                    Self::#variant_name(value) => (
                         #op_action,
                         #value,
                     )
@@ -379,12 +379,12 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             );
         }
 
-        let mut add_unique_variant = |fields: Vec<&Field>| {
+        let mut add_unique_variant = |fields: Vec<&dml::Field>| {
             if fields.len() == 1 {
                 let field = fields[0];
                 
                 match field.arity()  {
-                    FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
+                    dml::FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
                     _ => model_where_params.add_unique_variant(field),
                 }
             } else {
@@ -421,7 +421,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 model_where_params.add_variant(
                     quote!(#variant_name(#(#variant_data_as_types),*)),
                     quote! {
-                        Self::#variant_name(#(#variant_data_as_destructured),*) => #pcr::SerializedWhere::new(
+                        Self::#variant_name(#(#variant_data_as_destructured),*) => (
                             #field_name_string,
                             #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
                         )
@@ -433,7 +433,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         };
         
         for unique in &model.indices {
-            if unique.tpe != IndexType::Unique { continue }
+            if unique.tpe != dml::IndexType::Unique { continue }
             
             add_unique_variant(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
         }
@@ -442,7 +442,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             // if primary key is marked as unique, skip primary key handling
             if (primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name.as_str())) || (!model.indices
                 .iter()
-                .filter(|i| i.tpe == IndexType::Unique)
+                .filter(|i| i.tpe == dml::IndexType::Unique)
                 .any(|i|
                     i.fields
                         .iter()
@@ -469,7 +469,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             let set_variant = format_ident!("Set{}", field_name_pascal);
 
             match root_field {
-                Field::RelationField(field) => {
+                dml::Field::RelationField(field) => {
                     let connect_variant = format_ident!("Connect{}", field_name_pascal);
                     let disconnect_variant = format_ident!("Disconnect{}", field_name_pascal);
                     
@@ -483,15 +483,15 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         model_where_params.add_variant(
                             quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
                             quote! {
-                                Self::#variant_name(where_params) => #pcr::SerializedWhere::new(
+                                Self::#variant_name(where_params) => (
                                     #field_string,
                                     #pcr::SerializedWhereValue::Object(vec![(
                                         #method_action_string.to_string(),
                                         #pcr::PrismaValue::Object(
                                             where_params
                                                 .into_iter()
-                                                .map(Into::<#pcr::SerializedWhere>::into)
-                                                .map(#pcr::SerializedWhere::transform_equals)
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
                                                 .collect()
                                         ),
                                     )])
@@ -596,7 +596,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         }
                     }
                 },
-                Field::ScalarField(field) => {
+                dml::Field::ScalarField(field) => {
                     let field_set_variant = format_ident!("Set{}", field_name_pascal);
                     field_query_module.add_method(quote! {
                         pub fn set<T: From<Set>>(value: #field_type) -> T {
@@ -626,7 +626,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     model_where_params.add_variant(
                         equals_variant.clone(), 
                         quote! {
-                            Self::#equals_variant_name(value) => #pcr::SerializedWhere::new(
+                            Self::#equals_variant_name(value) => (
                                 #field_string,
                                 #pcr::SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
                             )
@@ -665,9 +665,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         let filter_enum = format_ident!("{}Filter", &read_type.name);
 
                         model_where_params.add_variant(
-                            quote!(#field_name_pascal(read_filters::#filter_enum)),
+                            quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
                             quote! {
-                                Self::#field_name_pascal(value) => #pcr::SerializedWhere::new(
+                                Self::#field_name_pascal(value) => (
                                     #field_string,
                                     value.into()
                                 )
@@ -683,7 +683,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> WhereParam {
-                                    WhereParam::#field_name_pascal(read_filters::#filter_enum::#method_name_pascal(value))
+                                    WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
                                 }
                             });
                         }
@@ -718,7 +718,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let with_params_enum = with_params::enum_definition(&model);
         let set_params_enum = set_params::enum_definition(&model, args);
         let order_by_params_enum = order_by::enum_definition(&model);
-        let outputs_fn = outputs::model_fn(&model);
         let create_fn = create::model_fns(&model);
         let query_modules = model_query_modules.quote();
         let where_params = model_where_params.quote();
@@ -734,8 +733,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 use super::_prisma::*;
                 
                 #query_modules
-                
-                #outputs_fn
 
                 #create_fn
                 
@@ -755,20 +752,22 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 #where_params
 
-                pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<WithParam>;
-                pub type ManyArgs = ::prisma_client_rust::ManyArgs<WhereParam, WithParam, OrderByParam, UniqueWhereParam>;
+                // 'static since the actions struct is only used for types
+
+                pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<Actions<'static>>;
+                pub type ManyArgs = ::prisma_client_rust::ManyArgs<Actions<'static>>;
                 
-                pub type Count<'a> = ::prisma_client_rust::Count<'a, WhereParam, OrderByParam, UniqueWhereParam>;
-                pub type Create<'a> = ::prisma_client_rust::Create<'a, SetParam, WithParam, Data>;
-                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, SetParam>;
-                pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, WhereParam, WithParam, SetParam, Data>;
-                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, SetParam, Data>;
-                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, UniqueWhereParam, Data>;
-                pub type Update<'a> = ::prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
-                pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
-                pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
-                pub type Delete<'a> = ::prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
-                pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, WhereParam>;
+                pub type Count<'a> = ::prisma_client_rust::Count<'a, Actions<'static>>;
+                pub type Create<'a> = ::prisma_client_rust::Create<'a, Actions<'static>>;
+                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, Actions<'static>>;
+                pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, Actions<'static>>;
+                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, Actions<'static>>;
+                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, Actions<'static>>;
+                pub type Update<'a> = ::prisma_client_rust::Update<'a, Actions<'static>>;
+                pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, Actions<'static>>;
+                pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, Actions<'static>>;
+                pub type Delete<'a> = ::prisma_client_rust::Delete<'a, Actions<'static>>;
+                pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, Actions<'static>>;
               
                 #actions_struct
             }

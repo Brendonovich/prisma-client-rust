@@ -30,12 +30,68 @@ pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
-use query_core::{schema::QuerySchemaRef, Operation, Selection};
-use serde::de::{DeserializeOwned, IntoDeserializer};
+pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
 use thiserror::Error;
 use user_facing_errors::UserFacingError;
 
-use crate::{prisma_value, Executor};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelQueryType {
+    FindUnique,
+    FindFirst,
+    FindMany,
+    Count,
+}
+
+impl ModelQueryType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::FindUnique => "findUnique",
+            Self::FindFirst => "findFirst",
+            Self::FindMany => "findMany",
+            Self::Count => "aggregate",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelMutationType {
+    Create,
+    CreateMany,
+    Update,
+    UpdateMany,
+    Delete,
+    DeleteMany,
+    Upsert,
+}
+
+impl ModelMutationType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Create => "createOne",
+            Self::CreateMany => "createMany",
+            Self::Update => "updateOne",
+            Self::UpdateMany => "updateMany",
+            Self::Delete => "deleteOne",
+            Self::DeleteMany => "deleteMany",
+            Self::Upsert => "upsertOne",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelActionType {
+    Query(ModelQueryType),
+    Mutation(ModelMutationType),
+}
+
+impl ModelActionType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Query(q) => q.name(),
+            Self::Mutation(q) => q.name(),
+        }
+    }
+}
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -51,12 +107,12 @@ impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
     }
 }
 
-pub struct SerializedWhere {
+pub struct SerializedWhereInput {
     field: String,
     value: SerializedWhereValue,
 }
 
-impl SerializedWhere {
+impl SerializedWhereInput {
     pub fn new(field: &str, value: SerializedWhereValue) -> Self {
         Self {
             field: field.into(),
@@ -87,58 +143,10 @@ impl SerializedWhere {
     }
 }
 
-impl Into<(String, prisma_models::PrismaValue)> for SerializedWhere {
+impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
     fn into(self) -> (String, prisma_models::PrismaValue) {
-        let SerializedWhere { field, value } = self;
+        let SerializedWhereInput { field, value } = self;
         (field, value.into())
-    }
-}
-
-pub struct QueryInfo {
-    model: &'static str,
-    scalar_selections: Vec<Selection>,
-}
-
-impl QueryInfo {
-    pub fn new(model: &'static str, scalar_selections: Vec<Selection>) -> Self {
-        Self {
-            model,
-            scalar_selections,
-        }
-    }
-}
-
-#[derive()]
-pub struct QueryContext<'a> {
-    executor: &'a Executor,
-    schema: &'a QuerySchemaRef,
-}
-
-impl<'a> QueryContext<'a> {
-    pub fn new(executor: &'a Executor, schema: &'a QuerySchemaRef) -> Self {
-        Self { executor, schema }
-    }
-
-    pub async fn execute<T: DeserializeOwned>(self, operation: Operation) -> Result<T> {
-        // reduce monomorphization a lil bit
-        async fn inner<'a>(ctx: QueryContext<'a>, op: Operation) -> Result<serde_value::Value> {
-            let response = ctx
-                .executor
-                .execute(None, op, ctx.schema.clone(), None)
-                .await
-                .map_err(|e| QueryError::Execute(e.into()))?;
-
-            let data: prisma_value::Item = response.data.into();
-
-            Ok(serde_value::to_value(data)?)
-        }
-
-        let value = inner(self, operation).await?;
-        // let value = dbg!(value);
-
-        let ret = T::deserialize(value.into_deserializer())?;
-
-        Ok(ret)
     }
 }
 
