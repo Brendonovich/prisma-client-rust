@@ -11,7 +11,7 @@ default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 mysql = ["query-core/mysql", "datamodel/sql"]
 sqlite = ["query-core/sqlite", "datamodel/sql"]
 mssql = ["query-core/mssql", "datamodel/sql"]
-postgresql = ["query-core/mssql", "datamodel/sql"]
+postgresql = ["query-core/postgresql", "datamodel/sql"]
 mongodb = ["query-core/mongodb", "datamodel/mongodb"]
 
 sqlite-create-many = ["datamodel/sqlite-create-many"]
