@@ -311,7 +311,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     use super::*;
 
                     pub fn include($($($func_arg:$func_arg_ty),+)?) -> Include {
-                        let mut selections = $crate::#module_path::#model_name_snake::_outputs();
+                        let mut selections = <$crate::#module_path::#model_name_snake::Actions as ::prisma_client_rust::ModelActions>::scalar_selections();
 
                         selections.extend(
                             $crate::#module_path::#model_name_snake::include!(
@@ -341,7 +341,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 }
 
                 Include({
-                    let mut selections = $crate::#module_path::#model_name_snake::_outputs();
+                    let mut selections = <$crate::#module_path::#model_name_snake::Actions as ::prisma_client_rust::ModelActions>::scalar_selections();
 
                     selections.extend(
                         $crate::#module_path::#model_name_snake::include!(
@@ -460,13 +460,13 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                 Self::Include(args, selections) => {
                                     selection.set_arguments(args.to_graphql().0);
 
-                                    let mut nested_selections = #relation_model_name_snake::_outputs();
+                                    let mut nested_selections = <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections();
                                     nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
                                     selection.nested_selections(nested_selections);
                                 },
                                 Self::Fetch(args) => {
                                     selection.set_arguments(args.to_graphql().0);
-                                    selection.nested_selections(#relation_model_name_snake::_outputs());
+                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
                                 }
                             }
 
@@ -504,12 +504,12 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                     selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
                                 },
                                 Self::Include(selections) => {
-                                    let mut nested_selections = #relation_model_name_snake::_outputs();
+                                    let mut nested_selections = <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections();
                                     nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
                                     selection.nested_selections(nested_selections);
                                 },
                                 Self::Fetch => {
-                                    selection.nested_selections(#relation_model_name_snake::_outputs());
+                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
                                 }
                             }
 

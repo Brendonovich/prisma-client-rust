@@ -3459,7 +3459,6 @@ dependencies = [
 name = "prisma-client-rust-cli"
 version = "0.6.2"
 dependencies = [
- "datamodel",
  "prisma-client-rust-sdk",
  "proc-macro2",
  "quote",

@@ -1,12 +1,13 @@
-mod errors;
+pub mod actions;
+mod client;
 #[cfg(feature = "migrations")]
 pub mod migrations;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
-pub mod raw;
+mod raw;
 pub mod serde;
-pub mod traits;
+mod traits;
 
 use std::collections::HashMap;
 
@@ -24,7 +25,8 @@ use thiserror::Error;
 pub use tokio;
 pub use user_facing_errors as prisma_errors;
 
-pub use errors::*;
+pub use actions::*;
+pub use client::*;
 pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
@@ -34,8 +36,6 @@ pub use traits::*;
 pub use rspc;
 
 use ::serde::{Deserialize, Serialize};
-
-pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
 /// The return type of `findMany` queries.
 #[derive(Deserialize)]

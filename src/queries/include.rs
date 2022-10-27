@@ -3,9 +3,10 @@ use std::marker::PhantomData;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{BatchQuery, QueryContext};
+use crate::{BatchQuery, PrismaClientInternals};
 
 pub trait IncludeType {
+    // TODO: ModelActions
     type Data: DeserializeOwned;
     type ModelData;
 
@@ -14,21 +15,21 @@ pub trait IncludeType {
 
 pub struct Include<'a, Data: DeserializeOwned> {
     operation: Operation,
-    ctx: QueryContext<'a>,
+    client: &'a PrismaClientInternals,
     _data: PhantomData<Data>,
 }
 
 impl<'a, Data: DeserializeOwned> Include<'a, Data> {
-    pub fn new(ctx: QueryContext<'a>, operation: Operation) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, operation: Operation) -> Self {
         Self {
-            ctx,
+            client,
             operation,
             _data: PhantomData {},
         }
     }
 
     pub async fn exec(self) -> super::Result<Data> {
-        self.ctx.execute(self.operation).await
+        self.client.execute(self.operation).await
     }
 }
 

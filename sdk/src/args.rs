@@ -319,15 +319,11 @@ trait DmmfSchemaExt {
 
 impl DmmfSchemaExt for DmmfSchema {
     fn find_input_type(&self, potential_names: Vec<String>) -> Option<&DmmfInputType> {
-        for name in potential_names {
-            for i in self.input_object_types.get("prisma").unwrap() {
-                if &i.name == &name {
-                    return Some(i);
-                }
-            }
-        }
+        let object_types = self.input_object_types.get("prisma").unwrap();
 
-        None
+        potential_names
+            .iter()
+            .find_map(|name| object_types.iter().find(|i| &i.name == name))
     }
 }
 
