@@ -5,7 +5,7 @@ pub mod migrations;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
-mod raw;
+pub mod raw;
 pub mod serde;
 mod traits;
 
