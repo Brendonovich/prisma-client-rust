@@ -3429,7 +3429,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "base64 0.13.0",
  "bigdecimal 0.2.2",
@@ -3457,7 +3457,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "datamodel",
  "prisma-client-rust-sdk",
@@ -3472,7 +3472,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-sdk"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "convert_case 0.5.0",
  "datamodel",

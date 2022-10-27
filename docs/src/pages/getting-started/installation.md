@@ -20,8 +20,8 @@ First, the main library and CLI package must be added to your project's Cargo.to
 
 ```toml
 [dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.2" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.3" }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.3" }
 ```
 
 The generated client will need `serde`, so run `cargo add` to install it:
@@ -116,7 +116,7 @@ This is not necessary for regular workspaces & single packages since they can us
 
 ## Specifying Your Database
 
-As of version 0.6.2,
+As of version 0.6.3,
 Prisma Client Rust allows you to specify precisely which database connectors your project uses,
 in order to avoid compiling the other connectors that Prisma supports.
 This reduces compile times and binary sizes.
