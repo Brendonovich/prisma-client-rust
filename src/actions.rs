@@ -42,7 +42,7 @@ pub struct ModelMutationCallbackData {
     pub model: &'static str,
 }
 
-pub type ModelMutationCallback = Box<dyn Fn(ModelMutationCallbackData)>;
+pub type ModelMutationCallback = Box<dyn Fn(ModelMutationCallbackData) + Sync + Send>;
 
 pub struct ActionNotifier {
     pub model_mutation_callbacks: Vec<ModelMutationCallback>,

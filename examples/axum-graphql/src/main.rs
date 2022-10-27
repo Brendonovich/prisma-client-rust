@@ -11,8 +11,8 @@ use graphql::schema::{build_schema, AppSchema};
 #[cfg(debug_assertions)]
 use dotenv::dotenv;
 
-pub mod graphql;
 pub mod db;
+pub mod graphql;
 
 async fn graphql_handler(schema: Extension<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
@@ -45,9 +45,9 @@ async fn main() {
 
     // macos Monterey i hate u so much for causing me so much headache to figure out
     // port 5000 is now taken??
-    println!("Playground: http://localhost:5000/api/graphql");
+    println!("Playground: http://localhost:5001/api/graphql");
 
-    axum::Server::bind(&"0.0.0.0:5000".parse().unwrap())
+    axum::Server::bind(&"0.0.0.0:5001".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

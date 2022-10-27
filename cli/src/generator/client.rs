@@ -46,7 +46,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
     let callback_fn = cfg!(feature = "mutation-callbacks").then(|| {
         quote! {
-            pub fn with_model_mutation_callback(mut self, callback: impl Fn(#pcr::ModelMutationCallbackData) + 'static) -> Self {
+            pub fn with_model_mutation_callback(mut self, callback: impl Fn(#pcr::ModelMutationCallbackData) + 'static + Send + Sync) -> Self {
                 self.action_notifier.model_mutation_callbacks.push(Box::new(callback));
                 self
             }

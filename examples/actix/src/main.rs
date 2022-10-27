@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 mod db;
 
-use db::{post, user, PrismaClient};
+use db::{user, PrismaClient};
 
 #[get("/users")]
 async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
