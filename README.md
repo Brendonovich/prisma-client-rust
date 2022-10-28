@@ -25,8 +25,7 @@ For experienced Rust developers, Prisma Client Rust provides a consistent and un
 For developers looking to step away from NodeJS and create faster, more efficient applications, Prisma Client Rust harnesses existing tooling and terminology that Prisma Client JS users will be familiar with, making developing applications in Rust more approachable.
 
 Also - perhaps for the first time - using Prisma in a frontend application is easy.
-Using Prisma Client Rust for a desktop application powered by [Tauri](https://tauri.studio/) allows the entire Prisma ecosystem to be used in developing desktop applications.
-(Though applying migrations to end users can be tricky - this will likely be improved)
+Using Prisma Client Rust in a desktop application powered by [Tauri](https://tauri.studio/) allows the entire Prisma ecosystem to be used while developing desktop applications.
 
 ## Getting Started
 
