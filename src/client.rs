@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use datamodel::datamodel_connector::Diagnostics;
-use query_core::{CoreError, Operation};
+use query_core::{CoreError, Operation, TxId};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
@@ -11,15 +11,22 @@ use crate::{
     QueryError, Result,
 };
 
-pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
+pub type Executor = Arc<dyn query_core::QueryExecutor + Send + Sync + 'static>;
+
+pub trait PrismaClient {
+    fn internals(&self) -> &PrismaClientInternals;
+    fn internals_mut(&mut self) -> &mut PrismaClientInternals;
+}
 
 /// The data held by the generated PrismaClient
 /// Do not use this in your own code!
+#[derive(Clone)]
 pub struct PrismaClientInternals {
     pub executor: Executor,
     pub query_schema: Arc<QuerySchema>,
     pub url: String,
-    pub action_notifier: crate::ActionNotifier,
+    pub action_notifier: Arc<crate::ActionNotifier>,
+    pub tx_id: Option<TxId>,
 }
 
 impl PrismaClientInternals {
@@ -27,7 +34,7 @@ impl PrismaClientInternals {
     async fn execute_inner<'a>(&self, op: Operation) -> Result<serde_value::Value> {
         let response = self
             .executor
-            .execute(None, op, self.query_schema.clone(), None)
+            .execute(self.tx_id.clone(), op, self.query_schema.clone(), None)
             .await
             .map_err(|e| QueryError::Execute(e.into()))?;
 

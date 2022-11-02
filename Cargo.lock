@@ -2092,6 +2092,7 @@ version = "0.1.0"
 dependencies = [
  "prisma-client-rust",
  "serde",
+ "thiserror",
  "tokio",
 ]
 

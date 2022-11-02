@@ -118,14 +118,16 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 executor.primary_connector().get_connection().await?;
 
                 Ok(PrismaClient(#pcr::PrismaClientInternals {
-                    executor,
+                    executor: executor.into(),
                     query_schema,
                     url,
-                    action_notifier: self.action_notifier
+                    action_notifier: ::std::sync::Arc::new(self.action_notifier),
+                    tx_id: None
                 }))
             }
         }
 
+        #[derive(Clone)]
         pub struct PrismaClient(#pcr::PrismaClientInternals);
 
         impl ::std::fmt::Debug for PrismaClient {
@@ -160,9 +162,23 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 #pcr::batch(queries, &self.0).await
             }
 
+            pub fn _transaction(&self) -> #pcr::TransactionBuilder<Self> {
+                #pcr::TransactionBuilder::_new(self.clone(), &self.0)
+            }
+
             #migrate_fns
 
             #(#model_actions)*
+        }
+
+        impl #pcr::PrismaClient for PrismaClient {
+            fn internals(&self) -> &#pcr::PrismaClientInternals {
+                &self.0
+            }
+
+            fn internals_mut(&mut self) -> &mut #pcr::PrismaClientInternals {
+                &mut self.0
+            }
         }
     }
 }

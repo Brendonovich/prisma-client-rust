@@ -20,3 +20,6 @@ prisma-client-rust = { path = "..", features = [
   "migrations",
   "mutation-callbacks"
 ], default-features = false }
+
+[dependencies]
+thiserror = "1.0.37"

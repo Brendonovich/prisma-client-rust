@@ -8,6 +8,7 @@ pub mod queries;
 pub mod raw;
 pub mod serde;
 mod traits;
+mod transaction;
 
 use std::collections::HashMap;
 
@@ -31,6 +32,7 @@ pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
 pub use traits::*;
+pub use transaction::*;
 
 #[cfg(feature = "rspc")]
 pub use rspc;
