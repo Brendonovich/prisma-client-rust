@@ -9,7 +9,7 @@ use datamodel::parse_schema;
 use crate::{
     args::GenerateArgs,
     dmmf::EngineDMMF,
-    jsonrpc, prisma_cli,
+    jsonrpc,
     utils::{build_schema, rustfmt, validate_names},
     GenerateFn, GeneratorError,
 };
@@ -28,105 +28,100 @@ impl GeneratorMetadata {
             default_output,
         }
     }
-}
 
-pub fn run_generator(generator: GeneratorMetadata, args: &Vec<String>) {
-    if std::env::var("PRISMA_GENERATOR_INVOCATION").is_err() {
-        prisma_cli::main(args);
-        return;
-    }
+    pub fn run(self) {
+        loop {
+            let mut content = String::new();
+            BufReader::new(stdin())
+                .read_line(&mut content)
+                .expect("Failed to read engine output");
 
-    loop {
-        let mut content = String::new();
-        BufReader::new(stdin())
-            .read_line(&mut content)
-            .expect("Failed to read engine output");
+            let input: jsonrpc::Request =
+                serde_json::from_str(&content).expect("Failed to marshal jsonrpc input");
 
-        let input: jsonrpc::Request =
-            serde_json::from_str(&content).expect("Failed to marshal jsonrpc input");
+            let data = match input.method.as_str() {
+                "getManifest" => jsonrpc::ResponseData::Result(
+                    serde_json::to_value(jsonrpc::ManifestResponse {
+                        manifest: jsonrpc::Manifest {
+                            default_output: self.default_output.to_string(),
+                            pretty_name: self.name.to_string(),
+                            ..Default::default()
+                        },
+                    })
+                    .expect("Failed to convert manifest to json"), // literally will never fail
+                ),
+                "generate" => {
+                    let params_str = input.params.to_string();
 
-        let data = match input.method.as_str() {
-            "getManifest" => jsonrpc::ResponseData::Result(
-                serde_json::to_value(jsonrpc::ManifestResponse {
-                    manifest: jsonrpc::Manifest {
-                        default_output: generator.default_output.to_string(),
-                        pretty_name: generator.name.to_string(),
-                        ..Default::default()
-                    },
-                })
-                .expect("Failed to convert manifest to json"), // literally will never fail
-            ),
-            "generate" => {
-                let params_str = input.params.to_string();
+                    let deserializer = &mut serde_json::Deserializer::from_str(&params_str);
 
-                let deserializer = &mut serde_json::Deserializer::from_str(&params_str);
+                    let dmmf = serde_path_to_error::deserialize(deserializer)
+                        .expect("Failed to deserialize DMMF from Prisma engines");
 
-                let dmmf = serde_path_to_error::deserialize(deserializer)
-                    .expect("Failed to deserialize DMMF from Prisma engines");
-
-                match generate(&generator, dmmf) {
-                    Ok(_) => jsonrpc::ResponseData::Result(serde_json::Value::Null),
-                    Err(e) => jsonrpc::ResponseData::Error {
-                        code: 0,
-                        message: e.to_string(),
-                    },
+                    match self.generate(dmmf) {
+                        Ok(_) => jsonrpc::ResponseData::Result(serde_json::Value::Null),
+                        Err(e) => jsonrpc::ResponseData::Error {
+                            code: 0,
+                            message: e.to_string(),
+                        },
+                    }
                 }
+                method => jsonrpc::ResponseData::Error {
+                    code: 0,
+                    message: format!("{} cannot handle method {}", self.name, method),
+                },
+            };
+
+            let response = jsonrpc::Response {
+                jsonrpc: "2.0".to_string(),
+                id: input.id,
+                data,
+            };
+
+            let mut bytes =
+                serde_json::to_vec(&response).expect("Failed to marshal json data for reply");
+
+            bytes.push(b'\n');
+
+            stderr()
+                .by_ref()
+                .write(bytes.as_ref())
+                .expect("Failed to write output to stderr for Prisma engines");
+
+            if input.method.as_str() == "generate" {
+                break;
             }
-            method => jsonrpc::ResponseData::Error {
-                code: 0,
-                message: format!("{} cannot handle method {}", generator.name, method),
-            },
-        };
-
-        let response = jsonrpc::Response {
-            jsonrpc: "2.0".to_string(),
-            id: input.id,
-            data,
-        };
-
-        let mut bytes =
-            serde_json::to_vec(&response).expect("Failed to marshal json data for reply");
-
-        bytes.push(b'\n');
-
-        stderr()
-            .by_ref()
-            .write(bytes.as_ref())
-            .expect("Failed to write output to stderr for Prisma engines");
-
-        if input.method.as_str() == "generate" {
-            break;
         }
     }
-}
 
-fn generate(generator: &GeneratorMetadata, dmmf: EngineDMMF) -> Result<(), GeneratorError> {
-    let (configuration, datamodel) =
-        parse_schema(&dmmf.datamodel).expect("Failed to parse datamodel"); // Verified by CLI
-                                                                           // before generating
-    let schema = build_schema(&datamodel, &configuration);
+    fn generate(&self, dmmf: EngineDMMF) -> Result<(), GeneratorError> {
+        let (configuration, datamodel) =
+            parse_schema(&dmmf.datamodel).expect("Failed to parse datamodel"); // Verified by CLI
+                                                                               // before generating
+        let schema = build_schema(&datamodel, &configuration);
 
-    let output_str = dmmf.generator.output.get_value();
-    let output_path = Path::new(&output_str);
+        let output_str = dmmf.generator.output.get_value();
+        let output_path = Path::new(&output_str);
 
-    let config = dmmf.generator.config.clone();
+        let config = dmmf.generator.config.clone();
 
-    let mut file = create_generated_file(&output_path)?;
+        let mut file = create_generated_file(&output_path)?;
 
-    let args = GenerateArgs::new(datamodel, schema.schema, dmmf);
+        let args = GenerateArgs::new(datamodel, schema.schema, dmmf);
 
-    validate_names(&args)?;
+        validate_names(&args)?;
 
-    let mut generated_str = format!("// Code generated by {}. DO NOT EDIT\n\n", generator.name);
+        let mut generated_str = format!("// Code generated by {}. DO NOT EDIT\n\n", self.name);
 
-    generated_str += &(generator.generate_fn)(args, config)?;
+        generated_str += &(self.generate_fn)(args, config)?;
 
-    file.write(generated_str.as_bytes())
-        .map_err(GeneratorError::FileWrite)?;
+        file.write(generated_str.as_bytes())
+            .map_err(GeneratorError::FileWrite)?;
 
-    rustfmt(output_path);
+        rustfmt(output_path);
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn create_generated_file(path: &Path) -> Result<File, GeneratorError> {
