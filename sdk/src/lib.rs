@@ -1,11 +1,9 @@
 mod args;
-mod binaries;
 mod casing;
 pub mod dmmf;
 mod extensions;
 mod jsonrpc;
 mod keywords;
-mod prisma_cli;
 mod runtime;
 mod utils;
 
@@ -13,7 +11,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
 
-use runtime::{run_generator, GeneratorMetadata};
+use runtime::GeneratorMetadata;
 
 pub use args::GenerateArgs;
 pub use casing::*;
@@ -89,11 +87,8 @@ pub trait PrismaGenerator: DeserializeOwned {
                 message: e.to_string(),
             })
     }
-}
 
-pub fn execute<G: PrismaGenerator>(args: &Vec<String>) {
-    run_generator(
-        GeneratorMetadata::new(G::erased_generate, G::NAME, G::DEFAULT_OUTPUT),
-        args,
-    );
+    fn run() {
+        GeneratorMetadata::new(Self::erased_generate, Self::NAME, Self::DEFAULT_OUTPUT).run();
+    }
 }
