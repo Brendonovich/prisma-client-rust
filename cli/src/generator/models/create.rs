@@ -13,7 +13,7 @@ fn create_unchecked(model: &dml::Model) -> TokenStream {
 
     let scalar_field_types = scalar_fields
         .clone()
-        .map(|f| f.type_tokens())
+        .map(|f| f.type_tokens(quote!()))
         .collect::<Vec<_>>();
 
     quote! {

@@ -26,7 +26,7 @@ impl ModelExt for Model {
 }
 
 pub trait FieldExt {
-    fn type_tokens(&self) -> TokenStream;
+    fn type_tokens(&self, prefix: TokenStream) -> TokenStream;
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream;
 
@@ -36,8 +36,8 @@ pub trait FieldExt {
 }
 
 impl FieldExt for Field {
-    fn type_tokens(&self) -> TokenStream {
-        let single_type = self.field_type().to_tokens();
+    fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
+        let single_type = self.field_type().to_tokens(prefix);
 
         match self.arity() {
             FieldArity::Required => single_type,
@@ -67,20 +67,20 @@ impl FieldExt for Field {
     }
 }
 pub trait FieldTypeExt {
-    fn to_tokens(&self) -> TokenStream;
+    fn to_tokens(&self, prefix: TokenStream) -> TokenStream;
     fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream;
 }
 
 impl FieldTypeExt for FieldType {
-    fn to_tokens(&self) -> TokenStream {
+    fn to_tokens(&self, prefix: TokenStream) -> TokenStream {
         match self {
             Self::Enum(name) => {
                 let name = format_ident!("{}", name.to_case(Case::Pascal));
-                quote!(#name)
+                quote!(#prefix #name)
             }
             Self::Relation(info) => {
                 let model = format_ident!("{}", info.to.to_case(Case::Snake));
-                quote!(#model::Data)
+                quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             _ => unimplemented!(),

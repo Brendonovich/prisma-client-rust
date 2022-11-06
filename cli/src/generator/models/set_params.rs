@@ -54,7 +54,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 
     match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens();
+            let field_type = field.type_tokens(quote!());
 
             let converter = field.type_prisma_value(&format_ident!("value"));
             let converter = field
@@ -79,7 +79,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
-                    let typ = method.type_tokens();
+                    let typ = method.type_tokens(quote!());
                     
                     let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), method.is_list);
 

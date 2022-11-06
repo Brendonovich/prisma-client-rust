@@ -16,7 +16,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     
     let field_type_impls = model.fields.iter().map(|field| {
         let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
-        let field_type = field.field_type().to_tokens();
+        let field_type = field.field_type().to_tokens(quote!());
         let field_type = match field.field_type() {
             dml::FieldType::Relation(_) => quote!(crate::#module_path::#field_type),
             _ => field_type

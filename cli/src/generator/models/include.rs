@@ -104,7 +104,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
     let data_struct_scalar_fields = model.fields().filter_map(|f| {
         let field_name_snake = snake_ident(f.name());
-        let field_type = f.type_tokens();
+        let field_type = f.type_tokens(quote!());
 
         f.as_scalar_field().map(|_| {
             quote!(pub #field_name_snake: #field_type)
@@ -121,7 +121,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
         let object_scalar_fields = model.fields().filter_map(|f| {
             let field_name_snake = snake_ident(f.name());
-            let field_type = f.type_tokens();
+            let field_type = f.type_tokens(quote!());
 
             f.as_scalar_field().map(|_| 
                 quote!(#specta::ObjectField {

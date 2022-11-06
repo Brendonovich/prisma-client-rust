@@ -43,20 +43,7 @@ impl PrismaGenerator for PrismaClientRustGenerator {
         let internal_enums = internal_enums::generate(&args);
         let client = client::generate(&args);
 
-        let use_query_mode = match &args.connector {
-            #[cfg(feature = "postgresql")]
-            c if c.is_provider(datamodel::builtin_connectors::POSTGRES.name()) => true,
-            #[cfg(feature = "mongodb")]
-            c if c.is_provider(datamodel::builtin_connectors::MONGODB.name()) => true,
-            _ => false,
-        }
-        .then(|| {
-            quote!(
-                pub use _prisma::QueryMode;
-            )
-        });
-
-        let read_filters_module = read_filters::generate_module(&args);
+        let read_filters_module = read_filters::generate_module(&args, quote!(super::));
         let enums = enums::generate(&args);
 
         let tokens = quote! {
@@ -70,8 +57,7 @@ impl PrismaGenerator for PrismaClientRustGenerator {
                 #read_filters_module
             }
 
-            pub use _prisma::PrismaClient;
-            #use_query_mode
+            pub use _prisma::*;
 
             #enums
         };
