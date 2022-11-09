@@ -141,3 +141,28 @@ async fn timeout() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn batch() -> TestResult {
+    let client = client().await;
+
+    let users = client
+        ._transaction()
+        .run(|client| async move {
+            let users = client
+                ._batch(vec![client.user().create("brendan".to_string(), vec![])])
+                .await?;
+
+            client
+                ._batch(vec![
+                    client.user().create("brendan".to_string(), vec![]),
+                    client.user().create("brendan".to_string(), vec![]),
+                ])
+                .await
+        })
+        .await?;
+
+    assert_eq!(&users[0].name, "brendan");
+
+    cleanup(client).await
+}
