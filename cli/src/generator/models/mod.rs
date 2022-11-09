@@ -45,7 +45,7 @@ struct FieldQueryModule {
 impl FieldQueryModule {
     pub fn new(field: &dml::Field) -> Self {
         Self {
-            name: format_ident!("{}", field.name().to_case(Case::Snake)),
+            name: snake_ident(field.name()),
             methods: vec![],
             structs: vec![],
         }
