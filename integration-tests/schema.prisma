@@ -78,6 +78,7 @@ model Types {
   integer  Int      @default(0)
   datetime DateTime @default(now())
   float_   Float    @default(0)
+
   // TODO: Figure out how to deserialize these
   // bigint   BigInt   @default(0)
   // decimal  Decimal  @default(1)
@@ -85,4 +86,8 @@ model Types {
   // #69
   @@id([id, string])
   @@unique([id, string])
+}
+
+model RHash {
+  impl Int @id @default(4)
 }
