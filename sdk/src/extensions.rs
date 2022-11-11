@@ -149,7 +149,7 @@ impl ScalarTypeExt for ScalarType {
             }
             ScalarType::Boolean => quote!(#v::Boolean(#var)),
             ScalarType::String => quote!(#v::String(#var)),
-            ScalarType::Json => quote!(#v::Json(serde_json::to_string(&#var).unwrap())),
+            ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_string(&#var).unwrap())),
             ScalarType::DateTime => quote!(#v::DateTime(#var)),
             ScalarType::Bytes => quote!(#v::Bytes(#var)),
         }
