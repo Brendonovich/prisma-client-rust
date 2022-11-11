@@ -75,11 +75,11 @@ impl FieldTypeExt for FieldType {
     fn to_tokens(&self, prefix: TokenStream) -> TokenStream {
         match self {
             Self::Enum(name) => {
-                let name = format_ident!("{}", name.to_case(Case::Pascal));
+                let name = pascal_ident(&name);
                 quote!(#prefix #name)
             }
             Self::Relation(info) => {
-                let model = format_ident!("{}", info.to.to_case(Case::Snake));
+                let model = snake_ident(&info.to);
                 quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),

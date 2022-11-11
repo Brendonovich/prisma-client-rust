@@ -2,7 +2,7 @@ use crate::generator::prelude::*;
 
 pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let model_name_pascal_str = model.name.to_case(Case::Pascal);
-    let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
+    let model_name_snake = snake_ident(&model.name);
     let macro_name = format_ident!("_select_{}", model_name_snake);
     
     let filters_pattern_produce = quote!(($($filters:tt)+)$(.$arg:ident($($arg_params:tt)*))*);
@@ -15,8 +15,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     let selection_pattern_consume = quote!($field $(#filters_pattern_consume)? $(#selections_pattern_consume)?);
     
     let field_type_impls = model.fields.iter().map(|field| {
-        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
-        let field_type = field.field_type().to_tokens(quote!());
+        let field_name_snake = snake_ident(field.name());
+        let field_type = field.field_type().to_tokens(quote!(crate::#module_path::));
         let field_type = match field.field_type() {
             dml::FieldType::Relation(_) => quote!(crate::#module_path::#field_type),
             _ => field_type
@@ -45,8 +45,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
     
     let field_module_impls = model.fields.iter().filter_map(|f| f.as_relation_field()).map(|field| {
-        let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
-        let relation_model_name_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
+        let field_name_snake = snake_ident(&field.name);
+        let relation_model_name_snake = snake_ident(&field.relation_info.to);
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
@@ -56,11 +56,11 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
     
     let selection_field_to_selection_param_impls = model.fields.iter().map(|field| {
-        let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
+        let field_name_snake = snake_ident(field.name());
         
         match field {
             dml::Field::RelationField(relation_field) =>{
-                let relation_model_name_snake = format_ident!("{}", relation_field.relation_info.to.to_case(Case::Snake));
+                let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
 
                 match relation_field.arity {
                     dml::FieldArity::List => {
@@ -123,7 +123,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
 
     let fields_enum_variants = model.fields.iter().map(|f| {
-        let i = format_ident!("{}", f.name().to_case(Case::Snake));
+        let i = snake_ident(f.name());
         quote!(#i)
     });
 
