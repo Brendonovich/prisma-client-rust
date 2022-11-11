@@ -42,7 +42,7 @@ where
     pub async fn run<TErr, TRet, TFut, TFn>(mut self, tx: TFn) -> Result<TRet, TErr>
     where
         TFut: Future<Output = Result<TRet, TErr>>,
-        TFn: Fn(TClient) -> TFut,
+        TFn: FnOnce(TClient) -> TFut,
         TErr: From<crate::QueryError>,
     {
         let tx_id = self
