@@ -120,12 +120,12 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
         let object_scalar_fields = model.fields().filter_map(|f| {
-            let field_name_snake = snake_ident(f.name());
+            let field_name = ident(f.name());
             let field_type = f.type_tokens();
 
             f.as_scalar_field().map(|_| 
                 quote!(#specta::ObjectField {
-                    name: stringify!(#field_name_snake).to_string(),
+                    name: stringify!(#field_name).to_string(),
                     optional: false,
                     ty: <#field_type as #specta::Type>::reference(
                         #specta::DefOpts {
