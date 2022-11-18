@@ -17,10 +17,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     let field_type_impls = model.fields.iter().map(|field| {
         let field_name_snake = snake_ident(field.name());
         let field_type = field.field_type().to_tokens(quote!(crate::#module_path::));
-        let field_type = match field.field_type() {
-            dml::FieldType::Relation(_) => quote!(crate::#module_path::#field_type),
-            _ => field_type
-        };
+
         let field_type = match field.arity() {
             dml::FieldArity::Required => field_type,
             dml::FieldArity::Optional => quote!(Option<#field_type>),
@@ -232,7 +229,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         tag: None,
                         generics: vec![],
                         fields: vec![$(#specta::ObjectField {
-                            name: stringify!($field).to_string(),
+                            name: $crate::#module_path::#model_name_snake::select!(@field_serde_name; $field).to_string(),
                             optional: false,
                             ty: <$crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
                                 #specta::DefOpts {
