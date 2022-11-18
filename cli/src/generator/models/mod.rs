@@ -156,7 +156,7 @@ impl WhereParams {
             panic!("add_unique_variant cannot add optional fields. Perhaps you meant add_optional_unique_variant?");
         }
         
-        let field_type = field.type_tokens();
+        let field_type = field.type_tokens(quote!());
 
         let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
 
@@ -177,7 +177,7 @@ impl WhereParams {
             panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
         }
         
-        let field_base_type = field.field_type().to_tokens();
+        let field_base_type = field.field_type().to_tokens(quote!());
 
         let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
         let field_snake = format_ident!("{}", field.name().to_case(Case::Snake));
@@ -307,7 +307,7 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
             let field_name_snake = snake_ident(&field.name());
 
             let typ = match field {
-                dml::Field::ScalarField(_) => field.type_tokens(),
+                dml::Field::ScalarField(_) => field.type_tokens(quote!()),
                 dml::Field::RelationField(relation_field) => {
                     let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
 
@@ -400,7 +400,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
             
                 for field in &fields {
-                    let field_base_type = field.field_type().to_tokens();
+                    let field_base_type = field.field_type().to_tokens(quote!());
                     
                     let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
                     
@@ -465,7 +465,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
             let field_string = root_field.name();
             let field_name_pascal = format_ident!("{}", field_string.to_case(Case::Pascal));
-            let field_type = root_field.type_tokens();
+            let field_type = root_field.type_tokens(quote!());
             
             let set_variant = format_ident!("Set{}", field_name_pascal);
 
@@ -680,7 +680,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             let method_name_pascal =
                                 format_ident!("{}", method.name.to_case(Case::Pascal));
                             
-                            let typ = method.type_tokens();
+                            let typ = method.type_tokens(quote!());
 
                             field_query_module.add_method(quote! {
                                 pub fn #method_name_snake(value: #typ) -> WhereParam {
@@ -694,7 +694,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         for method in &write_type.methods {
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
 
-                            let typ = method.type_tokens();
+                            let typ = method.type_tokens(quote!());
 
                             let variant_name = format_ident!("{}{}", method.name.to_case(Case::Pascal), field_name_pascal);
 

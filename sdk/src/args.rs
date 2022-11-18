@@ -347,12 +347,12 @@ impl Method {
         }
     }
 
-    pub fn type_tokens(&self) -> TokenStream {
-        let base_type = &self.base_type.to_tokens();
+    pub fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
+        let base_type = &self.base_type.to_tokens(prefix);
 
         self.is_list
             .then(|| quote!(Vec<#base_type>))
-            .unwrap_or(base_type.clone())
+            .unwrap_or(quote!(#base_type))
     }
 }
 

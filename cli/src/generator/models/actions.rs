@@ -66,7 +66,7 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
     let scalar_field_types = model
         .required_scalar_fields()
         .iter()
-        .map(|f| f.type_tokens())
+        .map(|f| f.type_tokens(quote!()))
         .collect::<Vec<_>>();
 
     quote! {

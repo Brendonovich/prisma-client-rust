@@ -2,7 +2,7 @@ use crate::generator::prelude::*;
 
 pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let model_name_pascal_str = model.name.to_case(Case::Pascal);
-    let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
+    let model_name_snake = snake_ident(&model.name);
     let macro_name = format_ident!("_include_{}", model_name_snake);
     
     let filters_pattern_produce = quote!(($($filters:tt)+)$(.$arg:ident($($arg_params:tt)*))*);
@@ -39,8 +39,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
     
     let field_module_impls = model.relation_fields().map(|field| {
-        let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
-        let relation_model_name_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
+        let field_name_snake = snake_ident(&field.name);
+        let relation_model_name_snake = snake_ident(&field.relation_info.to);
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
@@ -50,8 +50,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
     
     let selection_field_to_selection_param_impls = model.relation_fields().map(|field| {
-        let field_name_snake = format_ident!("{}", field.name.to_case(Case::Snake));
-        let relation_model_name_snake = format_ident!("{}", field.relation_info.to.to_case(Case::Snake));
+        let field_name_snake = snake_ident(&field.name);
+        let relation_model_name_snake = snake_ident(&field.relation_info.to);
 
         match field.arity {
             dml::FieldArity::List => {
@@ -104,7 +104,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
     let data_struct_scalar_fields = model.fields().filter_map(|f| {
         let field_name_snake = snake_ident(f.name());
-        let field_type = f.type_tokens();
+        let field_type = f.type_tokens(quote!(crate::#module_path::));
 
         f.as_scalar_field().map(|_| {
             quote!(pub #field_name_snake: #field_type)
@@ -112,7 +112,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     });
 
     let fields_enum_variants = model.relation_fields().map(|f| {
-        let i = format_ident!("{}", f.name.to_case(Case::Snake));
+        let i = snake_ident(&f.name);
         quote!(#i)
     });
 
@@ -120,12 +120,12 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
         let object_scalar_fields = model.fields().filter_map(|f| {
-            let field_name = ident(f.name());
-            let field_type = f.type_tokens();
+            let field_name_str = f.name();
+            let field_type = f.type_tokens(quote!());
 
             f.as_scalar_field().map(|_| 
                 quote!(#specta::ObjectField {
-                    name: stringify!(#field_name).to_string(),
+                    name: #field_name_str.to_string(),
                     optional: false,
                     ty: <#field_type as #specta::Type>::reference(
                         #specta::DefOpts {
@@ -148,7 +148,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         tag: None,
                         generics: vec![],
                         fields: vec![#(#object_scalar_fields)* $(#specta::ObjectField {
-                            name: stringify!($field).to_string(),
+                            name: $crate::#module_path::#model_name_snake::include!(@field_serde_name; $field).to_string(),
                             optional: false,
                             ty: <$crate::#module_path::#model_name_snake::include!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
                                 #specta::DefOpts {
