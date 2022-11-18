@@ -232,7 +232,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         tag: None,
                         generics: vec![],
                         fields: vec![$(#specta::ObjectField {
-                            name: stringify!($field).to_string(),
+                            name: $crate::#module_path::#model_name_snake::select!(@field_serde_name; $field).to_string(),
                             optional: false,
                             ty: <$crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
                                 #specta::DefOpts {
