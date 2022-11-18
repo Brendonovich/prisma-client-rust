@@ -7,7 +7,7 @@ mod utils;
 async fn aaaa_run_migrations() -> TestResult {
     let client = db::new_client().await.unwrap();
 
-    client._migrate_deploy().await.unwrap();
+    client._db_push().await.unwrap();
 
     client
         .user()
