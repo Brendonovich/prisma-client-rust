@@ -17,10 +17,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
     let field_type_impls = model.fields.iter().map(|field| {
         let field_name_snake = snake_ident(field.name());
         let field_type = field.field_type().to_tokens(quote!(crate::#module_path::));
-        let field_type = match field.field_type() {
-            dml::FieldType::Relation(_) => quote!(crate::#module_path::#field_type),
-            _ => field_type
-        };
+
         let field_type = match field.arity() {
             dml::FieldArity::Required => field_type,
             dml::FieldArity::Optional => quote!(Option<#field_type>),
