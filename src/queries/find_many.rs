@@ -197,7 +197,7 @@ impl<'a, Actions> BatchQuery for FindMany<'a, Actions>
 where
     Actions: ModelActions,
 {
-    type RawType = Actions::Data;
+    type RawType = Vec<Actions::Data>;
     type ReturnType = Self::RawType;
 
     fn graphql(self) -> Operation {
