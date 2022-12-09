@@ -113,7 +113,7 @@ fn get_openssl() -> String {
         .arg("version")
         .arg("-v")
         .output()
-        .unwrap();
+        .expect("Unable to run determine openssl version; is the openssl binary installed?");
 
     let stdout = String::from_utf8(out.stdout).unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
