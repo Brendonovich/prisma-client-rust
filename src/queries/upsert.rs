@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, SelectionBuilder};
 
 use crate::{
-    include::Include,
+    include::{Include, IncludeType},
     select::{Select, SelectType},
     BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
     PrismaClientInternals, WhereInput,
@@ -91,7 +91,7 @@ where
         Select::new(self.client, op)
     }
 
-    pub fn include<I: SelectType<ModelData = Actions::Data>>(
+    pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         select: I,
     ) -> Include<'a, I::Data> {
