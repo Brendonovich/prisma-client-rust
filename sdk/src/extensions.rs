@@ -37,13 +37,7 @@ pub trait FieldExt {
 
 impl FieldExt for Field {
     fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
-        let single_type = self.field_type().to_tokens(prefix);
-
-        match self.arity() {
-            FieldArity::Required => single_type,
-            FieldArity::Optional => quote! { Option<#single_type> },
-            FieldArity::List => quote! { Vec<#single_type> },
-        }
+        self.field_type().to_tokens(prefix, self.arity())
     }
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
@@ -66,13 +60,13 @@ impl FieldExt for Field {
     }
 }
 pub trait FieldTypeExt {
-    fn to_tokens(&self, prefix: TokenStream) -> TokenStream;
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream;
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream;
 }
 
 impl FieldTypeExt for FieldType {
-    fn to_tokens(&self, prefix: TokenStream) -> TokenStream {
-        match self {
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream {
+        let base = match self {
             Self::Enum(name) => {
                 let name = pascal_ident(&name);
                 quote!(#prefix #name)
@@ -83,6 +77,12 @@ impl FieldTypeExt for FieldType {
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             _ => unimplemented!(),
+        };
+
+        match arity {
+            FieldArity::List => quote!(Vec<#base>),
+            FieldArity::Optional => quote!(Option<#base>),
+            FieldArity::Required => quote!(#base),
         }
     }
 

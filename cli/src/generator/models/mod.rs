@@ -101,7 +101,7 @@ impl WhereParams {
             panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
         }
         
-        let field_base_type = field.field_type().to_tokens(quote!());
+        let field_base_type = field.field_type().to_tokens(quote!(), &FieldArity::Required);
 
         let field_pascal = format_ident!("{}", field.name().to_case(Case::Pascal));
         let field_snake = format_ident!("{}", field.name().to_case(Case::Snake));
@@ -258,12 +258,52 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
         .collect()
 }
 
+pub fn unique_field_combos(model: &dml::Model) -> Vec<Vec<&dml::Field>> {
+    let mut combos = model.indices.iter()
+        .filter(|i| matches!(i.tpe, dml::IndexType::Unique))
+        .map(|unique| {
+            unique.fields.iter().filter_map(|field| {
+                model.fields.iter().find(|mf| mf.name() == &field.path[0].0)
+            }).collect()
+        }).collect::<Vec<_>>();
+
+    if let Some(primary_key) = &model.primary_key {
+        // if primary key is marked as unique, skip primary key handling
+        let primary_key_also_unique = primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name);
+
+        // TODO: understand why i wrote this
+        let primary_key_idk = !model.indices
+            .iter()
+            .filter(|i| i.tpe == dml::IndexType::Unique)
+            .any(|i|
+                i.fields
+                    .iter()
+                    .map(|f| f.path[0].0.as_str())
+                    .collect::<Vec<_>>()
+                    == 
+                primary_key.fields
+                    .iter()
+                    .map(|f| f.name.as_str())
+                    .collect::<Vec<_>>()
+                );
+
+        if primary_key_also_unique || primary_key_idk {
+            combos.push(primary_key.fields.iter()
+                .filter_map(|field| {
+                    model.fields.iter().find(|mf| mf.name() == field.name.as_str())
+                }).collect()
+            );
+        }
+    }
+
+    combos
+}
+
 pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
     args.dml.models.iter().map(|model| {
         let mut model_where_params = WhereParams::new();
-        let mut compound_field_accessors = vec![];
 
         let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
 
@@ -307,7 +347,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             );
         }
 
-        let mut add_unique_variant = |fields: Vec<&dml::Field>| {
+        let compound_field_accessors = unique_field_combos(&model).iter().flat_map(|fields| {
             if fields.len() == 1 {
                 let field = fields[0];
                 
@@ -315,80 +355,50 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     dml::FieldArity::Optional => model_where_params.add_optional_unique_variant(field, args),
                     _ => model_where_params.add_unique_variant(field, args),
                 }
+
+                None
             } else {
                 let variant_name_string = fields.iter().map(|f| f.name().to_case(Case::Pascal)).collect::<String>();
                 let variant_name = format_ident!("{}Equals", &variant_name_string);
                 
-                let mut variant_data_as_types = vec![];
-                let mut variant_data_as_args = vec![];
-                let mut variant_data_as_destructured = vec![];
-                let mut variant_data_as_prisma_values = vec![];
-                
                 let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
             
-                for field in &fields {
-                    let field_base_type = field.field_type().to_tokens(quote!());
+                let ((field_defs, field_types), (prisma_values, field_names_snake)): 
+                    ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
+                    let field_type = match field.arity() {
+                        FieldArity::List | FieldArity::Required => field.type_tokens(quote!()),
+                        FieldArity::Optional => field.field_type().to_tokens(quote!(), &FieldArity::Required)
+                    };
                     
                     let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
                     
-                    let field_type = match field.arity().is_list() {
-                        true => quote!(Vec<#field_base_type>),
-                        false => quote!(#field_base_type),
-                    };
-                    
-                    variant_data_as_args.push(quote!(#field_name_snake: #field_type));
-                    variant_data_as_types.push(field_type);
-                    variant_data_as_prisma_values.push(field.field_type().to_prisma_value(&field_name_snake, &FieldArity::Required));
-                    variant_data_as_destructured.push(field_name_snake);
-                }
+                    (
+                        (quote!(#field_name_snake: #field_type), field_type),
+                        (field.field_type().to_prisma_value(&field_name_snake, &FieldArity::Required), field_name_snake)
+                    )
+                }).unzip();
 
-                let field_name_string = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
-
-                compound_field_accessors.push(compound_field_accessor(
-                    &variant_name_string.to_case(Case::Snake),
-                    &variant_data_as_args,
-                    &variant_data_as_destructured
-                ));
+                let field_names_joined = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
                 model_where_params.add_variant(
-                    quote!(#variant_name(#(#variant_data_as_types),*)),
+                    quote!(#variant_name(#(#field_types),*)),
                     quote! {
-                        Self::#variant_name(#(#variant_data_as_destructured),*) => (
-                            #field_name_string,
-                            #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #variant_data_as_prisma_values)),*])
+                        Self::#variant_name(#(#field_names_snake),*) => (
+                            #field_names_joined,
+                            #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #prisma_values)),*])
                         )
                     },
                 );
                 
-                model_where_params.add_compound_unique_variant(&variant_name_string, &variant_data_as_destructured, &variant_data_as_types);
+                model_where_params.add_compound_unique_variant(&variant_name_string, &field_names_snake, &field_types);
+
+                Some(compound_field_accessor(
+                    &variant_name_string.to_case(Case::Snake),
+                    &field_defs,
+                    &field_names_snake
+                ))
             }
-        };
-        
-        for unique in &model.indices {
-            if unique.tpe != dml::IndexType::Unique { continue }
-            
-            add_unique_variant(unique.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0).unwrap()).collect::<Vec<_>>());
-        }
-        
-        if let Some(primary_key) = &model.primary_key {
-            // if primary key is marked as unique, skip primary key handling
-            if (primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name)) || (!model.indices
-                .iter()
-                .filter(|i| i.tpe == dml::IndexType::Unique)
-                .any(|i|
-                    i.fields
-                        .iter()
-                        .map(|f| f.path[0].0.as_str())
-                        .collect::<Vec<_>>()
-                        == 
-                    primary_key.fields
-                        .iter()
-                        .map(|f| f.name.as_str())
-                        .collect::<Vec<_>>()
-                    )) {
-                add_unique_variant(primary_key.fields.iter().map(|field| model.fields.iter().find(|mf| mf.name() == field.name.as_str()).unwrap()).collect::<Vec<_>>());
-            }
-        }
+        }).collect::<TokenStream>();
 
         let field_modules = model
             .fields
@@ -687,7 +697,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 
                 #field_modules
 
-                #(#compound_field_accessors)*
+                #compound_field_accessors
 
                 #create_fn
                 

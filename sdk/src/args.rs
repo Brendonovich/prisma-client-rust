@@ -8,7 +8,6 @@ use datamodel::{
 };
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
-use quote::quote;
 
 use crate::{casing::Casing, dmmf::EngineDMMF, FieldTypeExt};
 
@@ -372,15 +371,7 @@ impl Method {
     }
 
     pub fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
-        let base_type = self.base_type.to_tokens(prefix);
-
-        if self.is_list {
-            quote!(Vec<#base_type>)
-        } else if self.is_nullable {
-            quote!(Option<#base_type>)
-        } else {
-            base_type
-        }
+        self.base_type.to_tokens(prefix, &self.arity())
     }
 
     pub fn arity(&self) -> FieldArity {
