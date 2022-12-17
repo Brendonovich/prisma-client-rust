@@ -47,8 +47,7 @@ impl FieldExt for Field {
     }
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type()
-            .to_prisma_value(var, self.arity().is_list())
+        self.field_type().to_prisma_value(var, &self.arity())
     }
 
     fn relation_methods(&self) -> &'static [&'static str] {
@@ -68,7 +67,7 @@ impl FieldExt for Field {
 }
 pub trait FieldTypeExt {
     fn to_tokens(&self, prefix: TokenStream) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream;
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream;
 }
 
 impl FieldTypeExt for FieldType {
@@ -87,8 +86,8 @@ impl FieldTypeExt for FieldType {
         }
     }
 
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream {
-        let scalar_identifier = if is_list {
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream {
+        let scalar_identifier = if arity.is_list() {
             format_ident!("v")
         } else {
             var.clone()
@@ -102,10 +101,14 @@ impl FieldTypeExt for FieldType {
             typ => unimplemented!("{:?}", typ),
         };
 
-        if is_list {
-            quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
-        } else {
-            scalar_converter
+        match arity {
+            FieldArity::List => {
+                quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
+            }
+            FieldArity::Optional => {
+                quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
+            }
+            FieldArity::Required => scalar_converter,
         }
     }
 }

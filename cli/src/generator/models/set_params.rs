@@ -57,11 +57,6 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             let field_type = field.type_tokens(quote!());
 
             let converter = field.type_prisma_value(&format_ident!("value"));
-            let converter = field
-                .arity()
-                .is_optional()
-                .then(|| quote!(value.map(|value| #converter).unwrap_or(#pcr::PrismaValue::Null)))
-                .unwrap_or_else(|| converter);
 
             let set_variant_name = format_ident!("Set{}", &field_name_pascal);
 
@@ -81,7 +76,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                 for method in &write_type.methods {
                     let typ = method.type_tokens(quote!());
                     
-                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), method.is_list);
+                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity());
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
                     

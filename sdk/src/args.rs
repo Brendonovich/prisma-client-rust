@@ -47,19 +47,20 @@ impl GenerateArgs {
             let mut filters = vec![];
 
             for scalar in &scalars {
-                let combinations = vec![
-                    vec![
-                        scalar.to_string() + "ListFilter",
-                        scalar.to_string() + "NullableListFilter",
-                    ],
-                    vec![
-                        scalar.to_string() + "Filter",
-                        scalar.to_string() + "NullableFilter",
-                    ],
+                let scalar = match scalar.as_str() {
+                    "Boolean" => "Bool".to_string(),
+                    n => n.to_string(),
+                };
+
+                let combinations = [
+                    scalar.to_string() + "ListFilter",
+                    scalar.to_string() + "NullableListFilter",
+                    scalar.to_string() + "Filter",
+                    scalar.to_string() + "NullableFilter",
                 ];
 
                 for c in combinations {
-                    let p = match schema.find_input_type(c) {
+                    let p = match schema.find_input_type(&c) {
                         Some(p) => p,
                         None => continue,
                     };
@@ -76,6 +77,9 @@ impl GenerateArgs {
                     if p.name.contains("ListFilter") {
                         s += "List";
                     }
+                    if p.name.contains("Nullable") {
+                        s += "Nullable";
+                    }
 
                     filters.push(Filter {
                         name: s,
@@ -85,36 +89,39 @@ impl GenerateArgs {
             }
 
             for e in &dml.enums {
-                let p = match schema.find_input_type(vec![
+                let combinations = [
                     "Enum".to_string() + &e.name + "Filter",
                     "Enum".to_string() + &e.name + "NullableFilter",
-                ]) {
-                    Some(t) => t,
-                    None => continue,
-                };
+                ];
 
-                let mut fields = vec![];
+                for c in combinations {
+                    let p = match schema.find_input_type(&c) {
+                        Some(t) => t,
+                        None => continue,
+                    };
 
-                for field in &p.fields {
-                    if let Some(method) = input_field_as_method(field) {
-                        fields.push(method);
+                    let mut fields = vec![];
+
+                    for field in &p.fields {
+                        if let Some(method) = input_field_as_method(field) {
+                            fields.push(method);
+                        }
                     }
-                }
 
-                filters.push(Filter {
-                    name: e.name.clone(),
-                    methods: fields,
-                });
+                    filters.push(Filter {
+                        name: e.name.clone(),
+                        methods: fields,
+                    });
+                }
             }
 
             for i in 0..dml.models.len() {
                 let m = &dml.models[i];
-                let p = match schema
-                    .find_input_type(vec![m.name.to_string() + "OrderByRelevanceInput"])
-                {
-                    Some(p) => p,
-                    None => continue,
-                };
+                let p =
+                    match schema.find_input_type(&(m.name.to_string() + "OrderByRelevanceInput")) {
+                        Some(p) => p,
+                        None => continue,
+                    };
 
                 let mut methods = vec![];
 
@@ -145,54 +152,59 @@ impl GenerateArgs {
             let mut filters = vec![];
 
             for scalar in &scalars {
-                let p = match schema.find_input_type(vec![
+                let combinations = [
                     scalar.clone() + "FieldUpdateOperationsInput",
                     "Nullable".to_string() + &scalar + "FieldUpdateOperationsInput",
-                ]) {
-                    Some(p) => p,
-                    None => continue,
-                };
+                ];
 
-                let mut fields = vec![];
+                for c in combinations {
+                    let p = match schema.find_input_type(&c) {
+                        Some(p) => p,
+                        None => continue,
+                    };
 
-                for field in &p.fields {
-                    if field.name == "set" {
-                        continue;
-                    }
+                    let mut fields = vec![];
 
-                    if let Some((type_name, is_list)) = {
-                        let mut ret = None;
-                        for input_type in &field.input_types {
-                            match input_type.location {
-                                TypeLocation::Scalar if input_type.typ != "Null" => {
-                                    ret = Some((input_type.typ.clone(), input_type.is_list))
-                                }
-                                _ => {}
-                            }
+                    for field in &p.fields {
+                        if field.name == "set" {
+                            continue;
                         }
-                        ret
-                    } {
-                        fields.push(Method::new(
-                            field.name.to_case(Case::Pascal),
-                            field.name.clone(),
-                            ScalarType::from_str(&type_name)
-                                .map(|t| FieldType::Scalar(t, None))
-                                .unwrap_or(FieldType::Enum(type_name)),
-                            is_list,
-                        ));
+
+                        if let Some((type_name, is_list)) = {
+                            let mut ret = None;
+                            for input_type in &field.input_types {
+                                match input_type.location {
+                                    TypeLocation::Scalar if input_type.typ != "Null" => {
+                                        ret = Some((input_type.typ.clone(), input_type.is_list))
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ret
+                        } {
+                            fields.push(Method::new(
+                                field.name.to_case(Case::Pascal),
+                                field.name.clone(),
+                                ScalarType::from_str(&type_name)
+                                    .map(|t| FieldType::Scalar(t, None))
+                                    .unwrap_or(FieldType::Enum(type_name)),
+                                is_list,
+                                field.is_nullable,
+                            ));
+                        }
                     }
+                    filters.push(Filter {
+                        name: scalar.clone(),
+                        methods: fields,
+                    });
                 }
-                filters.push(Filter {
-                    name: scalar.clone(),
-                    methods: fields,
-                });
             }
 
             for model in &dml.models {
                 for field in &model.fields {
-                    let p = match schema.find_input_type(vec![
-                        model.name.to_string() + "Update" + &field.name() + "Input",
-                    ]) {
+                    let p = match schema.find_input_type(
+                        &(model.name.to_string() + "Update" + &field.name() + "Input"),
+                    ) {
                         Some(p) => p,
                         None => continue,
                     };
@@ -238,6 +250,7 @@ impl GenerateArgs {
                                         None,
                                     ),
                                     is_list,
+                                    field.is_nullable,
                                 ));
                             };
                         }
@@ -287,10 +300,15 @@ impl GenerateArgs {
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
         match &field.field_type {
             FieldType::Scalar(typ, _) => {
-                let mut typ = typ.to_string();
+                let mut typ = match typ.to_string().as_str() {
+                    "Boolean" => "Bool".to_string(),
+                    n => n.to_string(),
+                };
 
-                if field.arity.is_list() {
-                    typ += "List";
+                match field.arity {
+                    FieldArity::List => typ += "List",
+                    FieldArity::Optional => typ += "Nullable",
+                    _ => {}
                 }
 
                 self.read_filters.iter().find(|f| f.name == typ)
@@ -316,16 +334,14 @@ impl GenerateArgs {
 }
 
 trait DmmfSchemaExt {
-    fn find_input_type(&self, potential_names: Vec<String>) -> Option<&DmmfInputType>;
+    fn find_input_type(&self, name: &str) -> Option<&DmmfInputType>;
 }
 
 impl DmmfSchemaExt for DmmfSchema {
-    fn find_input_type(&self, potential_names: Vec<String>) -> Option<&DmmfInputType> {
-        let object_types = self.input_object_types.get("prisma").unwrap();
-
-        potential_names
-            .iter()
-            .find_map(|name| object_types.iter().find(|i| &i.name == name))
+    fn find_input_type(&self, name: &str) -> Option<&DmmfInputType> {
+        self.input_object_types
+            .get("prisma")
+            .and_then(|t| t.iter().find(|i| &i.name == &name))
     }
 }
 
@@ -334,25 +350,47 @@ pub struct Method {
     pub name: String,
     pub action: String,
     pub is_list: bool,
+    pub is_nullable: bool,
     pub base_type: FieldType,
 }
 
 impl Method {
-    fn new(name: String, action: String, base_type: FieldType, is_list: bool) -> Self {
+    fn new(
+        name: String,
+        action: String,
+        base_type: FieldType,
+        is_list: bool,
+        is_nullable: bool,
+    ) -> Self {
         Method {
             name,
             action,
             is_list,
+            is_nullable,
             base_type,
         }
     }
 
     pub fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
-        let base_type = &self.base_type.to_tokens(prefix);
+        let base_type = self.base_type.to_tokens(prefix);
 
-        self.is_list
-            .then(|| quote!(Vec<#base_type>))
-            .unwrap_or(quote!(#base_type))
+        if self.is_list {
+            quote!(Vec<#base_type>)
+        } else if self.is_nullable {
+            quote!(Option<#base_type>)
+        } else {
+            base_type
+        }
+    }
+
+    pub fn arity(&self) -> FieldArity {
+        if self.is_list {
+            FieldArity::List
+        } else if self.is_nullable {
+            FieldArity::Optional
+        } else {
+            FieldArity::Required
+        }
     }
 }
 
@@ -364,10 +402,6 @@ pub struct Filter {
 
 /// Gets a method definition from an input field.
 fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
-    if field.name == "equals" {
-        return None;
-    }
-
     field.input_types.iter().find(|input_type|
         matches!(input_type.location, TypeLocation::Scalar | TypeLocation::EnumTypes if input_type.typ != "Null")
     ).map(|input_type| {
@@ -386,6 +420,7 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
                 .map(|t| FieldType::Scalar(t, None))
                 .unwrap_or(FieldType::Enum(type_name)),
             is_list,
+            field.is_nullable,
         )
     })
 }

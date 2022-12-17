@@ -8,6 +8,7 @@ mod actions;
 mod create;
 mod include;
 
+use datamodel::dml::FieldArity;
 use prisma_client_rust_sdk::prelude::*;
 
 use std::ops::Deref;
@@ -151,7 +152,7 @@ impl WhereParams {
         self.to_serialized_where.push(match_arm);
     }
 
-    pub fn add_unique_variant(&mut self, field: &dml::Field) {
+    pub fn add_unique_variant(&mut self, field: &dml::Field, args: &GenerateArgs) {
         if matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_unique_variant cannot add optional fields. Perhaps you meant add_optional_unique_variant?");
         }
@@ -164,14 +165,17 @@ impl WhereParams {
         self.unique_variants
             .push(quote!(#variant_name(#field_type)));
 
+        let read_filter = args.read_filter(&field.as_scalar_field().unwrap()).unwrap();
+        let filter_enum = format_ident!("{}Filter", &read_filter.name);
+
         self.from_unique_match_arms.push(quote! {
-            UniqueWhereParam::#variant_name(value) => Self::#variant_name(value)
+            UniqueWhereParam::#variant_name(value) => Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(value))
         });
     }
 
     pub fn add_optional_unique_variant(
         &mut self,
-        field: &dml::Field
+        field: &dml::Field, args: &GenerateArgs
     ) {
         if !matches!(field.arity(), dml::FieldArity::Optional) {
             panic!("add_optional_unique_variant only adds optional fields. Perhaps you meant add_unique_variant?");
@@ -187,8 +191,11 @@ impl WhereParams {
         self.unique_variants
             .push(quote!(#variant_name(#field_base_type)));
 
+        let read_filter = args.read_filter(&field.as_scalar_field().unwrap()).unwrap();
+        let filter_enum = format_ident!("{}Filter", &read_filter.name);
+
         self.from_unique_match_arms.push(quote! {
-            UniqueWhereParam::#variant_name(value) => Self::#variant_name(Some(value))
+            UniqueWhereParam::#variant_name(value) => Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(Some(value)))
         });
 
         self.from_optional_uniques.push(quote!{
@@ -196,7 +203,7 @@ impl WhereParams {
                 type Arg = Option<#field_base_type>;
                 
                 fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
-                    Self::#variant_name(arg)
+                    Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(arg))
                 }
             }
             
@@ -385,8 +392,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let field = fields[0];
                 
                 match field.arity()  {
-                    dml::FieldArity::Optional => model_where_params.add_optional_unique_variant(field),
-                    _ => model_where_params.add_unique_variant(field),
+                    dml::FieldArity::Optional => model_where_params.add_optional_unique_variant(field, args),
+                    _ => model_where_params.add_unique_variant(field, args),
                 }
             } else {
                 let variant_name_string = fields.iter().map(|f| f.name().to_case(Case::Pascal)).collect::<String>();
@@ -411,7 +418,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     
                     variant_data_as_args.push(quote!(#field_name_snake: #field_type));
                     variant_data_as_types.push(field_type);
-                    variant_data_as_prisma_values.push(field.type_prisma_value(&field_name_snake));
+                    variant_data_as_prisma_values.push(field.field_type().to_prisma_value(&field_name_snake, &FieldArity::Required));
                     variant_data_as_destructured.push(field_name_snake);
                 }
 
@@ -631,45 +638,6 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     });
 
                     let equals_variant_name = format_ident!("{}Equals", &field_name_pascal);
-                    let equals_variant = quote!(#equals_variant_name(#field_type));
-                    let type_as_prisma_value= root_field.type_prisma_value(&format_ident!("value"));
-                    
-                    let type_as_prisma_value = if !root_field.arity().is_optional() {
-                        type_as_prisma_value
-                    } else {
-                        quote!(value.map(|value| #type_as_prisma_value).unwrap_or(#pcr::PrismaValue::Null))
-                    };
-                    
-                    model_where_params.add_variant(
-                        equals_variant.clone(), 
-                        quote! {
-                            Self::#equals_variant_name(value) => (
-                                #field_string,
-                                #pcr::SerializedWhereValue::Value(#type_as_prisma_value)
-                            )
-                        }
-                    );
-                    
-                    // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
-                    field_query_module.add_method(
-                        match (model.field_is_primary(field_string), model.field_is_unique(field_string), field.arity.is_required()) {
-                            (true, _, _) | (_, true, true) => quote! {
-                                pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-                                    UniqueWhereParam::#equals_variant_name(value).into()
-                                }
-                            },
-                            (_, true, false) => quote! {
-                                pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
-                                    T::from_arg(value)
-                                }
-                            },
-                            (_, _, _) => quote! {
-                                pub fn equals(value: #field_type) -> WhereParam {
-                                    WhereParam::#equals_variant_name(value).into()
-                                }
-                            }
-                        }
-                    );
 
                     // Pagination
                     field_query_module.add_method(quote! {
@@ -678,8 +646,29 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         }
                     });
 
-                    if let Some(read_type) = args.read_filter(&field) {
-                        let filter_enum = format_ident!("{}Filter", &read_type.name);
+                    if let Some(read_filter) = args.read_filter(&field) {
+                        let filter_enum = format_ident!("{}Filter", &read_filter.name);
+                    
+                        // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
+                        field_query_module.add_method(
+                            match (model.field_is_primary(field_string), model.field_is_unique(field_string), field.arity.is_required()) {
+                                (true, _, _) | (_, true, true) => quote! {
+                                    pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
+                                        UniqueWhereParam::#equals_variant_name(value).into()
+                                    }
+                                },
+                                (_, true, false) => quote! {
+                                    pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+                                        T::from_arg(value)
+                                    }
+                                },
+                                (_, _, _) => quote! {
+                                    pub fn equals(value: #field_type) -> WhereParam {
+                                        WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+                                    }
+                                }
+                            }
+                        );
 
                         model_where_params.add_variant(
                             quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
@@ -691,7 +680,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             },
                         );
 
-                        for method in &read_type.methods {
+                        for method in &read_filter.methods {
+                            if method.name == "Equals" { continue; }
+
                             let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
                             let method_name_pascal =
                                 format_ident!("{}", method.name.to_case(Case::Pascal));

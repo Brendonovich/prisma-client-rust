@@ -1,12 +1,9 @@
 use std::{path::Path, process::Command, sync::Arc};
 
-use convert_case::Case;
 use datamodel::{datamodel_connector::ConnectorCapabilities, dml::Datamodel, Configuration};
 use dmmf::{from_precomputed_parts, DataModelMetaFormat};
 use prisma_models::InternalDataModelBuilder;
 use query_core::schema_builder;
-
-use crate::{args::GenerateArgs, casing::Casing, keywords::is_reserved_keyword, GeneratorError};
 
 pub fn rustfmt(path: &Path) {
     Command::new("rustfmt")
