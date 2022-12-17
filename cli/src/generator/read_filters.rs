@@ -10,10 +10,10 @@ pub fn generate_module(args: &GenerateArgs, prefix: TokenStream) -> TokenStream 
 
             let value_as_prisma_value = method
                 .base_type
-                .to_prisma_value(&format_ident!("value"), method.is_list);
+                .to_prisma_value(&format_ident!("value"), &method.arity());
             let typ = method.type_tokens(quote!(#prefix super::));
 
-            (
+            ( 
                 quote!(#variant_name(#typ)),
                 quote! {
                     Self::#variant_name(value) => ::prisma_client_rust::SerializedWhereValue::Object(vec![
