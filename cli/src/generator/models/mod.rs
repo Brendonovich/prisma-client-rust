@@ -506,9 +506,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             }
                         });
                     }
-                    
+
                     let with_fn = with_params::builder_fn(&field);
-                    
+
                     if field.arity.is_list() {
                         let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
                         let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
@@ -589,9 +589,28 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                         // Only allow disconnect if field is not required
                         if field.arity.is_optional() {
+                            let is_null_variant = format_ident!("{}IsNull", field_name_pascal);
+
+                            model_where_params.add_variant(
+                                quote!(#is_null_variant),
+                                quote! {
+                                    Self::#is_null_variant => (
+                                        #field_string,
+                                        #pcr::SerializedWhereValue::Object(vec![(
+                                            "equals".to_string(),
+                                            #pcr::PrismaValue::Null
+                                        )])
+                                    )
+                                },
+                            );
+
                             field_query_module.add_method(quote! {
                                 pub fn disconnect() -> SetParam {
                                     SetParam::#disconnect_variant
+                                }
+
+                                pub fn is_null() -> WhereParam {
+                                    WhereParam::#is_null_variant
                                 }
                             });
                         }
