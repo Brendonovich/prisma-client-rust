@@ -68,3 +68,4 @@ rspc = { version = "0.1.2", optional = true, features = [
   "chrono",
   "uuid",
 ] }
+convert_case = "0.6.0"
