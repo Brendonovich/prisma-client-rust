@@ -96,6 +96,7 @@ impl ModelActionType {
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
     List(Vec<prisma_models::PrismaValue>),
+    Value(prisma_models::PrismaValue),
 }
 
 impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
@@ -103,6 +104,7 @@ impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
         match self {
             Self::Object(v) => prisma_models::PrismaValue::Object(v),
             Self::List(v) => prisma_models::PrismaValue::List(v),
+            Self::Value(v) => v,
         }
     }
 }
@@ -138,6 +140,7 @@ impl SerializedWhereInput {
                     None => prisma_models::PrismaValue::Object(params),
                 },
                 SerializedWhereValue::List(values) => prisma_models::PrismaValue::List(values),
+                SerializedWhereValue::Value(v) => v,
             },
         )
     }
