@@ -264,6 +264,15 @@ async fn filtering_one_to_one_relation() -> TestResult {
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].name, "Jamie");
 
+    let users = client
+        .user()
+        .find_many(vec![user::profile::is_null()])
+        .exec()
+        .await?;
+    dbg!(&users);
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].name, "Jamie");
+
     cleanup(client).await
 }
 

@@ -596,10 +596,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                                 quote! {
                                     Self::#is_null_variant => (
                                         #field_string,
-                                        #pcr::SerializedWhereValue::Object(vec![(
-                                            "equals".to_string(),
-                                            #pcr::PrismaValue::Null
-                                        )])
+                                        #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
                                     )
                                 },
                             );
@@ -648,7 +645,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         quote! {
                             Self::#equals_variant_name(value) => (
                                 #field_string,
-                                #pcr::SerializedWhereValue::Object(vec![("equals".to_string(), #type_as_prisma_value)])
+                                #pcr::SerializedWhereValue::Value(#type_as_prisma_value)
                             )
                         }
                     );
