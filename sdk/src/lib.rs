@@ -28,6 +28,7 @@ pub mod prisma {
 
 pub mod prelude {
     pub use super::{
+        args::*,
         prisma::{datamodel::dml, *},
         *,
     };
