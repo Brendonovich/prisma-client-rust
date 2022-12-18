@@ -5,7 +5,7 @@
     <a href="https://prisma.io">
         <img src="https://img.shields.io/static/v1?label=prisma&message=v4.2.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 4.2.0">
     </a>
-    <img src="https://img.shields.io/github/actions/workflow/status/Brendonovich/prisma-client-rust/.github/workflows/ci.yaml?branch=main&label=tests&style=flat-square" alt="Test Status"/>
+    <img src="https://img.shields.io/github/actions/workflow/status/Brendonovich/prisma-client-rust/workflows/ci.yaml?branch=main&label=tests&style=flat-square" alt="Test Status"/>
     <a href="./docs/README.md"/>
     <img src="https://img.shields.io/badge/docs-latest-blue?style=flat-square" alt="Link to latest Documentation files">
     </a>
