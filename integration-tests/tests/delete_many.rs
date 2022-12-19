@@ -1,7 +1,7 @@
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn delete_many() -> TestResult {
+async fn test() -> TestResult {
     let client = client().await;
 
     let posts = vec![

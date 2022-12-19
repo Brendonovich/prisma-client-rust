@@ -3,7 +3,7 @@ use prisma_client_rust::{or, Direction};
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn find_many() -> TestResult {
+async fn query() -> TestResult {
     let client = client().await;
 
     let posts = vec![

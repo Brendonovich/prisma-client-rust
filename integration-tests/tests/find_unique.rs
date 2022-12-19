@@ -1,7 +1,7 @@
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn find_unique_id_field() -> TestResult {
+async fn primary_key() -> TestResult {
     let client = client().await;
 
     let post = client
@@ -21,21 +21,7 @@ async fn find_unique_id_field() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_no_match() -> TestResult {
-    let client = client().await;
-
-    let found = client
-        .post()
-        .find_unique(post::id::equals("sdlfskdf".to_string()))
-        .exec()
-        .await?;
-    assert!(found.is_none());
-
-    cleanup(client).await
-}
-
-#[tokio::test]
-async fn find_unique_by_unique_field() -> TestResult {
+async fn unique_field() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -68,7 +54,7 @@ async fn find_unique_by_unique_field() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_compound() -> TestResult {
+async fn compound() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -98,6 +84,20 @@ async fn find_unique_compound() -> TestResult {
         .exec()
         .await?;
     assert!(found.is_some());
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn no_match() -> TestResult {
+    let client = client().await;
+
+    let found = client
+        .post()
+        .find_unique(post::id::equals("sdlfskdf".to_string()))
+        .exec()
+        .await?;
+    assert!(found.is_none());
 
     cleanup(client).await
 }

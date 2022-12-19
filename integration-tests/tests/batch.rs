@@ -5,7 +5,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn test_batch() -> TestResult {
+async fn tuple() -> TestResult {
     let client = client().await;
 
     let (brendan, oscar) = client
@@ -22,7 +22,7 @@ async fn test_batch() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_batch_vec() -> TestResult {
+async fn vec() -> TestResult {
     let client = client().await;
 
     let users = client
@@ -39,7 +39,7 @@ async fn test_batch_vec() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_batch_error() -> TestResult {
+async fn error() -> TestResult {
     let client = client().await;
 
     let error = client
@@ -62,7 +62,7 @@ async fn test_batch_error() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_mixing_models() -> TestResult {
+async fn mixing_models() -> TestResult {
     let client = client().await;
 
     let (user, profile) = client
@@ -90,7 +90,7 @@ async fn test_mixing_models() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_mixing_actions() -> TestResult {
+async fn mixing_actions() -> TestResult {
     let client = client().await;
 
     client
@@ -108,7 +108,7 @@ async fn test_mixing_actions() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_large_query() -> TestResult {
+async fn large_query() -> TestResult {
     let client = client().await;
 
     client
@@ -125,7 +125,7 @@ async fn test_large_query() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_delete() -> TestResult {
+async fn delete() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -156,7 +156,7 @@ async fn test_delete() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_update() -> TestResult {
+async fn update() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -193,7 +193,7 @@ async fn test_update() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_upsert() -> TestResult {
+async fn upsert() -> TestResult {
     let client = client().await;
 
     let user_id = "abc123";
@@ -252,7 +252,7 @@ async fn test_upsert() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_update_many() -> TestResult {
+async fn update_many() -> TestResult {
     let client = client().await;
 
     client

@@ -85,7 +85,7 @@ pub fn collate_entries(entries: Vec<Entry>) -> TokenStream {
                 (
                     quote!(#variant_name(#field_required_type)),
                     quote!(UniqueWhereParam::#variant_name(value) =>
-                        Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+                        Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(#value))
                     ),
                 )
             ))

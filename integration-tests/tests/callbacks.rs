@@ -6,7 +6,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn mutation_callbacks() -> TestResult {
+async fn mutation() -> TestResult {
     let client = client().await;
 
     let callback_data = {
@@ -15,7 +15,9 @@ async fn mutation_callbacks() -> TestResult {
         let callback_callback_data = callback_data.clone();
 
         let client = PrismaClient::_builder()
-            .with_model_mutation_callback(move |data| callback_callback_data.lock().unwrap().push(data))
+            .with_model_mutation_callback(move |data| {
+                callback_callback_data.lock().unwrap().push(data)
+            })
             .build()
             .await
             .unwrap();
