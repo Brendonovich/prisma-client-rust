@@ -44,7 +44,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
-                $crate::#module_path::#relation_model_name_snake::include!(@definitions; $($selections)+);
+                $crate::#module_path::#relation_model_name_snake::include!(@definitions; ; $($selections)+);
             };
         }
     });
@@ -116,9 +116,9 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!(#i)
     });
 
-    let specta_impl = cfg!(feature = "rspc").then(|| {
-        let specta = quote!(prisma_client_rust::rspc::internal::specta);
+    let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
+    let specta_impl = cfg!(feature = "rspc").then(|| {
         let object_scalar_fields = model.fields().filter_map(|f| {
             let field_name_str = f.name();
             let field_type = f.type_tokens(quote!());
@@ -140,11 +140,13 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
         quote! {
             impl #specta::Type for Data {
-                const NAME: &'static str = "Data";
+                const NAME: &'static str = $crate::#module_path::#model_name_snake::include!(@specta_type_name; $($module_name)?);
 
                 fn inline(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
+                    use ::prisma_client_rust::convert_case::Casing;
+
                     #specta::DataType::Object(#specta::ObjectType {
-                        name: "Data".to_string(),
+                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
                         tag: None,
                         generics: vec![],
                         fields: vec![#(#object_scalar_fields)* $(#specta::ObjectField {
@@ -162,14 +164,66 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     })
                 }
 
+                $crate::#module_path::#model_name_snake::include!(@specta_reference_body; $($module_name)?);
+            }
+        }
+    });
+
+    let specta_macro_arms = cfg!(feature = "rspc").then(|| {
+        quote! {
+            (@specta_reference_body; $name:ident) =>  {
+                fn reference(opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
+                    use ::prisma_client_rust::convert_case::Casing;
+
+                    if !opts.type_map.contains_key(Self::NAME) {
+                        Self::definition(#specta::DefOpts {
+                            parent_inline: false,
+                            type_map: opts.type_map
+                        });
+                    }
+
+                    #specta::DataType::Reference {
+                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
+                        generics: vec![],
+                        type_id: std::any::TypeId::of::<Self>()
+                    }
+                }
+
+                fn definition(opts: #specta::DefOpts) -> #specta::DataType {
+                    if !opts.type_map.contains_key(Self::NAME) {
+                        opts.type_map.insert(Self::NAME, #specta::DataType::Object(#specta::ObjectType {
+                            name: "PLACEHOLDER".to_string(),
+                            generics: vec![],
+                            fields: vec![],
+                            tag: None,
+                            type_id: Some(std::any::TypeId::of::<Self>())
+                        }));
+
+                        let def = Self::inline(#specta::DefOpts {
+                            parent_inline: false,
+                            type_map: opts.type_map
+                        }, &[]);
+
+                        opts.type_map.insert(Self::NAME, def.clone());
+                    }
+
+                    opts.type_map.get(Self::NAME).unwrap().clone()
+                }
+            };
+            (@specta_reference_body;) => {
                 fn reference(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
                     Self::inline(_opts, &[])
                 }
-                
+
                 fn definition(_opts: #specta::DefOpts) -> #specta::DataType {
                     unreachable!()
                 }
-            }
+            };
+
+            (@specta_type_name; $name:ident) => {
+                stringify!($name)
+            };
+            (@specta_type_name;) => { "Data" };
         }
     });
 
@@ -295,7 +349,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_name:ident { $(#selection_pattern_produce)+ }) => {
                 #[allow(warnings)]
                 pub mod $module_name {
-                    $crate::#module_path::#model_name_snake::include!(@definitions; $(#selection_pattern_consume)+);
+                    $crate::#module_path::#model_name_snake::include!(@definitions; $module_name; $(#selection_pattern_consume)+);
 
                     pub struct Include(Vec<::prisma_client_rust::Selection>);
 
@@ -327,7 +381,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 }
             };
             ({ $(#selection_pattern_produce)+ }) => {{
-                $crate::#module_path::#model_name_snake::include!(@definitions; $(#selection_pattern_consume)+);
+                $crate::#module_path::#model_name_snake::include!(@definitions; ; $(#selection_pattern_consume)+);
                 
                 pub struct Include(Vec<::prisma_client_rust::Selection>);
 
@@ -355,7 +409,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     selections
                 })
             }};
-            (@definitions; $(#selection_pattern_produce)+) => {
+            (@definitions; $($module_name:ident)?; $(#selection_pattern_produce)+) => {
                 #[allow(warnings)]
                 enum Fields {
                     #(#fields_enum_variants),*
@@ -421,6 +475,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             };
 
             #(#field_serde_names)*
+
+            #specta_macro_arms
         }
         pub use #macro_name as include;
     }

@@ -6,6 +6,8 @@ mod db;
 
 type Ctx = Arc<db::PrismaClient>;
 
+db::user::include!(named_user_include { posts });
+
 #[tokio::main]
 async fn main() {
     let client = db::new_client().await.unwrap();
@@ -42,6 +44,14 @@ async fn main() {
                         }
                     }
                 }))
+                .exec()
+                .await
+                .map_err(Into::into)
+        }))
+        .query("namedUserType", |t| t(|db, _: ()| async move {
+            db.user()
+                .find_many(vec![])
+                .include(named_user_include::include())
                 .exec()
                 .await
                 .map_err(Into::into)
