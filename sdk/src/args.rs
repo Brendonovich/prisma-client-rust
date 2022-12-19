@@ -114,35 +114,35 @@ impl GenerateArgs {
                 }
             }
 
-            for i in 0..dml.models.len() {
-                let m = &dml.models[i];
-                let p =
-                    match schema.find_input_type(&(m.name.to_string() + "OrderByRelevanceInput")) {
-                        Some(p) => p,
-                        None => continue,
-                    };
+            // for i in 0..dml.models.len() {
+            //     let m = &dml.models[i];
+            //     let p =
+            //         match schema.find_input_type(&(m.name.to_string() + "OrderByRelevanceInput")) {
+            //             Some(p) => p,
+            //             None => continue,
+            //         };
 
-                let mut methods = vec![];
+            //     let mut methods = vec![];
 
-                for field in &p.fields {
-                    if let Some(method) = input_field_as_method(field) {
-                        methods.push(method);
-                    }
-                }
+            //     for field in &p.fields {
+            //         if let Some(method) = input_field_as_method(field) {
+            //             methods.push(method);
+            //         }
+            //     }
 
-                filters.push(Filter {
-                    name: m.name.clone(),
-                    methods,
-                });
+            //     filters.push(Filter {
+            //         name: m.name.clone(),
+            //         methods,
+            //     });
 
-                dml.models[i]
-                    .fields
-                    .push(Field::ScalarField(ScalarField::new(
-                        "relevance",
-                        FieldArity::Optional,
-                        FieldType::Enum(p.name.clone()),
-                    )));
-            }
+            //     dml.models[i]
+            //         .fields
+            //         .push(Field::ScalarField(ScalarField::new(
+            //             "relevance",
+            //             FieldArity::Optional,
+            //             FieldType::Enum(p.name.clone()),
+            //         )));
+            // }
 
             filters
         };
