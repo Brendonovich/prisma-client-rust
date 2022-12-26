@@ -7,8 +7,8 @@ use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 
 use crate::{
-    prisma_value, ModelAction, ModelActionType, ModelActions, ModelMutationCallbackData,
-    QueryError, Result,
+    prisma_value, ActionNotifier, ModelAction, ModelActionType, ModelActions,
+    ModelMutationCallbackData, QueryError, Result,
 };
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
@@ -62,6 +62,61 @@ impl PrismaClientInternals {
                 println!("notify_model_mutation only acceps mutations, not queries!")
             }
         }
+    }
+
+    pub async fn new(
+        url: Option<String>,
+        action_notifier: ActionNotifier,
+        datamodel: &str,
+    ) -> std::result::Result<Self, NewClientError> {
+        let config = datamodel::parse_configuration(datamodel)?.subject;
+        let source = config
+            .datasources
+            .first()
+            .expect("Please supply a datasource in your schema.prisma file");
+        let url = match url {
+            Some(url) => url,
+            None => {
+                let url = if let Some(url) = source.load_shadow_database_url()? {
+                    url
+                } else {
+                    source.load_url(|key| std::env::var(key).ok())?
+                };
+                match url.starts_with("file:") {
+                    true => {
+                        let path = url.split(":").nth(1).unwrap();
+                        if std::path::Path::new("./prisma/schema.prisma").exists() {
+                            format!("file:./prisma/{}", path)
+                        } else {
+                            url
+                        }
+                    }
+                    _ => url,
+                }
+            }
+        };
+        let (db_name, executor) = query_core::executor::load(
+            &source,
+            &config.preview_features().iter().collect::<Vec<_>>(),
+            &url,
+        )
+        .await?;
+        let internal_model = prisma_models::InternalDataModelBuilder::new(datamodel).build(db_name);
+        let query_schema = Arc::new(query_core::schema_builder::build(
+            internal_model,
+            true,
+            source.capabilities(),
+            vec![],
+            source.referential_integrity(),
+        ));
+        executor.primary_connector().get_connection().await?;
+
+        Ok(Self {
+            executor,
+            query_schema,
+            url,
+            action_notifier,
+        })
     }
 }
 
