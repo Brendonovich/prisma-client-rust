@@ -1,6 +1,6 @@
 use crate::generator::prelude::*;
 
-pub enum Entry {
+pub enum Variant {
     BaseVariant {
         definition: TokenStream,
         match_arm: TokenStream,
@@ -18,7 +18,7 @@ pub enum Entry {
     },
 }
 
-impl Entry {
+impl Variant {
     pub fn unique(field: &dml::Field, read_filter: &Filter) -> Self {
         Self::UniqueVariant {
             field_name: field.name().to_string(),
@@ -31,13 +31,13 @@ impl Entry {
     }
 }
 
-pub fn collate_entries(entries: Vec<Entry>) -> TokenStream {
+pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let (variants, to_serialized_where): (Vec<_>, Vec<_>) = entries
         .iter()
         .filter_map(|e| match e {
-            Entry::BaseVariant {
+            Variant::BaseVariant {
                 definition,
                 match_arm,
             } => Some((definition.clone(), Some(match_arm))),
@@ -46,7 +46,7 @@ pub fn collate_entries(entries: Vec<Entry>) -> TokenStream {
         .unzip();
 
     let (optional_unique_impls, (unique_variants, unique_to_where_arms)): (Vec<_>, (Vec<_>, Vec<_>)) = entries.iter().filter_map(|e| match e {
-        Entry::UniqueVariant {
+        Variant::UniqueVariant {
             field_name,
             field_required_type,
             read_filter_name,
@@ -90,7 +90,7 @@ pub fn collate_entries(entries: Vec<Entry>) -> TokenStream {
                 )
             ))
         }
-        Entry::CompoundUniqueVariant { field_names_string, variant_data_destructured, variant_data_types } => {
+        Variant::CompoundUniqueVariant { field_names_string, variant_data_destructured, variant_data_types } => {
             let variant_name = format_ident!("{}Equals", field_names_string);
 
             Some((

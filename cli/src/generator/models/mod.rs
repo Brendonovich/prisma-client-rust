@@ -10,12 +10,11 @@ mod include;
 mod field;
 mod where_params;
 
-use datamodel::dml::FieldArity;
 use prisma_client_rust_sdk::prelude::*;
 
 use std::ops::Deref;
 
-use self::where_params::Entry;
+use self::where_params::Variant;
 
 pub struct Operator {
     pub name: &'static str,
@@ -40,17 +39,6 @@ static OPERATORS: &'static [Operator] = &[
         list: false
     },
 ];
-
-fn compound_field_accessor(accessor_name_str: &str, variant_data_args: &Vec<TokenStream>, variant_data_destructured: &Vec<Ident>) -> TokenStream {
-    let accessor_name = format_ident!("{}", accessor_name_str);
-    let variant_name = format_ident!("{}Equals", accessor_name_str.to_case(Case::Pascal));
-    
-    quote! {
-        pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#variant_data_args),*) -> T {
-            UniqueWhereParam::#variant_name(#(#variant_data_destructured),*).into()
-        }
-    }
-}
 
 pub struct RequiredField<'a> {
     pub push_wrapper: TokenStream,
@@ -181,7 +169,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 },
             };
 
-            Entry::BaseVariant {
+            Variant::BaseVariant {
                 definition: quote!(#variant_name(Vec<WhereParam>)),
                 match_arm: quote! {
                     Self::#variant_name(value) => (
@@ -198,7 +186,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 let read_filter = args.read_filter(field.as_scalar_field().unwrap()).unwrap();
                 
-                where_params_entries.push(Entry::unique(field, read_filter));
+                where_params_entries.push(Variant::unique(field, read_filter));
 
                 None
             } else {
@@ -210,22 +198,22 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let ((field_defs, field_types), (prisma_values, field_names_snake)): 
                     ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
                     let field_type = match field.arity() {
-                        FieldArity::List | FieldArity::Required => field.type_tokens(quote!()),
-                        FieldArity::Optional => field.field_type().to_tokens(quote!(), &FieldArity::Required)
+                        dml::FieldArity::List | dml::FieldArity::Required => field.type_tokens(quote!()),
+                        dml::FieldArity::Optional => field.field_type().to_tokens(quote!(), &dml::FieldArity::Required)
                     };
                     
                     let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
                     
                     (
                         (quote!(#field_name_snake: #field_type), field_type),
-                        (field.field_type().to_prisma_value(&field_name_snake, &FieldArity::Required), field_name_snake)
+                        (field.field_type().to_prisma_value(&field_name_snake, &dml::FieldArity::Required), field_name_snake)
                     )
                 }).unzip();
 
                 let field_names_joined = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
                 where_params_entries.extend([
-                    Entry::BaseVariant {
+                    Variant::BaseVariant {
                         definition: quote!(#variant_name(#(#field_types),*)),
                         match_arm: quote! {
                             Self::#variant_name(#(#field_names_snake),*) => (
@@ -234,18 +222,20 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                             )
                         },
                     },
-                    Entry::CompoundUniqueVariant {
+                    Variant::CompoundUniqueVariant {
                         field_names_string: variant_name_string.clone(),
                         variant_data_destructured: field_names_snake.clone(),
                         variant_data_types: field_types
                     }
                 ]);
 
-                Some(compound_field_accessor(
-                    &variant_name_string.to_case(Case::Snake),
-                    &field_defs,
-                    &field_names_snake
-                ))
+                let accessor_name = snake_ident(&variant_name_string);
+
+                Some(quote! {
+                    pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#field_defs),*) -> T {
+                        UniqueWhereParam::#variant_name(#(#field_names_snake),*).into()
+                    }
+                })
             }
         }).collect::<TokenStream>();
 
