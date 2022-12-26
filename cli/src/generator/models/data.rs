@@ -44,13 +44,15 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
             dml::Field::RelationField(relation_field) => {
                 let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
 
+                let base_data = quote!(super::#relation_model_name_snake::Data);
+
                 let typ = match &relation_field.arity {
-                    dml::FieldArity::List => quote!(Vec<super::#relation_model_name_snake::Data>),
+                    dml::FieldArity::List => quote!(Vec<#base_data>),
                     dml::FieldArity::Optional => {
-                        quote!(Option<Box<super::#relation_model_name_snake::Data>>)
+                        quote!(Option<Box<#base_data>>)
                     }
                     dml::FieldArity::Required => {
-                        quote!(Box<super::#relation_model_name_snake::Data>)
+                        quote!(Box<#base_data>)
                     }
                 };
 
@@ -124,35 +126,26 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
 
             let typ = &field.typ;
 
-            let access_error = quote!(#pcr::RelationNotFetchedError::new(stringify!(#field_name_snake)));
+            let access_error =
+                quote!(#pcr::RelationNotFetchedError::new(stringify!(#field_name_snake)));
 
-            let ret = match field.arity.is_list() {
-                true => quote! {
-                    pub fn #field_name_snake(&self) -> Result<&#typ, #pcr::RelationNotFetchedError> {
-                        self.#field_name_snake.as_ref().ok_or(#access_error)
-                    }
-                },
-                false => {
-                    let (accessor_type, inner_map) = match field.arity.is_optional() {
-                        false => (
-                            quote!(&super::#relation_model_name_snake::Data),
-                            None
-                        ),
-                        true => (
-                            quote!(Option<&super::#relation_model_name_snake::Data>),
-                            Some(quote!(.map(|v| v.as_ref()))),
-                        ),
-                    };
-
-                    quote! {
-                        pub fn #field_name_snake(&self) -> Result<#accessor_type, #pcr::RelationNotFetchedError> {
-                            self.#field_name_snake.as_ref().ok_or(#access_error).map(|v| v.as_ref() #inner_map)
-                        }
-                    }
-                }
+            let (typ, map) = match field.arity {
+                dml::FieldArity::List => (quote!(&#typ), None),
+                dml::FieldArity::Required => (
+                    quote!(&super::#relation_model_name_snake::Data),
+                    Some(quote!(.map(|v| v.as_ref()))),
+                ),
+                dml::FieldArity::Optional => (
+                    quote!(Option<&super::#relation_model_name_snake::Data>),
+                    Some(quote!(.map(|v| v.as_ref().map(|v| v.as_ref())))),
+                ),
             };
 
-            Some(ret)
+            Some(quote! {
+                pub fn #field_name_snake(&self) -> Result<#typ, #pcr::RelationNotFetchedError> {
+                    self.#field_name_snake.as_ref().ok_or(#access_error) #map
+                }
+            })
         }
         _ => None,
     });

@@ -182,8 +182,7 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
         .flatten()
         .collect::<Vec<_>>();
 
-    let variants = set_params.iter().map(|p| &p.variant);
-    let into_pv_arms = set_params.iter().map(|p| &p.into_pv_arm);
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params.iter().map(|p| (&p.variant, &p.into_pv_arm)).unzip();
 
     let pcr = quote!(::prisma_client_rust);
 
