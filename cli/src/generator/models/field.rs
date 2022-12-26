@@ -1,12 +1,12 @@
 use crate::generator::prelude::*;
 
-use super::{include, order_by, pagination, select, where_params::Entry, with_params};
+use super::{include, order_by, pagination, select, where_params::Variant, with_params};
 
 pub fn module(
     root_field: &dml::Field,
     model: &dml::Model,
     args: &GenerateArgs,
-) -> (TokenStream, Vec<Entry>) {
+) -> (TokenStream, Vec<Variant>) {
     let pcr = quote!(::prisma_client_rust);
     let mut where_param_entries = vec![];
 
@@ -74,7 +74,7 @@ pub fn module(
                 }
             } else {
                 let optional_fns = field.arity.is_optional().then(|| {
-                    where_param_entries.push(Entry::BaseVariant {
+                    where_param_entries.push(Variant::BaseVariant {
                         definition: quote!(#is_null_variant),
                         match_arm: quote! {
                             Self::#is_null_variant => (
@@ -133,7 +133,7 @@ pub fn module(
                 let variant_name = format_ident!("{}{}", &field_name_pascal, method.to_case(Case::Pascal));
                 let method_name_snake = format_ident!("{}", method.to_case(Case::Snake));
 
-                where_param_entries.push(Entry::BaseVariant {
+                where_param_entries.push(Variant::BaseVariant {
                     definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
                     match_arm: quote! {
                         Self::#variant_name(where_params) => (
@@ -188,7 +188,7 @@ pub fn module(
                 }
             };
 
-            where_param_entries.push(Entry::BaseVariant {
+            where_param_entries.push(Variant::BaseVariant {
                 definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
                 match_arm: quote! {
                     Self::#field_name_pascal(value) => (

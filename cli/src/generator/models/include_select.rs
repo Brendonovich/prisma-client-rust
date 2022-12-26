@@ -1,20 +1,60 @@
 use crate::generator::prelude::*;
 
-pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+enum Variant {
+    Select,
+    Include
+}
+
+impl core::fmt::Display for Variant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Select => "select",
+            Self::Include => "include"
+        };
+
+        write!(f, "{}", s) 
+    }
+}
+
+impl Variant {
+    fn type_trait(&self) -> Ident {
+        format_ident!("{}Type", self.to_string().to_case(Case::Pascal))
+    }
+
+    fn param(&self) -> Ident {
+        format_ident!("{}Param", self.to_string().to_case(Case::Pascal))
+    }
+}
+
+fn model_macro<'a>(
+    model: &'a dml::Model,
+    module_path: &TokenStream,
+    variant: Variant,
+    base_fields: impl Iterator<Item = &'a dml::Field> + Clone,
+    selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
+) -> TokenStream {
     let model_name_pascal_str = model.name.to_case(Case::Pascal);
     let model_name_snake = snake_ident(&model.name);
-    let macro_name = format_ident!("_select_{}", model_name_snake);
-    
+    let macro_name = format_ident!("_{variant}_{model_name_snake}");
+
+    let selection_type = variant.type_trait();
+    let selection_param = variant.param();
+
+    let variant_ident = format_ident!("{variant}");
+    let variant_pascal = pascal_ident(&variant.to_string());
+
     let filters_pattern_produce = quote!(($($filters:tt)+)$(.$arg:ident($($arg_params:tt)*))*);
     let filters_pattern_consume = quote!(($($filters)+)$(.$arg($($arg_params)*))*);
-    
+
     let selections_pattern_produce = quote!(: $selection_mode:ident {$($selections:tt)+});
     let selections_pattern_consume = quote!(: $selection_mode {$($selections)+});
-    
-    let selection_pattern_produce = quote!($field:ident $(#filters_pattern_produce)? $(#selections_pattern_produce)?);
-    let selection_pattern_consume = quote!($field $(#filters_pattern_consume)? $(#selections_pattern_consume)?);
-    
-    let field_type_impls = model.fields.iter().map(|field| {
+
+    let selection_pattern_produce =
+        quote!($field:ident $(#filters_pattern_produce)? $(#selections_pattern_produce)?);
+    let selection_pattern_consume =
+        quote!($field $(#filters_pattern_consume)? $(#selections_pattern_consume)?);
+
+    let field_type_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
         let field_type = field.type_tokens(quote!(crate::#module_path::));
 
@@ -25,28 +65,28 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 dml::FieldArity::Optional => quote!(Option<#field_type>),
                 dml::FieldArity::List => quote!(Vec<#field_type>),
             };
-            
+
             quote!((@field_type; #field_name_snake #selections_pattern_produce) => { #field_type };)
         });
-        
+
         quote! {
             #selection_type_impl
             (@field_type; #field_name_snake) => { #field_type };
         }
     });
-    
-    let field_module_impls = model.fields.iter().filter_map(|f| f.as_relation_field()).map(|field| {
+
+    let field_module_impls = model.relation_fields().map(|field| {
         let field_name_snake = snake_ident(&field.name);
         let relation_model_name_snake = snake_ident(&field.relation_info.to);
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
-                $crate::#module_path::#relation_model_name_snake::select!(@definitions; ; $($selections)+);
+                $crate::#module_path::#relation_model_name_snake::#variant_ident!(@definitions; ; $($selections)+);
             };
         }
     });
-    
-    let selection_field_to_selection_param_impls = model.fields.iter().map(|field| {
+
+    let selection_field_to_selection_param_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
         
         match field {
@@ -57,23 +97,23 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     dml::FieldArity::List => {
                         quote! {
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                                Into::<$crate::#module_path::#model_name_snake::SelectParam>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::Select::$selection_mode(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::select!(
+                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
+                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
+                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?,
                                         $crate::#module_path::#relation_model_name_snake::select!(
-                                            @selections_to_select_params;
+                                            @selections_to_params;
                                             #selections_pattern_consume
                                         ).into_iter().collect()
                                     )
                                 )
                             }};
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                                Into::<$crate::#module_path::#model_name_snake::SelectParam>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::Select::Fetch(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::select!(
+                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
+                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch(
+                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?
@@ -84,18 +124,18 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     },
                     _ => quote! {
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                            Into::<$crate::#module_path::#model_name_snake::SelectParam>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::Select::$selection_mode(
+                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
+                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
                                     $crate::#module_path::#relation_model_name_snake::select!(
-                                        @selections_to_select_params;
+                                        @selections_to_params;
                                         #selections_pattern_consume
                                     ).into_iter().collect()
                                 )
                             )
                         }};
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                            Into::<$crate::#module_path::#model_name_snake::SelectParam>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::Select::Fetch
+                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
+                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch
                             )
                         }};
                     }
@@ -104,8 +144,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             },
             dml::Field::ScalarField(_) => quote! {
                 (@selection_field_to_selection_param; #field_name_snake) => {
-                    Into::<$crate::#module_path::#model_name_snake::SelectParam>::into(
-                        $crate::#module_path::#model_name_snake::#field_name_snake::Select
+                    Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
+                        $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal
                     )
                 };
             },
@@ -113,7 +153,16 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         }
     });
 
-    let fields_enum_variants = model.fields.iter().map(|f| {
+    let data_struct_scalar_fields = base_fields.clone().filter_map(|f| {
+        let field_name_snake = snake_ident(f.name());
+        let field_type = f.type_tokens(quote!(crate::#module_path::));
+
+        f.as_scalar_field().map(|_| {
+            quote!(pub #field_name_snake: #field_type)
+        })
+    });
+
+    let fields_enum_variants = selection_fields.clone().map(|f| {
         let i = snake_ident(f.name());
         quote!(#i)
     });
@@ -125,6 +174,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         quote!((@field_serde_name; #field_name_snake) => { #field_name_str };)
     });
 
+    let base_field_names_snake = base_fields.clone().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
+
     let deserialize_impl = {
         let field_names_str = model.fields().map(|f| f.name());
 
@@ -132,6 +183,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             #[allow(warnings)]
             enum Field {
                 $($field),+,
+                #(#base_field_names_snake),*
             }
 
             impl<'de> ::serde::Deserialize<'de> for Field {
@@ -146,7 +198,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
                         fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                             formatter.write_str(concat!(
-                                $($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field), ", "),+
+                                $($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field), ", "),+,
+                                #($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake), ", "),*
                             ))
                         }
 
@@ -155,7 +208,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                             E: ::serde::de::Error,
                         {
                             match value {
-                                $($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field) => Ok(Field::$field)),*,
+                                $($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field) => Ok(Field::$field)),*,
+                                #($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake) => Ok(Field::#base_field_names_snake),)*
                                 _ => Err(::serde::de::Error::unknown_field(value, FIELDS)),
                             }
                         }
@@ -179,20 +233,29 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     V: ::serde::de::MapAccess<'de>,
                 {
                     $(let mut $field = None;)*
+                    #(let mut #base_field_names_snake = None;)*
 
                     while let Some(key) = map.next_key()? {
                         match key {
+                            #(Field::#base_field_names_snake => {
+                                if #base_field_names_snake.is_some() {
+                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake)));
+                                }
+                                #base_field_names_snake = Some(map.next_value()?);
+                            })*
                             $(Field::$field => {
                                 if $field.is_some() {
-                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field)));
+                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field)));
                                 }
                                 $field = Some(map.next_value()?);
                             })*
                         }
                     }
                     
-                    $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field)))?;)*
-                    Ok(Data { $($field),* })
+                    $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field)))?;)*
+                    #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake)))?;)*
+
+                    Ok(Data { #(#base_field_names_snake,)* $($field),* })
                 }
             }
 
@@ -201,20 +264,50 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         }
     };
 
-    let serialize_impl = quote! {
-        use ::serde::ser::SerializeStruct;
+    let serialize_impl = {
+        quote! {
+            use ::serde::ser::SerializeStruct;
 
-        let mut state = serializer.serialize_struct("Data", [$(stringify!($field),)+].len())?;
-        $(state.serialize_field($crate::#module_path::#model_name_snake::select!(@field_serde_name; $field), &self.$field)?;)*
-        state.end()
+            let mut state = serializer.serialize_struct(
+                "Data", 
+                [
+                    $(stringify!($field),)+
+                    #(stringify!(#base_field_names_snake)),*
+                ].len()
+            )?;
+            $(state.serialize_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field), &self.$field)?;)*
+            #(state.serialize_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake), &self.#base_field_names_snake)?;)*
+            state.end()
+        }
     };
-    
+
+    let all_fields_str = selection_fields.clone().map(|f| f.name().to_case(Case::Snake)).collect::<Vec<_>>().join(", ");
+
     let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
     let specta_impl = cfg!(feature = "rspc").then(|| {
+        let object_scalar_fields = selection_fields.clone().filter_map(|f| {
+            let field_name_str = f.name();
+            let field_type = f.type_tokens(quote!());
+
+            f.as_scalar_field().map(|_| 
+                quote!(#specta::ObjectField {
+                    name: #field_name_str.to_string(),
+                    optional: false,
+                    ty: <#field_type as #specta::Type>::reference(
+                        #specta::DefOpts {
+                            parent_inline: false,
+                            type_map: _opts.type_map
+                        },
+                        &[]
+                    )
+                },)
+            )
+        });
+
         quote! {
             impl #specta::Type for Data {
-                const NAME: &'static str = $crate::#module_path::#model_name_snake::select!(@specta_type_name; $($module_name)?);
+                const NAME: &'static str = $crate::#module_path::#model_name_snake::#variant_ident!(@specta_type_name; $($module_name)?);
 
                 fn inline(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
                     use ::prisma_client_rust::convert_case::Casing;
@@ -223,10 +316,10 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                         name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
                         tag: None,
                         generics: vec![],
-                        fields: vec![$(#specta::ObjectField {
-                            name: $crate::#module_path::#model_name_snake::select!(@field_serde_name; $field).to_string(),
+                        fields: vec![#(#object_scalar_fields)* $(#specta::ObjectField {
+                            name: $crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field).to_string(),
                             optional: false,
-                            ty: <$crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
+                            ty: <$crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
                                 #specta::DefOpts {
                                     parent_inline: false,
                                     type_map: _opts.type_map
@@ -238,7 +331,7 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                     })
                 }
 
-                $crate::#module_path::#model_name_snake::select!(@specta_reference_body; $($module_name)?);
+                $crate::#module_path::#model_name_snake::#variant_ident!(@specta_reference_body; $($module_name)?);
             }
         }
     });
@@ -301,7 +394,42 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
         }
     });
 
-    let all_fields_str = model.fields.iter().map(|f| f.name().to_case(Case::Snake)).collect::<Vec<_>>().join(", ");
+    let selection = {
+        let scalar_selections = matches!(variant, Variant::Include).then(||
+            quote! {
+                <$crate::#module_path::#model_name_snake::Actions as ::prisma_client_rust::ModelActions>::scalar_selections()
+            }
+        );
+
+        quote!(Selection(
+            [
+                $crate::#module_path::#model_name_snake::#variant_ident!(
+                    @selections_to_params; : #variant_ident
+                    { $(#selection_pattern_consume)+ }
+                )
+                    .into_iter()
+                    .map(|p| p.to_selection())
+                    .collect::<Vec<_>>(),
+                #scalar_selections
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+        ))
+    };
+
+    let selection_struct = quote! {
+        pub struct Selection(Vec<::prisma_client_rust::Selection>);
+
+        impl ::prisma_client_rust::#variant_ident::#selection_type for Selection {
+            type Data = Data;
+            type ModelData = $crate::#module_path::#model_name_snake::Data;
+            
+            fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
+                self.0
+            }
+        }
+    };
 
     quote! {
         #[macro_export]
@@ -309,55 +437,23 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_name:ident { $(#selection_pattern_produce)+ }) => {
                 #[allow(warnings)]
                 pub mod $module_name {
-                    $crate::#module_path::#model_name_snake::select!(@definitions; $module_name;  $(#selection_pattern_consume)+);
-
-                    pub struct Select(Vec<::prisma_client_rust::Selection>);
-
-                    impl ::prisma_client_rust::select::SelectType for Select {
-                        type Data = Data;
-                        type ModelData = $crate::#module_path::#model_name_snake::Data;
-                        
-                        fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
-                            self.0
-                        }
-                    }
+                    $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; $module_name; $(#selection_pattern_consume)+);
 
                     use super::*;
 
-                    pub fn select($($($func_arg:$func_arg_ty),+)?) -> Select {
-                        Select($crate::#module_path::#model_name_snake::select!(
-                                @selections_to_select_params; : select 
-                                { $(#selection_pattern_consume)+ }
-                            )
-                            .into_iter()
-                            .map(|p| p.to_selection())
-                            .collect()
-                        )
+                    #selection_struct
+
+                    pub fn #variant_ident($($($func_arg:$func_arg_ty),+)?) -> Selection {
+                        #selection
                     }
                 }
             };
             ({ $(#selection_pattern_produce)+ }) => {{
-                $crate::#module_path::#model_name_snake::select!(@definitions; ; $(#selection_pattern_consume)+);
+                $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
                 
-                pub struct Select(Vec<::prisma_client_rust::Selection>);
+                #selection_struct
 
-                impl ::prisma_client_rust::select::SelectType for Select {
-                    type Data = Data;
-                    type ModelData = $crate::#module_path::#model_name_snake::Data;
-                    
-                    fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
-                        self.0
-                    }
-                }
-
-                Select($crate::#module_path::#model_name_snake::select!(
-                        @selections_to_select_params; : select 
-                        { $(#selection_pattern_consume)+ }
-                    )
-                    .into_iter()
-                    .map(|p| p.to_selection())
-                    .collect()
-                )
+                #selection
             }};
             (@definitions; $($module_name:ident)?; $(#selection_pattern_produce)+) => {
                 #[allow(warnings)]
@@ -375,7 +471,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 #[allow(warnings)]
                 #[derive(std::fmt::Debug, Clone)]
                 pub struct Data {
-                    $(pub $field: $crate::#module_path::#model_name_snake::select!(@field_type; $field $(#selections_pattern_consume)?),)+
+                    #(#data_struct_scalar_fields,)*
+                    $(pub $field: $crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),)+
                 }
 
                 impl ::serde::Serialize for Data {
@@ -399,12 +496,12 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
                 #specta_impl
 
                 $($(pub mod $field {
-                    $crate::#module_path::#model_name_snake::select!(@field_module; $field #selections_pattern_consume);
+                    $crate::#module_path::#model_name_snake::$selection_mode!(@field_module; $field #selections_pattern_consume);
                 })?)+
             };
             
             #(#field_type_impls)*
-            (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot select field nonexistent field $field on model #model_name_pascal_str, available fields are #all_fields_str)) };
+            (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot include nonexistent relation $field on model #model_name_pascal_str, available relations are #all_fields_str)) };
             
             #(#field_module_impls)*
             (@field_module; $($tokens:tt)*) => {};
@@ -412,8 +509,8 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
             #(#selection_field_to_selection_param_impls)*
             (@selection_field_to_selection_param; $($tokens:tt)*) => { compile_error!(stringify!($($tokens)*)) }; // ::prisma_client_rust::Selection::builder("").build() };
 
-            (@selections_to_select_params; : $macro_name:ident {$(#selection_pattern_produce)+}) => {
-                [$($crate::#module_path::#model_name_snake::$macro_name!(@selection_field_to_selection_param; #selection_pattern_consume),)+]
+            (@selections_to_params; : $macro_name:ident {$(#selection_pattern_produce)+}) => {
+                [ $($crate::#module_path::#model_name_snake::$macro_name!(@selection_field_to_selection_param; #selection_pattern_consume),)+]
             };
 
             (@filters_to_args;) => {
@@ -427,33 +524,41 @@ pub fn generate_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStr
 
             #specta_macro_arms
         }
-        pub use #macro_name as select;
+        pub use #macro_name as #variant_ident;
     }
 }
 
-pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
+fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) -> TokenStream {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_str = field.name();
+
+    let variant_pascal = pascal_ident(&variant.to_string());
+    let variant_param = variant.param();
 
     match field {
         dml::Field::RelationField(relation_field) => {
             let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
 
+            let initial_nested_selections = match variant {
+                Variant::Include => quote!(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()),
+                Variant::Select => quote!(vec![])
+            };
+
             match field.arity() {
                 dml::FieldArity::List => quote! {
-                    pub enum Select {
+                    pub enum #variant_pascal {
                         Select(#relation_model_name_snake::ManyArgs, Vec<#relation_model_name_snake::SelectParam>),
                         Include(#relation_model_name_snake::ManyArgs, Vec<#relation_model_name_snake::IncludeParam>),
                         Fetch(#relation_model_name_snake::ManyArgs)
                     }
 
-                    impl Into<super::SelectParam> for Select {
-                        fn into(self) -> super::SelectParam {
-                            super::SelectParam::#field_name_pascal(self)
+                    impl Into<super::#variant_param> for #variant_pascal {
+                        fn into(self) -> super::#variant_param {
+                            super::#variant_param::#field_name_pascal(self)
                         }
                     }
 
-                    impl Select {
+                    impl #variant_pascal {
                         pub fn to_selection(self) -> #pcr::Selection {
                             let mut selection = #pcr::Selection::builder(#field_name_str);
 
@@ -464,7 +569,10 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                 },
                                 Self::Include(args, selections) => {
                                     selection.set_arguments(args.to_graphql().0);
-                                    selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
+
+                                    let mut nested_selections = #initial_nested_selections;
+                                    nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
+                                    selection.nested_selections(nested_selections);
                                 },
                                 Self::Fetch(args) => {
                                     selection.set_arguments(args.to_graphql().0);
@@ -485,19 +593,19 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                     }
                 },
                 _ => quote! {
-                    pub enum Select {
+                    pub enum #variant_pascal {
                         Select(Vec<#relation_model_name_snake::SelectParam>),
                         Include(Vec<#relation_model_name_snake::IncludeParam>),
                         Fetch
                     }
 
-                    impl Into<super::SelectParam> for Select {
-                        fn into(self) -> super::SelectParam {
-                            super::SelectParam::#field_name_pascal(self)
+                    impl Into<super::#variant_param> for #variant_pascal {
+                        fn into(self) -> super::#variant_param {
+                            super::#variant_param::#field_name_pascal(self)
                         }
                     }
 
-                    impl Select {
+                    impl #variant_pascal {
                         pub fn to_selection(self) -> #pcr::Selection {
                             let mut selection = #pcr::Selection::builder(#field_name_str);
 
@@ -506,7 +614,9 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
                                     selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
                                 },
                                 Self::Include(selections) => {
-                                    selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
+                                    let mut nested_selections = #initial_nested_selections;
+                                    nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
+                                    selection.nested_selections(nested_selections);
                                 },
                                 Self::Fetch => {
                                     selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
@@ -528,15 +638,15 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
             }
         },
         dml::Field::ScalarField(_) => quote! {
-            pub struct Select;
+            pub struct #variant_pascal;
 
-            impl Into<super::SelectParam> for Select {
-                fn into(self) -> super::SelectParam {
-                    super::SelectParam::#field_name_pascal(self)
+            impl Into<super::#variant_param> for #variant_pascal {
+                fn into(self) -> super::#variant_param {
+                    super::#variant_param::#field_name_pascal(self)
                 }
             }
 
-            impl Select {
+            impl #variant_pascal {
                 pub fn to_selection(self) -> #pcr::Selection {
                     #pcr::Selection::builder(#field_name_str).build()
                 }
@@ -546,22 +656,26 @@ pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
     }
 }
 
-pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
+fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) -> TokenStream {
+    let variant_pascal = pascal_ident(&variant.to_string());
+
     let variants = model.fields().map(|field| {
         let field_name_snake = snake_ident(field.name());
         let field_name_pascal = pascal_ident(field.name());
 
-        quote!(#field_name_pascal(#field_name_snake::Select))
+        quote!(#field_name_pascal(#field_name_snake::#variant_pascal))
     });
 
     let field_names_pascal = model.fields().map(|field| pascal_ident(field.name()));
 
+    let variant_param = variant.param();
+
     quote! {
-        pub enum SelectParam {
+        pub enum #variant_param {
             #(#variants),*
         }
 
-        impl SelectParam {
+        impl #variant_param {
             pub fn to_selection(self) -> #pcr::Selection {
                 match self {
                     #(Self::#field_names_pascal(data) => data.to_selection()),*
@@ -570,3 +684,36 @@ pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
         }
     }
 }
+
+pub mod include {
+    use super::*;
+
+    pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+        super::model_macro(model, module_path, Variant::Include, model.fields().filter(|f| f.is_scalar_field()), model.fields().filter(|f| f.is_relation()))
+    }
+
+    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
+        super::field_module_enum(field, pcr, Variant::Include)
+    }
+
+    pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
+        super::model_module_enum(model, pcr, Variant::Include)
+    }
+}
+
+pub mod select {
+    use super::*;
+
+    pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+        super::model_macro(model, module_path, Variant::Select, [].iter(), model.fields())
+    }
+
+    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
+        super::field_module_enum(field, pcr, Variant::Select)
+    }
+
+    pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
+        super::model_module_enum(model, pcr, Variant::Select)
+    }
+}
+

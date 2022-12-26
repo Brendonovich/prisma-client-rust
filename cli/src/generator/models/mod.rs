@@ -1,4 +1,3 @@
-mod select;
 mod set_params;
 mod with_params;
 mod data;
@@ -6,10 +5,11 @@ mod order_by;
 mod pagination;
 mod actions;
 mod create;
-mod include;
 mod field;
 mod where_params;
+mod include_select;
 
+use include_select::*;
 use prisma_client_rust_sdk::prelude::*;
 
 use std::ops::Deref;
@@ -253,9 +253,9 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let set_params_enum = set_params::enum_definition(&model, args);
         let order_by_params_enum = order_by::enum_definition(&model);
         let create_fn = create::model_fns(&model);
-        let select_macro = select::generate_macro(model, &module_path);
+        let select_macro = select::model_macro(model, &module_path);
         let select_params_enum = select::model_module_enum(&model, &pcr);
-        let include_macro = include::generate_macro(model, &module_path);
+        let include_macro = include::model_macro(model, &module_path);
         let include_params_enum = include::model_module_enum(&model, &pcr);
         let actions_struct = actions::struct_definition(&model, args);
 
