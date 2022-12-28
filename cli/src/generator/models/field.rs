@@ -27,104 +27,107 @@ pub fn module(
 
             let with_fn = with_params::builder_fn(&field);
 
-            let base = if field.arity.is_list() {
-                let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
-                let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
+            let base = match field.arity {
+                dml::FieldArity::List => {
+                    let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
+                    let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
 
-                quote! {
-                    pub struct Fetch(pub #relation_model_name_snake::ManyArgs);
+                    quote! {
+                        pub struct Fetch(pub #relation_model_name_snake::ManyArgs);
 
-                    impl Fetch {
-                        #with_fn
+                        impl Fetch {
+                            #with_fn
 
-                        #order_by_fn
+                            #order_by_fn
 
-                        #pagination_fns
-                    }
-
-                    impl From<Fetch> for WithParam {
-                        fn from(fetch: Fetch) -> Self {
-                            WithParam::#field_name_pascal(fetch.0)
+                            #pagination_fns
                         }
-                    }
 
-                    pub fn fetch(params: Vec<#relation_model_name_snake::WhereParam>) -> Fetch {
-                        Fetch(#relation_model_name_snake::ManyArgs::new(params))
-                    }
+                        impl From<Fetch> for WithParam {
+                            fn from(fetch: Fetch) -> Self {
+                                WithParam::#field_name_pascal(fetch.0)
+                            }
+                        }
 
-                    pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
-                        Connect(params).into()
-                    }
+                        pub fn fetch(params: Vec<#relation_model_name_snake::WhereParam>) -> Fetch {
+                            Fetch(#relation_model_name_snake::ManyArgs::new(params))
+                        }
 
-                    pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
-                        SetParam::#disconnect_variant(params)
-                    }
+                        pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
 
-                    pub fn set(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
-                        SetParam::#set_variant(params)
-                    }
+                        impl From<Connect> for SetParam {
+                            fn from(value: Connect) -> Self {
+                                Self::#connect_variant(value.0)
+                            }
+                        }
 
-                    pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
+                        pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
+                            Connect(params).into()
+                        }
 
-                    impl From<Connect> for SetParam {
-                        fn from(value: Connect) -> Self {
-                            Self::#connect_variant(value.0)
+                        pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
+                            SetParam::#disconnect_variant(params)
+                        }
+
+                        pub fn set(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
+                            SetParam::#set_variant(params)
                         }
                     }
                 }
-            } else {
-                let optional_fns = field.arity.is_optional().then(|| {
-                    where_param_entries.push(Variant::BaseVariant {
-                        definition: quote!(#is_null_variant),
-                        match_arm: quote! {
-                            Self::#is_null_variant => (
-                                #field_name,
-                                #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
-                            )
-                        },
+                _ => {
+                    let optional_fns = field.arity.is_optional().then(|| {
+                        where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#is_null_variant),
+                            match_arm: quote! {
+                                Self::#is_null_variant => (
+                                    #field_name,
+                                    #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
+                                )
+                            },
+                        });
+
+                        quote! {
+                            pub fn disconnect() -> SetParam {
+                                SetParam::#disconnect_variant
+                            }
+
+                            pub fn is_null() -> WhereParam {
+                                WhereParam::#is_null_variant
+                            }
+                        }
                     });
 
                     quote! {
-                        pub fn disconnect() -> SetParam {
-                            SetParam::#disconnect_variant
+                        pub struct Fetch(pub #relation_model_name_snake::UniqueArgs);
+
+                        impl Fetch {
+                            #with_fn
                         }
 
-                        pub fn is_null() -> WhereParam {
-                            WhereParam::#is_null_variant
+                        impl From<Fetch> for WithParam {
+                            fn from(fetch: Fetch) -> Self {
+                                WithParam::#field_name_pascal(fetch.0)
+                            }
                         }
-                    }
-                });
 
-                quote! {
-                    pub struct Fetch(pub #relation_model_name_snake::UniqueArgs);
-
-                    impl Fetch {
-                        #with_fn
-                    }
-
-                    impl From<Fetch> for WithParam {
-                        fn from(fetch: Fetch) -> Self {
-                            WithParam::#field_name_pascal(fetch.0)
+                        pub fn fetch() -> Fetch {
+                            Fetch(#relation_model_name_snake::UniqueArgs::new())
                         }
-                    }
 
-                    pub fn fetch() -> Fetch {
-                        Fetch(#relation_model_name_snake::UniqueArgs::new())
-                    }
+                        pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
 
-                    pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
-
-                    impl From<Connect> for SetParam {
-                        fn from(value: Connect) -> Self {
-                            Self::#connect_variant(value.0)
+                        impl From<Connect> for SetParam {
+                            fn from(value: Connect) -> Self {
+                                Self::#connect_variant(value.0)
+                            }
                         }
-                    }
 
-                    pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
-                        Connect(value).into()
-                    }
+                        pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
+                            Connect(value).into()
+                        }
 
-                    #optional_fns
+                        #optional_fns
+                    }
                 }
             };
 
@@ -246,15 +249,15 @@ pub fn module(
             });
 
             quote! {
-                pub fn set<T: From<Set>>(value: #field_type) -> T {
-                    Set(value).into()
-                }
-
                 pub struct Set(pub #field_type);
                 impl From<Set> for SetParam {
                     fn from(value: Set) -> Self {
                         Self::#set_variant(value.0)
                     }
+                }
+
+                pub fn set<T: From<Set>>(value: #field_type) -> T {
+                    Set(value).into()
                 }
 
                 pub fn order(direction: #pcr::Direction) -> OrderByParam {

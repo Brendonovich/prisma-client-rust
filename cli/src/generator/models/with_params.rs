@@ -30,8 +30,8 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
 
     let pcr = quote!(::prisma_client_rust);
 
-    let body = match field.arity.is_list() {
-        true => quote! {
+    let body = match field.arity {
+        dml::FieldArity::List => quote! {
             let (arguments, mut nested_selections) = args.to_graphql();
             nested_selections.extend(<super::#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
 
@@ -40,7 +40,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
                 .set_arguments(arguments);
             builder.build()
         },
-        false => quote! {
+        _ => quote! {
             let mut selections = <super::#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections();
             selections.extend(args.with_params.into_iter().map(Into::<#pcr::Selection>::into));
 

@@ -75,54 +75,13 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             #callback_fn
 
             pub async fn build(self) -> Result<PrismaClient, #pcr::NewClientError> {
-                let config = #pcr::datamodel::parse_configuration(super::DATAMODEL_STR)?.subject;
-                let source = config
-                    .datasources
-                    .first()
-                    .expect("Please supply a datasource in your schema.prisma file");
+                let internals = #pcr::PrismaClientInternals::new(
+                    self.url,
+                    self.action_notifier,
+                    super::DATAMODEL_STR
+                ).await?;
 
-                let url = match self.url {
-                    Some(url) => url,
-                    None => {
-                        let url = if let Some(url) = source.load_shadow_database_url()? {
-                            url
-                        } else {
-                            source.load_url(|key| std::env::var(key).ok())?
-                        };
-
-                        match url.starts_with("file:") {
-                            true => {
-                                let path = url.split(":").nth(1).unwrap();
-
-                                if std::path::Path::new("./prisma/schema.prisma").exists() {
-                                    format!("file:./prisma/{}", path)
-                                } else { url }
-                            },
-                            _ => url,
-                        }
-                    }
-                };
-
-                let (db_name, executor) = #pcr::query_core::executor::load(&source, &[], &url).await?;
-
-                let internal_model = #pcr::prisma_models::InternalDataModelBuilder::new(super::DATAMODEL_STR).build(db_name);
-
-                let query_schema = std::sync::Arc::new(prisma_client_rust::query_core::schema_builder::build(
-                    internal_model,
-                    true,
-                    source.capabilities(),
-                    vec![],
-                    source.referential_integrity(),
-                ));
-
-                executor.primary_connector().get_connection().await?;
-
-                Ok(PrismaClient(#pcr::PrismaClientInternals {
-                    executor,
-                    query_schema,
-                    url,
-                    action_notifier: self.action_notifier
-                }))
+                Ok(PrismaClient(internals))
             }
         }
 

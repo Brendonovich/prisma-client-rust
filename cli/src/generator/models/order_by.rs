@@ -12,22 +12,23 @@ pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
 pub fn enum_definition(model: &dml::Model) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let variants = model.scalar_fields().map(|field| {
-        let field_name_pascal = pascal_ident(&field.name);
-        quote!(#field_name_pascal(#pcr::Direction))
-    });
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
+        .scalar_fields()
+        .map(|field| {
+            let field_name_str = &field.name;
+            let field_name_pascal = pascal_ident(&field.name);
 
-    let into_pv_arms = model.scalar_fields().map(|field| {
-        let field_name_str = &field.name;
-        let field_name_pascal = pascal_ident(field_name_str);
-
-        quote! {
-            Self::#field_name_pascal(direction) => (
-                #field_name_str.to_string(),
-                #pcr::PrismaValue::String(direction.to_string())
+            (
+                quote!(#field_name_pascal(#pcr::Direction)),
+                quote! {
+                    Self::#field_name_pascal(direction) => (
+                        #field_name_str.to_string(),
+                        #pcr::PrismaValue::String(direction.to_string())
+                    )
+                },
             )
-        }
-    });
+        })
+        .unzip();
 
     quote! {
         #[derive(Clone)]
