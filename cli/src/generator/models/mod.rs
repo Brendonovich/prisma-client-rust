@@ -69,7 +69,7 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
             let typ = match field {
                 dml::Field::ScalarField(_) => field.type_tokens(quote!()),
                 dml::Field::RelationField(relation_field) => {
-                    let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
+                    let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
 
                     quote!(super::#relation_model_name_snake::UniqueWhereParam)
                 }

@@ -1,18 +1,16 @@
 use std::str::FromStr;
 
 use convert_case::Case;
-use datamodel::{
-    builtin_connectors,
-    datamodel_connector::Connector,
-    dml::{Field, FieldArity, FieldType, ScalarField, ScalarType},
-};
+use dml::{FieldArity, FieldType, ScalarField, ScalarType};
+use psl::{builtin_connectors, datamodel_connector::Connector};
+
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 
 use crate::{casing::Casing, dmmf::EngineDMMF, FieldTypeExt};
 
 pub struct GenerateArgs {
-    pub dml: datamodel::dml::Datamodel,
+    pub dml: dml::Datamodel,
     pub dmmf: EngineDMMF,
     pub schema: DmmfSchema,
     pub read_filters: Vec<Filter>,
@@ -21,7 +19,7 @@ pub struct GenerateArgs {
 }
 
 impl GenerateArgs {
-    pub fn new(mut dml: datamodel::dml::Datamodel, schema: DmmfSchema, dmmf: EngineDMMF) -> Self {
+    pub fn new(dml: dml::Datamodel, schema: DmmfSchema, dmmf: EngineDMMF) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
             for scalar in schema.input_object_types.get("prisma").unwrap() {

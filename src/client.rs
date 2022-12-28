@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use datamodel::datamodel_connector::Diagnostics;
+use diagnostics::Diagnostics;
 use query_core::{CoreError, Operation};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};

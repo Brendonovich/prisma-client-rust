@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, Selection};
 
 use crate::{
     include::{Include, IncludeType},
@@ -47,53 +47,51 @@ where
         self
     }
 
-    fn to_selection(where_param: Actions::Where) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "where",
-            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
-        );
-
-        selection
+    fn to_selection(
+        where_param: Actions::Where,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [(
+                "where".to_string(),
+                PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+            )],
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, Option<S::Data>> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Read(Self::to_selection(self.where_param, select.to_selections())),
+        )
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         include: I,
     ) -> Include<'a, Option<I::Data>> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(include.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Include::new(self.client, op)
+        Include::new(
+            self.client,
+            Operation::Read(Self::to_selection(
+                self.where_param,
+                include.to_selections(),
+            )),
+        )
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::to_selection(self.where_param);
         let mut scalar_selections = Actions::scalar_selections();
 
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
 
-        (Operation::Read(selection.build()), self.client)
+        (
+            Operation::Read(Self::to_selection(self.where_param, scalar_selections)),
+            self.client,
+        )
     }
 
     pub async fn exec(self) -> super::Result<Option<Actions::Data>> {

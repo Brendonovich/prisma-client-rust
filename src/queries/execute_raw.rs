@@ -22,15 +22,21 @@ impl<'a> ExecuteRaw<'a> {
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Selection::builder("executeRaw".to_string());
-
-        selection.push_argument("query", PrismaValue::String(self.sql));
-        selection.push_argument(
-            "parameters",
-            PrismaValue::String(serde_json::to_string(&self.params).unwrap()),
-        );
-
-        (Operation::Write(selection.build()), self.client)
+        (
+            Operation::Write(Selection::new(
+                "executeRaw".to_string(),
+                None,
+                [
+                    ("query".to_string(), PrismaValue::String(self.sql).into()),
+                    (
+                        "parameters".to_string(),
+                        PrismaValue::String(serde_json::to_string(&self.params).unwrap()).into(),
+                    ),
+                ],
+                [],
+            )),
+            self.client,
+        )
     }
 
     pub async fn exec(self) -> super::Result<i64> {

@@ -42,7 +42,8 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         .fields()
         .map(|field| match field {
             dml::Field::RelationField(relation_field) => {
-                let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
+                let relation_model_name_snake =
+                    snake_ident(&relation_field.relation_info.referenced_model);
 
                 let base_data = quote!(super::#relation_model_name_snake::Data);
 
@@ -122,7 +123,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
     let relation_accessors = fields.iter().filter_map(|field| match field {
         Field::Relation(field) => {
             let field_name_snake = snake_ident(&field.name);
-            let relation_model_name_snake = snake_ident(&field.relation_info.to);
+            let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
             let typ = &field.typ;
 
