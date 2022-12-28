@@ -46,27 +46,18 @@ indexmap = "1.8.2"
 serde-value = "0.7.0"
 base64 = "0.13.0"
 
-# query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-
-query-core = { path = "../prisma-engines/query-engine/core" }
-query-connector = { path = "../prisma-engines/query-engine/connectors/query-connector" }
-prisma-models = { path = "../prisma-engines/query-engine/prisma-models" }
-dml = { path = "../prisma-engines/libs/dml" }
-user-facing-errors = { path = "../prisma-engines/libs/user-facing-errors" }
-dmmf = { path = "../prisma-engines/query-engine/dmmf" }
-schema = { path = "../prisma-engines/query-engine/schema" }
-psl = { path = "../prisma-engines/psl/psl" }
-diagnostics = { path = "../prisma-engines/psl/diagnostics" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
 
 # features = "migrations"
-# migration-core = { git = "https://github.com/Brendonovich/prisma-engines.git", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93", optional = true }
-migration-core = { path = "../prisma-engines/migration-engine/core", optional = true }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0", optional = true }
 include_dir = { version = "0.7.2", optional = true }
 tempdir = { version = "0.3.7", optional = true }
 tokio = { version = "1.21.0", features = ["fs"], optional = true }

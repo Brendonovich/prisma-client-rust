@@ -26,15 +26,9 @@ serde = { version = "1.0.136", features = ["derive"] }
 proc-macro2 = "1.0.39"
 thiserror = "1.0.37"
 
-# prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-# dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-
-prisma-models = { path = "../../prisma-engines/query-engine/prisma-models" }
-request-handlers = { path = "../../prisma-engines/query-engine/request-handlers" }
-query-core = { path = "../../prisma-engines/query-engine/core" }
-dmmf = { path = "../../prisma-engines/query-engine/dmmf" }
-dml = { path = "../../prisma-engines/libs/dml" }
-psl = { path = "../../prisma-engines/psl/psl" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
