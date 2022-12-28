@@ -7,37 +7,93 @@ use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
 
 use crate::{
-    prisma_value, ActionNotifier, ModelAction, ModelActionType, ModelActions,
+    prisma_value, ActionNotifier, MockStore, ModelAction, ModelActionType, ModelActions,
     ModelMutationCallbackData, QueryError, Result,
 };
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
+pub(crate) enum ExecutionEngine {
+    Real {
+        executor: Executor,
+        query_schema: Arc<QuerySchema>,
+        url: String,
+    },
+    Mock(MockStore),
+}
+
+impl ExecutionEngine {
+    async fn execute(&self, op: Operation) -> Result<serde_value::Value> {
+        match self {
+            Self::Real {
+                executor,
+                query_schema,
+                ..
+            } => {
+                let response = executor
+                    .execute(None, op, query_schema.clone(), None)
+                    .await
+                    .map_err(|e| QueryError::Execute(e.into()))?;
+
+                let data: prisma_value::Item = response.data.into();
+
+                Ok(serde_value::to_value(data)?)
+            }
+            Self::Mock(store) => Ok(store.get_op(&op).await.expect("Mock data not found")),
+        }
+    }
+
+    pub async fn execute_all(
+        &self,
+        ops: Vec<Operation>,
+    ) -> Result<Vec<Result<serde_value::Value>>> {
+        match self {
+            Self::Real {
+                executor,
+                query_schema,
+                ..
+            } => {
+                let response = executor
+                    .execute_all(None, ops, None, query_schema.clone(), None)
+                    .await
+                    .map_err(|e| QueryError::Execute(e.into()))?;
+
+                Ok(response
+                    .into_iter()
+                    .map(|result| {
+                        let data: prisma_value::Item = result
+                            .map_err(|e| QueryError::Execute(e.into()))?
+                            .data
+                            .into();
+
+                        Ok(serde_value::to_value(data)?)
+                    })
+                    .collect())
+            }
+            Self::Mock(store) => {
+                let mut ret = vec![];
+
+                for op in ops {
+                    ret.push(Ok(store.get_op(&op).await.expect("Mock data not found")))
+                }
+
+                Ok(ret)
+            }
+        }
+    }
+}
+
 /// The data held by the generated PrismaClient
 /// Do not use this in your own code!
 pub struct PrismaClientInternals {
-    pub executor: Executor,
-    pub query_schema: Arc<QuerySchema>,
-    pub url: String,
+    pub(crate) engine: ExecutionEngine,
     pub action_notifier: crate::ActionNotifier,
 }
 
 impl PrismaClientInternals {
-    // reduce monomorphization a lil bit
-    async fn execute_inner<'a>(&self, op: Operation) -> Result<serde_value::Value> {
-        let response = self
-            .executor
-            .execute(None, op, self.query_schema.clone(), None)
-            .await
-            .map_err(|e| QueryError::Execute(e.into()))?;
-
-        let data: prisma_value::Item = response.data.into();
-
-        Ok(serde_value::to_value(data)?)
-    }
-
     pub async fn execute<T: DeserializeOwned>(&self, operation: Operation) -> Result<T> {
-        let value = self.execute_inner(operation).await?;
+        // less monomorphization yay
+        let value = self.engine.execute(operation).await?;
 
         let ret = T::deserialize(value.into_deserializer())?;
 
@@ -109,11 +165,32 @@ impl PrismaClientInternals {
         executor.primary_connector().get_connection().await?;
 
         Ok(Self {
-            executor,
-            query_schema,
-            url,
+            engine: ExecutionEngine::Real {
+                executor,
+                query_schema,
+                url,
+            },
             action_notifier,
         })
+    }
+
+    pub async fn new_mock(action_notifier: ActionNotifier) -> (Self, MockStore) {
+        let mock_store = MockStore::new();
+
+        (
+            Self {
+                engine: ExecutionEngine::Mock(mock_store.clone()),
+                action_notifier,
+            },
+            mock_store,
+        )
+    }
+
+    pub fn url(&self) -> &str {
+        match &self.engine {
+            ExecutionEngine::Mock(_) => "mock",
+            ExecutionEngine::Real { url, .. } => url,
+        }
     }
 }
 

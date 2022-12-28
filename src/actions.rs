@@ -2,7 +2,66 @@ use prisma_models::PrismaValue;
 use query_core::{Selection, SelectionArgument};
 use serde::de::DeserializeOwned;
 
-use crate::{ModelActionType, ModelMutationType, SerializedWhereInput};
+use crate::SerializedWhereInput;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelQueryType {
+    FindUnique,
+    FindFirst,
+    FindMany,
+    Count,
+}
+
+impl ModelQueryType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::FindUnique => "findUnique",
+            Self::FindFirst => "findFirst",
+            Self::FindMany => "findMany",
+            Self::Count => "aggregate",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelMutationType {
+    Create,
+    CreateMany,
+    Update,
+    UpdateMany,
+    Delete,
+    DeleteMany,
+    Upsert,
+}
+
+impl ModelMutationType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Create => "createOne",
+            Self::CreateMany => "createMany",
+            Self::Update => "updateOne",
+            Self::UpdateMany => "updateMany",
+            Self::Delete => "deleteOne",
+            Self::DeleteMany => "deleteMany",
+            Self::Upsert => "upsertOne",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelActionType {
+    Query(ModelQueryType),
+    Mutation(ModelMutationType),
+}
+
+impl ModelActionType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Query(q) => q.name(),
+            Self::Mutation(q) => q.name(),
+        }
+    }
+}
 
 pub trait ModelActions {
     type Data: DeserializeOwned;
