@@ -106,7 +106,7 @@ impl PrismaClientInternals {
             internal_model,
             true,
             source.capabilities(),
-            vec![],
+            config.preview_features().iter().collect::<Vec<_>>(),
             source.referential_integrity(),
         ));
         executor.primary_connector().get_connection().await?;
