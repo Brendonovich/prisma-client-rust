@@ -21,6 +21,17 @@ import '../styles/index.css';
 	rel="stylesheet"
 />
 
+{
+  import.meta.env.PROD && (
+    <script
+      defer
+      src="/stats/js/script.js"
+      data-api="/stats/api/event"
+      data-domain="prisma.brendonovich.dev"
+    />
+  )
+}
+
 <!-- Scrollable a11y code helper -->
 <script src="/make-scrollable-code-focusable.js" is:inline>
 
