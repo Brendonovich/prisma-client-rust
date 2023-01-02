@@ -3,14 +3,15 @@ use std::sync::Arc;
 use query_core::{Operation, Selection};
 
 use serde::Serialize;
+use serde_value::Value;
 use tokio::sync::Mutex;
 
 use crate::BatchQuery;
 
 #[derive(Default, Clone)]
 pub struct MockStore {
-    read: Arc<Mutex<Vec<(Selection, serde_value::Value)>>>,
-    write: Arc<Mutex<Vec<(Selection, serde_value::Value)>>>,
+    read: Arc<Mutex<Vec<(Selection, Value)>>>,
+    write: Arc<Mutex<Vec<(Selection, Value)>>>,
 }
 
 impl MockStore {
@@ -18,7 +19,8 @@ impl MockStore {
         Default::default()
     }
 
-    pub async fn add_op(&self, op: Operation, expected: serde_value::Value) {
+    // monomorphization optimisation moment
+    async fn add_op(&self, op: Operation, expected: Value) {
         let (sel, mutex) = match op {
             Operation::Read(sel) => (sel, &self.read),
             Operation::Write(sel) => (sel, &self.write),
@@ -35,7 +37,7 @@ impl MockStore {
             .await;
     }
 
-    pub async fn get_op(&self, op: &Operation) -> Option<serde_value::Value> {
+    pub(crate) async fn get_op(&self, op: &Operation) -> Option<Value> {
         let (sel, mutex) = match op {
             Operation::Read(sel) => (sel, &self.read),
             Operation::Write(sel) => (sel, &self.write),
