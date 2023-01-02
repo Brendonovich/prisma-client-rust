@@ -64,6 +64,7 @@ export const SIDEBAR = {
     ...section("Extra", [
       { text: "Raw Queries", link: 'raw' },
       { text: "Batching Queries", link: 'batching' },
+      { text: "Mocking Queries", link: 'mocking' },
       { text: "Error Handling", link: "error-handling" },
       { text: "Migrations", link: 'migrations' },
       { text: "rspc Integration", link: 'rspc' }
