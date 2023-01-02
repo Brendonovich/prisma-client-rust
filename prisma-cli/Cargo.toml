@@ -12,4 +12,5 @@ prisma-client-rust-cli = { features = [
   "sqlite",
   "migrations",
   "mutation-callbacks"
+  "mocking"
 ], default_features = false, path = "../cli" }
