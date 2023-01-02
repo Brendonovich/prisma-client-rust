@@ -64,62 +64,65 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::base_selection();
-
-        selection.alias("result");
-
-        if self.where_params.len() > 0 {
-            selection.push_argument(
-                "where",
-                PrismaValue::Object(merge_fields(
-                    self.where_params
-                        .into_iter()
-                        .map(WhereInput::serialize)
-                        .map(|s| (s.field, s.value.into()))
-                        .collect(),
-                )),
-            );
-        }
-
-        selection.push_nested_selection({
-            let mut count_builder = Selection::builder("_count");
-            count_builder.push_nested_selection(Selection::builder("_all").build());
-            count_builder.build()
-        });
-
-        if self.order_by_params.len() > 0 {
-            selection.push_argument(
-                "orderBy".to_string(),
-                PrismaValue::List(
-                    self.order_by_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
-                        .collect(),
-                ),
-            );
-        }
-
-        if self.cursor_params.len() > 0 {
-            selection.push_argument(
-                "cursor".to_string(),
-                PrismaValue::Object(
-                    self.cursor_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(WhereInput::serialize)
-                        .map(SerializedWhereInput::transform_equals)
-                        .collect(),
-                ),
-            );
-        }
-
-        self.skip
-            .map(|skip| selection.push_argument("skip".to_string(), PrismaValue::Int(skip as i64)));
-        self.take
-            .map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
-
-        (Operation::Read(selection.build()), self.client)
+        (
+            Operation::Read(Self::base_selection(
+                [
+                    (!self.where_params.is_empty()).then(|| {
+                        (
+                            "where".to_string(),
+                            PrismaValue::Object(merge_fields(
+                                self.where_params
+                                    .into_iter()
+                                    .map(WhereInput::serialize)
+                                    .map(|s| (s.field, s.value.into()))
+                                    .collect(),
+                            ))
+                            .into(),
+                        )
+                    }),
+                    (!self.order_by_params.is_empty()).then(|| {
+                        (
+                            "orderBy".to_string(),
+                            PrismaValue::List(
+                                self.order_by_params
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
+                                    .collect(),
+                            )
+                            .into(),
+                        )
+                    }),
+                    (!self.cursor_params.is_empty()).then(|| {
+                        (
+                            "cursor".to_string(),
+                            PrismaValue::Object(
+                                self.cursor_params
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .map(WhereInput::serialize)
+                                    .map(SerializedWhereInput::transform_equals)
+                                    .collect(),
+                            )
+                            .into(),
+                        )
+                    }),
+                    self.skip
+                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
+                    self.take
+                        .map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                ]
+                .into_iter()
+                .flatten(),
+                [Selection::new(
+                    "_count",
+                    None,
+                    [],
+                    [Selection::new("_all", None, [], [])],
+                )],
+            )),
+            self.client,
+        )
     }
 
     pub(crate) fn convert(data: CountAggregateResult) -> i64 {

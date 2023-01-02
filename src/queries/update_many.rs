@@ -41,31 +41,36 @@ where
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "data",
-            PrismaValue::Object(merge_fields(
-                self.set_params.into_iter().map(Into::into).collect(),
+        (
+            Operation::Write(Self::base_selection(
+                [
+                    Some((
+                        "data".to_string(),
+                        PrismaValue::Object(merge_fields(
+                            self.set_params.into_iter().map(Into::into).collect(),
+                        ))
+                        .into(),
+                    )),
+                    (!self.where_params.is_empty()).then(|| {
+                        (
+                            "where".to_string(),
+                            PrismaValue::Object(merge_fields(
+                                self.where_params
+                                    .into_iter()
+                                    .map(WhereInput::serialize)
+                                    .map(|s| (s.field, s.value.into()))
+                                    .collect(),
+                            ))
+                            .into(),
+                        )
+                    }),
+                ]
+                .into_iter()
+                .flatten(),
+                [BatchResult::selection()],
             )),
-        );
-
-        if self.where_params.len() > 0 {
-            selection.push_argument(
-                "where",
-                PrismaValue::Object(merge_fields(
-                    self.where_params
-                        .into_iter()
-                        .map(WhereInput::serialize)
-                        .map(|s| (s.field, s.value.into()))
-                        .collect(),
-                )),
-            );
-        }
-
-        selection.push_nested_selection(BatchResult::selection());
-
-        (Operation::Write(selection.build()), self.client)
+            self.client,
+        )
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {

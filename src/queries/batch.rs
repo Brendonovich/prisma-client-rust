@@ -17,7 +17,7 @@ pub async fn batch<T: BatchContainer<Marker>, Marker>(
         .execute_all(
             None,
             container.graphql(),
-            true,
+            None,
             client.query_schema.clone(),
             None,
         )

@@ -102,7 +102,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
         }
         dml::Field::RelationField(field) => relation_field_set_params(field).iter().map(|param| {
             let action = param.action;
-            let relation_model_name_snake = snake_ident(&field.relation_info.to);
+            let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
             let variant_name = format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
 
             match param.typ {

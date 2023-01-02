@@ -77,7 +77,7 @@ fn model_macro<'a>(
 
     let field_module_impls = model.relation_fields().map(|field| {
         let field_name_snake = snake_ident(&field.name);
-        let relation_model_name_snake = snake_ident(&field.relation_info.to);
+        let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
         
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
@@ -91,7 +91,7 @@ fn model_macro<'a>(
         
         match field {
             dml::Field::RelationField(relation_field) =>{
-                let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
+                let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
 
                 match relation_field.arity {
                     dml::FieldArity::List => {
@@ -537,7 +537,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
     match field {
         dml::Field::RelationField(relation_field) => {
-            let relation_model_name_snake = snake_ident(&relation_field.relation_info.to);
+            let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
 
             let initial_nested_selections = match variant {
                 Variant::Include => quote!(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()),
@@ -560,27 +560,26 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
                     impl #variant_pascal {
                         pub fn to_selection(self) -> #pcr::Selection {
-                            let mut selection = #pcr::Selection::builder(#field_name_str);
+                            let (args, selections) = match self {
+                                Self::Select(args, selections) => (
+                                    args.to_graphql().0,
+                                    selections.into_iter().map(|s| s.to_selection()).collect()
+                                ),
+                                Self::Include(args, selections) => (
+                                    args.to_graphql().0,
+                                    {
+                                        let mut nested_selections = #initial_nested_selections;
+                                        nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
+                                        nested_selections
+                                    }
+                                ),
+                                Self::Fetch(args) => (
+                                    args.to_graphql().0,
+                                    <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()
+                                )
+                            };
 
-                            match self {
-                                Self::Select(args, selections) => {
-                                    selection.set_arguments(args.to_graphql().0);
-                                    selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
-                                },
-                                Self::Include(args, selections) => {
-                                    selection.set_arguments(args.to_graphql().0);
-
-                                    let mut nested_selections = #initial_nested_selections;
-                                    nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
-                                    selection.nested_selections(nested_selections);
-                                },
-                                Self::Fetch(args) => {
-                                    selection.set_arguments(args.to_graphql().0);
-                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
-                                }
-                            }
-
-                            selection.build()
+                            #pcr::Selection::new(#field_name_str, None, args, selections)
                         }
 
                         pub fn select(args: #relation_model_name_snake::ManyArgs, nested_selections: Vec<#relation_model_name_snake::SelectParam>) -> Self {
@@ -607,23 +606,21 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
                     impl #variant_pascal {
                         pub fn to_selection(self) -> #pcr::Selection {
-                            let mut selection = #pcr::Selection::builder(#field_name_str);
-
-                            match self {
+                            let selections = match self {
                                 Self::Select(selections) => {
-                                    selection.nested_selections(selections.into_iter().map(|s| s.to_selection()).collect());
+                                    selections.into_iter().map(|s| s.to_selection()).collect()
                                 },
                                 Self::Include(selections) => {
                                     let mut nested_selections = #initial_nested_selections;
                                     nested_selections.extend(selections.into_iter().map(|s| s.to_selection()));
-                                    selection.nested_selections(nested_selections);
+                                    nested_selections
                                 },
                                 Self::Fetch => {
-                                    selection.nested_selections(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
+                                    <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()
                                 }
-                            }
+                            };
 
-                            selection.build()
+                            #pcr::Selection::new(#field_name_str, None, [], selections)
                         }
 
                         pub fn select(nested_selections: Vec<#relation_model_name_snake::SelectParam>) -> Self {
@@ -648,7 +645,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
             impl #variant_pascal {
                 pub fn to_selection(self) -> #pcr::Selection {
-                    #pcr::Selection::builder(#field_name_str).build()
+                    #pcr::sel(#field_name_str)
                 }
             }
         },

@@ -8,13 +8,13 @@ rust-version = "1.62"
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 
-mysql = ["query-core/mysql", "datamodel/sql"]
-sqlite = ["query-core/sqlite", "datamodel/sql"]
-mssql = ["query-core/mssql", "datamodel/sql"]
-postgresql = ["query-core/postgresql", "datamodel/sql"]
-mongodb = ["query-core/mongodb", "datamodel/mongodb"]
+mysql = ["query-core/mysql"]
+sqlite = ["query-core/sqlite"]
+mssql = ["query-core/mssql"]
+postgresql = ["query-core/postgresql"]
+mongodb = ["query-core/mongodb"]
 
-sqlite-create-many = ["datamodel/sqlite-create-many"]
+sqlite-create-many = ["psl/sqlite-create-many"]
 
 [dependencies]
 convert_case = "0.5.0"
@@ -23,12 +23,12 @@ quote = "1.0.18"
 syn = "1.0.91"
 serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
-
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-
 proc-macro2 = "1.0.39"
 thiserror = "1.0.37"
+
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }

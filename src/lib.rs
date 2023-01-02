@@ -14,9 +14,10 @@ use std::collections::HashMap;
 pub use bigdecimal;
 pub use chrono;
 pub use convert_case;
-pub use datamodel;
+pub use dml;
 pub use dmmf;
 pub use prisma_models::{self, PrismaValue};
+pub use psl;
 pub use query_core;
 pub use query_core::Selection;
 pub use schema;
@@ -46,8 +47,7 @@ pub struct BatchResult {
 
 impl BatchResult {
     pub fn selection() -> Selection {
-        let selection = Selection::builder("count");
-        selection.build()
+        Selection::new("count", None, [], [])
     }
 }
 
@@ -135,4 +135,8 @@ pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
     }
 
     merged.into_iter().collect()
+}
+
+pub fn sel(name: &str) -> Selection {
+    Selection::new(name, None, [], [])
 }

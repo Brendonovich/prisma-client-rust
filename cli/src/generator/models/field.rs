@@ -23,7 +23,7 @@ pub fn module(
 
     let field_module_contents = match root_field {
         dml::Field::RelationField(field) => {
-            let relation_model_name_snake = snake_ident(&field.relation_info.to);
+            let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
             let with_fn = with_params::builder_fn(&field);
 

@@ -1,5 +1,5 @@
 use prisma_models::PrismaValue;
-use query_core::{Selection, SelectionBuilder};
+use query_core::{Selection, SelectionArgument};
 use serde::de::DeserializeOwned;
 
 use crate::{ModelActionType, ModelMutationType, SerializedWhereInput};
@@ -26,13 +26,16 @@ pub trait ModelAction {
 
     const TYPE: ModelActionType;
 
-    fn base_selection() -> SelectionBuilder {
-        let mut selection =
-            Selection::builder(format!("{}{}", Self::TYPE.name(), Self::Actions::MODEL));
-
-        selection.alias("result");
-
-        selection
+    fn base_selection(
+        arguments: impl IntoIterator<Item = SelectionArgument>,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Selection::new(
+            format!("{}{}", Self::TYPE.name(), Self::Actions::MODEL),
+            Some("result".to_string()),
+            arguments.into_iter().collect::<Vec<_>>(),
+            nested_selections.into_iter().collect::<Vec<_>>(),
+        )
     }
 }
 

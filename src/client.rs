@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use datamodel::datamodel_connector::Diagnostics;
-use query_core::{CoreError, Operation};
+use diagnostics::Diagnostics;
+use query_core::{schema_builder, CoreError, Operation};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use thiserror::Error;
@@ -38,7 +38,6 @@ impl PrismaClientInternals {
 
     pub async fn execute<T: DeserializeOwned>(&self, operation: Operation) -> Result<T> {
         let value = self.execute_inner(operation).await?;
-        // let value = dbg!(value);
 
         let ret = T::deserialize(value.into_deserializer())?;
 
@@ -69,11 +68,14 @@ impl PrismaClientInternals {
         action_notifier: ActionNotifier,
         datamodel: &str,
     ) -> std::result::Result<Self, NewClientError> {
-        let config = datamodel::parse_configuration(datamodel)?.subject;
+        let schema = Arc::new(psl::validate(datamodel.into()));
+        let config = &schema.configuration;
+
         let source = config
             .datasources
             .first()
             .expect("Please supply a datasource in your schema.prisma file");
+
         let url = match url {
             Some(url) => url,
             None => {
@@ -95,20 +97,15 @@ impl PrismaClientInternals {
                 }
             }
         };
-        let (db_name, executor) = query_core::executor::load(
-            &source,
-            &config.preview_features().iter().collect::<Vec<_>>(),
-            &url,
-        )
-        .await?;
-        let internal_model = prisma_models::InternalDataModelBuilder::new(datamodel).build(db_name);
-        let query_schema = Arc::new(query_core::schema_builder::build(
-            internal_model,
+
+        let (db_name, executor) =
+            query_core::executor::load(&source, config.preview_features(), &url).await?;
+
+        let query_schema = Arc::new(schema_builder::build(
+            prisma_models::convert(schema.clone(), db_name),
             true,
-            source.capabilities(),
-            config.preview_features().iter().collect::<Vec<_>>(),
-            source.referential_integrity(),
         ));
+
         executor.primary_connector().get_connection().await?;
 
         Ok(Self {

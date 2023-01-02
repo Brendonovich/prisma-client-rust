@@ -1,4 +1,4 @@
-use datamodel::dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
+use dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
 
 use crate::prelude::*;
 
@@ -72,7 +72,7 @@ impl FieldTypeExt for FieldType {
                 quote!(#prefix #name)
             }
             Self::Relation(info) => {
-                let model = snake_ident(&info.to);
+                let model = snake_ident(&info.referenced_model);
                 quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),

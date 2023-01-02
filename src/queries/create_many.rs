@@ -1,5 +1,5 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, QueryValue, Selection};
 
 use crate::{
     merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
@@ -44,36 +44,44 @@ where
 
     fn to_selection(
         set_params: Vec<Vec<Actions::Set>>,
-        #[allow(unused_variables)] skip_duplicates: bool,
-    ) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "data",
-            PrismaValue::List(
-                set_params
-                    .into_iter()
-                    .map(|fields| {
-                        PrismaValue::Object(merge_fields(
-                            fields.into_iter().map(Into::into).collect(),
-                        ))
-                    })
-                    .collect(),
-            ),
-        );
-
-        #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
-        selection.push_argument("skipDuplicates", PrismaValue::Boolean(skip_duplicates));
-
-        selection
+        _skip_duplicates: bool,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [
+                (
+                    "data".to_string(),
+                    PrismaValue::List(
+                        set_params
+                            .into_iter()
+                            .map(|fields| {
+                                PrismaValue::Object(merge_fields(
+                                    fields.into_iter().map(Into::into).collect(),
+                                ))
+                            })
+                            .collect(),
+                    )
+                    .into(),
+                ),
+                #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
+                (
+                    "skipDuplicates".to_string(),
+                    QueryValue::Boolean(_skip_duplicates),
+                ),
+            ],
+            nested_selections,
+        )
     }
 
     pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::to_selection(self.set_params, self.skip_duplicates);
-
-        selection.push_nested_selection(BatchResult::selection());
-
-        (Operation::Write(selection.build()), self.client)
+        (
+            Operation::Write(Self::to_selection(
+                self.set_params,
+                self.skip_duplicates,
+                [BatchResult::selection()],
+            )),
+            self.client,
+        )
     }
 
     pub(crate) fn convert(raw: BatchResult) -> i64 {
