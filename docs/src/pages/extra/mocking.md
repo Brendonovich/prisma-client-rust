@@ -21,6 +21,8 @@ model Post {
 Say you have a function `get_post_title`:
 
 ```rust
+use prisma::{PrismaClient, post};
+
 async fn get_post_title(
     client: &PrismaClient,
     post_id: String,
@@ -40,6 +42,8 @@ The mock client will use data from the mock store to resolve queries.
 ```rust
 #[cfg(test)]
 mod test {
+    use super::*;
+
     #[tokio::test]
     async fn gets_title() -> prisma_client_rust::QueryResult<()> {
         let (client, mock) = PrismaClient::_mock().await;
