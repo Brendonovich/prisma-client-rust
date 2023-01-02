@@ -53,6 +53,16 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
     });
 
+    let mock_ctor = cfg!(feature = "mocking").then(|| {
+        quote! {
+            pub async fn _mock() -> (Self, #pcr::MockStore) {
+                let (internals, store) = #pcr::PrismaClientInternals::new_mock(#pcr::ActionNotifier::new()).await;
+
+                (Self(internals), store)
+            }
+        }
+    });
+
     quote! {
         pub struct PrismaClientBuilder {
             url: Option<String>,
@@ -99,11 +109,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 PrismaClientBuilder::new()
             }
 
-            pub async fn _mock() -> (Self, #pcr::MockStore) {
-                let (internals, store) = #pcr::PrismaClientInternals::new_mock(#pcr::ActionNotifier::new()).await;
-
-                (Self(internals), store)
-            }
+            #mock_ctor
 
             pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
                 #pcr::QueryRaw::new(
