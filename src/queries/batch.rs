@@ -6,39 +6,18 @@ use serde::{
     Deserialize,
 };
 
-use crate::{prisma_value, PrismaClientInternals, QueryError};
+use crate::PrismaClientInternals;
 
 pub async fn batch<T: BatchContainer<Marker>, Marker>(
     container: T,
     client: &PrismaClientInternals,
 ) -> super::Result<T::ReturnType> {
-    let response = client
-        .executor
-        .execute_all(
-            None,
-            container.graphql(),
-            None,
-            client.query_schema.clone(),
-            None,
-        )
-        .await;
-
-    let response = response.map_err(|e| QueryError::Execute(e.into()))?;
-
-    let data = response
+    let data = client
+        .engine
+        .execute_all(container.graphql())
+        .await?
         .into_iter()
-        .map(|result| {
-            let data: prisma_value::Item = result
-                .map_err(|e| QueryError::Execute(e.into()))?
-                .data
-                .into();
-
-            let val = serde_value::to_value(data)?;
-
-            Ok(<T::RawType as Deserialize>::deserialize(
-                val.into_deserializer(),
-            )?)
-        })
+        .map(|result| Ok(T::RawType::deserialize(result?.into_deserializer())?))
         .collect::<super::Result<VecDeque<_>>>()?;
 
     Ok(T::convert(data))

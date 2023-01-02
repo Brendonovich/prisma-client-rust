@@ -11,6 +11,7 @@ rspc = []
 migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
 mutation-callbacks = []
+mocking = []
 
 mysql = ["prisma-client-rust-sdk/mysql"]
 sqlite = ["prisma-client-rust-sdk/sqlite"]

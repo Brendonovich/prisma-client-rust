@@ -2,6 +2,7 @@ pub mod actions;
 mod client;
 #[cfg(feature = "migrations")]
 pub mod migrations;
+mod mock;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
@@ -29,6 +30,7 @@ pub use user_facing_errors as prisma_errors;
 
 pub use actions::*;
 pub use client::*;
+pub use mock::*;
 pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
