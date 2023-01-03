@@ -3,14 +3,11 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merge_fields, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
-    PrismaClientInternals, SerializedWhereInput, WhereInput,
+    merge_fields, ModelActions, ModelOperation, ModelQuery, ModelReadOperation, OrderByQuery,
+    PaginatedQuery, PrismaClientInternals, Query, SerializedWhereInput, WhereInput, WhereQuery,
 };
 
-pub struct Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Count<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -19,19 +16,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> ModelAction for Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::Count);
-}
-
-impl<'a, Actions> Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Count<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -63,7 +48,26 @@ where
         self
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<i64> {
+        super::exec(self).await
+    }
+}
+
+#[derive(Deserialize)]
+pub struct CountAggregateResult {
+    _count: CountResult,
+}
+
+#[derive(Deserialize)]
+pub struct CountResult {
+    _all: i64,
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
+    type RawType = CountAggregateResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Read(Self::base_selection(
                 [
@@ -125,39 +129,39 @@ where
         )
     }
 
-    pub(crate) fn convert(data: CountAggregateResult) -> i64 {
-        data._count._all
-    }
-
-    pub async fn exec(self) -> super::Result<i64> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await.map(Self::convert)
-    }
-}
-
-#[derive(Deserialize)]
-pub struct CountAggregateResult {
-    _count: CountResult,
-}
-
-#[derive(Deserialize)]
-pub struct CountResult {
-    _all: i64,
-}
-
-impl<'a, Actions> BatchQuery for Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = CountAggregateResult;
-    type ReturnType = i64;
-
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
     fn convert(raw: Self::RawType) -> Self::ReturnType {
-        Self::convert(raw)
+        raw._count._all
+    }
+}
+
+impl<'a, Actions: ModelActions> ModelQuery<'a> for Count<'a, Actions> {
+    type Actions = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::Count);
+}
+
+impl<'a, Actions: ModelActions> WhereQuery<'a> for Count<'a, Actions> {
+    fn add_where(&mut self, param: Actions::Where) {
+        self.where_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> OrderByQuery<'a> for Count<'a, Actions> {
+    fn add_order_by(&mut self, param: Actions::OrderBy) {
+        self.order_by_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> PaginatedQuery<'a> for Count<'a, Actions> {
+    fn add_cursor(&mut self, param: Actions::Cursor) {
+        self.cursor_params.push(param);
+    }
+
+    fn set_skip(&mut self, skip: i64) {
+        self.skip = Some(skip);
+    }
+
+    fn set_take(&mut self, take: i64) {
+        self.take = Some(take);
     }
 }

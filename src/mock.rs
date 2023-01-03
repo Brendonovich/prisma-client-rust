@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_value::Value;
 use tokio::sync::Mutex;
 
-use crate::BatchQuery;
+use crate::Query;
 
 #[derive(Default, Clone)]
 pub struct MockStore {
@@ -29,11 +29,11 @@ impl MockStore {
         mutex.lock().await.push((sel, expected))
     }
 
-    pub async fn expect<Q: BatchQuery>(&self, query: Q, expected: Q::RawType)
+    pub async fn expect<'a, Q: Query<'a>>(&self, query: Q, expected: Q::RawType)
     where
-        <Q as BatchQuery>::RawType: Serialize,
+        <Q as Query<'a>>::RawType: Serialize,
     {
-        self.add_op(query.graphql(), serde_value::to_value(expected).unwrap())
+        self.add_op(query.graphql().0, serde_value::to_value(expected).unwrap())
             .await;
     }
 

@@ -1,19 +1,21 @@
-pub mod batch;
-pub mod count;
-pub mod create;
-pub mod create_many;
-pub mod delete;
-pub mod delete_many;
-pub mod execute_raw;
-pub mod find_first;
-pub mod find_many;
-pub mod find_unique;
-pub mod include;
-pub mod query_raw;
-pub mod select;
-pub mod update;
-pub mod update_many;
-pub mod upsert;
+mod batch;
+mod count;
+mod create;
+mod create_many;
+mod delete;
+mod delete_many;
+mod error;
+mod execute_raw;
+mod find_first;
+mod find_many;
+mod find_unique;
+mod include;
+mod query;
+mod query_raw;
+mod select;
+mod update;
+mod update_many;
+mod upsert;
 
 pub use batch::*;
 pub use count::*;
@@ -21,18 +23,20 @@ pub use create::*;
 pub use create_many::*;
 pub use delete::*;
 pub use delete_many::*;
+pub use error::*;
 pub use execute_raw::*;
 pub use find_first::*;
 pub use find_many::*;
 pub use find_unique::*;
+pub use include::*;
+pub use query::*;
 pub use query_raw::*;
+pub use select::*;
 pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
-use thiserror::Error;
-use user_facing_errors::UserFacingError;
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -94,39 +98,11 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum QueryError {
-    #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
-    Execute(user_facing_errors::Error),
+pub(crate) async fn exec<'a, Q: Query<'a>>(
+    query: Q,
+) -> error::Result<<Q as Query<'a>>::ReturnType> {
+    let (op, client) = query.graphql();
+    let res = client.execute(op).await;
 
-    #[error("Error serializing query result: {0}")]
-    Serialize(#[from] serde_value::SerializerError),
-
-    #[error("Error deserializing query result into return type: {0}")]
-    Deserialize(#[from] serde_value::DeserializerError),
-}
-
-impl QueryError {
-    pub fn is_prisma_error<T: UserFacingError>(&self) -> bool {
-        match self {
-            Self::Execute(error) => error
-                .as_known()
-                .map(|e| e.error_code == <T as UserFacingError>::ERROR_CODE)
-                .unwrap_or(false),
-            _ => false,
-        }
-    }
-}
-
-pub type Result<T> = std::result::Result<T, QueryError>;
-
-#[cfg(feature = "rspc")]
-impl From<QueryError> for rspc::Error {
-    fn from(err: QueryError) -> Self {
-        rspc::Error::with_cause(
-            rspc::ErrorCode::InternalServerError,
-            "Internal server error occurred while completing database operation!".into(),
-            err,
-        )
-    }
+    res.map(Q::convert)
 }

@@ -2,35 +2,17 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    include::{Include, IncludeType},
-    merge_fields,
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals,
+    merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
+    ModelWriteOperation, PrismaClientInternals, Query, Select, SelectType, SetQuery, WithQuery,
 };
 
-pub struct Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Create<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub set_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> ModelAction for Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Create);
-}
-
-impl<'a, Actions> Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Create<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::Set>) -> Self {
         Self {
             client,
@@ -81,7 +63,16 @@ where
         )
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<Actions::Data> {
+        super::exec(self).await
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for Create<'a, Actions> {
+    type RawType = Actions::Data;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
         scalar_selections.extend(self.with_params.into_iter().map(Into::into));
@@ -92,30 +83,28 @@ where
         )
     }
 
-    pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await?;
-
-        #[cfg(feature = "mutation-callbacks")]
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }
 
-impl<'a, Actions> BatchQuery for Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = Actions::Data;
-    type ReturnType = Self::RawType;
+impl<'a, Actions: ModelActions> ModelQuery<'a> for Create<'a, Actions> {
+    type Actions = Actions;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Create);
+}
+
+impl<'a, Actions: ModelActions> SetQuery<'a> for Create<'a, Actions> {
+    fn add_set(&mut self, param: Actions::Set) {
+        self.set_params.push(param);
     }
+}
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
-        raw
+impl<'a, Actions: ModelActions> WithQuery<'a> for Create<'a, Actions> {
+    fn add_with(
+        &mut self,
+        param: impl Into<<<Self as ModelQuery<'a>>::Actions as ModelActions>::With>,
+    ) {
+        self.with_params.push(param.into());
     }
 }

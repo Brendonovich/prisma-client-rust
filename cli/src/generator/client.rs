@@ -55,8 +55,8 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
     let mock_ctor = cfg!(feature = "mocking").then(|| {
         quote! {
-            pub async fn _mock() -> (Self, #pcr::MockStore) {
-                let (internals, store) = #pcr::PrismaClientInternals::new_mock(#pcr::ActionNotifier::new()).await;
+            pub fn _mock() -> (Self, #pcr::MockStore) {
+                let (internals, store) = #pcr::PrismaClientInternals::new_mock(#pcr::ActionNotifier::new());
 
                 (Self(internals), store)
             }
@@ -111,7 +111,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             #mock_ctor
 
-            pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
+            pub fn _query_raw<T: #pcr::Data>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
                 #pcr::QueryRaw::new(
                     &self.0,
                     query,
@@ -127,7 +127,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 )
             }
 
-            pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::Result<T::ReturnType> {
+            pub async fn _batch<'a, T: #pcr::BatchContainer<'a, Marker>, Marker>(&self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'a, Marker>>::ReturnType> {
                 #pcr::batch(queries, &self.0).await
             }
 

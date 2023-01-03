@@ -1,15 +1,13 @@
-use std::sync::Arc;
-
+use crate::queries::ModelActions;
+use crate::{ActionNotifier, ModelQuery};
 use diagnostics::Diagnostics;
 use query_core::{schema_builder, CoreError, Operation};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};
+use std::sync::Arc;
 use thiserror::Error;
 
-use crate::{
-    prisma_value, ActionNotifier, MockStore, ModelAction, ModelActionType, ModelActions,
-    ModelMutationCallbackData, QueryError, Result,
-};
+use crate::{prisma_value, ModelMutationCallbackData, ModelOperation, QueryError, Result};
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
@@ -19,7 +17,8 @@ pub(crate) enum ExecutionEngine {
         query_schema: Arc<QuerySchema>,
         url: String,
     },
-    Mock(MockStore),
+    #[cfg(feature = "mocking")]
+    Mock(crate::MockStore),
 }
 
 impl ExecutionEngine {
@@ -39,6 +38,7 @@ impl ExecutionEngine {
 
                 Ok(serde_value::to_value(data)?)
             }
+            #[cfg(feature = "mocking")]
             Self::Mock(store) => Ok(store.get_op(&op).await.expect("Mock data not found")),
         }
     }
@@ -70,6 +70,7 @@ impl ExecutionEngine {
                     })
                     .collect())
             }
+            #[cfg(feature = "mocking")]
             Self::Mock(store) => {
                 let mut ret = vec![];
 
@@ -100,12 +101,12 @@ impl PrismaClientInternals {
         Ok(ret)
     }
 
-    pub fn notify_model_mutation<Action>(&self)
+    pub fn notify_model_mutation<'a, Action>(&self)
     where
-        Action: ModelAction,
+        Action: ModelQuery<'a>,
     {
         match Action::TYPE {
-            ModelActionType::Mutation(action) => {
+            ModelOperation::Write(action) => {
                 for callback in &self.action_notifier.model_mutation_callbacks {
                     (callback)(ModelMutationCallbackData {
                         model: Action::Actions::MODEL,
@@ -113,7 +114,7 @@ impl PrismaClientInternals {
                     })
                 }
             }
-            ModelActionType::Query(_) => {
+            ModelOperation::Read(_) => {
                 println!("notify_model_mutation only acceps mutations, not queries!")
             }
         }
@@ -174,8 +175,9 @@ impl PrismaClientInternals {
         })
     }
 
-    pub async fn new_mock(action_notifier: ActionNotifier) -> (Self, MockStore) {
-        let mock_store = MockStore::new();
+    #[cfg(feature = "mocking")]
+    pub fn new_mock(action_notifier: ActionNotifier) -> (Self, crate::MockStore) {
+        let mock_store = crate::MockStore::new();
 
         (
             Self {
@@ -188,6 +190,7 @@ impl PrismaClientInternals {
 
     pub fn url(&self) -> &str {
         match &self.engine {
+            #[cfg(feature = "mocking")]
             ExecutionEngine::Mock(_) => "mock",
             ExecutionEngine::Real { url, .. } => url,
         }
