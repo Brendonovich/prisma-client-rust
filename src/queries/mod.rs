@@ -100,7 +100,7 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
 
 pub(crate) async fn exec<'a, Q: Query<'a>>(
     query: Q,
-) -> error::Result<<Q as Query<'a>>::ReturnType> {
+) -> error::Result<<Q as Query<'a>>::ReturnValue> {
     let (op, client) = query.graphql();
     let res = client.execute(op).await;
 

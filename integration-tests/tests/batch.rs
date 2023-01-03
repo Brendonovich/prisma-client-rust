@@ -39,6 +39,53 @@ async fn vec() -> TestResult {
 }
 
 #[tokio::test]
+async fn tuple_in_vec() -> TestResult {
+    let client = client().await;
+
+    let users = client
+        ._batch(vec![
+            (
+                client.user().create("Brendan".to_string(), vec![]),
+                client.user().create("Brendan".to_string(), vec![]),
+            ),
+            (
+                client.user().create("Oscar".to_string(), vec![]),
+                client.user().create("Oscar".to_string(), vec![]),
+            ),
+        ])
+        .await?;
+
+    assert_eq!(users.len(), 2);
+    assert_eq!(&users[0].1.name, "Brendan");
+    assert_eq!(&users[1].1.name, "Oscar");
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn vec_in_tuple() -> TestResult {
+    let client = client().await;
+
+    let (brendan, oscar) = client
+        ._batch((
+            vec![
+                client.user().create("Brendan".to_string(), vec![]),
+                client.user().create("Brendan".to_string(), vec![]),
+            ],
+            vec![
+                client.user().create("Oscar".to_string(), vec![]),
+                client.user().create("Oscar".to_string(), vec![]),
+            ],
+        ))
+        .await?;
+
+    assert_eq!(&brendan[1].name, "Brendan");
+    assert_eq!(&oscar[1].name, "Oscar");
+
+    cleanup(client).await
+}
+
+#[tokio::test]
 async fn error() -> TestResult {
     let client = client().await;
 

@@ -70,7 +70,7 @@ impl<'a, Actions: ModelActions> Delete<'a, Actions> {
 
 impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
     type RawType = Actions::Data;
-    type ReturnType = Actions::Data;
+    type ReturnValue = Actions::Data;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
@@ -83,7 +83,7 @@ impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }

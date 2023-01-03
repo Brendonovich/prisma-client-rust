@@ -35,13 +35,13 @@ impl<'a, Data: query::Data> Include<'a, Data> {
 
 impl<'a, Data: query::Data> Query<'a> for Include<'a, Data> {
     type RawType = Data;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (self.operation, self.client)
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }
