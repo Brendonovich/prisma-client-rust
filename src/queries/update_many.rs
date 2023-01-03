@@ -32,7 +32,7 @@ impl<'a, Actions: ModelActions> UpdateMany<'a, Actions> {
 
 impl<'a, Actions: ModelActions> Query<'a> for UpdateMany<'a, Actions> {
     type RawType = BatchResult;
-    type ReturnType = i64;
+    type ReturnValue = i64;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
@@ -67,7 +67,7 @@ impl<'a, Actions: ModelActions> Query<'a> for UpdateMany<'a, Actions> {
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw.count
     }
 }

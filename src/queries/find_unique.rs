@@ -73,7 +73,7 @@ impl<'a, Actions: ModelActions> FindUnique<'a, Actions> {
 
 impl<'a, Actions: ModelActions> Query<'a> for FindUnique<'a, Actions> {
     type RawType = Option<Actions::Data>;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
@@ -86,7 +86,7 @@ impl<'a, Actions: ModelActions> Query<'a> for FindUnique<'a, Actions> {
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }

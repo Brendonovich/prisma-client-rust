@@ -28,7 +28,7 @@ impl<'a> ExecuteRaw<'a> {
 
 impl<'a> Query<'a> for ExecuteRaw<'a> {
     type RawType = i64;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
@@ -48,7 +48,7 @@ impl<'a> Query<'a> for ExecuteRaw<'a> {
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }

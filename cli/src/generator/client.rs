@@ -127,7 +127,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 )
             }
 
-            pub async fn _batch<'a, T: #pcr::BatchContainer<'a, Marker>, Marker>(&self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'a, Marker>>::ReturnType> {
+            pub async fn _batch<'a, T: #pcr::BatchContainer<'a, Marker>, Marker>(&'a self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'a, Marker>>::ReturnType> {
                 #pcr::batch(queries, &self.0).await
             }
 

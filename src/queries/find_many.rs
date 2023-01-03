@@ -157,7 +157,7 @@ impl<'a, Actions: ModelActions> FindMany<'a, Actions> {
 
 impl<'a, Actions: ModelActions> Query<'a> for FindMany<'a, Actions> {
     type RawType = Vec<Actions::Data>;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
@@ -177,7 +177,7 @@ impl<'a, Actions: ModelActions> Query<'a> for FindMany<'a, Actions> {
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }

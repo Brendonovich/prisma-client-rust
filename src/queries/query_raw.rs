@@ -65,7 +65,7 @@ where
     Data: DeserializeOwned + 'static,
 {
     type RawType = RawOperationData;
-    type ReturnType = Vec<Data>;
+    type ReturnValue = Vec<Data>;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
@@ -85,7 +85,7 @@ where
         )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         Self::convert(raw).unwrap()
     }
 }

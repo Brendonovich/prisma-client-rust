@@ -6,13 +6,13 @@ use crate::{PrismaClientInternals, WhereInput};
 
 pub trait Query<'a> {
     type RawType: DeserializeOwned;
-    type ReturnType: 'static;
+    type ReturnValue: 'static;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals);
 
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries
-    fn convert(raw: Self::RawType) -> Self::ReturnType;
+    fn convert(raw: Self::RawType) -> Self::ReturnValue;
 }
 
 pub trait ModelActions {
