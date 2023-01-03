@@ -1,33 +1,18 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection};
+use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
-    ModelMutationType, PrismaClientInternals,
+    merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    PrismaClientInternals, Query,
 };
 
-pub struct CreateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct CreateMany<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
 
-impl<'a, Actions> ModelAction for CreateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::CreateMany);
-}
-
-impl<'a, Actions> CreateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> CreateMany<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
             client,
@@ -66,14 +51,23 @@ where
                 #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
                 (
                     "skipDuplicates".to_string(),
-                    QueryValue::Boolean(_skip_duplicates),
+                    PrismaValue::Boolean(_skip_duplicates).into(),
                 ),
             ],
             nested_selections,
         )
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<i64> {
+        super::exec(self).await
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
+    type RawType = BatchResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::to_selection(
                 self.set_params,
@@ -84,34 +78,13 @@ where
         )
     }
 
-    pub(crate) fn convert(raw: BatchResult) -> i64 {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw.count
-    }
-
-    pub async fn exec(self) -> super::Result<i64> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await.map(Self::convert)?;
-
-        #[cfg(feature = "mutation-callbacks")]
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
     }
 }
 
-impl<'a, Actions> BatchQuery for CreateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = BatchResult;
-    type ReturnType = i64;
+impl<'a, Actions: ModelActions> ModelQuery<'a> for CreateMany<'a, Actions> {
+    type Actions = Actions;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
-        Self::convert(raw)
-    }
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::CreateMany);
 }

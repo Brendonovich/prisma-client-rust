@@ -19,7 +19,7 @@ async fn aaaa_run_migrations() -> TestResult {
 }
 
 mod batch;
-mod callbacks;
+// mod callbacks;
 mod count;
 mod create;
 mod create_many;

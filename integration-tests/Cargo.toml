@@ -18,6 +18,6 @@ prisma-client-rust = { path = "..", features = [
   "sqlite-create-many",
   "sqlite",
   "migrations",
-  "mutation-callbacks",
+  # "mutation-callbacks",
   "mocking",
 ], default-features = false }

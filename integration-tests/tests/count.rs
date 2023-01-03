@@ -1,19 +1,29 @@
 use crate::db::*;
 use crate::utils::*;
 
+async fn create_posts(client: &PrismaClient) -> TestResult {
+    client
+        .post()
+        .create_many(vec![
+            post::create("Hi from Prisma!".to_string(), true, vec![]),
+            post::create("Hi from Prisma!".to_string(), true, vec![]),
+            post::create("Hi from Prisma!".to_string(), false, vec![]),
+        ])
+        .exec()
+        .await?;
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn basic() -> TestResult {
     let client = client().await;
 
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
+    create_posts(&client).await?;
 
     let count = client.post().count(vec![]).exec().await?;
 
-    assert_eq!(count, 1);
+    assert_eq!(count, 3);
 
     cleanup(client).await
 }
@@ -37,23 +47,7 @@ async fn no_results() -> TestResult {
 async fn where_() -> TestResult {
     let client = client().await;
 
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), false, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
+    create_posts(&client).await?;
 
     let published_count = client
         .post()
@@ -76,23 +70,7 @@ async fn where_() -> TestResult {
 async fn take() -> TestResult {
     let client = client().await;
 
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
+    create_posts(&client).await?;
 
     let count = client.post().count(vec![]).take(1).exec().await?;
 
@@ -105,23 +83,7 @@ async fn take() -> TestResult {
 async fn skip() -> TestResult {
     let client = client().await;
 
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create("Hi from Prisma!".to_string(), true, vec![])
-        .exec()
-        .await?;
+    create_posts(&client).await?;
 
     let count = client.post().count(vec![]).skip(1).exec().await?;
 

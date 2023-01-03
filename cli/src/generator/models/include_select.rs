@@ -421,7 +421,7 @@ fn model_macro<'a>(
     let selection_struct = quote! {
         pub struct Selection(Vec<::prisma_client_rust::Selection>);
 
-        impl ::prisma_client_rust::#variant_ident::#selection_type for Selection {
+        impl ::prisma_client_rust::#selection_type for Selection {
             type Data = Data;
             type ModelData = $crate::#module_path::#model_name_snake::Data;
             

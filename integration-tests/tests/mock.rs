@@ -3,7 +3,7 @@ use crate::utils::*;
 
 #[tokio::test]
 async fn returns() -> TestResult {
-    let (client, mock) = PrismaClient::_mock().await;
+    let (client, mock) = PrismaClient::_mock();
 
     user::select!(basic_user { id name });
 
@@ -31,7 +31,7 @@ async fn returns() -> TestResult {
 
 #[tokio::test]
 async fn returns_many() -> TestResult {
-    let (client, mock) = PrismaClient::_mock().await;
+    let (client, mock) = PrismaClient::_mock();
 
     user::select!(basic_user { id name });
 

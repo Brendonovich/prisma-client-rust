@@ -25,7 +25,7 @@ rspc = ["dep:rspc"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
 mocking = ["tokio"]
-mutation-callbacks = []
+# mutation-callbacks = []
 
 mysql = ["query-core/mysql", "migration-core/mysql"]
 sqlite = ["query-core/sqlite", "migration-core/sqlite"]

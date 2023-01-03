@@ -2,16 +2,11 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    include::{Include, IncludeType},
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals, WhereInput,
+    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    PrismaClientInternals, Query, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Upsert<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub create_params: Vec<Actions::Set>,
@@ -19,19 +14,7 @@ where
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> ModelAction for Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Upsert);
-}
-
-impl<'a, Actions> Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Upsert<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -107,7 +90,16 @@ where
         )
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<Actions::Data> {
+        super::exec(self).await
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
+    type RawType = Actions::Data;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
         scalar_selections.extend(self.with_params.into_iter().map(Into::into));
@@ -123,28 +115,19 @@ where
         )
     }
 
-    pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await?;
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
+        raw
     }
 }
 
-impl<'a, Actions> BatchQuery for Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = Actions::Data;
-    type ReturnType = Self::RawType;
+impl<'a, Actions: ModelActions> ModelQuery<'a> for Upsert<'a, Actions> {
+    type Actions = Actions;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Upsert);
+}
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
-        raw
+impl<'a, Actions: ModelActions> WithQuery<'a> for Upsert<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
     }
 }

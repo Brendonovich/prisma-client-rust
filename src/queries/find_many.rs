@@ -2,19 +2,14 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, QueryValue, Selection};
 
 use crate::{
-    actions::ModelActions,
-    include::{Include, IncludeType},
-    merge_fields,
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelQueryType, PrismaClientInternals, WhereInput,
+    merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
+    ModelReadOperation, OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, Select,
+    SelectType, WhereInput, WhereQuery, WithQuery,
 };
 
 use super::SerializedWhereInput;
 
-pub struct FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct FindMany<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
@@ -24,19 +19,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> ModelAction for FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::FindMany);
-}
-
-impl<'a, Actions> FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> FindMany<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -167,7 +150,16 @@ where
         )
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<Vec<Actions::Data>> {
+        super::exec(self).await
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for FindMany<'a, Actions> {
+    type RawType = Vec<Actions::Data>;
+    type ReturnType = Self::RawType;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
         scalar_selections.extend(self.with_params.into_iter().map(Into::into));
@@ -185,34 +177,51 @@ where
         )
     }
 
-    pub async fn exec(self) -> super::Result<Vec<Actions::Data>> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await
-    }
-}
-
-impl<'a, Actions> BatchQuery for FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = Vec<Actions::Data>;
-    type ReturnType = Self::RawType;
-
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
     fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw
     }
 }
 
+impl<'a, Actions: ModelActions> ModelQuery<'a> for FindMany<'a, Actions> {
+    type Actions = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::FindMany);
+}
+
+impl<'a, Actions: ModelActions> WhereQuery<'a> for FindMany<'a, Actions> {
+    fn add_where(&mut self, param: Actions::Where) {
+        self.where_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> WithQuery<'a> for FindMany<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
+    }
+}
+
+impl<'a, Actions: ModelActions> OrderByQuery<'a> for FindMany<'a, Actions> {
+    fn add_order_by(&mut self, param: Actions::OrderBy) {
+        self.order_by_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> PaginatedQuery<'a> for FindMany<'a, Actions> {
+    fn add_cursor(&mut self, param: Actions::Cursor) {
+        self.cursor_params.push(param);
+    }
+
+    fn set_skip(&mut self, skip: i64) {
+        self.skip = Some(skip);
+    }
+
+    fn set_take(&mut self, take: i64) {
+        self.take = Some(take);
+    }
+}
+
 #[derive(Clone)]
-pub struct ManyArgs<Actions>
-where
-    Actions: ModelActions,
-{
+pub struct ManyArgs<Actions: ModelActions> {
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -221,10 +230,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<Actions> ManyArgs<Actions>
-where
-    Actions: ModelActions,
-{
+impl<Actions: ModelActions> ManyArgs<Actions> {
     pub fn new(where_params: Vec<Actions::Where>) -> Self {
         Self {
             where_params,

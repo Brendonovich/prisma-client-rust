@@ -2,32 +2,17 @@ use prisma_models::PrismaValue;
 use query_core::Operation;
 
 use crate::{
-    merge_fields, BatchQuery, BatchResult, ModelAction, ModelActionType, ModelActions,
-    ModelMutationType, PrismaClientInternals, WhereInput,
+    merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    PrismaClientInternals, Query, SetQuery, WhereInput, WhereQuery,
 };
 
-pub struct UpdateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct UpdateMany<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub set_params: Vec<Actions::Set>,
 }
 
-impl<'a, Actions> ModelAction for UpdateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::UpdateMany);
-}
-
-impl<'a, Actions> UpdateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> UpdateMany<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_params: Vec<Actions::Where>,
@@ -40,7 +25,16 @@ where
         }
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
+    pub async fn exec(self) -> super::Result<i64> {
+        super::exec(self).await
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for UpdateMany<'a, Actions> {
+    type RawType = BatchResult;
+    type ReturnType = i64;
+
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::base_selection(
                 [
@@ -73,34 +67,25 @@ where
         )
     }
 
-    pub(crate) fn convert(raw: BatchResult) -> i64 {
+    fn convert(raw: Self::RawType) -> Self::ReturnType {
         raw.count
-    }
-
-    pub async fn exec(self) -> super::Result<i64> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await.map(Self::convert)?;
-
-        #[cfg(feature = "mutation-callbacks")]
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
     }
 }
 
-impl<'a, Actions> BatchQuery for UpdateMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = BatchResult;
-    type ReturnType = i64;
+impl<'a, Actions: ModelActions> ModelQuery<'a> for UpdateMany<'a, Actions> {
+    type Actions = Actions;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::UpdateMany);
+}
+
+impl<'a, Actions: ModelActions> WhereQuery<'a> for UpdateMany<'a, Actions> {
+    fn add_where(&mut self, param: Actions::Where) {
+        self.where_params.push(param);
     }
+}
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
-        Self::convert(raw)
+impl<'a, Actions: ModelActions> SetQuery<'a> for UpdateMany<'a, Actions> {
+    fn add_set(&mut self, param: Actions::Set) {
+        self.set_params.push(param);
     }
 }
