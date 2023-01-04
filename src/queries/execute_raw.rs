@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde_json::Value;
 
-use crate::{raw::Raw, PrismaClientInternals, Query};
+use crate::{raw::Raw, PrismaClientInternals, Query, QueryConvert};
 
 pub struct ExecuteRaw<'a> {
     client: &'a PrismaClientInternals,
@@ -27,9 +27,6 @@ impl<'a> ExecuteRaw<'a> {
 }
 
 impl<'a> Query<'a> for ExecuteRaw<'a> {
-    type RawType = i64;
-    type ReturnValue = Self::RawType;
-
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Selection::new(
@@ -47,6 +44,11 @@ impl<'a> Query<'a> for ExecuteRaw<'a> {
             self.client,
         )
     }
+}
+
+impl<'a> QueryConvert for ExecuteRaw<'a> {
+    type RawType = i64;
+    type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw

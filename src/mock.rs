@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_value::Value;
 use tokio::sync::Mutex;
 
-use crate::Query;
+use crate::{Query, QueryConvert};
 
 #[derive(Default, Clone)]
 pub struct MockStore {
@@ -31,7 +31,7 @@ impl MockStore {
 
     pub async fn expect<'a, Q: Query<'a>>(&self, query: Q, expected: Q::RawType)
     where
-        <Q as Query<'a>>::RawType: Serialize,
+        <Q as QueryConvert>::RawType: Serialize,
     {
         self.add_op(query.graphql().0, serde_value::to_value(expected).unwrap())
             .await;

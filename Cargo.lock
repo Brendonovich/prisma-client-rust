@@ -3515,6 +3515,7 @@ dependencies = [
  "diagnostics",
  "dml",
  "dmmf",
+ "futures",
  "include_dir",
  "indexmap",
  "migration-core",

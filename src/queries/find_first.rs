@@ -3,8 +3,8 @@ use query_core::{Operation, QueryValue, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
-    ModelReadOperation, OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, Select,
-    SelectType, WhereInput, WhereQuery, WithQuery,
+    ModelReadOperation, OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert,
+    Select, SelectType, WhereInput, WhereQuery, WithQuery,
 };
 
 use super::SerializedWhereInput;
@@ -156,9 +156,6 @@ impl<'a, Actions: ModelActions> FindFirst<'a, Actions> {
 }
 
 impl<'a, Actions: ModelActions> Query<'a> for FindFirst<'a, Actions> {
-    type RawType = Option<Actions::Data>;
-    type ReturnValue = Self::RawType;
-
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -176,6 +173,11 @@ impl<'a, Actions: ModelActions> Query<'a> for FindFirst<'a, Actions> {
             self.client,
         )
     }
+}
+
+impl<'a, Actions: ModelActions> QueryConvert for FindFirst<'a, Actions> {
+    type RawType = Option<Actions::Data>;
+    type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw

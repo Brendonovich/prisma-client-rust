@@ -30,10 +30,7 @@ mocking = ["tokio"]
 mysql = ["query-core/mysql", "migration-core/mysql"]
 sqlite = ["query-core/sqlite", "migration-core/sqlite"]
 mssql = ["query-core/mssql", "migration-core/mssql"]
-postgresql = [
-  "query-core/postgresql",
-  "migration-core/postgresql",
-]
+postgresql = ["query-core/postgresql", "migration-core/postgresql"]
 mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 
 [dependencies]
@@ -71,3 +68,4 @@ rspc = { version = "0.1.2", optional = true, features = [
   "uuid",
 ] }
 convert_case = "0.6.0"
+futures = "0.3.25"

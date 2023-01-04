@@ -3,8 +3,8 @@ use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
-    ModelWriteOperation, PrismaClientInternals, Query, Select, SelectType, SetQuery, WhereInput,
-    WithQuery,
+    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
+    WhereInput, WithQuery,
 };
 
 pub struct Update<'a, Actions: ModelActions> {
@@ -91,9 +91,6 @@ impl<'a, Actions: ModelActions> Update<'a, Actions> {
 }
 
 impl<'a, Actions: ModelActions> Query<'a> for Update<'a, Actions> {
-    type RawType = Actions::Data;
-    type ReturnValue = Self::RawType;
-
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -108,6 +105,11 @@ impl<'a, Actions: ModelActions> Query<'a> for Update<'a, Actions> {
             self.client,
         )
     }
+}
+
+impl<'a, Actions: ModelActions> QueryConvert for Update<'a, Actions> {
+    type RawType = Actions::Data;
+    type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw

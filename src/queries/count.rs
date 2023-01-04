@@ -4,7 +4,8 @@ use serde::Deserialize;
 
 use crate::{
     merge_fields, ModelActions, ModelOperation, ModelQuery, ModelReadOperation, OrderByQuery,
-    PaginatedQuery, PrismaClientInternals, Query, SerializedWhereInput, WhereInput, WhereQuery,
+    PaginatedQuery, PrismaClientInternals, Query, QueryConvert, SerializedWhereInput, WhereInput,
+    WhereQuery,
 };
 
 pub struct Count<'a, Actions: ModelActions> {
@@ -64,9 +65,6 @@ pub struct CountResult {
 }
 
 impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
-    type RawType = CountAggregateResult;
-    type ReturnValue = i64;
-
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Read(Self::base_selection(
@@ -128,6 +126,11 @@ impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
             self.client,
         )
     }
+}
+
+impl<'a, Actions: ModelActions> QueryConvert for Count<'a, Actions> {
+    type RawType = CountAggregateResult;
+    type ReturnValue = i64;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw._count._all

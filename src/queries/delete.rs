@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 
 use crate::{
     Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
-    PrismaClientInternals, Query, Select, SelectType, WhereInput, WithQuery,
+    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
 pub struct Delete<'a, Actions: ModelActions> {
@@ -69,9 +69,6 @@ impl<'a, Actions: ModelActions> Delete<'a, Actions> {
 }
 
 impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
-    type RawType = Actions::Data;
-    type ReturnValue = Actions::Data;
-
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -82,6 +79,11 @@ impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
             self.client,
         )
     }
+}
+
+impl<'a, Actions: ModelActions> QueryConvert for Delete<'a, Actions> {
+    type RawType = Actions::Data;
+    type ReturnValue = Actions::Data;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
