@@ -3520,6 +3520,7 @@ dependencies = [
  "include_dir",
  "indexmap",
  "migration-core",
+ "paste",
  "prisma-models",
  "psl",
  "query-connector",

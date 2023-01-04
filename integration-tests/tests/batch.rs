@@ -348,8 +348,8 @@ async fn async_trait() -> TestResult {
                 ))
                 .await?;
 
-            assert_eq!(&brendan[1].name, "Brendan");
-            assert_eq!(&oscar[1].name, "Oscar");
+            assert_eq!(&brendan[0].name, "Brendan");
+            assert_eq!(&oscar[0].name, "Oscar");
 
             Ok(())
         }
