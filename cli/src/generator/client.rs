@@ -91,12 +91,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                     super::DATAMODEL_STR
                 ).await?;
 
-                Ok(PrismaClient(::std::sync::Arc::new(internals)))
+                Ok(PrismaClient(internals))
             }
         }
 
-        #[derive(Clone)]
-        pub struct PrismaClient(::std::sync::Arc<#pcr::PrismaClientInternals>);
+        pub struct PrismaClient(#pcr::PrismaClientInternals);
 
         impl ::std::fmt::Debug for PrismaClient {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
@@ -133,7 +132,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
 
             pub fn _transaction(&self) -> #pcr::TransactionBuilder<Self> {
-                #pcr::TransactionBuilder::_new(self.clone(), &self.0)
+                #pcr::TransactionBuilder::_new(self, &self.0)
             }
 
             #migrate_fns
@@ -148,6 +147,10 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             fn internals_mut(&mut self) -> &mut #pcr::PrismaClientInternals {
                 &mut self.0
+            }
+
+            fn with_tx_id(&self, tx_id: Option<#pcr::query_core::TxId>) -> Self {
+                Self(self.0.with_tx_id(tx_id))
             }
         }
     }

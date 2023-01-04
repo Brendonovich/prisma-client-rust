@@ -1,9 +1,9 @@
 use std::future::Future;
 
-use crate::{PrismaClient, PrismaClientInternals, QueryError};
+use crate::{ExecutionEngine, PrismaClient, PrismaClientInternals, QueryError};
 
 pub struct TransactionBuilder<'a, TClient> {
-    client: TClient,
+    client: &'a TClient,
     internals: &'a PrismaClientInternals,
     timeout: u64,
     max_wait: u64,
@@ -14,7 +14,7 @@ impl<'a, TClient> TransactionBuilder<'a, TClient>
 where
     TClient: PrismaClient,
 {
-    pub fn _new(client: TClient, internals: &'a PrismaClientInternals) -> Self {
+    pub fn _new(client: &'a TClient, internals: &'a PrismaClientInternals) -> Self {
         Self {
             client,
             internals,
@@ -39,41 +39,43 @@ where
         }
     }
 
-    pub async fn run<TErr, TRet, TFut, TFn>(mut self, tx: TFn) -> Result<TRet, TErr>
+    pub async fn run<TErr, TRet, TFut, TFn>(self, tx: TFn) -> Result<TRet, TErr>
     where
         TFut: Future<Output = Result<TRet, TErr>>,
         TFn: FnOnce(TClient) -> TFut,
         TErr: From<crate::QueryError>,
     {
-        let tx_id = self
-            .internals
-            .executor
-            .start_tx(
-                self.internals.query_schema.clone(),
-                self.max_wait,
-                self.timeout,
-                self.isolation_level,
-            )
-            .await
-            .map_err(|e| QueryError::Execute(e.into()))?;
-
-        self.client.internals_mut().tx_id = Some(tx_id.clone());
-
-        match tx(self.client).await {
-            result @ Ok(_) => {
-                self.internals
+        match &self.internals.engine {
+            ExecutionEngine::Real { connector, .. } => {
+                let new_tx_id = connector
                     .executor
-                    .commit_tx(tx_id)
+                    .start_tx(
+                        connector.query_schema.clone(),
+                        self.max_wait,
+                        self.timeout,
+                        self.isolation_level,
+                    )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
 
-                result
-            }
-            err @ Err(_) => {
-                self.internals.executor.rollback_tx(tx_id).await.ok();
+                match tx(self.client.with_tx_id(Some(new_tx_id.clone()))).await {
+                    result @ Ok(_) => {
+                        connector
+                            .executor
+                            .commit_tx(new_tx_id)
+                            .await
+                            .map_err(|e| QueryError::Execute(e.into()))?;
 
-                err
+                        result
+                    }
+                    err @ Err(_) => {
+                        connector.executor.rollback_tx(new_tx_id).await.ok();
+
+                        err
+                    }
+                }
             }
+            _ => tx(self.client.with_tx_id(None)).await,
         }
     }
 }
