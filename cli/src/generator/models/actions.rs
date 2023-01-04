@@ -127,7 +127,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             pub client: &'a #pcr::PrismaClientInternals,
         }
 
-        impl #pcr::ModelActions for Actions<'_> {
+        impl<'a> #pcr::ModelActions for Actions<'a> {
             type Data = Data;
             type Where = WhereParam;
             type Set = SetParam;
