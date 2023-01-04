@@ -23,4 +23,5 @@ prisma-client-rust = { path = "..", features = [
 ], default-features = false }
 
 [dependencies]
+async-trait = "0.1.60"
 thiserror = "1.0.37"
