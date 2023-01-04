@@ -4,10 +4,6 @@ use serde::de::DeserializeOwned;
 
 use crate::{PrismaClientInternals, WhereInput};
 
-pub trait Query<'a>: QueryConvert {
-    fn graphql(self) -> (Operation, &'a PrismaClientInternals);
-}
-
 pub trait QueryConvert {
     type RawType: Data;
     type ReturnValue: 'static;
@@ -15,6 +11,10 @@ pub trait QueryConvert {
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries
     fn convert(raw: Self::RawType) -> Self::ReturnValue;
+}
+
+pub trait Query<'a>: QueryConvert {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals);
 }
 
 pub trait ModelActions {

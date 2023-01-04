@@ -33,17 +33,17 @@ impl<'a, Data: DeserializeOwned> Select<'a, Data> {
     }
 }
 
-impl<'a, Data: DeserializeOwned + 'static> Query<'a> for Select<'a, Data> {
-    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
-        (self.operation, self.client)
-    }
-}
-
 impl<'a, Data: DeserializeOwned + 'static> QueryConvert for Select<'a, Data> {
     type RawType = Data;
     type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Data: DeserializeOwned + 'static> Query<'a> for Select<'a, Data> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (self.operation, self.client)
     }
 }

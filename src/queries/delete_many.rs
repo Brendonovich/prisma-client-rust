@@ -28,6 +28,15 @@ impl<'a, Actions: ModelActions> DeleteMany<'a, Actions> {
     }
 }
 
+impl<'a, Actions: ModelActions> QueryConvert for DeleteMany<'a, Actions> {
+    type RawType = BatchResult;
+    type ReturnValue = i64;
+
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        Self::convert(raw)
+    }
+}
+
 impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
@@ -51,15 +60,6 @@ impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
             )),
             self.client,
         )
-    }
-}
-
-impl<'a, Actions: ModelActions> QueryConvert for DeleteMany<'a, Actions> {
-    type RawType = BatchResult;
-    type ReturnValue = i64;
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw)
     }
 }
 

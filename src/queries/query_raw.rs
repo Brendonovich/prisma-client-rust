@@ -60,6 +60,18 @@ where
     }
 }
 
+impl<'a, Data> QueryConvert for QueryRaw<'a, Data>
+where
+    Data: DeserializeOwned + 'static,
+{
+    type RawType = RawOperationData;
+    type ReturnValue = Vec<Data>;
+
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        Self::convert(raw).unwrap()
+    }
+}
+
 impl<'a, Data> Query<'a> for QueryRaw<'a, Data>
 where
     Data: DeserializeOwned + 'static,
@@ -80,17 +92,5 @@ where
             )),
             self.client,
         )
-    }
-}
-
-impl<'a, Data> QueryConvert for QueryRaw<'a, Data>
-where
-    Data: DeserializeOwned + 'static,
-{
-    type RawType = RawOperationData;
-    type ReturnValue = Vec<Data>;
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw).unwrap()
     }
 }

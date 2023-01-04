@@ -33,17 +33,17 @@ impl<'a, Data: query::Data> Include<'a, Data> {
     }
 }
 
-impl<'a, Data: query::Data> Query<'a> for Include<'a, Data> {
-    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
-        (self.operation, self.client)
-    }
-}
-
 impl<'a, Data: query::Data> QueryConvert for Include<'a, Data> {
     type RawType = Data;
     type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Data: query::Data> Query<'a> for Include<'a, Data> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (self.operation, self.client)
     }
 }

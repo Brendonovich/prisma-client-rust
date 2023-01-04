@@ -69,6 +69,15 @@ impl<'a, Actions: ModelActions> Create<'a, Actions> {
     }
 }
 
+impl<'a, Actions: ModelActions> QueryConvert for Create<'a, Actions> {
+    type RawType = Actions::Data;
+    type ReturnValue = Self::RawType;
+
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        raw
+    }
+}
+
 impl<'a, Actions: ModelActions> Query<'a> for Create<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
@@ -79,15 +88,6 @@ impl<'a, Actions: ModelActions> Query<'a> for Create<'a, Actions> {
             Operation::Write(Self::to_selection(self.set_params, scalar_selections)),
             self.client,
         )
-    }
-}
-
-impl<'a, Actions: ModelActions> QueryConvert for Create<'a, Actions> {
-    type RawType = Actions::Data;
-    type ReturnValue = Self::RawType;
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
     }
 }
 

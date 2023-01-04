@@ -64,6 +64,15 @@ pub struct CountResult {
     _all: i64,
 }
 
+impl<'a, Actions: ModelActions> QueryConvert for Count<'a, Actions> {
+    type RawType = CountAggregateResult;
+    type ReturnValue = i64;
+
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        raw._count._all
+    }
+}
+
 impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
@@ -125,15 +134,6 @@ impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
             )),
             self.client,
         )
-    }
-}
-
-impl<'a, Actions: ModelActions> QueryConvert for Count<'a, Actions> {
-    type RawType = CountAggregateResult;
-    type ReturnValue = i64;
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw._count._all
     }
 }
 
