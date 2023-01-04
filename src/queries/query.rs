@@ -9,7 +9,7 @@ pub trait Query<'a>: QueryConvert {
 }
 
 pub trait QueryConvert {
-    type RawType: DeserializeOwned;
+    type RawType: Data;
     type ReturnValue: 'static;
 
     /// Function for converting between raw database data and the type expected by the user.
