@@ -3,19 +3,6 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
-    let scalar_fields = model.scalar_fields().map(|f| &f.name);
-
-    quote! {
-        fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {
-            [#(#scalar_fields),*]
-                .into_iter()
-                .map(::prisma_client_rust::sel)
-                .collect()
-        }
-    }
-}
-
 pub fn create_args_params_pushes(model: &dml::Model) -> Vec<TokenStream> {
     let required_fields = required_fields(model);
 
@@ -108,8 +95,6 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
 pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let model_name_str = &model.name;
-
     let create_fn = create_fn(model);
     let upsert_fn = upsert_fn(model);
 
@@ -119,25 +104,10 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
         .contains(&datamodel_connector::ConnectorCapability::CreateMany))
     .then(|| create_many_fn(model));
 
-    let scalar_selections_fn = scalar_selections_fn(model);
-
     quote! {
         #[derive(Clone)]
         pub struct Actions<'a> {
             pub client: &'a #pcr::PrismaClientInternals,
-        }
-
-        impl<'a> #pcr::ModelActions for Actions<'a> {
-            type Data = Data;
-            type Where = WhereParam;
-            type Set = SetParam;
-            type With = WithParam;
-            type OrderBy = OrderByParam;
-            type Cursor = UniqueWhereParam;
-
-            const MODEL: &'static str = #model_name_str;
-
-            #scalar_selections_fn
         }
 
         impl<'a> Actions<'a> {

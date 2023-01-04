@@ -30,10 +30,7 @@ mocking = ["tokio"]
 mysql = ["query-core/mysql", "migration-core/mysql"]
 sqlite = ["query-core/sqlite", "migration-core/sqlite"]
 mssql = ["query-core/mssql", "migration-core/mssql"]
-postgresql = [
-  "query-core/postgresql",
-  "migration-core/postgresql",
-]
+postgresql = ["query-core/postgresql", "migration-core/postgresql"]
 mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 
 [dependencies]
@@ -47,6 +44,8 @@ indexmap = "1.8.2"
 serde-value = "0.7.0"
 base64 = "0.13.0"
 tokio = { version = "1.21.0", optional = true }
+futures = "0.3"
+paste = "1.0.11"
 
 query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
 query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
@@ -71,3 +70,4 @@ rspc = { version = "0.1.2", optional = true, features = [
   "uuid",
 ] }
 convert_case = "0.6.0"
+

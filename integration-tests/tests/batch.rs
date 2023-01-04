@@ -328,3 +328,36 @@ async fn update_many() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn async_trait() -> TestResult {
+    #[async_trait::async_trait]
+    trait TestTrait {
+        async fn test(&self, client: &PrismaClient) -> prisma_client_rust::Result<()>;
+    }
+
+    struct Test;
+
+    #[async_trait::async_trait]
+    impl TestTrait for Test {
+        async fn test(&self, client: &PrismaClient) -> prisma_client_rust::Result<()> {
+            let (brendan, oscar) = client
+                ._batch((
+                    vec![client.user().create("Brendan".to_string(), vec![])],
+                    vec![client.user().create("Oscar".to_string(), vec![])],
+                ))
+                .await?;
+
+            assert_eq!(&brendan[0].name, "Brendan");
+            assert_eq!(&oscar[0].name, "Oscar");
+
+            Ok(())
+        }
+    }
+
+    let client = client().await;
+
+    Test.test(&client).await?;
+
+    cleanup(client).await
+}

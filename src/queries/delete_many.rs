@@ -2,7 +2,7 @@ use query_core::Operation;
 
 use crate::{
     merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
-    PrismaClientInternals, Query, WhereInput, WhereQuery,
+    PrismaClientInternals, Query, QueryConvert, WhereInput, WhereQuery,
 };
 use prisma_models::PrismaValue;
 
@@ -28,10 +28,16 @@ impl<'a, Actions: ModelActions> DeleteMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
+impl<'a, Actions: ModelActions> QueryConvert for DeleteMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        Self::convert(raw)
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::base_selection(
@@ -54,10 +60,6 @@ impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
             )),
             self.client,
         )
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw)
     }
 }
 

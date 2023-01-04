@@ -2170,6 +2170,7 @@ dependencies = [
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "prisma-client-rust",
  "serde",
  "thiserror",
@@ -3515,9 +3516,11 @@ dependencies = [
  "diagnostics",
  "dml",
  "dmmf",
+ "futures",
  "include_dir",
  "indexmap",
  "migration-core",
+ "paste",
  "prisma-models",
  "psl",
  "query-connector",

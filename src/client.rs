@@ -102,6 +102,7 @@ impl ExecutionEngine {
 
 /// The data held by the generated PrismaClient
 /// Do not use this in your own code!
+#[derive(Clone)]
 pub struct PrismaClientInternals {
     pub(crate) engine: ExecutionEngine,
     pub action_notifier: Arc<crate::ActionNotifier>,
