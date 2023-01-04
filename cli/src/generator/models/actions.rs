@@ -1,4 +1,4 @@
-use crate::generator::prelude::{prisma::datamodel::datamodel_connector, *};
+use crate::generator::prelude::{prisma::psl::datamodel_connector, *};
 use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
@@ -10,10 +10,7 @@ pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
         fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {
             [#(#scalar_fields),*]
                 .into_iter()
-                .map(|o| {
-                    let builder = ::prisma_client_rust::Selection::builder(o);
-                    builder.build()
-                })
+                .map(::prisma_client_rust::sel)
                 .collect()
         }
     }
@@ -66,7 +63,7 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
     let scalar_field_types = model
         .required_scalar_fields()
         .iter()
-        .map(|f| f.type_tokens())
+        .map(|f| f.type_tokens(quote!()))
         .collect::<Vec<_>>();
 
     quote! {

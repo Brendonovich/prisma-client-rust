@@ -3,7 +3,7 @@ use prisma_client_rust::prisma_errors::query_engine::RecordRequiredButNotFound;
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn delete() -> TestResult {
+async fn test() -> TestResult {
     let client = client().await;
 
     let author = client
@@ -54,7 +54,7 @@ async fn delete() -> TestResult {
 }
 
 #[tokio::test]
-async fn delete_record_not_found() -> TestResult {
+async fn record_not_found() -> TestResult {
     let client = client().await;
 
     let error = client

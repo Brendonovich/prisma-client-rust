@@ -64,7 +64,7 @@ async fn setup(client: &PrismaClient) -> Result<String, QueryError> {
 }
 
 #[tokio::test]
-async fn find_unique_with() -> TestResult {
+async fn find_unique() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -90,7 +90,7 @@ async fn find_unique_with() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_optional() -> TestResult {
+async fn optional() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -136,7 +136,7 @@ async fn find_unique_with_optional() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_take() -> TestResult {
+async fn take() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -154,7 +154,7 @@ async fn find_unique_with_take() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_where() -> TestResult {
+async fn where_() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -179,7 +179,7 @@ async fn find_unique_with_where() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_pagination() -> TestResult {
+async fn pagination() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -220,7 +220,7 @@ async fn find_unique_with_pagination() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_nested_where_or() -> TestResult {
+async fn nested_where_or() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;
@@ -254,7 +254,7 @@ async fn find_unique_with_nested_where_or() -> TestResult {
 }
 
 #[tokio::test]
-async fn find_unique_with_nested_with() -> TestResult {
+async fn nested_with() -> TestResult {
     let client = client().await;
 
     let user_id = setup(&client).await?;

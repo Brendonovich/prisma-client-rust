@@ -1,4 +1,4 @@
-use datamodel::dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
+use dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
 
 use crate::prelude::*;
 
@@ -26,7 +26,7 @@ impl ModelExt for Model {
 }
 
 pub trait FieldExt {
-    fn type_tokens(&self) -> TokenStream;
+    fn type_tokens(&self, prefix: TokenStream) -> TokenStream;
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream;
 
@@ -36,19 +36,12 @@ pub trait FieldExt {
 }
 
 impl FieldExt for Field {
-    fn type_tokens(&self) -> TokenStream {
-        let single_type = self.field_type().to_tokens();
-
-        match self.arity() {
-            FieldArity::Required => single_type,
-            FieldArity::Optional => quote! { Option<#single_type> },
-            FieldArity::List => quote! { Vec<#single_type> },
-        }
+    fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
+        self.field_type().to_tokens(prefix, self.arity())
     }
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type()
-            .to_prisma_value(var, self.arity().is_list())
+        self.field_type().to_prisma_value(var, &self.arity())
     }
 
     fn relation_methods(&self) -> &'static [&'static str] {
@@ -67,28 +60,34 @@ impl FieldExt for Field {
     }
 }
 pub trait FieldTypeExt {
-    fn to_tokens(&self) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream;
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream;
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream;
 }
 
 impl FieldTypeExt for FieldType {
-    fn to_tokens(&self) -> TokenStream {
-        match self {
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream {
+        let base = match self {
             Self::Enum(name) => {
-                let name = format_ident!("{}", name.to_case(Case::Pascal));
-                quote!(#name)
+                let name = pascal_ident(&name);
+                quote!(#prefix #name)
             }
             Self::Relation(info) => {
-                let model = format_ident!("{}", info.to.to_case(Case::Snake));
-                quote!(#model::Data)
+                let model = snake_ident(&info.referenced_model);
+                quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             _ => unimplemented!(),
+        };
+
+        match arity {
+            FieldArity::List => quote!(Vec<#base>),
+            FieldArity::Optional => quote!(Option<#base>),
+            FieldArity::Required => quote!(#base),
         }
     }
 
-    fn to_prisma_value(&self, var: &Ident, is_list: bool) -> TokenStream {
-        let scalar_identifier = if is_list {
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream {
+        let scalar_identifier = if arity.is_list() {
             format_ident!("v")
         } else {
             var.clone()
@@ -102,10 +101,14 @@ impl FieldTypeExt for FieldType {
             typ => unimplemented!("{:?}", typ),
         };
 
-        if is_list {
-            quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
-        } else {
-            scalar_converter
+        match arity {
+            FieldArity::List => {
+                quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
+            }
+            FieldArity::Optional => {
+                quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
+            }
+            FieldArity::Required => scalar_converter,
         }
     }
 }
@@ -149,7 +152,7 @@ impl ScalarTypeExt for ScalarType {
             }
             ScalarType::Boolean => quote!(#v::Boolean(#var)),
             ScalarType::String => quote!(#v::String(#var)),
-            ScalarType::Json => quote!(#v::Json(serde_json::to_string(&#var).unwrap())),
+            ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_string(&#var).unwrap())),
             ScalarType::DateTime => quote!(#v::DateTime(#var)),
             ScalarType::Bytes => quote!(#v::Bytes(#var)),
         }

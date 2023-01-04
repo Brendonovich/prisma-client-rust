@@ -25,7 +25,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
     let migrate_fns = cfg!(feature = "migrations").then(|| {
         quote! {
             pub async fn _migrate_deploy(&self) -> Result<(), #pcr::migrations::MigrateDeployError> {
-                let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url).await;
+                let res = #pcr::migrations::migrate_deploy(super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url()).await;
 
                 // don't ask, just accept.
                 // migration engine seems to want some time to process things
@@ -35,11 +35,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
 
             pub async fn _migrate_resolve(&self, migration: &str) -> Result<(), #pcr::migrations::MigrateResolveError> {
-                #pcr::migrations::migrate_resolve(migration, super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url,).await
+                #pcr::migrations::migrate_resolve(migration, super::DATAMODEL_STR, super::MIGRATIONS_DIR, &self.0.url(),).await
             }
 
             pub fn _db_push(&self) -> #pcr::migrations::DbPush {
-                #pcr::migrations::db_push(super::DATAMODEL_STR, &self.0.url)
+                #pcr::migrations::db_push(super::DATAMODEL_STR, &self.0.url())
             }
         }
     });
@@ -53,6 +53,16 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
     });
 
+    let mock_ctor = cfg!(feature = "mocking").then(|| {
+        quote! {
+            pub fn _mock() -> (Self, #pcr::MockStore) {
+                let (internals, store) = #pcr::PrismaClientInternals::new_mock(#pcr::ActionNotifier::new());
+
+                (Self(internals), store)
+            }
+        }
+    });
+
     quote! {
         pub struct PrismaClientBuilder {
             url: Option<String>,
@@ -60,7 +70,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
 
         impl PrismaClientBuilder {
-            pub fn new() -> Self {
+            fn new() -> Self {
                 Self {
                     url: None,
                     action_notifier: #pcr::ActionNotifier::new()
@@ -75,60 +85,18 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             #callback_fn
 
             pub async fn build(self) -> Result<PrismaClient, #pcr::NewClientError> {
-                let config = #pcr::datamodel::parse_configuration(super::DATAMODEL_STR)?.subject;
-                let source = config
-                    .datasources
-                    .first()
-                    .expect("Please supply a datasource in your schema.prisma file");
+                let internals = #pcr::PrismaClientInternals::new(
+                    self.url,
+                    self.action_notifier,
+                    super::DATAMODEL_STR
+                ).await?;
 
-                let url = match self.url {
-                    Some(url) => url,
-                    None => {
-                        let url = if let Some(url) = source.load_shadow_database_url()? {
-                            url
-                        } else {
-                            source.load_url(|key| std::env::var(key).ok())?
-                        };
-
-                        match url.starts_with("file:") {
-                            true => {
-                                let path = url.split(":").nth(1).unwrap();
-
-                                if std::path::Path::new("./prisma/schema.prisma").exists() {
-                                    format!("file:./prisma/{}", path)
-                                } else { url }
-                            },
-                            _ => url,
-                        }
-                    }
-                };
-
-                let (db_name, executor) = #pcr::query_core::executor::load(&source, &[], &url).await?;
-
-                let internal_model = #pcr::prisma_models::InternalDataModelBuilder::new(super::DATAMODEL_STR).build(db_name);
-
-                let query_schema = std::sync::Arc::new(prisma_client_rust::query_core::schema_builder::build(
-                    internal_model,
-                    true,
-                    source.capabilities(),
-                    vec![],
-                    source.referential_integrity(),
-                ));
-
-                executor.primary_connector().get_connection().await?;
-
-                Ok(PrismaClient(#pcr::PrismaClientInternals {
-                    executor: executor.into(),
-                    query_schema,
-                    url,
-                    action_notifier: ::std::sync::Arc::new(self.action_notifier),
-                    tx_id: None
-                }))
+                Ok(PrismaClient(::std::sync::Arc::new(internals)))
             }
         }
 
         #[derive(Clone)]
-        pub struct PrismaClient(#pcr::PrismaClientInternals);
+        pub struct PrismaClient(::std::sync::Arc<#pcr::PrismaClientInternals>);
 
         impl ::std::fmt::Debug for PrismaClient {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
@@ -142,7 +110,9 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 PrismaClientBuilder::new()
             }
 
-            pub fn _query_raw<T: serde::de::DeserializeOwned>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
+            #mock_ctor
+
+            pub fn _query_raw<T: #pcr::Data>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
                 #pcr::QueryRaw::new(
                     &self.0,
                     query,
@@ -158,7 +128,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 )
             }
 
-            pub async fn _batch<T: #pcr::BatchContainer<Marker>, Marker>(&self, queries: T) -> #pcr::Result<T::ReturnType> {
+            pub async fn _batch<'a, T: #pcr::BatchContainer<'a, Marker>, Marker>(&'a self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'a, Marker>>::ReturnType> {
                 #pcr::batch(queries, &self.0).await
             }
 

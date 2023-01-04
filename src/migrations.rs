@@ -172,7 +172,7 @@ impl<'a> Future for MigrateDeploy<'a> {
                         .into_path()
                         .to_str()
                         .unwrap()
-                        .to_string()
+                        .to_string(),
                 };
 
                 migrations
@@ -188,7 +188,9 @@ impl<'a> Future for MigrateDeploy<'a> {
                 let output = engine_state
                     .with_connector_for_url(
                         url.to_string(),
-                        Box::new(|connector| Box::pin(commands::apply_migrations(input, connector))),
+                        Box::new(|connector| {
+                            Box::pin(commands::apply_migrations(input, connector))
+                        }),
                     )
                     .await;
 

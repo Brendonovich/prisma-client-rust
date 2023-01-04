@@ -1,35 +1,18 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, Selection};
 
 use crate::{
-    include::{Include, IncludeType},
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals, WhereInput,
+    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    PrismaClientInternals, Query, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Delete<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Delete<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> ModelAction for Delete<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Delete);
-}
-
-impl<'a, Actions> Delete<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Delete<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -47,79 +30,72 @@ where
         self
     }
 
-    fn to_selection(where_param: Actions::Where) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "where",
-            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
-        );
-
-        selection
+    fn to_selection(
+        where_param: Actions::Where,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [(
+                "where".to_string(),
+                PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+            )],
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, S::Data> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Write(Self::to_selection(self.where_param, select.to_selections())),
+        )
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         select: I,
     ) -> Include<'a, I::Data> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Include::new(self.client, op)
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::to_selection(self.where_param);
-        let mut scalar_selections = Actions::scalar_selections();
-
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
-
-        (Operation::Write(selection.build()), self.client)
+        Include::new(
+            self.client,
+            Operation::Write(Self::to_selection(self.where_param, select.to_selections())),
+        )
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await?;
-
-        #[cfg(feature = "mutation-callbacks")]
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
+        super::exec(self).await
     }
 }
 
-impl<'a, Actions> BatchQuery for Delete<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
     type RawType = Actions::Data;
-    type ReturnType = Actions::Data;
+    type ReturnValue = Actions::Data;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut scalar_selections = Actions::scalar_selections();
+
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
+
+        (
+            Operation::Write(Self::to_selection(self.where_param, scalar_selections)),
+            self.client,
+        )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Actions: ModelActions> ModelQuery<'a> for Delete<'a, Actions> {
+    type Actions = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Delete);
+}
+
+impl<'a, Actions: ModelActions> WithQuery<'a> for Delete<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
     }
 }

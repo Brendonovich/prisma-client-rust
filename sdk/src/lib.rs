@@ -19,18 +19,16 @@ pub use extensions::*;
 pub use quote::quote;
 
 pub mod prisma {
-    pub use datamodel;
+    pub use dml;
     pub use dmmf;
     pub use prisma_models;
+    pub use psl;
     pub use query_core;
     pub use request_handlers;
 }
 
 pub mod prelude {
-    pub use super::{
-        prisma::{datamodel::dml, *},
-        *,
-    };
+    pub use super::{args::*, prisma::*, *};
     pub use proc_macro2::*;
     pub use quote::*;
     pub use syn::Ident;

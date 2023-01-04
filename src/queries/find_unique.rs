@@ -1,38 +1,21 @@
 use std::marker::PhantomData;
 
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, Selection};
 
 use crate::{
-    include::{Include, IncludeType},
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType, PrismaClientInternals,
-    WhereInput,
+    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelReadOperation,
+    PrismaClientInternals, Query, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct FindUnique<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct FindUnique<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub with_params: Vec<Actions::With>,
     _data: PhantomData<(Actions::Set, Actions::Data)>,
 }
 
-impl<'a, Actions> ModelAction for FindUnique<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::FindUnique);
-}
-
-impl<'a, Actions> FindUnique<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> FindUnique<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_param: Actions::Where) -> Self {
         Self {
             client,
@@ -47,75 +30,76 @@ where
         self
     }
 
-    fn to_selection(where_param: Actions::Where) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "where",
-            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
-        );
-
-        selection
+    fn to_selection(
+        where_param: Actions::Where,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [(
+                "where".to_string(),
+                PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+            )],
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, Option<S::Data>> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Read(Self::to_selection(self.where_param, select.to_selections())),
+        )
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         include: I,
     ) -> Include<'a, Option<I::Data>> {
-        let mut selection = Self::to_selection(self.where_param);
-
-        selection.nested_selections(include.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Include::new(self.client, op)
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::to_selection(self.where_param);
-        let mut scalar_selections = Actions::scalar_selections();
-
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
-
-        (Operation::Read(selection.build()), self.client)
+        Include::new(
+            self.client,
+            Operation::Read(Self::to_selection(
+                self.where_param,
+                include.to_selections(),
+            )),
+        )
     }
 
     pub async fn exec(self) -> super::Result<Option<Actions::Data>> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await
+        super::exec(self).await
     }
 }
 
-impl<'a, Actions> BatchQuery for FindUnique<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> Query<'a> for FindUnique<'a, Actions> {
     type RawType = Option<Actions::Data>;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut scalar_selections = Actions::scalar_selections();
+
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
+
+        (
+            Operation::Read(Self::to_selection(self.where_param, scalar_selections)),
+            self.client,
+        )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Actions: ModelActions> ModelQuery<'a> for FindUnique<'a, Actions> {
+    type Actions = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::FindUnique);
+}
+
+impl<'a, Actions: ModelActions> WithQuery<'a> for FindUnique<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
     }
 }
 

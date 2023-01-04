@@ -1,7 +1,7 @@
 use crate::generator::prelude::*;
 
 pub fn builder_fn(field: &dml::RelationField) -> TokenStream {
-    let relation_model_name_snake = snake_ident(&field.relation_info.to);
+    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
     quote! {
         pub fn with(mut self, params: impl Into<#relation_model_name_snake::WithParam>) -> Self {
@@ -13,11 +13,11 @@ pub fn builder_fn(field: &dml::RelationField) -> TokenStream {
 
 fn enum_variant(field: &dml::RelationField) -> TokenStream {
     let field_name_pascal = pascal_ident(&field.name);
-    let relation_model_name_snake = snake_ident(&field.relation_info.to);
+    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
-    let args = match field.arity.is_list() {
-        true => quote!(ManyArgs),
-        false => quote!(UniqueArgs),
+    let args = match field.arity {
+        dml::FieldArity::List => quote!(ManyArgs),
+        _ => quote!(UniqueArgs),
     };
 
     quote!(#field_name_pascal(super::#relation_model_name_snake::#args))
@@ -26,27 +26,32 @@ fn enum_variant(field: &dml::RelationField) -> TokenStream {
 fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
     let field_name_str = &field.name;
     let field_name_pascal = pascal_ident(field_name_str);
-    let relation_model_name_snake = snake_ident(&field.relation_info.to);
+    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
     let pcr = quote!(::prisma_client_rust);
 
-    let body = match field.arity.is_list() {
-        true => quote! {
+    let body = match field.arity {
+        dml::FieldArity::List => quote! {
             let (arguments, mut nested_selections) = args.to_graphql();
             nested_selections.extend(<super::#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections());
 
-            let mut builder = #pcr::Selection::builder(#field_name_str);
-            builder.nested_selections(nested_selections)
-                .set_arguments(arguments);
-            builder.build()
+            #pcr::Selection::new(
+                #field_name_str,
+                None,
+                arguments,
+                nested_selections
+            )
         },
-        false => quote! {
+        _ => quote! {
             let mut selections = <super::#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections();
             selections.extend(args.with_params.into_iter().map(Into::<#pcr::Selection>::into));
 
-            let mut builder = #pcr::Selection::builder(#field_name_str);
-            builder.nested_selections(selections);
-            builder.build()
+            #pcr::Selection::new(
+                #field_name_str,
+                None,
+                [],
+                selections
+            )
         },
     };
 

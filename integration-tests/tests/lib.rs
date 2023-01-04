@@ -8,7 +8,7 @@ mod utils;
 async fn aaaa_run_migrations() -> TestResult {
     let client = db::new_client().await.unwrap();
 
-    client._migrate_deploy().await.unwrap();
+    client._db_push().await.unwrap();
 
     client
         .user()
@@ -20,7 +20,7 @@ async fn aaaa_run_migrations() -> TestResult {
 }
 
 mod batch;
-mod callbacks;
+// mod callbacks;
 mod count;
 mod create;
 mod create_many;
@@ -30,6 +30,8 @@ mod find_first;
 mod find_many;
 mod find_unique;
 mod include;
+mod mock;
+mod r_hash;
 mod raw;
 mod select;
 mod update;

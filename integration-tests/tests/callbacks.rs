@@ -5,7 +5,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn mutation_callbacks() -> TestResult {
+async fn mutation() -> TestResult {
     let client = client().await;
 
     let callback_data = {

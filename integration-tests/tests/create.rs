@@ -66,7 +66,7 @@ async fn unique_violation() -> TestResult {
 }
 
 #[tokio::test]
-async fn setting_field_to_null() -> TestResult {
+async fn set_none() -> TestResult {
     let client = client().await;
 
     let post = client

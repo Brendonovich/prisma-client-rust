@@ -3,7 +3,7 @@ use prisma_client_rust::{or, Direction};
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn find_many() -> TestResult {
+async fn query() -> TestResult {
     let client = client().await;
 
     let posts = vec![
@@ -261,6 +261,15 @@ async fn filtering_one_to_one_relation() -> TestResult {
         )])])
         .exec()
         .await?;
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].name, "Jamie");
+
+    let users = client
+        .user()
+        .find_many(vec![user::profile::is_null()])
+        .exec()
+        .await?;
+    dbg!(&users);
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].name, "Jamie");
 

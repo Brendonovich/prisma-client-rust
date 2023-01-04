@@ -54,14 +54,9 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 
     match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens();
+            let field_type = field.type_tokens(quote!());
 
             let converter = field.type_prisma_value(&format_ident!("value"));
-            let converter = field
-                .arity()
-                .is_optional()
-                .then(|| quote!(value.map(|value| #converter).unwrap_or(#pcr::PrismaValue::Null)))
-                .unwrap_or_else(|| converter);
 
             let set_variant_name = format_ident!("Set{}", &field_name_pascal);
 
@@ -79,9 +74,9 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
-                    let typ = method.type_tokens();
+                    let typ = method.type_tokens(quote!());
                     
-                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), method.is_list);
+                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity());
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
                     
@@ -107,7 +102,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
         }
         dml::Field::RelationField(field) => relation_field_set_params(field).iter().map(|param| {
             let action = param.action;
-            let relation_model_name_snake = snake_ident(&field.relation_info.to);
+            let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
             let variant_name = format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
 
             match param.typ {
@@ -187,8 +182,7 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
         .flatten()
         .collect::<Vec<_>>();
 
-    let variants = set_params.iter().map(|p| &p.variant);
-    let into_pv_arms = set_params.iter().map(|p| &p.into_pv_arm);
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params.iter().map(|p| (&p.variant, &p.into_pv_arm)).unzip();
 
     let pcr = quote!(::prisma_client_rust);
 

@@ -1,20 +1,15 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection, SelectionBuilder};
+use query_core::{Operation, QueryValue, Selection};
 
 use crate::{
-    actions::ModelActions,
-    include::{Include, IncludeType},
-    merge_fields,
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelQueryType, PrismaClientInternals, WhereInput,
+    merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
+    ModelReadOperation, OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, Select,
+    SelectType, WhereInput, WhereQuery, WithQuery,
 };
 
 use super::SerializedWhereInput;
 
-pub struct FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct FindMany<'a, Actions: ModelActions> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
@@ -24,19 +19,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> ModelAction for FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::FindMany);
-}
-
-impl<'a, Actions> FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelActions> FindMany<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -80,140 +63,165 @@ where
         cursor_params: Vec<Actions::Cursor>,
         skip: Option<i64>,
         take: Option<i64>,
-    ) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        if where_params.len() > 0 {
-            selection.push_argument(
-                "where",
-                PrismaValue::Object(merge_fields(
-                    where_params
-                        .into_iter()
-                        .map(WhereInput::serialize)
-                        .map(|s| (s.field, s.value.into()))
-                        .collect(),
-                )),
-            );
-        }
-
-        if order_by_params.len() > 0 {
-            selection.push_argument(
-                "orderBy".to_string(),
-                PrismaValue::List(
-                    order_by_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(|v| PrismaValue::Object(vec![v]))
-                        .collect(),
-                ),
-            );
-        }
-
-        if cursor_params.len() > 0 {
-            selection.push_argument(
-                "cursor".to_string(),
-                PrismaValue::Object(
-                    cursor_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(WhereInput::serialize)
-                        .map(SerializedWhereInput::transform_equals)
-                        .collect(),
-                ),
-            );
-        }
-
-        skip.map(|skip| selection.push_argument("skip".to_string(), PrismaValue::Int(skip as i64)));
-        take.map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
-
-        selection
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [
+                (!where_params.is_empty()).then(|| {
+                    (
+                        "where".to_string(),
+                        PrismaValue::Object(merge_fields(
+                            where_params
+                                .into_iter()
+                                .map(WhereInput::serialize)
+                                .map(|s| (s.field, s.value.into()))
+                                .collect(),
+                        ))
+                        .into(),
+                    )
+                }),
+                (!order_by_params.is_empty()).then(|| {
+                    (
+                        "orderBy".to_string(),
+                        PrismaValue::List(
+                            order_by_params
+                                .into_iter()
+                                .map(Into::into)
+                                .map(|v| PrismaValue::Object(vec![v]))
+                                .collect(),
+                        )
+                        .into(),
+                    )
+                }),
+                (!cursor_params.is_empty()).then(|| {
+                    (
+                        "cursor".to_string(),
+                        PrismaValue::Object(
+                            cursor_params
+                                .into_iter()
+                                .map(Into::into)
+                                .map(WhereInput::serialize)
+                                .map(SerializedWhereInput::transform_equals)
+                                .collect(),
+                        )
+                        .into(),
+                    )
+                }),
+                skip.map(|skip| ("skip".to_string(), QueryValue::Int(skip as i64))),
+                take.map(|take| ("take".to_string(), QueryValue::Int(take as i64))),
+            ]
+            .into_iter()
+            .flatten(),
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, Vec<S::Data>> {
-        let mut selection = Self::to_selection(
-            self.where_params,
-            self.order_by_params,
-            self.cursor_params,
-            self.skip,
-            self.take,
-        );
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Read(Self::to_selection(
+                self.where_params,
+                self.order_by_params,
+                self.cursor_params,
+                self.skip,
+                self.take,
+                select.to_selections(),
+            )),
+        )
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         include: I,
     ) -> Include<'a, Vec<I::Data>> {
-        let mut selection = Self::to_selection(
-            self.where_params,
-            self.order_by_params,
-            self.cursor_params,
-            self.skip,
-            self.take,
-        );
-
-        selection.nested_selections(include.to_selections());
-
-        let op = Operation::Read(selection.build());
-
-        Include::new(self.client, op)
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut scalar_selections = Actions::scalar_selections();
-
-        let mut selection = Self::to_selection(
-            self.where_params,
-            self.order_by_params,
-            self.cursor_params,
-            self.skip,
-            self.take,
-        );
-
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
-
-        (Operation::Read(selection.build()), self.client)
+        Include::new(
+            self.client,
+            Operation::Read(Self::to_selection(
+                self.where_params,
+                self.order_by_params,
+                self.cursor_params,
+                self.skip,
+                self.take,
+                include.to_selections(),
+            )),
+        )
     }
 
     pub async fn exec(self) -> super::Result<Vec<Actions::Data>> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await
+        super::exec(self).await
     }
 }
 
-impl<'a, Actions> BatchQuery for FindMany<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type RawType = Actions::Data;
-    type ReturnType = Self::RawType;
+impl<'a, Actions: ModelActions> Query<'a> for FindMany<'a, Actions> {
+    type RawType = Vec<Actions::Data>;
+    type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut scalar_selections = Actions::scalar_selections();
+
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
+
+        (
+            Operation::Read(Self::to_selection(
+                self.where_params,
+                self.order_by_params,
+                self.cursor_params,
+                self.skip,
+                self.take,
+                scalar_selections,
+            )),
+            self.client,
+        )
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
     }
 }
 
+impl<'a, Actions: ModelActions> ModelQuery<'a> for FindMany<'a, Actions> {
+    type Actions = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::FindMany);
+}
+
+impl<'a, Actions: ModelActions> WhereQuery<'a> for FindMany<'a, Actions> {
+    fn add_where(&mut self, param: Actions::Where) {
+        self.where_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> WithQuery<'a> for FindMany<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
+    }
+}
+
+impl<'a, Actions: ModelActions> OrderByQuery<'a> for FindMany<'a, Actions> {
+    fn add_order_by(&mut self, param: Actions::OrderBy) {
+        self.order_by_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelActions> PaginatedQuery<'a> for FindMany<'a, Actions> {
+    fn add_cursor(&mut self, param: Actions::Cursor) {
+        self.cursor_params.push(param);
+    }
+
+    fn set_skip(&mut self, skip: i64) {
+        self.skip = Some(skip);
+    }
+
+    fn set_take(&mut self, take: i64) {
+        self.take = Some(take);
+    }
+}
+
 #[derive(Clone)]
-pub struct ManyArgs<Actions>
-where
-    Actions: ModelActions,
-{
+pub struct ManyArgs<Actions: ModelActions> {
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -222,10 +230,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<Actions> ManyArgs<Actions>
-where
-    Actions: ModelActions,
-{
+impl<Actions: ModelActions> ManyArgs<Actions> {
     pub fn new(where_params: Vec<Actions::Where>) -> Self {
         Self {
             where_params,

@@ -10,7 +10,8 @@ default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = []
 migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
-mutation-callbacks = []
+# mutation-callbacks = []
+mocking = []
 
 mysql = ["prisma-client-rust-sdk/mysql"]
 sqlite = ["prisma-client-rust-sdk/sqlite"]
@@ -30,8 +31,7 @@ directories = "4.0.1"
 flate2 = "1.0.23"
 reqwest = { version = "0.11.10", features = ["blocking"] }
 regex = "1.5.5"
+thiserror = "1.0.37"
 
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
 
-datamodel = { git = "https://github.com/Brendonovich/prisma-engines", rev = "06a1b97ff1ca597521ec9f3d10c1e274065f5e93" }
-thiserror = "1.0.37"
