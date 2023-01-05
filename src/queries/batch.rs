@@ -1,12 +1,17 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, num::NonZeroUsize};
 
 use query_core::Operation;
 
 use crate::{PrismaClientInternals, Query, QueryConvert};
 
+pub enum VecMeta {
+    Empty,
+    NotEmpty(NonZeroUsize, Box<BatchItemDataMeta>),
+}
+
 pub enum BatchItemDataMeta {
     Query,
-    Vec(usize, Box<Self>),
+    Vec(VecMeta),
     Tuple(Vec<Self>),
 }
 
@@ -20,7 +25,11 @@ impl BatchItemData {
     fn meta(&self) -> BatchItemDataMeta {
         match self {
             Self::Query(_) => BatchItemDataMeta::Query,
-            Self::Vec(v) => BatchItemDataMeta::Vec(v.len(), Box::new(v[0].meta())),
+            Self::Vec(v) => BatchItemDataMeta::Vec({
+                NonZeroUsize::new(v.len())
+                    .map(|size| VecMeta::NotEmpty(size, Box::new(v[0].meta())))
+                    .unwrap_or(VecMeta::Empty)
+            }),
             Self::Tuple(v) => BatchItemDataMeta::Tuple(v.iter().map(BatchItemData::meta).collect()),
         }
     }
@@ -135,9 +144,12 @@ impl<'batch, 'query, I: Query<'query>> BatchItem<'batch> for Vec<I> {
         values: &mut VecDeque<serde_value::Value>,
     ) -> <Self as BatchItemParent>::ReturnValue {
         match meta {
-            BatchItemDataMeta::Vec(count, meta) => (0..*count)
-                .map(|_| <I as BatchItem>::resolve(meta.as_ref(), values))
-                .collect(),
+            BatchItemDataMeta::Vec(meta) => match meta {
+                VecMeta::Empty => vec![],
+                VecMeta::NotEmpty(size, meta) => (0..size.get())
+                    .map(|_| <I as BatchItem>::resolve(meta.as_ref(), values))
+                    .collect(),
+            },
             _ => unreachable!(),
         }
     }
