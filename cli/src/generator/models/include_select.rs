@@ -286,7 +286,7 @@ fn model_macro<'a>(
     let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
     let specta_impl = cfg!(feature = "rspc").then(|| {
-        let object_scalar_fields = selection_fields.clone().filter_map(|f| {
+        let object_scalar_fields = base_fields.clone().filter_map(|f| {
             let field_name_str = f.name();
             let field_type = f.type_tokens(quote!());
 
