@@ -100,7 +100,7 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
     }
 }
 
-pub(crate) fn exec<'a, Q: Query<'a> + 'a>(
+pub fn exec<'a, Q: Query<'a> + 'a>(
     query: Q,
 ) -> impl Future<Output = Result<<Q as QueryConvert>::ReturnValue>> + 'a {
     let (op, client) = query.graphql();
