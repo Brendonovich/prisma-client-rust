@@ -288,7 +288,7 @@ fn model_macro<'a>(
     let specta_impl = cfg!(feature = "rspc").then(|| {
         let object_scalar_fields = base_fields.clone().filter_map(|f| {
             let field_name_str = f.name();
-            let field_type = f.type_tokens(quote!());
+            let field_type = f.type_tokens(quote!(crate::#module_path::));
 
             f.as_scalar_field().map(|_| 
                 quote!(#specta::ObjectField {
