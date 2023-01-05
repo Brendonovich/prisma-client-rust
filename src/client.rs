@@ -1,7 +1,7 @@
 use crate::queries::ModelActions;
 use crate::{ActionNotifier, ModelQuery};
 use diagnostics::Diagnostics;
-use query_core::{schema_builder, CoreError, Operation, TxId};
+use query_core::{schema_builder, CoreError, Operation, TxId, BatchDocumentTransaction};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use std::sync::Arc;
@@ -60,7 +60,7 @@ impl ExecutionEngine {
             Self::Real { connector, .. } => {
                 let response = connector
                     .executor
-                    .execute_all(None, ops, None, connector.query_schema.clone(), None)
+                    .execute_all(None, ops, Some(BatchDocumentTransaction::new(None)), connector.query_schema.clone(), None)
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
 
