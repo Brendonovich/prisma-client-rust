@@ -5,8 +5,10 @@ use prisma_client_rust::QueryError;
 use crate::db::*;
 use crate::utils::*;
 
+// Closure
+
 #[tokio::test]
-async fn success() -> TestResult {
+async fn ok() -> TestResult {
     let client = client().await;
 
     let (user, post) = client
@@ -38,7 +40,7 @@ async fn success() -> TestResult {
 }
 
 #[tokio::test]
-async fn rollback() -> TestResult {
+async fn err() -> TestResult {
     let client = client().await;
 
     let result = client
@@ -59,6 +61,7 @@ async fn rollback() -> TestResult {
                 )
                 .exec()
                 .await
+                .map(|post| (user, post))
         })
         .await;
 
@@ -149,10 +152,6 @@ async fn batch() -> TestResult {
     let users = client
         ._transaction()
         .run(|client| async move {
-            let users = client
-                ._batch(vec![client.user().create("brendan".to_string(), vec![])])
-                .await?;
-
             client
                 ._batch(vec![
                     client.user().create("brendan".to_string(), vec![]),
@@ -163,6 +162,97 @@ async fn batch() -> TestResult {
         .await?;
 
     assert_eq!(&users[0].name, "brendan");
+
+    cleanup(client).await
+}
+
+// Imperative
+
+#[tokio::test]
+async fn commit() -> TestResult {
+    let client = client().await;
+
+    // separate function for nice error handling
+    async fn run(client: &PrismaClient) -> prisma_client_rust::Result<(user::Data, post::Data)> {
+        let user = client
+            .user()
+            .create("brendan".to_string(), vec![])
+            .exec()
+            .await?;
+
+        let post = client
+            .post()
+            .create(
+                "test".to_string(),
+                true,
+                vec![post::author::connect(user::id::equals(user.id.clone()))],
+            )
+            .exec()
+            .await?;
+
+        Ok((user, post))
+    }
+
+    // block to avoid shadowing `client`
+    let (user, post) = {
+        let (tx, client) = client._transaction().begin().await?;
+
+        match run(&client).await {
+            Ok(v) => tx.commit(client).await.map(|_| v),
+            Err(e) => {
+                tx.rollback(client).await?;
+                Err(e)
+            }
+        }?
+    };
+
+    assert_eq!(&user.name, "brendan");
+    assert_eq!(&post.author_id.unwrap(), &user.id);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn rollback() -> TestResult {
+    let client = client().await;
+
+    // separate function for nice error handling
+    async fn run(client: &PrismaClient) -> prisma_client_rust::Result<(user::Data, post::Data)> {
+        let user = client
+            .user()
+            .create("brendan".to_string(), vec![])
+            .exec()
+            .await?;
+
+        let post = client
+            .post()
+            .create(
+                "test".to_string(),
+                true,
+                vec![post::author::connect(user::id::equals("".to_string()))],
+            )
+            .exec()
+            .await?;
+
+        Ok((user, post))
+    }
+
+    // block to avoid shadowing `client`
+    let result = {
+        let (tx, client) = client._transaction().begin().await?;
+
+        match run(&client).await {
+            Ok(v) => tx.commit(client).await.map(|_| v),
+            Err(e) => {
+                tx.rollback(client).await?;
+                Err(e)
+            }
+        }
+    };
+
+    assert!(result.is_err());
+    assert!(client.user().find_many(vec![]).exec().await?.is_empty());
+    assert!(client.post().find_many(vec![]).exec().await?.is_empty());
 
     cleanup(client).await
 }

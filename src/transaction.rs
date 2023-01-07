@@ -1,4 +1,6 @@
-use std::future::Future;
+use std::{future::Future, marker::PhantomData};
+
+use query_core::TxId;
 
 use crate::{ExecutionEngine, PrismaClient, PrismaClientInternals, QueryError};
 
@@ -10,10 +12,7 @@ pub struct TransactionBuilder<'a, TClient> {
     isolation_level: Option<String>,
 }
 
-impl<'a, TClient> TransactionBuilder<'a, TClient>
-where
-    TClient: PrismaClient,
-{
+impl<'a, TClient: PrismaClient> TransactionBuilder<'a, TClient> {
     pub fn _new(client: &'a TClient, internals: &'a PrismaClientInternals) -> Self {
         Self {
             client,
@@ -77,6 +76,66 @@ where
             }
             _ => tx(self.client.with_tx_id(None)).await,
         }
+    }
+
+    pub async fn begin(self) -> super::Result<(TransactionController<TClient>, TClient)> {
+        Ok(match &self.internals.engine {
+            ExecutionEngine::Real { connector, .. } => {
+                let new_tx_id = connector
+                    .executor
+                    .start_tx(
+                        connector.query_schema.clone(),
+                        self.max_wait,
+                        self.timeout,
+                        self.isolation_level,
+                    )
+                    .await
+                    .map_err(|e| QueryError::Execute(e.into()))?;
+
+                (
+                    TransactionController::new(new_tx_id.clone()),
+                    self.client.with_tx_id(Some(new_tx_id.clone())),
+                )
+            }
+            _ => (
+                TransactionController::new("".to_string().into()),
+                self.client.with_tx_id(None),
+            ),
+        })
+    }
+}
+
+pub struct TransactionController<TClient> {
+    tx_id: TxId,
+    _client: PhantomData<TClient>,
+}
+
+impl<TClient: PrismaClient> TransactionController<TClient> {
+    fn new(tx_id: TxId) -> Self {
+        Self {
+            tx_id,
+            _client: Default::default(),
+        }
+    }
+
+    pub async fn commit(self, client: TClient) -> super::Result<()> {
+        Ok(match &client.internals().engine {
+            ExecutionEngine::Real { connector, .. } => connector
+                .executor
+                .commit_tx(self.tx_id)
+                .await
+                .map_err(|e| QueryError::Execute(e.into()))?,
+            _ => {}
+        })
+    }
+
+    pub async fn rollback(self, client: TClient) -> super::Result<()> {
+        Ok(match &client.internals().engine {
+            ExecutionEngine::Real { connector, .. } => {
+                connector.executor.rollback_tx(self.tx_id).await.ok();
+            }
+            _ => {}
+        })
     }
 }
 
