@@ -21,7 +21,7 @@ It can be nice as all of your transaction's code can be kept in one place,
 but it has the downside that closures can be tricky to work with.
 
 To perform a transaction this way,
-just call `client._transaction().run(...)`
+just call `client._transaction().run(..)`
 and provide a closure returning an `async move` block to `run()`.
 The closure should accept one argument (the dedicated `PrismaClient` instance),
 and return a `Result`.
@@ -101,10 +101,10 @@ which probably isn't desirable.
 ```rust
 cilent
 		._transaction()
-		.run::<CustomError, _, _, _>(...)
+		.run::<CustomError, _, _, _>(..)
 		.await?;
 ```
-2. Type casting. If your closure returns `Ok(...)`,
+2. Type casting. If your closure returns `Ok`,
 you can cast it to a `Result` with the appropriate error type.
 
 ```rust
