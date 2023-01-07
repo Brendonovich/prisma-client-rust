@@ -8,7 +8,7 @@ _Available since v0.6.4_
 While batching can cover most use cases where queries need to succeed or fail together,
 it doesn't allow you to run code that executes between each query.
 Instead, you can use `PrismaClient::_transaction`,
-which provides both closure-based and procedural methods of executing individual queries and arbitrary code inside a transaction.
+which provides both closure-based and manual methods of executing individual queries and arbitrary code inside a transaction.
 
 Both methods provide the ability to commit and roll back a transaction,
 and produce a dedicated instance of `PrismaClient` that must be used while executing the transaction.
@@ -50,8 +50,8 @@ let (user, post) = client
 								)],
 						)
 						.exec()
-						// no ? to provide closure with concrete error type
 						.await
+						// if query succeeds, return user + post from transaction
 						.map(|post| (user, post))
 		})
 		.await?;
@@ -142,7 +142,7 @@ client
 ```
 
 
-## Procedural Transactions
+## Manual Transactions
 
 If you'd prefer to manually control when the transaction commits and rolls back,
 use `client._transaction().begin()` to not only get a dedicated `PrismaClient`,
@@ -163,8 +163,8 @@ or put all transaction logic inside a block so that the original `client` variab
 isn't shadowed in the rest of your code.
 
 `commit` and `rollback` consume the client created by `begin` as their only argument.
-This is done not only because those functions need to do things with the client,
-but also as an extra step to stop the transaction-specific client being used once the transaction is complete.
+This is done because those functions need to do things with the client,
+and as an extra precaution against the transaction-specific client being used once the transaction is complete.
 
 ```rust
 tx.commit(client).await?;
@@ -172,12 +172,19 @@ tx.commit(client).await?;
 tx.rollback(client).await?;
 ```
 
+
+### Error Handling
+
 Care must be taken when handling errors using this method.
 Simply using `?` could result in your code returning before `commit` or `rollback` is ran.
 An easy way to avoid this is to put your transaction logic in a function where it is safe to use `?`,
-and then `commit` or `rollback` based on the result of the function - similar to the closure method!
-
+and then `commit` or `rollback` based on the result of the function.
 ```rust
+let (client, tx) = client
+		._transaction()
+		.begin()
+		.await?;
+
 async fn do_stuff(client: &PrismaClient) -> ... {
 		let user = client
 				.user()
