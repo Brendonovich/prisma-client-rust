@@ -149,7 +149,7 @@ use `client._transaction().begin()` to not only get a dedicated `PrismaClient`,
 but also a `TransactionManger` instance that you can `commit` and `rollback` with:
 
 ```rust
-let (client, tx) = client
+let (tx, client) = client
 		._transaction()
 		.begin()
 		.await?;
@@ -180,7 +180,7 @@ Simply using `?` could result in your code returning before `commit` or `rollbac
 An easy way to avoid this is to put your transaction logic in a function where it is safe to use `?`,
 and then `commit` or `rollback` based on the result of the function.
 ```rust
-let (client, tx) = client
+let (tx, client) = client
 		._transaction()
 		.begin()
 		.await?;
