@@ -1,12 +1,12 @@
 use dml::PrismaValue;
 use query_core::{Operation, Selection, SelectionArgument};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
 
 use crate::{PrismaClientInternals, WhereInput};
 
 pub trait QueryConvert {
     type RawType: Data;
-    type ReturnValue: Serialize + 'static;
+    type ReturnValue: 'static;
 
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries

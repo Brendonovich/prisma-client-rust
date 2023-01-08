@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use query_core::{Operation, Selection};
 
+use serde::Serialize;
 use serde_value::Value;
 use tokio::sync::Mutex;
 
-use crate::{Query, QueryConvert};
+use crate::Query;
 
 #[derive(Default, Clone)]
 pub struct MockStore {
@@ -27,7 +28,10 @@ impl MockStore {
 
         mutex.lock().await.push((sel, expected))
     }
-    pub async fn expect<'a, Q: Query<'a>>(&self, query: Q, expected: Q::ReturnValue) {
+    pub async fn expect<'a, Q: Query<'a>>(&self, query: Q, expected: Q::ReturnValue)
+    where
+        Q::ReturnValue: Serialize,
+    {
         self.add_op(query.graphql().0, serde_value::to_value(expected).unwrap())
             .await;
     }
