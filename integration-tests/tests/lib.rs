@@ -33,6 +33,7 @@ mod mock;
 mod r_hash;
 mod raw;
 mod select;
+mod specta;
 mod update;
 mod upsert;
 mod with;

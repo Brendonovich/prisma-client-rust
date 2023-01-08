@@ -30,7 +30,9 @@ fn model_macro<'a>(
     model: &'a dml::Model,
     module_path: &TokenStream,
     variant: Variant,
+    /// Fields that should always be included
     base_fields: impl Iterator<Item = &'a dml::Field> + Clone,
+    /// Fields that can be picked from
     selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
 ) -> TokenStream {
     let model_name_pascal_str = model.name.to_case(Case::Pascal);
@@ -286,7 +288,7 @@ fn model_macro<'a>(
     let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
     let specta_impl = cfg!(feature = "rspc").then(|| {
-        let object_scalar_fields = selection_fields.clone().filter_map(|f| {
+        let base_field_types = base_fields.clone().filter_map(|f| {
             let field_name_str = f.name();
             let field_type = f.type_tokens(quote!());
 
@@ -316,7 +318,7 @@ fn model_macro<'a>(
                         name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
                         tag: None,
                         generics: vec![],
-                        fields: vec![#(#object_scalar_fields)* $(#specta::ObjectField {
+                        fields: vec![#(#base_field_types)* $(#specta::ObjectField {
                             name: $crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field).to_string(),
                             optional: false,
                             ty: <$crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
@@ -686,7 +688,13 @@ pub mod include {
     use super::*;
 
     pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
-        super::model_macro(model, module_path, Variant::Include, model.fields().filter(|f| f.is_scalar_field()), model.fields().filter(|f| f.is_relation()))
+        super::model_macro(
+            model, 
+            module_path, 
+            Variant::Include, 
+            model.fields().filter(|f| f.is_scalar_field()),
+            model.fields().filter(|f| f.is_relation())
+        )
     }
 
     pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
@@ -702,7 +710,13 @@ pub mod select {
     use super::*;
 
     pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
-        super::model_macro(model, module_path, Variant::Select, [].iter(), model.fields())
+        super::model_macro(
+            model, 
+            module_path, 
+            Variant::Select, 
+            [].iter(), 
+            model.fields()
+        )
     }
 
     pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
