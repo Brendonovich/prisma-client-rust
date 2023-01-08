@@ -1,12 +1,12 @@
 use dml::PrismaValue;
 use query_core::{Operation, Selection, SelectionArgument};
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{PrismaClientInternals, WhereInput};
 
 pub trait Query<'a> {
     type RawType: DeserializeOwned;
-    type ReturnValue: 'static;
+    type ReturnValue: Serialize + 'static;
 
     fn graphql(self) -> (Operation, &'a PrismaClientInternals);
 
