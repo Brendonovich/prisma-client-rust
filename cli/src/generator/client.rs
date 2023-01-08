@@ -127,13 +127,31 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 )
             }
 
-            pub async fn _batch<'a, T: #pcr::BatchContainer<'a, Marker>, Marker>(&'a self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'a, Marker>>::ReturnType> {
+            pub async fn _batch<'batch, T: #pcr::BatchContainer<'batch, Marker>, Marker>(&self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'batch, Marker>>::ReturnType> {
                 #pcr::batch(queries, &self.0).await
+            }
+
+            pub fn _transaction(&self) -> #pcr::TransactionBuilder<Self> {
+                #pcr::TransactionBuilder::_new(self, &self.0)
             }
 
             #migrate_fns
 
             #(#model_actions)*
+        }
+
+        impl #pcr::PrismaClient for PrismaClient {
+            fn internals(&self) -> &#pcr::PrismaClientInternals {
+                &self.0
+            }
+
+            fn internals_mut(&mut self) -> &mut #pcr::PrismaClientInternals {
+                &mut self.0
+            }
+
+            fn with_tx_id(&self, tx_id: Option<#pcr::query_core::TxId>) -> Self {
+                Self(self.0.with_tx_id(tx_id))
+            }
         }
     }
 }

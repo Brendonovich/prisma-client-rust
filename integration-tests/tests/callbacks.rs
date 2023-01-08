@@ -1,6 +1,5 @@
-use prisma_client_rust::*;
-use std::sync::Arc;
-use std::sync::Mutex;
+use prisma_client_rust::{ModelMutationCallbackData, ModelMutationType};
+use std::sync::{Arc, Mutex};
 
 use crate::db::*;
 use crate::utils::*;

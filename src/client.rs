@@ -1,7 +1,7 @@
 use crate::queries::ModelActions;
 use crate::{ActionNotifier, ModelQuery};
 use diagnostics::Diagnostics;
-use query_core::{schema_builder, CoreError, Operation};
+use query_core::{schema_builder, BatchDocumentTransaction, CoreError, Operation, TxId};
 use schema::QuerySchema;
 use serde::de::{DeserializeOwned, IntoDeserializer};
 use std::sync::Arc;
@@ -11,11 +11,23 @@ use crate::{prisma_value, ModelMutationCallbackData, ModelOperation, QueryError,
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
+pub trait PrismaClient {
+    fn internals(&self) -> &PrismaClientInternals;
+    fn internals_mut(&mut self) -> &mut PrismaClientInternals;
+    fn with_tx_id(&self, tx_id: Option<TxId>) -> Self;
+}
+
+pub struct ExecutorConnector {
+    pub executor: Executor,
+    pub query_schema: Arc<QuerySchema>,
+    pub url: String,
+}
+
+#[derive(Clone)]
 pub(crate) enum ExecutionEngine {
     Real {
-        executor: Executor,
-        query_schema: Arc<QuerySchema>,
-        url: String,
+        connector: Arc<ExecutorConnector>,
+        tx_id: Option<TxId>,
     },
     #[cfg(feature = "mocking")]
     Mock(crate::MockStore),
@@ -24,13 +36,10 @@ pub(crate) enum ExecutionEngine {
 impl ExecutionEngine {
     async fn execute(&self, op: Operation) -> Result<serde_value::Value> {
         match self {
-            Self::Real {
-                executor,
-                query_schema,
-                ..
-            } => {
-                let response = executor
-                    .execute(None, op, query_schema.clone(), None)
+            Self::Real { connector, tx_id } => {
+                let response = connector
+                    .executor
+                    .execute(tx_id.clone(), op, connector.query_schema.clone(), None)
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
 
@@ -48,13 +57,16 @@ impl ExecutionEngine {
         ops: Vec<Operation>,
     ) -> Result<Vec<Result<serde_value::Value>>> {
         match self {
-            Self::Real {
-                executor,
-                query_schema,
-                ..
-            } => {
-                let response = executor
-                    .execute_all(None, ops, None, query_schema.clone(), None)
+            Self::Real { connector, .. } => {
+                let response = connector
+                    .executor
+                    .execute_all(
+                        None,
+                        ops,
+                        Some(BatchDocumentTransaction::new(None)),
+                        connector.query_schema.clone(),
+                        None,
+                    )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
 
@@ -82,13 +94,24 @@ impl ExecutionEngine {
             }
         }
     }
+
+    fn with_tx_id(&self, tx_id: Option<TxId>) -> Self {
+        match self {
+            Self::Real { connector, .. } => Self::Real {
+                connector: connector.clone(),
+                tx_id,
+            },
+            _ => self.clone(),
+        }
+    }
 }
 
 /// The data held by the generated PrismaClient
 /// Do not use this in your own code!
+#[derive(Clone)]
 pub struct PrismaClientInternals {
     pub(crate) engine: ExecutionEngine,
-    pub action_notifier: crate::ActionNotifier,
+    pub action_notifier: Arc<crate::ActionNotifier>,
 }
 
 impl PrismaClientInternals {
@@ -167,11 +190,14 @@ impl PrismaClientInternals {
 
         Ok(Self {
             engine: ExecutionEngine::Real {
-                executor,
-                query_schema,
-                url,
+                connector: Arc::new(ExecutorConnector {
+                    executor,
+                    query_schema,
+                    url,
+                }),
+                tx_id: None,
             },
-            action_notifier,
+            action_notifier: Arc::new(action_notifier),
         })
     }
 
@@ -182,7 +208,7 @@ impl PrismaClientInternals {
         (
             Self {
                 engine: ExecutionEngine::Mock(mock_store.clone()),
-                action_notifier,
+                action_notifier: Arc::new(action_notifier),
             },
             mock_store,
         )
@@ -192,7 +218,14 @@ impl PrismaClientInternals {
         match &self.engine {
             #[cfg(feature = "mocking")]
             ExecutionEngine::Mock(_) => "mock",
-            ExecutionEngine::Real { url, .. } => url,
+            ExecutionEngine::Real { connector, .. } => &connector.url,
+        }
+    }
+
+    pub fn with_tx_id(&self, tx_id: Option<TxId>) -> Self {
+        Self {
+            engine: self.engine.with_tx_id(tx_id),
+            action_notifier: self.action_notifier.clone(),
         }
     }
 }

@@ -36,7 +36,9 @@ pub use update::*;
 pub use update_many::*;
 pub use upsert::*;
 
+use futures::FutureExt;
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
+use std::future::Future;
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -98,11 +100,9 @@ impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
     }
 }
 
-pub(crate) async fn exec<'a, Q: Query<'a>>(
+pub fn exec<'a, Q: Query<'a> + 'a>(
     query: Q,
-) -> error::Result<<Q as Query<'a>>::ReturnValue> {
+) -> impl Future<Output = Result<<Q as QueryConvert>::ReturnValue>> + 'a {
     let (op, client) = query.graphql();
-    let res = client.execute(op).await;
-
-    res.map(Q::convert)
+    client.execute(op).map(|res| res.map(Q::convert))
 }

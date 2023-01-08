@@ -5,7 +5,7 @@ use query_core::{Operation, Selection};
 use serde_value::Value;
 use tokio::sync::Mutex;
 
-use crate::Query;
+use crate::{Query, QueryConvert};
 
 #[derive(Default, Clone)]
 pub struct MockStore {
@@ -27,7 +27,6 @@ impl MockStore {
 
         mutex.lock().await.push((sel, expected))
     }
-
     pub async fn expect<'a, Q: Query<'a>>(&self, query: Q, expected: Q::ReturnValue) {
         self.add_op(query.graphql().0, serde_value::to_value(expected).unwrap())
             .await;

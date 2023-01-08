@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{PrismaClientInternals, Query};
+use crate::{PrismaClientInternals, Query, QueryConvert};
 
 pub trait SelectType {
     // TODO: ModelActions
@@ -33,15 +33,17 @@ impl<'a, Data: DeserializeOwned> Select<'a, Data> {
     }
 }
 
-impl<'a, Data: DeserializeOwned + 'static> Query<'a> for Select<'a, Data> {
+impl<'a, Data: DeserializeOwned + 'static> QueryConvert for Select<'a, Data> {
     type RawType = Data;
     type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
-        (self.operation, self.client)
-    }
-
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Data: DeserializeOwned + 'static> Query<'a> for Select<'a, Data> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (self.operation, self.client)
     }
 }

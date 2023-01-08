@@ -1,6 +1,7 @@
 use utils::{cleanup, TestResult};
 
 mod db;
+mod transaction;
 mod utils;
 
 #[tokio::test]
@@ -33,6 +34,7 @@ mod mock;
 mod r_hash;
 mod raw;
 mod select;
+mod specta;
 mod update;
 mod upsert;
 mod with;
