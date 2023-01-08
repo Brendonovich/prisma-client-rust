@@ -1,6 +1,7 @@
 use utils::{cleanup, TestResult};
 
 mod db;
+mod transaction;
 mod utils;
 
 #[tokio::test]

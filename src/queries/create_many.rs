@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
-    PrismaClientInternals, Query,
+    PrismaClientInternals, Query, QueryConvert,
 };
 
 pub struct CreateMany<'a, Actions: ModelActions> {
@@ -63,10 +63,16 @@ impl<'a, Actions: ModelActions> CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
+impl<'a, Actions: ModelActions> QueryConvert for CreateMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        raw.count
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::to_selection(
@@ -76,10 +82,6 @@ impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
             )),
             self.client,
         )
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw.count
     }
 }
 

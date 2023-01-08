@@ -3,7 +3,7 @@ use query_core::{Operation, Selection};
 
 use crate::{
     Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
-    PrismaClientInternals, Query, Select, SelectType, WhereInput, WithQuery,
+    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
 pub struct Upsert<'a, Actions: ModelActions> {
@@ -95,10 +95,16 @@ impl<'a, Actions: ModelActions> Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelActions> QueryConvert for Upsert<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        raw
+    }
+}
+
+impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -113,10 +119,6 @@ impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
             )),
             self.client,
         )
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
     }
 }
 

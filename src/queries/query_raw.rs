@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     raw::{Raw, RawOperationData, RawPrismaValue},
-    PrismaClientInternals, Query,
+    PrismaClientInternals, Query, QueryConvert,
 };
 
 pub struct QueryRaw<'a, Data>
@@ -60,13 +60,22 @@ where
     }
 }
 
-impl<'a, Data> Query<'a> for QueryRaw<'a, Data>
+impl<'a, Data> QueryConvert for QueryRaw<'a, Data>
 where
     Data: DeserializeOwned + 'static,
 {
     type RawType = RawOperationData;
     type ReturnValue = Vec<Data>;
 
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        Self::convert(raw).unwrap()
+    }
+}
+
+impl<'a, Data> Query<'a> for QueryRaw<'a, Data>
+where
+    Data: DeserializeOwned + 'static,
+{
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Selection::new(
@@ -83,9 +92,5 @@ where
             )),
             self.client,
         )
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw).unwrap()
     }
 }

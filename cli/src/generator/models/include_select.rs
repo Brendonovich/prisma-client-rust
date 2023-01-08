@@ -290,7 +290,7 @@ fn model_macro<'a>(
     let specta_impl = cfg!(feature = "rspc").then(|| {
         let base_field_types = base_fields.clone().filter_map(|f| {
             let field_name_str = f.name();
-            let field_type = f.type_tokens(quote!());
+            let field_type = f.type_tokens(quote!(crate::#module_path::));
 
             f.as_scalar_field().map(|_| 
                 quote!(#specta::ObjectField {
@@ -399,7 +399,7 @@ fn model_macro<'a>(
     let selection = {
         let scalar_selections = matches!(variant, Variant::Include).then(||
             quote! {
-                <$crate::#module_path::#model_name_snake::Actions as ::prisma_client_rust::ModelActions>::scalar_selections()
+                <$crate::#module_path::#model_name_snake::Types as ::prisma_client_rust::ModelActions>::scalar_selections()
             }
         );
 
@@ -542,7 +542,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
             let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
 
             let initial_nested_selections = match variant {
-                Variant::Include => quote!(<#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()),
+                Variant::Include => quote!(<#relation_model_name_snake::Types as #pcr::ModelActions>::scalar_selections()),
                 Variant::Select => quote!(vec![])
             };
 
@@ -577,7 +577,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                                 ),
                                 Self::Fetch(args) => (
                                     args.to_graphql().0,
-                                    <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()
+                                    <#relation_model_name_snake::Types as #pcr::ModelActions>::scalar_selections()
                                 )
                             };
 
@@ -618,7 +618,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                                     nested_selections
                                 },
                                 Self::Fetch => {
-                                    <#relation_model_name_snake::Actions as #pcr::ModelActions>::scalar_selections()
+                                    <#relation_model_name_snake::Types as #pcr::ModelActions>::scalar_selections()
                                 }
                             };
 

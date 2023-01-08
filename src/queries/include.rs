@@ -1,7 +1,7 @@
 use query_core::{Operation, Selection};
 use std::marker::PhantomData;
 
-use crate::{PrismaClientInternals, Query};
+use crate::{PrismaClientInternals, Query, QueryConvert};
 
 use super::query;
 
@@ -33,15 +33,17 @@ impl<'a, Data: query::Data> Include<'a, Data> {
     }
 }
 
-impl<'a, Data: query::Data> Query<'a> for Include<'a, Data> {
+impl<'a, Data: query::Data> QueryConvert for Include<'a, Data> {
     type RawType = Data;
     type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
-        (self.operation, self.client)
-    }
-
     fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Data: query::Data> Query<'a> for Include<'a, Data> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (self.operation, self.client)
     }
 }
