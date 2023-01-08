@@ -44,7 +44,7 @@ impl BatchItemData {
 }
 
 pub enum BatchDataMeta {
-    Iterator(usize, BatchItemDataMeta),
+    Iterator(VecMeta),
     Tuple(Vec<BatchItemDataMeta>),
 }
 
@@ -56,7 +56,11 @@ pub enum BatchData {
 impl BatchData {
     fn meta(&self) -> BatchDataMeta {
         match self {
-            Self::Iterator(v) => BatchDataMeta::Iterator(v.len(), v[0].meta()),
+            Self::Iterator(v) => BatchDataMeta::Iterator(
+                NonZeroUsize::new(v.len())
+                    .map(|size| VecMeta::NotEmpty(size, Box::new(v[0].meta())))
+                    .unwrap_or(VecMeta::Empty),
+            ),
             Self::Tuple(v) => BatchDataMeta::Tuple(v.iter().map(BatchItemData::meta).collect()),
         }
     }
@@ -175,9 +179,12 @@ impl<'batch, 't: 'batch, T: BatchItem<'t>, I: IntoIterator<Item = T>> BatchConta
 
     fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
         match meta {
-            BatchDataMeta::Iterator(count, meta) => {
-                (0..count).map(|_| T::resolve(&meta, &mut values)).collect()
-            }
+            BatchDataMeta::Iterator(meta) => match meta {
+                VecMeta::Empty => vec![],
+                VecMeta::NotEmpty(size, meta) => (0..size.get())
+                    .map(|_| T::resolve(&meta, &mut values))
+                    .collect(),
+            },
             _ => unreachable!(),
         }
     }
@@ -186,7 +193,13 @@ impl<'batch, 't: 'batch, T: BatchItem<'t>, I: IntoIterator<Item = T>> BatchConta
 pub enum TupleMarker {}
 
 macro_rules! impl_tuple {
-    ($($generic:ident),+) => {
+    ($generic_1: ident, $($generic:ident),+) => {
+        impl_tuple!(impl $generic_1 $(,$generic)+);
+        impl_tuple!($($generic),+);
+    };
+    ($generic:ident) => {};
+    (impl $generic:ident) => {};
+    (impl $($generic:ident),+) => {
         paste::paste! {
             #[allow(warnings)]
             impl<'batch, $( [< "'" $generic >]: 'batch),+, $($generic: BatchItem<[< "'" $generic >]>),+> BatchContainer<'batch, TupleMarker> for ($($generic),+) {
@@ -242,24 +255,9 @@ macro_rules! impl_tuple {
                 }
             }
         }
-    }
+    };
 }
 
-impl_tuple!(T1, T2);
-impl_tuple!(T1, T2, T3);
-impl_tuple!(T1, T2, T3, T4);
-impl_tuple!(T1, T2, T3, T4, T5);
-impl_tuple!(T1, T2, T3, T4, T5, T6);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16);
 impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17);
 
 /// TODO: remove this in 0.7.0

@@ -361,3 +361,15 @@ async fn async_trait() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn allows_empty() -> TestResult {
+    let client = client().await;
+
+    client._batch(vec![] as Vec<user::Create>).await?;
+    client
+        ._batch(vec![vec![]] as Vec<Vec<user::Create>>)
+        .await?;
+
+    cleanup(client).await
+}
