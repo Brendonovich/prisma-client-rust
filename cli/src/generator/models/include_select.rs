@@ -30,9 +30,9 @@ fn model_macro<'a>(
     model: &'a dml::Model,
     module_path: &TokenStream,
     variant: Variant,
-    /// Fields that should always be included
+    // Fields that should always be included
     base_fields: impl Iterator<Item = &'a dml::Field> + Clone,
-    /// Fields that can be picked from
+    // Fields that can be picked from
     selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
 ) -> TokenStream {
     let model_name_pascal_str = model.name.to_case(Case::Pascal);
