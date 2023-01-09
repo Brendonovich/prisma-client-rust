@@ -3,11 +3,11 @@ use std::marker::PhantomData;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{PrismaClientInternals, Query, QueryConvert};
+use crate::{Data, PrismaClientInternals, Query, QueryConvert};
 
 pub trait SelectType {
     // TODO: ModelActions
-    type Data: DeserializeOwned;
+    type Data: Data;
     type ModelData;
 
     fn to_selections(self) -> Vec<Selection>;
@@ -19,7 +19,7 @@ pub struct Select<'a, Data: DeserializeOwned> {
     _data: PhantomData<Data>,
 }
 
-impl<'a, Data: DeserializeOwned> Select<'a, Data> {
+impl<'a, Data: crate::Data> Select<'a, Data> {
     pub fn new(client: &'a PrismaClientInternals, operation: Operation) -> Self {
         Self {
             client,
@@ -29,7 +29,7 @@ impl<'a, Data: DeserializeOwned> Select<'a, Data> {
     }
 
     pub async fn exec(self) -> super::Result<Data> {
-        self.client.execute(self.operation).await
+        super::exec(self).await
     }
 }
 

@@ -38,7 +38,11 @@ pub use upsert::*;
 
 use futures::FutureExt;
 pub use query_core::{schema::QuerySchemaRef, Operation, Selection};
+use serde::de::IntoDeserializer;
+use serde::Deserialize;
 use std::future::Future;
+
+use crate::ExecutionEngine;
 
 pub enum SerializedWhereValue {
     Object(Vec<(String, prisma_models::PrismaValue)>),
@@ -104,5 +108,15 @@ pub fn exec<'a, Q: Query<'a> + 'a>(
     query: Q,
 ) -> impl Future<Output = Result<<Q as QueryConvert>::ReturnValue>> + 'a {
     let (op, client) = query.graphql();
-    client.execute(op).map(|res| res.map(Q::convert))
+    client.execute(op).map(|value| {
+        let value = value?;
+
+        Ok(match client.engine {
+            ExecutionEngine::Real { .. } => {
+                Q::RawType::deserialize(value.into_deserializer()).map(Q::convert)?
+            }
+            #[cfg(feature = "mocking")]
+            ExecutionEngine::Mock(_) => Q::ReturnValue::deserialize(value.into_deserializer())?,
+        })
+    })
 }

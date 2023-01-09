@@ -57,4 +57,25 @@ async fn returns_many() -> TestResult {
     Ok(())
 }
 
+#[tokio::test]
+async fn delete_many() -> TestResult {
+    let (client, mock) = PrismaClient::_mock();
+
+    user::select!(basic_user { id name });
+
+    let query = || {
+        client
+            .user()
+            .delete_many(vec![user::name::equals("Brendan".to_string())])
+    };
+
+    mock.expect(query(), 4).await;
+
+    let result = query().exec().await?;
+
+    assert_eq!(result, 4);
+
+    Ok(())
+}
+
 // TODO: Errors
