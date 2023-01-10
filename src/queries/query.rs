@@ -6,7 +6,7 @@ use crate::{PrismaClientInternals, WhereInput};
 
 pub trait QueryConvert {
     type RawType: Data;
-    type ReturnValue: 'static;
+    type ReturnValue: Data;
 
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries

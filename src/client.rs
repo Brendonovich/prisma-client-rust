@@ -3,7 +3,7 @@ use crate::{ActionNotifier, ModelQuery};
 use diagnostics::Diagnostics;
 use query_core::{schema_builder, BatchDocumentTransaction, CoreError, Operation, TxId};
 use schema::QuerySchema;
-use serde::de::{DeserializeOwned, IntoDeserializer};
+
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -101,6 +101,7 @@ impl ExecutionEngine {
                 connector: connector.clone(),
                 tx_id,
             },
+            #[cfg(feature = "mocking")]
             _ => self.clone(),
         }
     }
@@ -115,13 +116,8 @@ pub struct PrismaClientInternals {
 }
 
 impl PrismaClientInternals {
-    pub async fn execute<T: DeserializeOwned>(&self, operation: Operation) -> Result<T> {
-        // less monomorphization yay
-        let value = self.engine.execute(operation).await?;
-
-        let ret = T::deserialize(value.into_deserializer())?;
-
-        Ok(ret)
+    pub(crate) async fn execute(&self, operation: Operation) -> Result<serde_value::Value> {
+        self.engine.execute(operation).await
     }
 
     pub fn notify_model_mutation<'a, Action>(&self)
