@@ -1,36 +1,19 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, Selection};
 
 use crate::{
-    include::{Include, IncludeType},
-    merge_fields,
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals,
+    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
+    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
+    WithQuery,
 };
 
-pub struct Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Create<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub set_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> ModelAction for Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Create);
-}
-
-impl<'a, Actions> Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> Create<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::Set>) -> Self {
         Self {
             client,
@@ -44,81 +27,87 @@ where
         self
     }
 
-    fn to_selection(set_params: Vec<Actions::Set>) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "data",
-            PrismaValue::Object(merge_fields(
-                set_params.into_iter().map(Into::into).collect(),
-            )),
-        );
-
-        selection
+    fn to_selection(
+        set_params: Vec<Actions::Set>,
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [(
+                "data".to_string(),
+                PrismaValue::Object(merge_fields(
+                    set_params.into_iter().map(Into::into).collect(),
+                ))
+                .into(),
+            )]
+            .into_iter(),
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, S::Data> {
-        let mut selection = Self::to_selection(self.set_params);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Write(Self::to_selection(self.set_params, select.to_selections())),
+        )
     }
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         include: I,
     ) -> Include<'a, I::Data> {
-        let mut selection = Self::to_selection(self.set_params);
-
-        selection.nested_selections(include.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Include::new(self.client, op)
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::to_selection(self.set_params);
-        let mut scalar_selections = Actions::scalar_selections();
-
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
-
-        (Operation::Write(selection.build()), self.client)
+        Include::new(
+            self.client,
+            Operation::Write(Self::to_selection(self.set_params, include.to_selections())),
+        )
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await?;
-
-        #[cfg(feature = "mutation-callbacks")]
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
+        super::exec(self).await
     }
 }
 
-impl<'a, Actions> BatchQuery for Create<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> QueryConvert for Create<'a, Actions> {
     type RawType = Actions::Data;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Actions: ModelTypes> Query<'a> for Create<'a, Actions> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut scalar_selections = Actions::scalar_selections();
+
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
+
+        (
+            Operation::Write(Self::to_selection(self.set_params, scalar_selections)),
+            self.client,
+        )
+    }
+}
+
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Create<'a, Actions> {
+    type Types = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Create);
+}
+
+impl<'a, Actions: ModelTypes> SetQuery<'a> for Create<'a, Actions> {
+    fn add_set(&mut self, param: Actions::Set) {
+        self.set_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelTypes> WithQuery<'a> for Create<'a, Actions> {
+    fn add_with(
+        &mut self,
+        param: impl Into<<<Self as ModelQuery<'a>>::Types as ModelTypes>::With>,
+    ) {
+        self.with_params.push(param.into());
     }
 }

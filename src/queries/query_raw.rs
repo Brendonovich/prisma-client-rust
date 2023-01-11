@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     raw::{Raw, RawOperationData, RawPrismaValue},
-    BatchQuery, PrismaClientInternals,
+    PrismaClientInternals, Query, QueryConvert,
 };
 
 pub struct QueryRaw<'a, Data>
@@ -22,7 +22,7 @@ where
 
 impl<'a, Data> QueryRaw<'a, Data>
 where
-    Data: DeserializeOwned,
+    Data: DeserializeOwned + 'static,
 {
     pub fn new(client: &'a PrismaClientInternals, query: Raw, database: &'static str) -> Self {
         let (sql, params) = query.convert(database);
@@ -33,18 +33,6 @@ where
             params,
             _data: PhantomData,
         }
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Selection::builder("queryRaw".to_string());
-
-        selection.push_argument("query", PrismaValue::String(self.sql));
-        selection.push_argument(
-            "parameters",
-            PrismaValue::String(serde_json::to_string(&self.params).unwrap()),
-        );
-
-        (Operation::Write(selection.build()), self.client)
     }
 
     pub(crate) fn convert(raw: RawOperationData) -> super::Result<Vec<Data>> {
@@ -68,24 +56,41 @@ where
     }
 
     pub async fn exec(self) -> super::Result<Vec<Data>> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await.and_then(Self::convert)
+        super::exec(self).await
     }
 }
 
-impl<'a, Data> BatchQuery for QueryRaw<'a, Data>
+impl<'a, Data> QueryConvert for QueryRaw<'a, Data>
 where
-    Data: DeserializeOwned,
+    Data: DeserializeOwned + 'static,
 {
     type RawType = RawOperationData;
-    type ReturnType = Vec<Data>;
+    type ReturnValue = Vec<Data>;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         Self::convert(raw).unwrap()
+    }
+}
+
+impl<'a, Data> Query<'a> for QueryRaw<'a, Data>
+where
+    Data: DeserializeOwned + 'static,
+{
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (
+            Operation::Write(Selection::new(
+                "queryRaw".to_string(),
+                None,
+                [
+                    ("query".to_string(), PrismaValue::String(self.sql).into()),
+                    (
+                        "parameters".to_string(),
+                        PrismaValue::String(serde_json::to_string(&self.params).unwrap()).into(),
+                    ),
+                ],
+                [],
+            )),
+            self.client,
+        )
     }
 }

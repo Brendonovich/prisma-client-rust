@@ -1,7 +1,7 @@
 use crate::{db::*, utils::*};
 
 #[tokio::test]
-async fn upsert() -> TestResult {
+async fn query() -> TestResult {
     let client = client().await;
 
     let user_id = "sldfksldf".to_string();

@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[tokio::test]
-async fn find_first() -> TestResult {
+async fn test() -> TestResult {
     let client = client().await;
 
     let posts = vec![

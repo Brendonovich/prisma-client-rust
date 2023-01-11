@@ -14,7 +14,7 @@ async fn create_user(client: &PrismaClient) -> Result<String, QueryError> {
 }
 
 #[tokio::test]
-async fn update() -> TestResult {
+async fn query() -> TestResult {
     let client = client().await;
 
     let user_id = create_user(&client).await?;
@@ -73,7 +73,7 @@ async fn update() -> TestResult {
 // TODO: update with nested create & delete/disconnect
 
 #[tokio::test]
-async fn update_and_disconnect() -> TestResult {
+async fn disconnect() -> TestResult {
     let client = client().await;
 
     let user_id = create_user(&client).await?;
@@ -131,7 +131,7 @@ async fn update_and_disconnect() -> TestResult {
 }
 
 #[tokio::test]
-async fn atomic_update() -> TestResult {
+async fn atomic() -> TestResult {
     let client = client().await;
 
     let post = client
@@ -156,7 +156,7 @@ async fn atomic_update() -> TestResult {
 }
 
 #[tokio::test]
-async fn update_record_not_found() -> TestResult {
+async fn record_not_found() -> TestResult {
     let client = client().await;
 
     let error = client
@@ -175,7 +175,7 @@ async fn update_record_not_found() -> TestResult {
 }
 
 #[tokio::test]
-async fn setting_field_to_null() -> TestResult {
+async fn set_none() -> TestResult {
     let client = client().await;
 
     let post = client
@@ -204,7 +204,7 @@ async fn setting_field_to_null() -> TestResult {
 }
 
 #[tokio::test]
-async fn update_id_field() -> TestResult {
+async fn id_field() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -227,7 +227,7 @@ async fn update_id_field() -> TestResult {
 }
 
 #[tokio::test]
-async fn update_id_field_atomic() -> TestResult {
+async fn id_field_atomic() -> TestResult {
     let client = client().await;
 
     let record = client.types().create(vec![]).exec().await?;
@@ -245,7 +245,7 @@ async fn update_id_field_atomic() -> TestResult {
 }
 
 #[tokio::test]
-async fn update_unique_field() -> TestResult {
+async fn unique_field() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -275,7 +275,7 @@ async fn update_unique_field() -> TestResult {
 }
 
 #[tokio::test]
-async fn update_many() -> TestResult {
+async fn many() -> TestResult {
     let client = client().await;
 
     let posts = vec![
@@ -391,7 +391,7 @@ async fn update_many() -> TestResult {
 }
 
 #[tokio::test]
-async fn setting_many_to_null() -> TestResult {
+async fn set_many_none() -> TestResult {
     let client = client().await;
 
     let post = client

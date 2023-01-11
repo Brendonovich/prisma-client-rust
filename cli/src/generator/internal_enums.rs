@@ -1,6 +1,6 @@
-use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
+use prisma_client_rust_sdk::prelude::*;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let internal_enums = args
@@ -10,13 +10,13 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         .unwrap()
         .iter()
         .map(|e| {
-            let name = format_ident!("{}", e.name.to_case(Case::Pascal));
+            let name = pascal_ident(&e.name);
 
             let variants = e
                 .values
                 .iter()
                 .map(|v| {
-                    let variant_name = format_ident!("{}", v.to_case(Case::Pascal));
+                    let variant_name = pascal_ident(v);
 
                     quote! {
                         #[serde(rename=#v)]
@@ -29,14 +29,18 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                 .values
                 .iter()
                 .map(|name| {
-                    let variant_name = format_ident!("{}", name.to_case(Case::Pascal));
+                    let variant_name = pascal_ident(name);
 
                     quote!(Self::#variant_name => #name.to_string())
                 })
                 .collect::<Vec<_>>();
 
+            let isolation_level_impl = (&e.name == "TransactionIsolationLevel").then(|| quote! {
+                impl ::prisma_client_rust::TransactionIsolationLevel for TransactionIsolationLevel {}
+            });
+
             quote! {
-                #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize)]
+                #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq)]
                 pub enum #name {
                     #(#variants),*
                 }
@@ -48,10 +52,13 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
                         }
                     }
                 }
+
+                #isolation_level_impl
             }
         });
 
     quote! {
-       #(#internal_enums)*
+        #(#internal_enums)*
+
     }
 }

@@ -3,18 +3,11 @@ use crate::generator::prelude::*;
 use super::required_fields;
 
 fn create_unchecked(model: &dml::Model) -> TokenStream {
-    let scalar_fields = model.required_scalar_fields();
-    let scalar_fields = scalar_fields.iter();
-
-    let scalar_field_names = scalar_fields
-        .clone()
-        .map(|f| snake_ident(f.name()))
-        .collect::<Vec<_>>();
-
-    let scalar_field_types = scalar_fields
-        .clone()
-        .map(|f| f.type_tokens())
-        .collect::<Vec<_>>();
+    let (scalar_field_names, scalar_field_types): (Vec<_>, Vec<_>) = model
+        .required_scalar_fields()
+        .iter()
+        .map(|f| (snake_ident(f.name()), f.type_tokens(quote!())))
+        .unzip();
 
     quote! {
         pub fn create_unchecked(#(#scalar_field_names: #scalar_field_types,)* _params: Vec<SetParam>)
@@ -25,16 +18,10 @@ fn create_unchecked(model: &dml::Model) -> TokenStream {
 }
 
 fn create(model: &dml::Model) -> TokenStream {
-    let required_fields = required_fields(model);
-
-    let required_field_names = required_fields
+    let (required_field_names, required_field_types): (Vec<_>, Vec<_>) = required_fields(model)
         .iter()
-        .map(|field| snake_ident(field.name()))
-        .collect::<Vec<_>>();
-    let required_field_types = required_fields
-        .iter()
-        .map(|field| &field.typ)
-        .collect::<Vec<_>>();
+        .map(|field| (snake_ident(field.name()), field.typ.clone()))
+        .unzip();
 
     quote! {
         pub fn create(#(#required_field_names: #required_field_types,)* _params: Vec<SetParam>)

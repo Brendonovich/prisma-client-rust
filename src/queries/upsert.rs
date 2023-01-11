@@ -1,17 +1,12 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, SelectionBuilder};
+use query_core::{Operation, Selection};
 
 use crate::{
-    include::Include,
-    select::{Select, SelectType},
-    BatchQuery, ModelAction, ModelActionType, ModelActions, ModelMutationType,
-    PrismaClientInternals, WhereInput,
+    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
+    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Upsert<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub create_params: Vec<Actions::Set>,
@@ -19,19 +14,7 @@ where
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions> ModelAction for Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Mutation(ModelMutationType::Upsert);
-}
-
-impl<'a, Actions> Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -56,90 +39,97 @@ where
         where_param: Actions::Where,
         create_params: Vec<Actions::Set>,
         update_params: Vec<Actions::Set>,
-    ) -> SelectionBuilder {
-        let mut selection = Self::base_selection();
-
-        selection.push_argument(
-            "where",
-            PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
-        );
-
-        selection.push_argument(
-            "create",
-            PrismaValue::Object(create_params.into_iter().map(Into::into).collect()),
-        );
-
-        selection.push_argument(
-            "update",
-            PrismaValue::Object(update_params.into_iter().map(Into::into).collect()),
-        );
-
-        selection
+        nested_selections: impl IntoIterator<Item = Selection>,
+    ) -> Selection {
+        Self::base_selection(
+            [
+                (
+                    "where".to_string(),
+                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                ),
+                (
+                    "create".to_string(),
+                    PrismaValue::Object(create_params.into_iter().map(Into::into).collect()).into(),
+                ),
+                (
+                    "update".to_string(),
+                    PrismaValue::Object(update_params.into_iter().map(Into::into).collect()).into(),
+                ),
+            ],
+            nested_selections,
+        )
     }
 
     pub fn select<S: SelectType<ModelData = Actions::Data>>(
         self,
         select: S,
     ) -> Select<'a, S::Data> {
-        let mut selection =
-            Self::to_selection(self.where_param, self.create_params, self.update_params);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Select::new(self.client, op)
+        Select::new(
+            self.client,
+            Operation::Write(Self::to_selection(
+                self.where_param,
+                self.create_params,
+                self.update_params,
+                select.to_selections(),
+            )),
+        )
     }
 
-    pub fn include<I: SelectType<ModelData = Actions::Data>>(
+    pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
         select: I,
     ) -> Include<'a, I::Data> {
-        let mut selection =
-            Self::to_selection(self.where_param, self.create_params, self.update_params);
-
-        selection.nested_selections(select.to_selections());
-
-        let op = Operation::Write(selection.build());
-
-        Include::new(self.client, op)
-    }
-
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection =
-            Self::to_selection(self.where_param, self.create_params, self.update_params);
-        let mut scalar_selections = Actions::scalar_selections();
-
-        if self.with_params.len() > 0 {
-            scalar_selections.append(&mut self.with_params.into_iter().map(Into::into).collect());
-        }
-        selection.nested_selections(scalar_selections);
-
-        (Operation::Write(selection.build()), self.client)
+        Include::new(
+            self.client,
+            Operation::Write(Self::to_selection(
+                self.where_param,
+                self.create_params,
+                self.update_params,
+                select.to_selections(),
+            )),
+        )
     }
 
     pub async fn exec(self) -> super::Result<Actions::Data> {
-        let (op, client) = self.exec_operation();
-
-        let res = client.execute(op).await?;
-        client.notify_model_mutation::<Self>();
-
-        Ok(res)
+        super::exec(self).await
     }
 }
 
-impl<'a, Actions> BatchQuery for Upsert<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
     type RawType = Actions::Data;
-    type ReturnType = Self::RawType;
+    type ReturnValue = Self::RawType;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
-    }
-
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
         raw
+    }
+}
+
+impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        let mut scalar_selections = Actions::scalar_selections();
+
+        scalar_selections.extend(self.with_params.into_iter().map(Into::into));
+
+        (
+            Operation::Write(Self::to_selection(
+                self.where_param,
+                self.create_params,
+                self.update_params,
+                scalar_selections,
+            )),
+            self.client,
+        )
+    }
+}
+
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Upsert<'a, Actions> {
+    type Types = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Upsert);
+}
+
+impl<'a, Actions: ModelTypes> WithQuery<'a> for Upsert<'a, Actions> {
+    fn add_with(&mut self, param: impl Into<Actions::With>) {
+        self.with_params.push(param.into());
     }
 }

@@ -3,14 +3,12 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merge_fields, BatchQuery, ModelAction, ModelActionType, ModelActions, ModelQueryType,
-    PrismaClientInternals, SerializedWhereInput, WhereInput,
+    merge_fields, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes, OrderByQuery,
+    PaginatedQuery, PrismaClientInternals, Query, QueryConvert, SerializedWhereInput, WhereInput,
+    WhereQuery,
 };
 
-pub struct Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
+pub struct Count<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -19,19 +17,7 @@ where
     pub take: Option<i64>,
 }
 
-impl<'a, Actions> ModelAction for Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
-    type Actions = Actions;
-
-    const TYPE: ModelActionType = ModelActionType::Query(ModelQueryType::Count);
-}
-
-impl<'a, Actions> Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> Count<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -63,73 +49,8 @@ where
         self
     }
 
-    pub(crate) fn exec_operation(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut selection = Self::base_selection();
-
-        selection.alias("result");
-
-        if self.where_params.len() > 0 {
-            selection.push_argument(
-                "where",
-                PrismaValue::Object(merge_fields(
-                    self.where_params
-                        .into_iter()
-                        .map(WhereInput::serialize)
-                        .map(|s| (s.field, s.value.into()))
-                        .collect(),
-                )),
-            );
-        }
-
-        selection.push_nested_selection({
-            let mut count_builder = Selection::builder("_count");
-            count_builder.push_nested_selection(Selection::builder("_all").build());
-            count_builder.build()
-        });
-
-        if self.order_by_params.len() > 0 {
-            selection.push_argument(
-                "orderBy".to_string(),
-                PrismaValue::List(
-                    self.order_by_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
-                        .collect(),
-                ),
-            );
-        }
-
-        if self.cursor_params.len() > 0 {
-            selection.push_argument(
-                "cursor".to_string(),
-                PrismaValue::Object(
-                    self.cursor_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(WhereInput::serialize)
-                        .map(SerializedWhereInput::transform_equals)
-                        .collect(),
-                ),
-            );
-        }
-
-        self.skip
-            .map(|skip| selection.push_argument("skip".to_string(), PrismaValue::Int(skip as i64)));
-        self.take
-            .map(|take| selection.push_argument("take".to_string(), PrismaValue::Int(take as i64)));
-
-        (Operation::Read(selection.build()), self.client)
-    }
-
-    pub(crate) fn convert(data: CountAggregateResult) -> i64 {
-        data._count._all
-    }
-
     pub async fn exec(self) -> super::Result<i64> {
-        let (op, client) = self.exec_operation();
-
-        client.execute(op).await.map(Self::convert)
+        super::exec(self).await
     }
 }
 
@@ -143,18 +64,107 @@ pub struct CountResult {
     _all: i64,
 }
 
-impl<'a, Actions> BatchQuery for Count<'a, Actions>
-where
-    Actions: ModelActions,
-{
+impl<'a, Actions: ModelTypes> QueryConvert for Count<'a, Actions> {
     type RawType = CountAggregateResult;
-    type ReturnType = i64;
+    type ReturnValue = i64;
 
-    fn graphql(self) -> Operation {
-        self.exec_operation().0
+    fn convert(raw: Self::RawType) -> Self::ReturnValue {
+        raw._count._all
+    }
+}
+
+impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
+    fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
+        (
+            Operation::Read(Self::base_selection(
+                [
+                    (!self.where_params.is_empty()).then(|| {
+                        (
+                            "where".to_string(),
+                            PrismaValue::Object(merge_fields(
+                                self.where_params
+                                    .into_iter()
+                                    .map(WhereInput::serialize)
+                                    .map(|s| (s.field, s.value.into()))
+                                    .collect(),
+                            ))
+                            .into(),
+                        )
+                    }),
+                    (!self.order_by_params.is_empty()).then(|| {
+                        (
+                            "orderBy".to_string(),
+                            PrismaValue::List(
+                                self.order_by_params
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
+                                    .collect(),
+                            )
+                            .into(),
+                        )
+                    }),
+                    (!self.cursor_params.is_empty()).then(|| {
+                        (
+                            "cursor".to_string(),
+                            PrismaValue::Object(
+                                self.cursor_params
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .map(WhereInput::serialize)
+                                    .map(SerializedWhereInput::transform_equals)
+                                    .collect(),
+                            )
+                            .into(),
+                        )
+                    }),
+                    self.skip
+                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
+                    self.take
+                        .map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                ]
+                .into_iter()
+                .flatten(),
+                [Selection::new(
+                    "_count",
+                    None,
+                    [],
+                    [Selection::new("_all", None, [], [])],
+                )],
+            )),
+            self.client,
+        )
+    }
+}
+
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Count<'a, Actions> {
+    type Types = Actions;
+
+    const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::Count);
+}
+
+impl<'a, Actions: ModelTypes> WhereQuery<'a> for Count<'a, Actions> {
+    fn add_where(&mut self, param: Actions::Where) {
+        self.where_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelTypes> OrderByQuery<'a> for Count<'a, Actions> {
+    fn add_order_by(&mut self, param: Actions::OrderBy) {
+        self.order_by_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelTypes> PaginatedQuery<'a> for Count<'a, Actions> {
+    fn add_cursor(&mut self, param: Actions::Cursor) {
+        self.cursor_params.push(param);
     }
 
-    fn convert(raw: Self::RawType) -> Self::ReturnType {
-        Self::convert(raw)
+    fn set_skip(&mut self, skip: i64) {
+        self.skip = Some(skip);
+    }
+
+    fn set_take(&mut self, take: i64) {
+        self.take = Some(take);
     }
 }

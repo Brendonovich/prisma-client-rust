@@ -5,7 +5,7 @@ use crate::db::*;
 use crate::utils::*;
 
 #[tokio::test]
-async fn test_batch() -> TestResult {
+async fn tuple() -> TestResult {
     let client = client().await;
 
     let (brendan, oscar) = client
@@ -22,7 +22,7 @@ async fn test_batch() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_batch_vec() -> TestResult {
+async fn vec() -> TestResult {
     let client = client().await;
 
     let users = client
@@ -39,7 +39,54 @@ async fn test_batch_vec() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_batch_error() -> TestResult {
+async fn tuple_in_vec() -> TestResult {
+    let client = client().await;
+
+    let users = client
+        ._batch(vec![
+            (
+                client.user().create("Brendan".to_string(), vec![]),
+                client.user().create("Brendan".to_string(), vec![]),
+            ),
+            (
+                client.user().create("Oscar".to_string(), vec![]),
+                client.user().create("Oscar".to_string(), vec![]),
+            ),
+        ])
+        .await?;
+
+    assert_eq!(users.len(), 2);
+    assert_eq!(&users[0].1.name, "Brendan");
+    assert_eq!(&users[1].1.name, "Oscar");
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn vec_in_tuple() -> TestResult {
+    let client = client().await;
+
+    let (brendan, oscar) = client
+        ._batch((
+            vec![
+                client.user().create("Brendan".to_string(), vec![]),
+                client.user().create("Brendan".to_string(), vec![]),
+            ],
+            vec![
+                client.user().create("Oscar".to_string(), vec![]),
+                client.user().create("Oscar".to_string(), vec![]),
+            ],
+        ))
+        .await?;
+
+    assert_eq!(&brendan[1].name, "Brendan");
+    assert_eq!(&oscar[1].name, "Oscar");
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn error() -> TestResult {
     let client = client().await;
 
     let error = client
@@ -62,7 +109,7 @@ async fn test_batch_error() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_mixing_models() -> TestResult {
+async fn mixing_models() -> TestResult {
     let client = client().await;
 
     let (user, profile) = client
@@ -90,7 +137,7 @@ async fn test_mixing_models() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_mixing_actions() -> TestResult {
+async fn mixing_actions() -> TestResult {
     let client = client().await;
 
     client
@@ -108,7 +155,7 @@ async fn test_mixing_actions() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_large_query() -> TestResult {
+async fn large_query() -> TestResult {
     let client = client().await;
 
     client
@@ -125,7 +172,7 @@ async fn test_large_query() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_delete() -> TestResult {
+async fn delete() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -156,7 +203,7 @@ async fn test_delete() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_update() -> TestResult {
+async fn update() -> TestResult {
     let client = client().await;
 
     let user = client
@@ -193,7 +240,7 @@ async fn test_update() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_upsert() -> TestResult {
+async fn upsert() -> TestResult {
     let client = client().await;
 
     let user_id = "abc123";
@@ -252,7 +299,7 @@ async fn test_upsert() -> TestResult {
 }
 
 #[tokio::test]
-async fn test_update_many() -> TestResult {
+async fn update_many() -> TestResult {
     let client = client().await;
 
     client
@@ -278,6 +325,51 @@ async fn test_update_many() -> TestResult {
     assert_eq!(users.len(), 2);
     assert_eq!(&users[0].name, "Brendan");
     assert_eq!(&users[1].name, "Brendan");
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn async_trait() -> TestResult {
+    #[async_trait::async_trait]
+    trait TestTrait {
+        async fn test(&self, client: &PrismaClient) -> prisma_client_rust::Result<()>;
+    }
+
+    struct Test;
+
+    #[async_trait::async_trait]
+    impl TestTrait for Test {
+        async fn test(&self, client: &PrismaClient) -> prisma_client_rust::Result<()> {
+            let (brendan, oscar) = client
+                ._batch((
+                    vec![client.user().create("Brendan".to_string(), vec![])],
+                    vec![client.user().create("Oscar".to_string(), vec![])],
+                ))
+                .await?;
+
+            assert_eq!(&brendan[0].name, "Brendan");
+            assert_eq!(&oscar[0].name, "Oscar");
+
+            Ok(())
+        }
+    }
+
+    let client = client().await;
+
+    Test.test(&client).await?;
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn allows_empty() -> TestResult {
+    let client = client().await;
+
+    client._batch(vec![] as Vec<user::Create>).await?;
+    client
+        ._batch(vec![vec![]] as Vec<Vec<user::Create>>)
+        .await?;
 
     cleanup(client).await
 }

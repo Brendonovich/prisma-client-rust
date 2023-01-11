@@ -60,9 +60,6 @@ export type Operations = {
     queries: { key: ["posts"], result: Array<Post> }
 };
 
-// rspc can export types that aren't even directly used in any operations!
-export interface Comment { id: string, content: string, postID: string }
-
 export interface Post { id: string, title: string }
 ```
 
@@ -94,12 +91,16 @@ The generated TypeScript will look something like this:
 
 ```ts
 export type Operations = {
-    // select and include types are generated as inline objects
-    // rather than having a dedicated type, not even for named selections
-    // since TypeScript can just infer return types
     queries: { key: ["posts"], result: Array<{ id: string, title: string}> }
 };
 ```
+
+As of 0.6.4, dedicated types will be generated for named include/selects.
+These are only provided for extenuating cirsumstances though,
+and it is instead recommended that you use helpers from `rspc`
+such as `rspc.inferProcedureResult` to access procedure results
+instead of relying on the named types.
+
 
 ### Relation types
 

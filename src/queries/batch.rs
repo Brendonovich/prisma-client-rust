@@ -1,123 +1,282 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, num::NonZeroUsize};
 
 use query_core::Operation;
-use serde::{
-    de::{DeserializeOwned, IntoDeserializer},
-    Deserialize,
-};
 
-use crate::{prisma_value, PrismaClientInternals, QueryError};
+use crate::{PrismaClientInternals, Query, QueryConvert};
 
-pub async fn batch<T: BatchContainer<Marker>, Marker>(
-    container: T,
-    client: &PrismaClientInternals,
-) -> super::Result<T::ReturnType> {
-    let response = client
-        .executor
-        .execute_all(
-            None,
-            container.graphql(),
-            true,
-            client.query_schema.clone(),
-            None,
-        )
-        .await;
-
-    let response = response.map_err(|e| QueryError::Execute(e.into()))?;
-
-    let data = response
-        .into_iter()
-        .map(|result| {
-            let data: prisma_value::Item = result
-                .map_err(|e| QueryError::Execute(e.into()))?
-                .data
-                .into();
-
-            let val = serde_value::to_value(data)?;
-
-            Ok(<T::RawType as Deserialize>::deserialize(
-                val.into_deserializer(),
-            )?)
-        })
-        .collect::<super::Result<VecDeque<_>>>()?;
-
-    Ok(T::convert(data))
+pub enum VecMeta {
+    Empty,
+    NotEmpty(NonZeroUsize, Box<BatchItemDataMeta>),
 }
 
-/// A query that can be used within a transaction
-pub trait BatchQuery {
-    type RawType: DeserializeOwned;
-    type ReturnType;
+pub enum BatchItemDataMeta {
+    Query,
+    Vec(VecMeta),
+    Tuple(Vec<Self>),
+}
 
-    fn graphql(self) -> Operation;
+pub enum BatchItemData {
+    Query(Operation),
+    Vec(Vec<Self>),
+    Tuple(Vec<Self>),
+}
 
-    /// Function for converting between raw database data and the type expected by the user.
-    /// Necessary for things like raw queries
-    fn convert(raw: Self::RawType) -> Self::ReturnType;
+impl BatchItemData {
+    fn meta(&self) -> BatchItemDataMeta {
+        match self {
+            Self::Query(_) => BatchItemDataMeta::Query,
+            Self::Vec(v) => BatchItemDataMeta::Vec({
+                NonZeroUsize::new(v.len())
+                    .map(|size| VecMeta::NotEmpty(size, Box::new(v[0].meta())))
+                    .unwrap_or(VecMeta::Empty)
+            }),
+            Self::Tuple(v) => BatchItemDataMeta::Tuple(v.iter().map(BatchItemData::meta).collect()),
+        }
+    }
+
+    fn operations(self, v: &mut Vec<Operation>) {
+        match self {
+            Self::Query(op) => v.push(op),
+            Self::Vec(items) => items.into_iter().for_each(|i| i.operations(v)),
+            Self::Tuple(items) => items.into_iter().for_each(|i| i.operations(v)),
+        }
+    }
+}
+
+pub enum BatchDataMeta {
+    Iterator(VecMeta),
+    Tuple(Vec<BatchItemDataMeta>),
+}
+
+pub enum BatchData {
+    Iterator(Vec<BatchItemData>),
+    Tuple(Vec<BatchItemData>),
+}
+
+impl BatchData {
+    fn meta(&self) -> BatchDataMeta {
+        match self {
+            Self::Iterator(v) => BatchDataMeta::Iterator(
+                NonZeroUsize::new(v.len())
+                    .map(|size| VecMeta::NotEmpty(size, Box::new(v[0].meta())))
+                    .unwrap_or(VecMeta::Empty),
+            ),
+            Self::Tuple(v) => BatchDataMeta::Tuple(v.iter().map(BatchItemData::meta).collect()),
+        }
+    }
+
+    fn operations(self) -> Vec<Operation> {
+        let items = match self {
+            Self::Tuple(items) => items,
+            Self::Iterator(items) => items,
+        };
+
+        let mut ops = vec![];
+
+        items.into_iter().for_each(|i| i.operations(&mut ops));
+
+        ops
+    }
+}
+
+pub async fn batch<'batch, 'b, T: BatchContainer<'batch, Marker>, Marker>(
+    container: T,
+    client: &'b PrismaClientInternals,
+) -> super::Result<<T as BatchContainer<'batch, Marker>>::ReturnType> {
+    let data = container.data();
+    let meta = data.meta();
+
+    let operations = data.operations();
+
+    let values = client
+        .engine
+        .execute_all(operations)
+        .await?
+        .into_iter()
+        .collect::<super::Result<VecDeque<_>>>()?;
+
+    Ok(T::resolve(meta, values))
+}
+
+pub trait BatchItemParent {
+    type ReturnValue;
+}
+
+pub trait BatchItem<'a>: BatchItemParent {
+    fn data(self) -> BatchItemData;
+
+    fn resolve(
+        meta: &BatchItemDataMeta,
+        values: &mut VecDeque<serde_value::Value>,
+    ) -> <Self as BatchItemParent>::ReturnValue;
+}
+
+impl<Q: QueryConvert> BatchItemParent for Q {
+    type ReturnValue = Q::ReturnValue;
+}
+
+impl<'a, 'b, Q: Query<'a>> BatchItem<'b> for Q {
+    fn data(self) -> BatchItemData {
+        BatchItemData::Query(self.graphql().0)
+    }
+
+    fn resolve(
+        _: &BatchItemDataMeta,
+        values: &mut VecDeque<serde_value::Value>,
+    ) -> <Self as BatchItemParent>::ReturnValue {
+        Q::convert(
+            values
+                .pop_front()
+                .unwrap()
+                .deserialize_into::<Q::RawType>()
+                .unwrap(),
+        )
+    }
+}
+
+impl<'batch, I: BatchItemParent> BatchItemParent for Vec<I> {
+    type ReturnValue = Vec<<I as BatchItemParent>::ReturnValue>;
+}
+
+impl<'batch, 'query, I: Query<'query>> BatchItem<'batch> for Vec<I> {
+    fn data(self) -> BatchItemData {
+        BatchItemData::Vec(self.into_iter().map(BatchItem::data).collect())
+    }
+
+    fn resolve(
+        meta: &BatchItemDataMeta,
+        values: &mut VecDeque<serde_value::Value>,
+    ) -> <Self as BatchItemParent>::ReturnValue {
+        match meta {
+            BatchItemDataMeta::Vec(meta) => match meta {
+                VecMeta::Empty => vec![],
+                VecMeta::NotEmpty(size, meta) => (0..size.get())
+                    .map(|_| <I as BatchItem>::resolve(meta.as_ref(), values))
+                    .collect(),
+            },
+            _ => unreachable!(),
+        }
+    }
 }
 
 /// A container that can hold queries to batch into a transaction
-pub trait BatchContainer<Marker> {
-    type RawType: DeserializeOwned;
+pub trait BatchContainer<'batch, Marker> {
     type ReturnType;
 
-    fn graphql(self) -> Vec<Operation>;
-    fn convert(raw: VecDeque<Self::RawType>) -> Self::ReturnType;
+    fn data(self) -> BatchData;
+
+    fn resolve(meta: BatchDataMeta, values: VecDeque<serde_value::Value>) -> Self::ReturnType;
 }
 
-impl<T: BatchQuery, I: IntoIterator<Item = T>> BatchContainer<()> for I {
-    type RawType = T::RawType;
-    type ReturnType = Vec<T::ReturnType>;
+impl<'batch, 't: 'batch, T: BatchItem<'t>, I: IntoIterator<Item = T>> BatchContainer<'batch, ()>
+    for I
+{
+    type ReturnType = Vec<<T as BatchItemParent>::ReturnValue>;
 
-    fn graphql(self) -> Vec<Operation> {
-        self.into_iter().map(BatchQuery::graphql).collect()
+    fn data(self) -> BatchData {
+        BatchData::Iterator(self.into_iter().map(BatchItem::data).collect())
     }
 
-    fn convert(raw: VecDeque<Self::RawType>) -> Self::ReturnType {
-        raw.into_iter().map(T::convert).collect()
+    fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
+        match meta {
+            BatchDataMeta::Iterator(meta) => match meta {
+                VecMeta::Empty => vec![],
+                VecMeta::NotEmpty(size, meta) => (0..size.get())
+                    .map(|_| T::resolve(&meta, &mut values))
+                    .collect(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
 pub enum TupleMarker {}
 
 macro_rules! impl_tuple {
-    ($($generic:ident),+) => {
-        #[allow(warnings)]
-        impl<$($generic: BatchQuery),+> BatchContainer<TupleMarker> for ($($generic),+) {
-            type RawType = serde_json::Value;
-            type ReturnType = ($($generic::ReturnType),+);
+    ($generic_1: ident, $($generic:ident),+) => {
+        impl_tuple!(impl $generic_1 $(,$generic)+);
+        impl_tuple!($($generic),+);
+    };
+    ($generic:ident) => {};
+    (impl $generic:ident) => {};
+    (impl $($generic:ident),+) => {
+        paste::paste! {
+            #[allow(warnings)]
+            impl<'batch, $( [< "'" $generic >]: 'batch),+, $($generic: BatchItem<[< "'" $generic >]>),+> BatchContainer<'batch, TupleMarker> for ($($generic),+) {
+                type ReturnType = ($(<$generic as BatchItemParent>::ReturnValue),+);
 
-            fn graphql(self) -> Vec<$crate::query_core::Operation> {
-                let ($($generic),+) = self;
+                fn data(self) -> BatchData {
+                    let ($($generic),+) = self;
 
-                vec![$($generic.graphql()),+]
+                    BatchData::Tuple(
+                        vec![$(BatchItem::data($generic)),+]
+                    )
+                }
+
+                fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
+                    match meta {
+                        BatchDataMeta::Tuple(metas) => {
+                            let mut metas_iter = metas.iter();
+
+                            (($(<$generic as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)),+))
+                        },
+                        _ => unreachable!()
+                    }
+                }
             }
 
-            fn convert(mut raw: VecDeque<Self::RawType>) -> Self::ReturnType {
-                ($($generic::convert(raw
-                    .pop_front()
-                    .map(|v| serde_json::from_value(v).unwrap())
-                    .unwrap()
-                )),+)
+            #[allow(warnings)]
+            impl<$($generic: BatchItemParent),+> BatchItemParent for ($($generic),+) {
+                type ReturnValue = ($(<$generic as BatchItemParent>::ReturnValue),+);
             }
+
+            #[allow(warnings)]
+            impl<'batch, $( [< "'" $generic >]: 'batch),+, $($generic: BatchItem<[< "'" $generic >]>),+> BatchItem<'batch> for ($($generic),+) {
+                fn data(self) -> BatchItemData {
+                    let ($($generic),+) = self;
+
+                    BatchItemData::Tuple(
+                        vec![$(BatchItem::data($generic)),+]
+                    )
+                }
+
+                fn resolve(
+                    meta: &BatchItemDataMeta,
+                    values: &mut VecDeque<serde_value::Value>,
+                ) -> <Self as BatchItemParent>::ReturnValue {
+                    match meta {
+                        BatchItemDataMeta::Tuple(meta) => {
+                            let mut meta = meta.iter();
+
+                            ($($generic::resolve(meta.next().unwrap(), values)),+)
+                        },
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17);
+
+/// TODO: remove this in 0.7.0
+#[allow(warnings)]
+impl<'batch, 'query, Q: Query<'query>> BatchContainer<'batch, TupleMarker> for Q {
+    type ReturnType = Q::ReturnValue;
+
+    fn data(self) -> BatchData {
+        BatchData::Tuple(vec![BatchItem::data(self)])
+    }
+
+    fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
+        match meta {
+            BatchDataMeta::Tuple(metas) => {
+                let mut metas_iter = metas.iter();
+
+                <Q as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)
+            }
+            _ => unreachable!(),
         }
     }
 }
-
-impl_tuple!(T1);
-impl_tuple!(T1, T2);
-impl_tuple!(T1, T2, T3);
-impl_tuple!(T1, T2, T3, T4);
-impl_tuple!(T1, T2, T3, T4, T5);
-impl_tuple!(T1, T2, T3, T4, T5, T6);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16);
-impl_tuple!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17);

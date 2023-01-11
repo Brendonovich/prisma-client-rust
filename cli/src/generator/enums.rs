@@ -42,7 +42,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
         quote! {
             #specta_derive
-            #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize)]
+            #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq)]
             pub enum #name {
                 #(#variants),*
             }

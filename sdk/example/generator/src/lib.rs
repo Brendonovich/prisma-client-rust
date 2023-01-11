@@ -50,5 +50,5 @@ impl PrismaGenerator for ExampleGenerator {
 }
 
 pub fn run() {
-    execute::<ExampleGenerator>(&vec![]);
+    ExampleGenerator::run();
 }

@@ -2,20 +2,25 @@ pub mod actions;
 mod client;
 #[cfg(feature = "migrations")]
 pub mod migrations;
+#[cfg(feature = "mocking")]
+mod mock;
 pub mod operator;
 mod prisma_value;
 pub mod queries;
 pub mod raw;
 pub mod serde;
 mod traits;
+mod transaction;
 
 use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
-pub use datamodel;
+pub use convert_case;
+pub use dml;
 pub use dmmf;
 pub use prisma_models::{self, PrismaValue};
+pub use psl;
 pub use query_core;
 pub use query_core::Selection;
 pub use schema;
@@ -27,10 +32,13 @@ pub use user_facing_errors as prisma_errors;
 
 pub use actions::*;
 pub use client::*;
+#[cfg(feature = "mocking")]
+pub use mock::*;
 pub use operator::Operator;
 pub use queries::*;
 pub use raw::*;
 pub use traits::*;
+pub use transaction::*;
 
 #[cfg(feature = "rspc")]
 pub use rspc;
@@ -45,8 +53,7 @@ pub struct BatchResult {
 
 impl BatchResult {
     pub fn selection() -> Selection {
-        let selection = Selection::builder("count");
-        selection.build()
+        Selection::new("count", None, [], [])
     }
 }
 
@@ -134,4 +141,8 @@ pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
     }
 
     merged.into_iter().collect()
+}
+
+pub fn sel(name: &str) -> Selection {
+    Selection::new(name, None, [], [])
 }
