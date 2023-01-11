@@ -79,5 +79,4 @@ but for some cases (eg. desktop apps with multiple databases) environment variab
 
 Rust has a [reserved set of keywords](https://doc.rust-lang.org/reference/keywords.html) that cannot be used as names in your code.
 If you name a model or field something that after conversion to `snake_case` will be a restricted keyword,
-the generator will like give you an error.
-While this is annoying, it is an unavoidable consequence of using Rust.
+it will be prefixed with `r#` in the generated client instead of just failing to generate.
