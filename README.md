@@ -1,9 +1,9 @@
 <div align="center">
     <h1>Prisma Client Rust</h1>
     <p><b>Type-safe database access for Rust</b></p>
-    <img src="https://img.shields.io/badge/latest-0.6.3-blue?style=flat-square" alt="Latest version of Prisma Client Rust is 0.6.3">
+    <img src="https://img.shields.io/badge/latest-0.6.4-blue?style=flat-square" alt="Latest version of Prisma Client Rust is 0.6.4">
     <a href="https://prisma.io">
-        <img src="https://img.shields.io/static/v1?label=prisma&message=v4.2.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 4.2.0">
+        <img src="https://img.shields.io/static/v1?label=prisma&message=v4.2.0&color=blue&logo=prisma&style=flat-square" alt="Latest supported Prisma version is 4.8.0">
     </a>
     <img src="https://img.shields.io/github/actions/workflow/status/Brendonovich/prisma-client-rust/ci.yaml?branch=main&label=tests&style=flat-square" alt="Test Status"/>
     <a href="./docs/README.md"/>
