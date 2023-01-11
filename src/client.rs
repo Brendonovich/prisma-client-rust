@@ -1,5 +1,4 @@
-use crate::queries::ModelActions;
-use crate::{ActionNotifier, ModelQuery};
+use crate::ActionNotifier;
 use diagnostics::Diagnostics;
 use query_core::{schema_builder, BatchDocumentTransaction, CoreError, Operation, TxId};
 use schema::QuerySchema;
@@ -7,7 +6,7 @@ use schema::QuerySchema;
 use std::sync::Arc;
 use thiserror::Error;
 
-use crate::{prisma_value, ModelMutationCallbackData, ModelOperation, QueryError, Result};
+use crate::{prisma_value, QueryError, Result};
 
 pub type Executor = Box<dyn query_core::QueryExecutor + Send + Sync + 'static>;
 
@@ -120,24 +119,24 @@ impl PrismaClientInternals {
         self.engine.execute(operation).await
     }
 
-    pub fn notify_model_mutation<'a, Action>(&self)
-    where
-        Action: ModelQuery<'a>,
-    {
-        match Action::TYPE {
-            ModelOperation::Write(action) => {
-                for callback in &self.action_notifier.model_mutation_callbacks {
-                    (callback)(ModelMutationCallbackData {
-                        model: Action::Actions::MODEL,
-                        action,
-                    })
-                }
-            }
-            ModelOperation::Read(_) => {
-                println!("notify_model_mutation only acceps mutations, not queries!")
-            }
-        }
-    }
+    // pub fn notify_model_mutation<'a, Action>(&self)
+    // where
+    //     Action: ModelQuery<'a>,
+    // {
+    //     match Action::TYPE {
+    //         ModelOperation::Write(action) => {
+    //             for callback in &self.action_notifier.model_mutation_callbacks {
+    //                 (callback)(ModelMutationCallbackData {
+    //                     model: Action::Types::MODEL,
+    //                     action,
+    //                 })
+    //             }
+    //         }
+    //         ModelOperation::Read(_) => {
+    //             println!("notify_model_mutation only acceps mutations, not queries!")
+    //         }
+    //     }
+    // }
 
     pub async fn new(
         url: Option<String>,

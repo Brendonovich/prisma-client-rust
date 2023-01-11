@@ -2,17 +2,17 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Delete<'a, Actions: ModelActions> {
+pub struct Delete<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions: ModelActions> Delete<'a, Actions> {
+impl<'a, Actions: ModelTypes> Delete<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -68,7 +68,7 @@ impl<'a, Actions: ModelActions> Delete<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for Delete<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for Delete<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Actions::Data;
 
@@ -77,7 +77,7 @@ impl<'a, Actions: ModelActions> QueryConvert for Delete<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for Delete<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -90,13 +90,13 @@ impl<'a, Actions: ModelActions> Query<'a> for Delete<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for Delete<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Delete<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Delete);
 }
 
-impl<'a, Actions: ModelActions> WithQuery<'a> for Delete<'a, Actions> {
+impl<'a, Actions: ModelTypes> WithQuery<'a> for Delete<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }

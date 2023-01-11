@@ -1,17 +1,17 @@
 use query_core::Operation;
 
 use crate::{
-    merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert, WhereInput, WhereQuery,
 };
 use prisma_models::PrismaValue;
 
-pub struct DeleteMany<'a, Actions: ModelActions> {
+pub struct DeleteMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
 }
 
-impl<'a, Actions: ModelActions> DeleteMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> DeleteMany<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -28,7 +28,7 @@ impl<'a, Actions: ModelActions> DeleteMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for DeleteMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for DeleteMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
@@ -37,7 +37,7 @@ impl<'a, Actions: ModelActions> QueryConvert for DeleteMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for DeleteMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::base_selection(
@@ -63,13 +63,13 @@ impl<'a, Actions: ModelActions> Query<'a> for DeleteMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for DeleteMany<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for DeleteMany<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::DeleteMany);
 }
 
-impl<'a, Actions: ModelActions> WhereQuery<'a> for DeleteMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> WhereQuery<'a> for DeleteMany<'a, Actions> {
     fn add_where(&mut self, param: Actions::Where) {
         self.where_params.push(param);
     }

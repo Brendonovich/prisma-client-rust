@@ -4,18 +4,18 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelReadOperation,
+    Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
     PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct FindUnique<'a, Actions: ModelActions> {
+pub struct FindUnique<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub with_params: Vec<Actions::With>,
     _data: PhantomData<(Actions::Set, Actions::Data)>,
 }
 
-impl<'a, Actions: ModelActions> FindUnique<'a, Actions> {
+impl<'a, Actions: ModelTypes> FindUnique<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_param: Actions::Where) -> Self {
         Self {
             client,
@@ -71,7 +71,7 @@ impl<'a, Actions: ModelActions> FindUnique<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for FindUnique<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for FindUnique<'a, Actions> {
     type RawType = Option<Actions::Data>;
     type ReturnValue = Self::RawType;
 
@@ -80,7 +80,7 @@ impl<'a, Actions: ModelActions> QueryConvert for FindUnique<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for FindUnique<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for FindUnique<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -93,13 +93,13 @@ impl<'a, Actions: ModelActions> Query<'a> for FindUnique<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for FindUnique<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for FindUnique<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::FindUnique);
 }
 
-impl<'a, Actions: ModelActions> WithQuery<'a> for FindUnique<'a, Actions> {
+impl<'a, Actions: ModelTypes> WithQuery<'a> for FindUnique<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }
@@ -108,14 +108,14 @@ impl<'a, Actions: ModelActions> WithQuery<'a> for FindUnique<'a, Actions> {
 #[derive(Clone)]
 pub struct UniqueArgs<Actions>
 where
-    Actions: ModelActions,
+    Actions: ModelTypes,
 {
     pub with_params: Vec<Actions::With>,
 }
 
 impl<Actions> UniqueArgs<Actions>
 where
-    Actions: ModelActions,
+    Actions: ModelTypes,
 {
     pub fn new() -> Self {
         Self {

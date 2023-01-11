@@ -2,17 +2,17 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, BatchResult, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert,
 };
 
-pub struct CreateMany<'a, Actions: ModelActions> {
+pub struct CreateMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
 
-impl<'a, Actions: ModelActions> CreateMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
             client,
@@ -63,7 +63,7 @@ impl<'a, Actions: ModelActions> CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for CreateMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for CreateMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
@@ -72,7 +72,7 @@ impl<'a, Actions: ModelActions> QueryConvert for CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for CreateMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::to_selection(
@@ -85,8 +85,8 @@ impl<'a, Actions: ModelActions> Query<'a> for CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for CreateMany<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for CreateMany<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::CreateMany);
 }

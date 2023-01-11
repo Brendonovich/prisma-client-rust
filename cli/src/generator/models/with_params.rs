@@ -33,7 +33,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
     let body = match field.arity {
         dml::FieldArity::List => quote! {
             let (arguments, mut nested_selections) = args.to_graphql();
-            nested_selections.extend(<super::#relation_model_name_snake::Types as #pcr::ModelActions>::scalar_selections());
+            nested_selections.extend(<super::#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections());
 
             #pcr::Selection::new(
                 #field_name_str,
@@ -43,7 +43,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
             )
         },
         _ => quote! {
-            let mut selections = <super::#relation_model_name_snake::Types as #pcr::ModelActions>::scalar_selections();
+            let mut selections = <super::#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections();
             selections.extend(args.with_params.into_iter().map(Into::<#pcr::Selection>::into));
 
             #pcr::Selection::new(

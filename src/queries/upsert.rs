@@ -2,11 +2,11 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    Include, IncludeType, ModelActions, ModelOperation, ModelQuery, ModelWriteOperation,
+    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Upsert<'a, Actions: ModelActions> {
+pub struct Upsert<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub create_params: Vec<Actions::Set>,
@@ -14,7 +14,7 @@ pub struct Upsert<'a, Actions: ModelActions> {
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions: ModelActions> Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -95,7 +95,7 @@ impl<'a, Actions: ModelActions> Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
@@ -104,7 +104,7 @@ impl<'a, Actions: ModelActions> QueryConvert for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -122,13 +122,13 @@ impl<'a, Actions: ModelActions> Query<'a> for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for Upsert<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Upsert<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Upsert);
 }
 
-impl<'a, Actions: ModelActions> WithQuery<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> WithQuery<'a> for Upsert<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }

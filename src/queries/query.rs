@@ -17,7 +17,7 @@ pub trait Query<'a>: QueryConvert {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals);
 }
 
-pub trait ModelActions {
+pub trait ModelTypes {
     type Data: Data;
     type Where: WhereInput;
     type Set: Into<(String, PrismaValue)>;
@@ -90,7 +90,7 @@ impl ModelOperation {
 }
 
 pub trait ModelQuery<'a>: Query<'a> {
-    type Actions: ModelActions;
+    type Types: ModelTypes;
 
     const TYPE: ModelOperation;
 
@@ -99,7 +99,7 @@ pub trait ModelQuery<'a>: Query<'a> {
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Selection::new(
-            format!("{}{}", Self::TYPE.name(), Self::Actions::MODEL),
+            format!("{}{}", Self::TYPE.name(), Self::Types::MODEL),
             Some("result".to_string()),
             arguments.into_iter().collect::<Vec<_>>(),
             nested_selections.into_iter().collect::<Vec<_>>(),
@@ -108,28 +108,25 @@ pub trait ModelQuery<'a>: Query<'a> {
 }
 
 pub trait WhereQuery<'a>: ModelQuery<'a> {
-    fn add_where(&mut self, param: <<Self as ModelQuery<'a>>::Actions as ModelActions>::Where);
+    fn add_where(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::Where);
 }
 
 pub trait WithQuery<'a>: ModelQuery<'a> {
-    fn add_with(
-        &mut self,
-        param: impl Into<<<Self as ModelQuery<'a>>::Actions as ModelActions>::With>,
-    );
+    fn add_with(&mut self, param: impl Into<<<Self as ModelQuery<'a>>::Types as ModelTypes>::With>);
 }
 
 pub trait OrderByQuery<'a>: ModelQuery<'a> {
-    fn add_order_by(&mut self, param: <<Self as ModelQuery<'a>>::Actions as ModelActions>::OrderBy);
+    fn add_order_by(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::OrderBy);
 }
 
 pub trait PaginatedQuery<'a>: ModelQuery<'a> {
-    fn add_cursor(&mut self, param: <<Self as ModelQuery<'a>>::Actions as ModelActions>::Cursor);
+    fn add_cursor(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::Cursor);
     fn set_skip(&mut self, skip: i64);
     fn set_take(&mut self, take: i64);
 }
 
 pub trait SetQuery<'a>: ModelQuery<'a> {
-    fn add_set(&mut self, param: <<Self as ModelQuery<'a>>::Actions as ModelActions>::Set);
+    fn add_set(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::Set);
 }
 
 pub trait Data: DeserializeOwned + 'static {}

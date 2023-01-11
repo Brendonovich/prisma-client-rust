@@ -3,12 +3,12 @@ use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
-    merge_fields, ModelActions, ModelOperation, ModelQuery, ModelReadOperation, OrderByQuery,
+    merge_fields, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes, OrderByQuery,
     PaginatedQuery, PrismaClientInternals, Query, QueryConvert, SerializedWhereInput, WhereInput,
     WhereQuery,
 };
 
-pub struct Count<'a, Actions: ModelActions> {
+pub struct Count<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub order_by_params: Vec<Actions::OrderBy>,
@@ -17,7 +17,7 @@ pub struct Count<'a, Actions: ModelActions> {
     pub take: Option<i64>,
 }
 
-impl<'a, Actions: ModelActions> Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> Count<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -64,7 +64,7 @@ pub struct CountResult {
     _all: i64,
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for Count<'a, Actions> {
     type RawType = CountAggregateResult;
     type ReturnValue = i64;
 
@@ -73,7 +73,7 @@ impl<'a, Actions: ModelActions> QueryConvert for Count<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Read(Self::base_selection(
@@ -137,25 +137,25 @@ impl<'a, Actions: ModelActions> Query<'a> for Count<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for Count<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Count<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::Count);
 }
 
-impl<'a, Actions: ModelActions> WhereQuery<'a> for Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> WhereQuery<'a> for Count<'a, Actions> {
     fn add_where(&mut self, param: Actions::Where) {
         self.where_params.push(param);
     }
 }
 
-impl<'a, Actions: ModelActions> OrderByQuery<'a> for Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> OrderByQuery<'a> for Count<'a, Actions> {
     fn add_order_by(&mut self, param: Actions::OrderBy) {
         self.order_by_params.push(param);
     }
 }
 
-impl<'a, Actions: ModelActions> PaginatedQuery<'a> for Count<'a, Actions> {
+impl<'a, Actions: ModelTypes> PaginatedQuery<'a> for Count<'a, Actions> {
     fn add_cursor(&mut self, param: Actions::Cursor) {
         self.cursor_params.push(param);
     }

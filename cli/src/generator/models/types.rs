@@ -23,7 +23,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         #[derive(Clone)]
         pub struct Types;
 
-        impl #pcr::ModelActions for Types {
+        impl #pcr::ModelTypes for Types {
             type Data = Data;
             type Where = WhereParam;
             type Set = SetParam;

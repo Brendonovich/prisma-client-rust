@@ -2,14 +2,14 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, QueryValue, Selection};
 
 use crate::{
-    merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
-    ModelReadOperation, OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert,
-    Select, SelectType, WhereInput, WhereQuery, WithQuery,
+    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
+    OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
+    WhereInput, WhereQuery, WithQuery,
 };
 
 use super::SerializedWhereInput;
 
-pub struct FindFirst<'a, Actions: ModelActions> {
+pub struct FindFirst<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,
@@ -19,7 +19,7 @@ pub struct FindFirst<'a, Actions: ModelActions> {
     pub take: Option<i64>,
 }
 
-impl<'a, Actions: ModelActions> FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
     pub fn new(client: &'a PrismaClientInternals, where_params: Vec<Actions::Where>) -> Self {
         Self {
             client,
@@ -155,7 +155,7 @@ impl<'a, Actions: ModelActions> FindFirst<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for FindFirst<'a, Actions> {
     type RawType = Option<Actions::Data>;
     type ReturnValue = Self::RawType;
 
@@ -164,7 +164,7 @@ impl<'a, Actions: ModelActions> QueryConvert for FindFirst<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for FindFirst<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -184,31 +184,31 @@ impl<'a, Actions: ModelActions> Query<'a> for FindFirst<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for FindFirst<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for FindFirst<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Read(ModelReadOperation::FindFirst);
 }
 
-impl<'a, Actions: ModelActions> WhereQuery<'a> for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> WhereQuery<'a> for FindFirst<'a, Actions> {
     fn add_where(&mut self, param: Actions::Where) {
         self.where_params.push(param);
     }
 }
 
-impl<'a, Actions: ModelActions> WithQuery<'a> for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> WithQuery<'a> for FindFirst<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }
 }
 
-impl<'a, Actions: ModelActions> OrderByQuery<'a> for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> OrderByQuery<'a> for FindFirst<'a, Actions> {
     fn add_order_by(&mut self, param: Actions::OrderBy) {
         self.order_by_params.push(param);
     }
 }
 
-impl<'a, Actions: ModelActions> PaginatedQuery<'a> for FindFirst<'a, Actions> {
+impl<'a, Actions: ModelTypes> PaginatedQuery<'a> for FindFirst<'a, Actions> {
     fn add_cursor(&mut self, param: Actions::Cursor) {
         self.cursor_params.push(param);
     }

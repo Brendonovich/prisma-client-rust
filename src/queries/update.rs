@@ -2,19 +2,19 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, Include, IncludeType, ModelActions, ModelOperation, ModelQuery,
+    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
     ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
     WhereInput, WithQuery,
 };
 
-pub struct Update<'a, Actions: ModelActions> {
+pub struct Update<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
     pub set_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions: ModelActions> Update<'a, Actions> {
+impl<'a, Actions: ModelTypes> Update<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
@@ -90,7 +90,7 @@ impl<'a, Actions: ModelActions> Update<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> QueryConvert for Update<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for Update<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
@@ -99,7 +99,7 @@ impl<'a, Actions: ModelActions> QueryConvert for Update<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> Query<'a> for Update<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for Update<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -116,19 +116,19 @@ impl<'a, Actions: ModelActions> Query<'a> for Update<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelActions> ModelQuery<'a> for Update<'a, Actions> {
-    type Actions = Actions;
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for Update<'a, Actions> {
+    type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Update);
 }
 
-impl<'a, Actions: ModelActions> SetQuery<'a> for Update<'a, Actions> {
+impl<'a, Actions: ModelTypes> SetQuery<'a> for Update<'a, Actions> {
     fn add_set(&mut self, param: Actions::Set) {
         self.set_params.push(param);
     }
 }
 
-impl<'a, Actions: ModelActions> WithQuery<'a> for Update<'a, Actions> {
+impl<'a, Actions: ModelTypes> WithQuery<'a> for Update<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }
