@@ -1,14 +1,14 @@
-mod set_params;
-mod with_params;
-mod data;
-mod order_by;
-mod pagination;
 mod actions;
 mod create;
+mod data;
 mod field;
-mod where_params;
 mod include_select;
+mod order_by;
+mod pagination;
+mod set_params;
 mod types;
+mod where_params;
+mod with_params;
 
 use include_select::*;
 use prisma_client_rust_sdk::prelude::*;
@@ -27,17 +27,17 @@ static OPERATORS: &'static [Operator] = &[
     Operator {
         name: "Not",
         action: "NOT",
-        list: false
+        list: false,
     },
     Operator {
         name: "Or",
         action: "OR",
-        list: true
+        list: true,
     },
     Operator {
         name: "And",
         action: "AND",
-        list: false
+        list: false,
     },
 ];
 
@@ -70,7 +70,8 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
             let typ = match field {
                 dml::Field::ScalarField(_) => field.type_tokens(quote!()),
                 dml::Field::RelationField(relation_field) => {
-                    let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
+                    let relation_model_name_snake =
+                        snake_ident(&relation_field.relation_info.referenced_model);
 
                     quote!(super::#relation_model_name_snake::UniqueWhereParam)
                 }
@@ -93,39 +94,53 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
 }
 
 pub fn unique_field_combos(model: &dml::Model) -> Vec<Vec<&dml::Field>> {
-    let mut combos = model.indices.iter()
+    let mut combos = model
+        .indices
+        .iter()
         .filter(|i| matches!(i.tpe, dml::IndexType::Unique))
         .map(|unique| {
-            unique.fields.iter().filter_map(|field| {
-                model.fields.iter().find(|mf| mf.name() == &field.path[0].0)
-            }).collect()
-        }).collect::<Vec<_>>();
+            unique
+                .fields
+                .iter()
+                .filter_map(|field| model.fields.iter().find(|mf| mf.name() == &field.path[0].0))
+                .collect()
+        })
+        .collect::<Vec<_>>();
 
     if let Some(primary_key) = &model.primary_key {
         // if primary key is marked as unique, skip primary key handling
-        let primary_key_also_unique = primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name);
+        let primary_key_also_unique =
+            primary_key.fields.len() == 1 && !model.field_is_unique(&primary_key.fields[0].name);
 
         // TODO: understand why i wrote this
-        let primary_key_idk = !model.indices
+        let primary_key_idk = !model
+            .indices
             .iter()
             .filter(|i| i.tpe == dml::IndexType::Unique)
-            .any(|i|
+            .any(|i| {
                 i.fields
                     .iter()
                     .map(|f| f.path[0].0.as_str())
                     .collect::<Vec<_>>()
-                    == 
-                primary_key.fields
-                    .iter()
-                    .map(|f| f.name.as_str())
-                    .collect::<Vec<_>>()
-                );
+                    == primary_key
+                        .fields
+                        .iter()
+                        .map(|f| f.name.as_str())
+                        .collect::<Vec<_>>()
+            });
 
         if primary_key_also_unique || primary_key_idk {
-            combos.push(primary_key.fields.iter()
-                .filter_map(|field| {
-                    model.fields.iter().find(|mf| mf.name() == field.name.as_str())
-                }).collect()
+            combos.push(
+                primary_key
+                    .fields
+                    .iter()
+                    .filter_map(|field| {
+                        model
+                            .fields
+                            .iter()
+                            .find(|mf| mf.name() == field.name.as_str())
+                    })
+                    .collect(),
             );
         }
     }

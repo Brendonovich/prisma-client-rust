@@ -1,93 +1,101 @@
-datasource db {
-  provider = "sqlite"
-  url      = "file:dev.db"
-}
-
 // datasource db {
-//   provider = "postgresql"
-//   url      = "postgres://postgres:postgrespw@localhost:55000"
+//     provider = "sqlite"
+//     url      = "file:dev.db"
 // }
 
-generator client {
-  provider = "cargo prisma"
-  output   = "tests/db.rs"
+datasource db {
+    provider = "postgresql"
+    url      = "postgres://postgres:postgrespw@localhost:55000"
+}
 
-  // necessary since the generated file won't be at crate::prisma
-  module_path = "db"
+generator client {
+    provider = "cargo prisma"
+    output   = "tests/db.rs"
+
+    // necessary since the generated file won't be at crate::prisma
+    module_path = "db"
 }
 
 model Post {
-  id          String     @id @default(cuid())
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  title       String
-  published   Boolean
-  views       Int        @default(0)
-  desc        String?
-  author      User?      @relation("posts", fields: [author_id], references: [id])
-  author_id   String?
-  categories  Category[] @relation
-  favouriters User[]     @relation("favouritePosts")
+    id          String     @id @default(cuid())
+    created_at  DateTime   @default(now())
+    updated_at  DateTime   @updatedAt
+    title       String
+    published   Boolean
+    views       Int        @default(0)
+    desc        String?
+    author      User?      @relation("posts", fields: [author_id], references: [id])
+    author_id   String?
+    categories  Category[] @relation
+    favouriters User[]     @relation("favouritePosts")
 
-  @@unique([title, author_id])
+    @@unique([title, author_id])
 }
 
 model User {
-  id             String     @id @default(cuid())
-  name           String
-  email          String?    @unique
-  createdAt      DateTime   @default(now())
-  posts          Post[]     @relation("posts")
-  favouritePosts Post[]     @relation("favouritePosts") // #53
-  profile        Profile?
-  underscored_   Int?
-  FilePath       FilePath[]
+    id             String     @id @default(cuid())
+    name           String
+    email          String?    @unique
+    createdAt      DateTime   @default(now())
+    posts          Post[]     @relation("posts")
+    favouritePosts Post[]     @relation("favouritePosts") // #53
+    profile        Profile?
+    underscored_   Int?
+    FilePath       FilePath[]
 }
 
 model FilePath {
-  local_id Int
-  path     String
+    local_id Int
+    path     String
 
-  user_id String
-  user    User   @relation(fields: [user_id], references: [id])
+    user_id String
+    user    User   @relation(fields: [user_id], references: [id])
 
-  @@id([user_id, local_id])
+    @@id([user_id, local_id])
 }
 
 model Category {
-  id    Int    @id @default(autoincrement())
-  posts Post[] @relation
-  name  String
+    id    Int    @id @default(autoincrement())
+    posts Post[] @relation
+    name  String
 }
 
 model Profile {
-  id      Int     @id @unique @default(autoincrement()) // @unique - #71
-  user    User    @relation(fields: [user_id], references: [id])
-  user_id String  @unique
-  bio     String
-  city    String?
-  country String
-  views   Int     @default(0)
+    id      Int     @id @unique @default(autoincrement()) // @unique - #71
+    user    User    @relation(fields: [user_id], references: [id])
+    user_id String  @unique
+    bio     String
+    city    String?
+    country String
+    views   Int     @default(0)
 }
 
 // model that just exists for testing different schema types
 model Types {
-  id       Int      @default(0)
-  bool_    Boolean  @default(false)
-  string   String   @default("")
-  integer  Int      @default(0)
-  datetime DateTime @default(now())
-  float_   Float    @default(0)
+    id       Int      @default(0)
+    bool_    Boolean  @default(false)
+    string   String   @default("")
+    integer  Int      @default(0)
+    datetime DateTime @default(now())
+    float_   Float    @default(0)
 
-  // TODO: Figure out how to deserialize these
-  // bigint   BigInt   @default(0)
-  // decimal  Decimal  @default(1)
+    // TODO: Figure out how to deserialize these
+    // bigint   BigInt   @default(0)
+    // decimal  Decimal  @default(1)
 
-  // #69
-  @@id([id, string])
-  @@unique([id, string])
+    // #69
+    @@id([id, string])
+    @@unique([id, string])
 }
 
 model RHash {
-  impl Int @id @default(4)
+    impl  Int   @id @default(4)
+    test  Test?
+    test2 Test
+}
+
+enum Test {
+    A
+    B
+    C
 }

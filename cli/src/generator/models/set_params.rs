@@ -49,7 +49,7 @@ struct SetParam {
 fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_str = field.name();
-    
+
     let pcr = quote!(::prisma_client_rust);
 
     match &field {
@@ -182,7 +182,10 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
         .flatten()
         .collect::<Vec<_>>();
 
-    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params.iter().map(|p| (&p.variant, &p.into_pv_arm)).unzip();
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params
+        .iter()
+        .map(|p| (&p.variant, &p.into_pv_arm))
+        .unzip();
 
     let pcr = quote!(::prisma_client_rust);
 

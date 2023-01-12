@@ -2,17 +2,17 @@ use crate::generator::prelude::*;
 
 enum Variant {
     Select,
-    Include
+    Include,
 }
 
 impl core::fmt::Display for Variant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Select => "select",
-            Self::Include => "include"
+            Self::Include => "include",
         };
 
-        write!(f, "{}", s) 
+        write!(f, "{}", s)
     }
 }
 
@@ -159,9 +159,8 @@ fn model_macro<'a>(
         let field_name_snake = snake_ident(f.name());
         let field_type = f.type_tokens(quote!(crate::#module_path::));
 
-        f.as_scalar_field().map(|_| {
-            quote!(pub #field_name_snake: #field_type)
-        })
+        f.as_scalar_field()
+            .map(|_| quote!(pub #field_name_snake: #field_type))
     });
 
     let fields_enum_variants = selection_fields.clone().map(|f| {
@@ -176,7 +175,10 @@ fn model_macro<'a>(
         quote!((@field_serde_name; #field_name_snake) => { #field_name_str };)
     });
 
-    let base_field_names_snake = base_fields.clone().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
+    let base_field_names_snake = base_fields
+        .clone()
+        .map(|f| snake_ident(f.name()))
+        .collect::<Vec<_>>();
 
     let deserialize_impl = {
         let field_names_str = model.fields().map(|f| f.name());
@@ -222,7 +224,7 @@ fn model_macro<'a>(
             }
 
             struct DataVisitor;
-                
+
             impl<'de> ::serde::de::Visitor<'de> for DataVisitor {
                 type Value = Data;
 
@@ -253,7 +255,7 @@ fn model_macro<'a>(
                             })*
                         }
                     }
-                    
+
                     $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field)))?;)*
                     #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake)))?;)*
 
@@ -271,7 +273,7 @@ fn model_macro<'a>(
             use ::serde::ser::SerializeStruct;
 
             let mut state = serializer.serialize_struct(
-                "Data", 
+                "Data",
                 [
                     $(stringify!($field),)+
                     #(stringify!(#base_field_names_snake)),*
@@ -283,7 +285,11 @@ fn model_macro<'a>(
         }
     };
 
-    let all_fields_str = selection_fields.clone().map(|f| f.name().to_case(Case::Snake)).collect::<Vec<_>>().join(", ");
+    let all_fields_str = selection_fields
+        .clone()
+        .map(|f| f.name().to_case(Case::Snake))
+        .collect::<Vec<_>>()
+        .join(", ");
 
     let specta = quote!(prisma_client_rust::rspc::internal::specta);
 
@@ -426,7 +432,7 @@ fn model_macro<'a>(
         impl ::prisma_client_rust::#selection_type for Selection {
             type Data = Data;
             type ModelData = $crate::#module_path::#model_name_snake::Data;
-            
+
             fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
                 self.0
             }
@@ -452,7 +458,7 @@ fn model_macro<'a>(
             };
             ({ $(#selection_pattern_produce)+ }) => {{
                 $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
-                
+
                 #selection_struct
 
                 #selection
@@ -462,7 +468,7 @@ fn model_macro<'a>(
                 enum Fields {
                     #(#fields_enum_variants),*
                 }
-                
+
                 #[allow(warnings)]
                 impl Fields {
                     fn selections() {
@@ -501,10 +507,10 @@ fn model_macro<'a>(
                     $crate::#module_path::#model_name_snake::$selection_mode!(@field_module; $field #selections_pattern_consume);
                 })?)+
             };
-            
+
             #(#field_type_impls)*
             (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot include nonexistent relation $field on model #model_name_pascal_str, available relations are #all_fields_str)) };
-            
+
             #(#field_module_impls)*
             (@field_module; $($tokens:tt)*) => {};
 
@@ -539,11 +545,14 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
     match field {
         dml::Field::RelationField(relation_field) => {
-            let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
+            let relation_model_name_snake =
+                snake_ident(&relation_field.relation_info.referenced_model);
 
             let initial_nested_selections = match variant {
-                Variant::Include => quote!(<#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections()),
-                Variant::Select => quote!(vec![])
+                Variant::Include => {
+                    quote!(<#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections())
+                }
+                Variant::Select => quote!(vec![]),
             };
 
             match field.arity() {
@@ -635,7 +644,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                     }
                 },
             }
-        },
+        }
         dml::Field::ScalarField(_) => quote! {
             pub struct #variant_pascal;
 
@@ -651,7 +660,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                 }
             }
         },
-        dml::Field::CompositeField(_) => todo!()
+        dml::Field::CompositeField(_) => todo!(),
     }
 }
 
@@ -689,11 +698,11 @@ pub mod include {
 
     pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
         super::model_macro(
-            model, 
-            module_path, 
-            Variant::Include, 
+            model,
+            module_path,
+            Variant::Include,
             model.fields().filter(|f| f.is_scalar_field()),
-            model.fields().filter(|f| f.is_relation())
+            model.fields().filter(|f| f.is_relation()),
         )
     }
 
@@ -711,11 +720,11 @@ pub mod select {
 
     pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
         super::model_macro(
-            model, 
-            module_path, 
-            Variant::Select, 
-            [].iter(), 
-            model.fields()
+            model,
+            module_path,
+            Variant::Select,
+            [].iter(),
+            model.fields(),
         )
     }
 
@@ -727,4 +736,3 @@ pub mod select {
         super::model_module_enum(model, pcr, Variant::Select)
     }
 }
-

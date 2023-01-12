@@ -170,59 +170,60 @@ pub fn module(
         }
         dml::Field::ScalarField(field) => {
             let read_fns = args.read_filter(&field).map(|read_filter| {
-            let filter_enum = format_ident!("{}Filter", &read_filter.name);
+                let filter_enum = format_ident!("{}Filter", &read_filter.name);
 
-            // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
-            let equals = match (model.field_is_primary(field_name), model.field_is_unique(field_name), field.arity.is_required()) {
-                (true, _, _) | (_, true, true) => quote! {
-                    pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-                        UniqueWhereParam::#equals_variant(value).into()
+                // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
+                let equals = match (model.field_is_primary(field_name), model.field_is_unique(field_name), field.arity.is_required()) {
+                    (true, _, _) | (_, true, true) => quote! {
+                        pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
+                            UniqueWhereParam::#equals_variant(value).into()
+                        }
+                    },
+                    (_, true, false) => quote! {
+                        pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+                            T::from_arg(value)
+                        }
+                    },
+                    (_, _, _) => quote! {
+                        pub fn equals(value: #field_type) -> WhereParam {
+                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+                        }
                     }
-                },
-                (_, true, false) => quote! {
-                    pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
-                        T::from_arg(value)
-                    }
-                },
-                (_, _, _) => quote! {
-                    pub fn equals(value: #field_type) -> WhereParam {
-                        WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
-                    }
+                };
+
+                where_param_entries.push(Variant::BaseVariant {
+                    definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
+                    match_arm: quote! {
+                        Self::#field_name_pascal(value) => (
+                            #field_name,
+                            value.into()
+                        )
+                    },
+                });
+
+                let read_methods = read_filter.methods.iter().filter_map(|method| {
+                    if method.name == "Equals" { return None }
+
+                    let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
+                    let method_name_pascal =
+                        format_ident!("{}", method.name.to_case(Case::Pascal));
+
+                    let typ = method.type_tokens(quote!());
+
+                    Some(quote! {
+                        pub fn #method_name_snake(value: #typ) -> WhereParam {
+                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
+                        }
+                    })
+                });
+
+                quote! {
+                    #equals
+
+                    #(#read_methods)*
                 }
-            };
-
-            where_param_entries.push(Variant::BaseVariant {
-                definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
-                match_arm: quote! {
-                    Self::#field_name_pascal(value) => (
-                        #field_name,
-                        value.into()
-                    )
-                },
             });
 
-            let read_methods = read_filter.methods.iter().filter_map(|method| {
-                if method.name == "Equals" { return None }
-
-                let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
-                let method_name_pascal =
-                    format_ident!("{}", method.name.to_case(Case::Pascal));
-
-                let typ = method.type_tokens(quote!());
-
-                Some(quote! {
-                    pub fn #method_name_snake(value: #typ) -> WhereParam {
-                        WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
-                    }
-                })
-            });
-
-            quote! {
-                #equals
-
-                #(#read_methods)*
-            }
-        });
             let write_fns = args.write_filter(&field).map(|write_type| {
                 write_type
                     .methods

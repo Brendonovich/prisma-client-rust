@@ -105,8 +105,17 @@ impl GenerateArgs {
                         }
                     }
 
+                    let mut name = e.name.clone();
+
+                    if p.name.contains("ListFilter") {
+                        name += "List";
+                    }
+                    if p.name.contains("Nullable") {
+                        name += "Nullable";
+                    }
+
                     filters.push(Filter {
-                        name: e.name.clone(),
+                        name,
                         methods: fields,
                     });
                 }
@@ -309,6 +318,17 @@ impl GenerateArgs {
                 }
 
                 self.read_filters.iter().find(|f| f.name == typ)
+            }
+            FieldType::Enum(e) => {
+                let mut typ = e.clone();
+
+                match field.arity {
+                    FieldArity::List => typ += "List",
+                    FieldArity::Optional => typ += "Nullable",
+                    _ => {}
+                }
+
+                self.read_filters.iter().find(|f| &f.name == e)
             }
             _ => None,
         }
