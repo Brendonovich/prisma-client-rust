@@ -26,9 +26,9 @@ serde = { version = "1.0.136", features = ["derive"] }
 proc-macro2 = "1.0.39"
 thiserror = "1.0.37"
 
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
-dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
-psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "43fcfd1b5c0be59e414fb03cf7b7712e1661b6d0" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "6bad339fc5b8bbc77e028eeae2038cf2ade2e6be" }
