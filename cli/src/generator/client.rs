@@ -95,6 +95,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
         }
 
+        #[derive(Clone)]
         pub struct PrismaClient(#pcr::PrismaClientInternals);
 
         impl ::std::fmt::Debug for PrismaClient {
