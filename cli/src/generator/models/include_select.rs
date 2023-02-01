@@ -291,116 +291,50 @@ fn model_macro<'a>(
         .collect::<Vec<_>>()
         .join(", ");
 
-    let specta = quote!(prisma_client_rust::rspc::internal::specta);
-
-    let specta_impl = cfg!(feature = "rspc").then(|| {
-        let base_field_types = base_fields.clone().filter_map(|f| {
-            let field_name_str = f.name();
-            let field_type = f.type_tokens(quote!(crate::#module_path::));
-
-            f.as_scalar_field().map(|_| 
-                quote!(#specta::ObjectField {
-                    name: #field_name_str.to_string(),
-                    optional: false,
-                    ty: <#field_type as #specta::Type>::reference(
-                        #specta::DefOpts {
-                            parent_inline: false,
-                            type_map: _opts.type_map
-                        },
-                        &[]
-                    )
-                },)
-            )
-        });
-
-        quote! {
-            impl #specta::Type for Data {
-                const NAME: &'static str = $crate::#module_path::#model_name_snake::#variant_ident!(@specta_type_name; $($module_name)?);
-
-                fn inline(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    use ::prisma_client_rust::convert_case::Casing;
-
-                    #specta::DataType::Object(#specta::ObjectType {
-                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
-                        tag: None,
-                        generics: vec![],
-                        fields: vec![#(#base_field_types)* $(#specta::ObjectField {
-                            name: $crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field).to_string(),
-                            optional: false,
-                            ty: <$crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
-                                #specta::DefOpts {
-                                    parent_inline: false,
-                                    type_map: _opts.type_map
-                                },
-                                &[]
-                            )
-                        }),*],
-                        type_id: None
-                    })
-                }
-
-                $crate::#module_path::#model_name_snake::#variant_ident!(@specta_reference_body; $($module_name)?);
-            }
-        }
-    });
+    let data_struct_attrs = quote! {
+        #[allow(warnings)]
+        #[derive(std::fmt::Debug, Clone)]
+    };
 
     let specta_macro_arms = cfg!(feature = "rspc").then(|| {
-        quote! {
-            (@specta_reference_body; $name:ident) =>  {
-                fn reference(opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    use ::prisma_client_rust::convert_case::Casing;
+        let data_struct_attrs = quote! {
+            #data_struct_attrs
+            #[derive(::prisma_client_rust::rspc::Type)]
+            #[specta(rename_to_value = SPECTA_TYPE_NAME, crate = "prisma_client_rust::rspc::internal::specta")]
+        };
 
-                    if !opts.type_map.contains_key(Self::NAME) {
-                        Self::definition(#specta::DefOpts {
-                            parent_inline: false,
-                            type_map: opts.type_map
-                        });
-                    }
-
-                    #specta::DataType::Reference {
-                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
-                        generics: vec![],
-                        type_id: std::any::TypeId::of::<Self>()
-                    }
-                }
-
-                fn definition(opts: #specta::DefOpts) -> #specta::DataType {
-                    if !opts.type_map.contains_key(Self::NAME) {
-                        opts.type_map.insert(Self::NAME, #specta::DataType::Object(#specta::ObjectType {
-                            name: "PLACEHOLDER".to_string(),
-                            generics: vec![],
-                            fields: vec![],
-                            tag: None,
-                            type_id: Some(std::any::TypeId::of::<Self>())
-                        }));
-
-                        let def = Self::inline(#specta::DefOpts {
-                            parent_inline: false,
-                            type_map: opts.type_map
-                        }, &[]);
-
-                        opts.type_map.insert(Self::NAME, def.clone());
-                    }
-
-                    opts.type_map.get(Self::NAME).unwrap().clone()
-                }
-            };
-            (@specta_reference_body;) => {
-                fn reference(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    Self::inline(_opts, &[])
-                }
-
-                fn definition(_opts: #specta::DefOpts) -> #specta::DataType {
-                    unreachable!()
-                }
-            };
-
+        quote!{
             (@specta_type_name; $name:ident) => {
+                // TODO: convert the snake case `$name` to pascal case. Will require a proc macro.
                 stringify!($name)
             };
             (@specta_type_name;) => { "Data" };
+
+            (@specta_data_struct; $struct:item;) => {
+                #data_struct_attrs
+                $struct
+            };
+            (@specta_data_struct; $struct:item; $name:ident) => {
+                #data_struct_attrs
+                #[specta(inline)]
+                $struct
+            };
         }
     });
+
+    let data_struct = quote! {
+        pub struct Data {
+            #(#data_struct_scalar_fields,)*
+            $(pub $field: $crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),)+
+        }
+    };
+
+    let data_struct = cfg!(feature = "rspc").then(|| {
+        quote! {
+            const SPECTA_TYPE_NAME: &'static str = $crate::#module_path::#model_name_snake::#variant_ident!(@specta_type_name; $($module_name)?);
+            $crate::#module_path::#model_name_snake::#variant_ident!(@specta_data_struct; #data_struct; $($module_name)?);
+        }
+    }).unwrap_or(quote!( #data_struct_attrs #data_struct ));
 
     let selection = {
         let scalar_selections = matches!(variant, Variant::Include).then(||
@@ -476,12 +410,7 @@ fn model_macro<'a>(
                     }
                 }
 
-                #[allow(warnings)]
-                #[derive(std::fmt::Debug, Clone)]
-                pub struct Data {
-                    #(#data_struct_scalar_fields,)*
-                    $(pub $field: $crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),)+
-                }
+                #data_struct
 
                 impl ::serde::Serialize for Data {
                     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -500,8 +429,6 @@ fn model_macro<'a>(
                         #deserialize_impl
                     }
                 }
-
-                #specta_impl
 
                 $($(pub mod $field {
                     $crate::#module_path::#model_name_snake::$selection_mode!(@field_module; $field #selections_pattern_consume);
