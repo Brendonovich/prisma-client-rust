@@ -313,11 +313,11 @@ fn model_macro<'a>(
 
             (@specta_data_struct; $struct:item;) => {
                 #data_struct_attrs
+                #[specta(inline)]
                 $struct
             };
             (@specta_data_struct; $struct:item; $name:ident) => {
                 #data_struct_attrs
-                #[specta(inline)]
                 $struct
             };
         }
