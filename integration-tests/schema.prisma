@@ -1,12 +1,12 @@
-// datasource db {
-//     provider = "sqlite"
-//     url      = "file:dev.db"
-// }
-
 datasource db {
-    provider = "postgresql"
-    url      = "postgres://postgres:postgrespw@localhost:55000"
+    provider = "sqlite"
+    url      = "file:dev.db"
 }
+
+// datasource db {
+//     provider = "postgresql"
+//     url      = "postgres://postgres:postgrespw@localhost:55000"
+// }
 
 generator client {
     provider = "cargo prisma"
@@ -89,13 +89,5 @@ model Types {
 }
 
 model RHash {
-    impl  Int   @id @default(4)
-    test  Test?
-    test2 Test
-}
-
-enum Test {
-    A
-    B
-    C
+    impl Int @id @default(4)
 }

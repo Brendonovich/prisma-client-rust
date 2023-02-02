@@ -100,7 +100,7 @@ pub trait ModelQuery<'a>: Query<'a> {
     ) -> Selection {
         Selection::new(
             format!("{}{}", Self::TYPE.name(), Self::Types::MODEL),
-            Some("result".to_string()),
+            None,
             arguments.into_iter().collect::<Vec<_>>(),
             nested_selections.into_iter().collect::<Vec<_>>(),
         )
