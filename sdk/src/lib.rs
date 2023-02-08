@@ -53,11 +53,11 @@ pub type GenerateResult = Result<String, GeneratorError>;
 pub enum GeneratorError {
     #[error("Schema contains invalid names \n{0}")]
     ReservedNames(String),
-    #[error("Failed to create client file")]
+    #[error("Failed to create client file: {0}")]
     FileCreate(std::io::Error),
-    #[error("Failed to write generated client to file")]
+    #[error("Failed to write generated client to file: {0}")]
     FileWrite(std::io::Error),
-    #[error("Failed to deserialize generator arguments")]
+    #[error("Failed to deserialize generator arguments: {0}")]
     ArgDeserialize(serde_json::Error),
     #[error("Generator {name} failed: \n{message}")]
     InternalError { name: &'static str, message: String },
