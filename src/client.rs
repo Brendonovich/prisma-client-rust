@@ -154,16 +154,17 @@ impl PrismaClientInternals {
         let url = match url {
             Some(url) => url,
             None => {
-                let url = if let Some(url) = source.load_shadow_database_url()? {
-                    url
-                } else {
-                    source.load_url(|key| std::env::var(key).ok())?
-                };
+                let url = match source.load_url(|key| std::env::var(key).ok()) {
+                    Ok(url) => Some(url),
+                    Err(_) => source.load_shadow_database_url()?,
+                }
+                .unwrap();
+
                 match url.starts_with("file:") {
                     true => {
-                        let path = url.split(":").nth(1).unwrap();
+                        let path = url.split(':').nth(1).unwrap();
                         if std::path::Path::new("./prisma/schema.prisma").exists() {
-                            format!("file:./prisma/{}", path)
+                            format!("file:./prisma/{path}")
                         } else {
                             url
                         }
@@ -174,7 +175,7 @@ impl PrismaClientInternals {
         };
 
         let (db_name, executor) =
-            query_core::executor::load(&source, config.preview_features(), &url).await?;
+            query_core::executor::load(source, config.preview_features(), &url).await?;
 
         let query_schema = Arc::new(schema_builder::build(
             prisma_models::convert(schema.clone(), db_name),
