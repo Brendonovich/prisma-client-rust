@@ -23,3 +23,9 @@ impl ActionNotifier {
         }
     }
 }
+
+impl Default for ActionNotifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -11,6 +11,8 @@ use migration_core::{
 use thiserror::Error;
 use tokio::fs::remove_dir_all;
 
+type BoxedFuture<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+
 fn format_error_array(arr: &[String]) -> String {
     arr.join("\n")
 }
@@ -19,9 +21,9 @@ fn format_error_array(arr: &[String]) -> String {
 pub enum DbPushError {
     #[error("Failed to reset database: ${0}")]
     ResetFailed(migration_core::CoreError),
-    #[error("Some changes could not be executed:\n {}", format_error_array(&.0))]
+    #[error("Some changes could not be executed:\n {}", format_error_array(.0))]
     UnexecutableChanges(Vec<String>),
-    #[error("Data loss may occur:\n {}", format_error_array(&.0))]
+    #[error("Data loss may occur:\n {}", format_error_array(.0))]
     PossibleDataLoss(Vec<String>),
     #[error("An error occured pushing schema to the database: ${0}")]
     Other(#[from] migration_core::CoreError),
@@ -32,7 +34,7 @@ pub struct DbPush<'a> {
     url: &'a str,
     force_reset: bool,
     accept_data_loss: bool,
-    fut: Option<Pin<Box<dyn Future<Output = Result<u32, DbPushError>> + Send>>>,
+    fut: Option<BoxedFuture<Result<u32, DbPushError>>>,
 }
 
 impl<'a> DbPush<'a> {
@@ -82,11 +84,11 @@ impl<'a> Future for DbPush<'a> {
                     )
                     .await?;
 
-                if output.unexecutable.len() > 0 && !force_reset {
+                if !output.unexecutable.is_empty() && !force_reset {
                     return Err(DbPushError::UnexecutableChanges(output.unexecutable));
                 }
 
-                if output.warnings.len() > 0 && !accept_data_loss {
+                if !output.warnings.is_empty() && !accept_data_loss {
                     return Err(DbPushError::PossibleDataLoss(output.warnings));
                 }
 
@@ -127,7 +129,7 @@ pub struct MigrateDeploy<'a> {
     migrations: &'static include_dir::Dir<'static>,
     url: &'a str,
     temp_dir: Option<String>,
-    fut: Option<Pin<Box<dyn Future<Output = Result<(), MigrateDeployError>> + Send>>>,
+    fut: Option<BoxedFuture<Result<(), MigrateDeployError>>>,
 }
 
 impl<'a> MigrateDeploy<'a> {

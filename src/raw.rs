@@ -42,7 +42,7 @@ impl Raw {
 
         for i in 0..values.len() {
             let variable_indicator = match database {
-                "postgresql" | "cockroachdb" => format!("${}", i),
+                "postgresql" | "cockroachdb" => format!("${i}"),
                 "sqlite" | "mysql" => "?".to_string(),
                 _ => panic!("Raw queries are not supported with database '{database}'"),
             };

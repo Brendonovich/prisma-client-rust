@@ -94,7 +94,7 @@ impl<'a, TClient: PrismaClient> TransactionBuilder<'a, TClient> {
 
                 (
                     TransactionController::new(new_tx_id.clone()),
-                    self.client.with_tx_id(Some(new_tx_id.clone())),
+                    self.client.with_tx_id(Some(new_tx_id)),
                 )
             }
             _ => (

@@ -72,55 +72,49 @@ where
 impl From<prisma_models::PrismaValue> for PrismaValue {
     fn from(value: prisma_models::PrismaValue) -> Self {
         match value {
-            prisma_models::PrismaValue::String(value) => PrismaValue::String(value),
-            prisma_models::PrismaValue::Boolean(value) => PrismaValue::Boolean(value),
-            prisma_models::PrismaValue::Enum(value) => PrismaValue::Enum(value),
-            prisma_models::PrismaValue::Int(value) => PrismaValue::Int(value as i32),
-            prisma_models::PrismaValue::Uuid(value) => PrismaValue::Uuid(value.into()),
+            prisma_models::PrismaValue::String(value) => Self::String(value),
+            prisma_models::PrismaValue::Boolean(value) => Self::Boolean(value),
+            prisma_models::PrismaValue::Enum(value) => Self::Enum(value),
+            prisma_models::PrismaValue::Int(value) => Self::Int(value as i32),
+            prisma_models::PrismaValue::Uuid(value) => Self::Uuid(value),
             prisma_models::PrismaValue::List(value) => {
-                PrismaValue::List(value.into_iter().map(Into::into).collect())
+                Self::List(value.into_iter().map(Into::into).collect())
             }
             prisma_models::PrismaValue::Json(value) => {
-                PrismaValue::Json(serde_json::from_str(&value).unwrap())
+                Self::Json(serde_json::from_str(&value).unwrap())
             }
-            prisma_models::PrismaValue::Xml(value) => PrismaValue::Xml(value),
+            prisma_models::PrismaValue::Xml(value) => Self::Xml(value),
             prisma_models::PrismaValue::Object(value) => {
-                PrismaValue::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
+                Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
-            prisma_models::PrismaValue::Null => PrismaValue::Null,
-            prisma_models::PrismaValue::DateTime(value) => PrismaValue::DateTime(value),
-            prisma_models::PrismaValue::Float(value) => PrismaValue::Float(value.to_f64().unwrap()),
-            prisma_models::PrismaValue::BigInt(value) => PrismaValue::BigInt(value),
-            prisma_models::PrismaValue::Bytes(value) => PrismaValue::Bytes(value),
+            prisma_models::PrismaValue::Null => Self::Null,
+            prisma_models::PrismaValue::DateTime(value) => Self::DateTime(value),
+            prisma_models::PrismaValue::Float(value) => Self::Float(value.to_f64().unwrap()),
+            prisma_models::PrismaValue::BigInt(value) => Self::BigInt(value),
+            prisma_models::PrismaValue::Bytes(value) => Self::Bytes(value),
         }
     }
 }
 
-impl Into<prisma_models::PrismaValue> for PrismaValue {
-    fn into(self) -> prisma_models::PrismaValue {
-        match self {
-            PrismaValue::String(value) => prisma_models::PrismaValue::String(value),
-            PrismaValue::Boolean(value) => prisma_models::PrismaValue::Boolean(value),
-            PrismaValue::Enum(value) => prisma_models::PrismaValue::Enum(value),
-            PrismaValue::Int(value) => prisma_models::PrismaValue::Int(value as i64),
-            PrismaValue::Uuid(value) => prisma_models::PrismaValue::Uuid(value),
-            PrismaValue::List(value) => {
-                prisma_models::PrismaValue::List(value.into_iter().map(Into::into).collect())
+impl From<PrismaValue> for prisma_models::PrismaValue {
+    fn from(val: PrismaValue) -> Self {
+        match val {
+            PrismaValue::String(value) => Self::String(value),
+            PrismaValue::Boolean(value) => Self::Boolean(value),
+            PrismaValue::Enum(value) => Self::Enum(value),
+            PrismaValue::Int(value) => Self::Int(value as i64),
+            PrismaValue::Uuid(value) => Self::Uuid(value),
+            PrismaValue::List(value) => Self::List(value.into_iter().map(Into::into).collect()),
+            PrismaValue::Json(value) => Self::Json(serde_json::to_string(&value).unwrap()),
+            PrismaValue::Xml(value) => Self::Xml(value),
+            PrismaValue::Object(value) => {
+                Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
-            PrismaValue::Json(value) => {
-                prisma_models::PrismaValue::Json(serde_json::to_string(&value).unwrap())
-            }
-            PrismaValue::Xml(value) => prisma_models::PrismaValue::Xml(value),
-            PrismaValue::Object(value) => prisma_models::PrismaValue::Object(
-                value.into_iter().map(|(k, v)| (k, v.into())).collect(),
-            ),
-            PrismaValue::Null => prisma_models::PrismaValue::Null,
-            PrismaValue::DateTime(value) => prisma_models::PrismaValue::DateTime(value),
-            PrismaValue::Float(value) => {
-                prisma_models::PrismaValue::Float(BigDecimal::from_f64(value).unwrap())
-            }
-            PrismaValue::BigInt(value) => prisma_models::PrismaValue::BigInt(value),
-            PrismaValue::Bytes(value) => prisma_models::PrismaValue::Bytes(value),
+            PrismaValue::Null => Self::Null,
+            PrismaValue::DateTime(value) => Self::DateTime(value),
+            PrismaValue::Float(value) => Self::Float(BigDecimal::from_f64(value).unwrap()),
+            PrismaValue::BigInt(value) => Self::BigInt(value),
+            PrismaValue::Bytes(value) => Self::Bytes(value),
         }
     }
 }
