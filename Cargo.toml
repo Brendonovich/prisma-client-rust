@@ -37,7 +37,7 @@ mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
 dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
 dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-migration-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3", optional = true }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
 prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
 psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
 query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
