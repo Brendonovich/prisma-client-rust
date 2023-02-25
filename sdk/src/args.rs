@@ -1,13 +1,12 @@
 use std::str::FromStr;
 
-use convert_case::Case;
 use dml::{FieldArity, FieldType, ScalarField, ScalarType};
 use psl::{builtin_connectors, datamodel_connector::Connector};
 
 use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 
-use crate::{casing::Casing, dmmf::EngineDMMF, FieldTypeExt};
+use crate::{dmmf::EngineDMMF, prelude::*, FieldTypeExt};
 
 pub struct GenerateArgs {
     pub dml: dml::Datamodel,
@@ -28,7 +27,7 @@ impl GenerateArgs {
                         if let TypeLocation::Scalar = input.location {
                             let name = &input.typ;
 
-                            if let Some(_) = scalars.iter().find(|s| s == &name) {
+                            if scalars.iter().any(|s| s == name) {
                                 continue;
                             }
 
@@ -160,7 +159,7 @@ impl GenerateArgs {
             for scalar in &scalars {
                 let combinations = [
                     scalar.clone() + "FieldUpdateOperationsInput",
-                    "Nullable".to_string() + &scalar + "FieldUpdateOperationsInput",
+                    "Nullable".to_string() + scalar + "FieldUpdateOperationsInput",
                 ];
 
                 for c in combinations {
@@ -189,7 +188,7 @@ impl GenerateArgs {
                             ret
                         } {
                             fields.push(Method::new(
-                                field.name.to_case(Case::Pascal),
+                                pascal_ident(&field.name).to_string(),
                                 field.name.clone(),
                                 ScalarType::from_str(&type_name)
                                     .map(|t| FieldType::Scalar(t, None))
@@ -209,7 +208,7 @@ impl GenerateArgs {
             for model in &dml.models {
                 for field in &model.fields {
                     let p = match schema.find_input_type(
-                        &(model.name.to_string() + "Update" + &field.name() + "Input"),
+                        &(model.name.to_string() + "Update" + field.name() + "Input"),
                     ) {
                         Some(p) => p,
                         None => continue,
@@ -249,7 +248,7 @@ impl GenerateArgs {
                                 ret
                             } {
                                 fields.push(Method::new(
-                                    field.name.to_case(Case::Pascal),
+                                    pascal_ident(&field.name).to_string(),
                                     field.name.clone(),
                                     FieldType::Scalar(
                                         ScalarType::from_str(&type_name).unwrap(),
@@ -358,7 +357,7 @@ impl DmmfSchemaExt for DmmfSchema {
     fn find_input_type(&self, name: &str) -> Option<&DmmfInputType> {
         self.input_object_types
             .get("prisma")
-            .and_then(|t| t.iter().find(|i| &i.name == &name))
+            .and_then(|t| t.iter().find(|i| i.name == name))
     }
 }
 
@@ -422,7 +421,7 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
             match field.name.as_str() {
                 "in" => "InVec".to_string(),
                 "notIn" => "NotInVec".to_string(),
-                name => name.to_case(Case::Pascal),
+                name => pascal_ident(name).to_string(),
             },
             field.name.clone(),
             ScalarType::from_str(&type_name)

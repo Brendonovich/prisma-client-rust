@@ -91,3 +91,8 @@ model Types {
 model RHash {
     impl Int @id @default(4)
 }
+
+model Ref {
+    id   String @id @default(uuid())
+    name String
+}

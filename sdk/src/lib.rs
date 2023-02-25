@@ -38,11 +38,15 @@ pub mod prelude {
     }
 
     pub fn snake_ident(name: &str) -> Ident {
-        format_ident!("{}", name.to_case(Case::Snake))
+        format_ident!("{}", name.to_case(Case::Snake, false))
+    }
+
+    pub fn snake_ident_raw(name: &str) -> Ident {
+        format_ident!("{}", name.to_case(Case::Snake, true))
     }
 
     pub fn pascal_ident(name: &str) -> Ident {
-        format_ident!("{}", name.to_case(Case::Pascal))
+        format_ident!("{}", name.to_case(Case::Pascal, false))
     }
 }
 
