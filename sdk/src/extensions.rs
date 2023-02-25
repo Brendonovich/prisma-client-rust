@@ -76,6 +76,7 @@ impl FieldTypeExt for FieldType {
                 quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
+            Self::Unsupported(_) => unreachable!("Unsupported fields are not generated in Prisma Client, so this should never be reached"),
             _ => unimplemented!(),
         };
 

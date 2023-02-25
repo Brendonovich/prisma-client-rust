@@ -258,6 +258,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = model
             .fields
             .iter()
+            .filter(|f| !f.field_type().is_unsupported())
             .map(|f| field::module(f, model, args))
             .unzip();
 

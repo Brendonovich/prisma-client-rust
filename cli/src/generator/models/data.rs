@@ -40,6 +40,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
 
     let fields = model
         .fields()
+        .filter(|f| !f.field_type().is_unsupported())
         .map(|field| match field {
             dml::Field::RelationField(relation_field) => {
                 let relation_model_name_snake =

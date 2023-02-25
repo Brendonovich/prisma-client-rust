@@ -701,7 +701,7 @@ pub mod include {
             model,
             module_path,
             Variant::Include,
-            model.fields().filter(|f| f.is_scalar_field()),
+            model.fields().filter(|f| f.is_scalar_field() && !f.field_type().is_unsupported()),
             model.fields().filter(|f| f.is_relation()),
         )
     }
@@ -724,7 +724,7 @@ pub mod select {
             module_path,
             Variant::Select,
             [].iter(),
-            model.fields(),
+            model.fields().filter(|f| !f.field_type().is_unsupported()),
         )
     }
 

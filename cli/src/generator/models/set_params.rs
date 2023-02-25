@@ -178,6 +178,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let set_params = model
         .fields()
+        .filter(|f| !f.field_type().is_unsupported())
         .map(|f| field_set_params(f, args))
         .flatten()
         .collect::<Vec<_>>();

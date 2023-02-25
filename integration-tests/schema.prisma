@@ -9,7 +9,8 @@ datasource db {
 // }
 
 generator client {
-    provider = "cargo prisma"
+    // tee to stderr.log is useful for debugging panics
+    provider = "cargo prisma 2> >(tee stderr.log >&2)"
     output   = "tests/db.rs"
 
     // necessary since the generated file won't be at crate::prisma
@@ -72,12 +73,13 @@ model Profile {
 
 // model that just exists for testing different schema types
 model Types {
-    id       Int      @default(0)
-    bool_    Boolean  @default(false)
-    string   String   @default("")
-    integer  Int      @default(0)
-    datetime DateTime @default(now())
-    float_   Float    @default(0)
+    id          Int                    @default(0)
+    bool_       Boolean                @default(false)
+    string      String                 @default("")
+    integer     Int                    @default(0)
+    datetime    DateTime               @default(now())
+    float_      Float                  @default(0)
+    unsupported Unsupported("BIGINT")?
 
     // TODO: Figure out how to deserialize these
     // bigint   BigInt   @default(0)
