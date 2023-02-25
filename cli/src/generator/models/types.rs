@@ -1,7 +1,10 @@
 use crate::generator::prelude::*;
 
 pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
-    let scalar_fields = model.scalar_fields().map(|f| &f.name);
+    let scalar_fields = model
+        .scalar_fields()
+        .filter(|f| !f.field_type.is_unsupported())
+        .map(|f| &f.name);
 
     quote! {
         fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {

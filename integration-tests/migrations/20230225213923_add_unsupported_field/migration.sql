@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Types" ADD COLUMN "unsupported" BIGINT;
+
+-- CreateTable
+CREATE TABLE "RHash" (
+    "impl" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 4
+);
