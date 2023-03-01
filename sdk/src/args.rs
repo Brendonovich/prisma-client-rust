@@ -70,10 +70,12 @@ impl GenerateArgs {
                     }
 
                     let mut s = scalar.clone();
-                    if p.name.contains("ListFilter") {
+
+                    // checking for both is invalid - fields can be list or null but not both
+                    // TODO: make this more typesafe to correspond with fields
+                    if p.name.contains("List") {
                         s += "List";
-                    }
-                    if p.name.contains("Nullable") {
+                    } else if p.name.contains("Nullable") {
                         s += "Nullable";
                     }
 
