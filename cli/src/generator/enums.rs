@@ -1,17 +1,17 @@
-use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
+use prisma_client_rust_sdk::{GenerateArgs, prelude::pascal_ident};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let enums = args.dml.enums.iter().map(|e| {
-        let name = format_ident!("{}", e.name.to_case(Case::Pascal));
+        let name = pascal_ident(&e.name);
 
         let variants = e
             .values
             .iter()
             .map(|v| {
                 let name = &v.name;
-                let variant_name = format_ident!("{}", v.name.to_case(Case::Pascal));
+                let variant_name = pascal_ident(&v.name);
 
                 quote! {
                     #[serde(rename=#name)]
@@ -25,7 +25,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             .iter()
             .map(|v| {
                 let name = &v.name;
-                let variant_name = format_ident!("{}", v.name.to_case(Case::Pascal));
+                let variant_name = pascal_ident(&v.name);
 
                 quote!(Self::#variant_name => #name.to_string())
             })

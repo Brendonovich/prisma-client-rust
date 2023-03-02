@@ -18,11 +18,11 @@ impl core::fmt::Display for Variant {
 
 impl Variant {
     fn type_trait(&self) -> Ident {
-        format_ident!("{}Type", self.to_string().to_case(Case::Pascal))
+        format_ident!("{}Type", pascal_ident(&self.to_string()))
     }
 
     fn param(&self) -> Ident {
-        format_ident!("{}Param", self.to_string().to_case(Case::Pascal))
+        format_ident!("{}Param", pascal_ident(&self.to_string()))
     }
 }
 
@@ -35,9 +35,10 @@ fn model_macro<'a>(
     // Fields that can be picked from
     selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
 ) -> TokenStream {
-    let model_name_pascal_str = model.name.to_case(Case::Pascal);
+    let model_name_pascal_str = pascal_ident(&model.name).to_string();
     let model_name_snake = snake_ident(&model.name);
-    let macro_name = format_ident!("_{variant}_{model_name_snake}");
+    let model_name_snake_raw = snake_ident_raw(&model.name);
+    let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
 
     let selection_type = variant.type_trait();
     let selection_param = variant.param();
@@ -287,7 +288,7 @@ fn model_macro<'a>(
 
     let all_fields_str = selection_fields
         .clone()
-        .map(|f| f.name().to_case(Case::Snake))
+        .map(|f| snake_ident(f.name()).to_string())
         .collect::<Vec<_>>()
         .join(", ");
 

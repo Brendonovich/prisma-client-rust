@@ -41,7 +41,7 @@ impl FieldExt for Field {
     }
 
     fn type_prisma_value(&self, var: &Ident) -> TokenStream {
-        self.field_type().to_prisma_value(var, &self.arity())
+        self.field_type().to_prisma_value(var, self.arity())
     }
 
     fn relation_methods(&self) -> &'static [&'static str] {
@@ -68,7 +68,7 @@ impl FieldTypeExt for FieldType {
     fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream {
         let base = match self {
             Self::Enum(name) => {
-                let name = pascal_ident(&name);
+                let name = pascal_ident(name);
                 quote!(#prefix #name)
             }
             Self::Relation(info) => {

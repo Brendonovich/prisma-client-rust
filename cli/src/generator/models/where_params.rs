@@ -52,8 +52,8 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
             read_filter_name,
             optional,
         } => {
-            let field_pascal = format_ident!("{}", field_name.to_case(Case::Pascal));
-            let field_snake = format_ident!("{}", field_name.to_case(Case::Snake));
+            let field_pascal = pascal_ident(field_name);
+            let field_snake = snake_ident(field_name);
 
             let variant_name = format_ident!("{}Equals", &field_pascal);
             let filter_enum = format_ident!("{}Filter", &read_filter_name);

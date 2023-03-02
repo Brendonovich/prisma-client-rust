@@ -11,8 +11,8 @@ pub fn module(
     let mut where_param_entries = vec![];
 
     let field_name = root_field.name();
-    let field_name_pascal = format_ident!("{}", field_name.to_case(Case::Pascal));
-    let field_name_snake = format_ident!("{}", field_name.to_case(Case::Snake));
+    let field_name_pascal = pascal_ident(field_name);
+    let field_name_snake = snake_ident(field_name);
     let field_type = root_field.type_tokens(quote!());
 
     let connect_variant = format_ident!("Connect{}", field_name_pascal);
@@ -132,9 +132,9 @@ pub fn module(
             };
 
             let relation_methods = root_field.relation_methods().iter().map(|method| {
-                let method_action_string = method.to_case(Case::Camel);
-                let variant_name = format_ident!("{}{}", &field_name_pascal, method.to_case(Case::Pascal));
-                let method_name_snake = format_ident!("{}", method.to_case(Case::Snake));
+                let method_action_string = method.to_case(Case::Camel, false);
+                let variant_name = format_ident!("{}{}", &field_name_pascal, pascal_ident(method));
+                let method_name_snake = snake_ident(method);
 
                 where_param_entries.push(Variant::BaseVariant {
                     definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
@@ -204,9 +204,8 @@ pub fn module(
                 let read_methods = read_filter.methods.iter().filter_map(|method| {
                     if method.name == "Equals" { return None }
 
-                    let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
-                    let method_name_pascal =
-                        format_ident!("{}", method.name.to_case(Case::Pascal));
+                    let method_name_snake = snake_ident(&method.name);
+                    let method_name_pascal = pascal_ident(&method.name);
 
                     let typ = method.type_tokens(quote!());
 
@@ -229,16 +228,12 @@ pub fn module(
                     .methods
                     .iter()
                     .map(|method| {
-                        let method_name_snake =
-                            format_ident!("{}", method.name.to_case(Case::Snake));
+                        let method_name_snake = snake_ident(&method.name);
 
                         let typ = method.type_tokens(quote!());
 
-                        let variant_name = format_ident!(
-                            "{}{}",
-                            method.name.to_case(Case::Pascal),
-                            field_name_pascal
-                        );
+                        let variant_name =
+                            format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
 
                         quote! {
                             pub fn #method_name_snake(value: #typ) -> SetParam {

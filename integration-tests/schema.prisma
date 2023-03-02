@@ -88,6 +88,8 @@ model Types {
     @@unique([id, string])
 }
 
-model RHash {
-    impl Int @id @default(4)
+// https://discord.com/channels/1011665225809924136/1011666506083487775/1078948688728162384
+model Ref {
+    id   String @id @default(uuid())
+    impl Int
 }

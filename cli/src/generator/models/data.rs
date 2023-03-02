@@ -152,7 +152,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
     });
 
     let specta_derive = cfg!(feature = "rspc").then(|| {
-        let model_name_pascal_str = model.name.to_case(Case::Pascal);
+        let model_name_pascal_str = pascal_ident(&model.name).to_string();
 
         quote! {
             #[derive(::prisma_client_rust::rspc::Type)]
