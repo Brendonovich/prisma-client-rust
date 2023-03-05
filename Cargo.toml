@@ -34,17 +34,17 @@ postgresql = ["query-core/postgresql", "migration-core/postgresql"]
 mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 
 [workspace.dependencies]
-diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-dml = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-migration-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-psl = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-schema = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", rev = "fc595772f32ec7c1896da5545b8b87afbbdb7fc3" }
+diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
