@@ -3,3 +3,5 @@ target
 DS_STORE
 .DS_Store
 *db*
+node_modules
+.next

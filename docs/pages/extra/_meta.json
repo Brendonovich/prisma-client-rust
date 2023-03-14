@@ -1,0 +1,10 @@
+{
+  "raw": "Raw Queries",
+  "batching": "Batching Queries",
+  "transactions": "Transactions",
+  "mocking": "Mocking Queries",
+  "error-handling": "Error Handling",
+  "migrations": "Migrations",
+  "rspc": "rspc Integration",
+  "traits": "Query Traits"
+}
