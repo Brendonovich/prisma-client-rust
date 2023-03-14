@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import type { DocsThemeConfig } from "nextra-theme-docs";
+import { type DocsThemeConfig, useConfig } from "nextra-theme-docs";
 
 export default {
   logo: (
@@ -70,6 +70,34 @@ export default {
         </Link>
       </>
     ),
+  },
+  head: () => {
+    const { title } = useConfig();
+
+    return (
+      <>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta httpEquiv="Content-Language" content="en" />
+        <meta
+          name="description"
+          content="Make beautiful websites with Next.js & MDX."
+        />
+        <meta
+          name="og:description"
+          content="Make beautiful websites with Next.js & MDX."
+        />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:site:domain" content="prisma.brendonovich.dev" />
+        <meta name="twitter:url" content="https://prisma.brendonovich.dev" />
+        <meta
+          name="og:title"
+          content={
+            title ? `${title}  – Prisma Client Rust` : "Prisma Client Rust"
+          }
+        />
+        <meta name="apple-mobile-web-app-title" content="Nextra" />
+      </>
+    );
   },
   // ...
 } as DocsThemeConfig;
