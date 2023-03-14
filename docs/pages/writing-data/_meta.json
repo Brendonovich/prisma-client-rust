@@ -1,0 +1,6 @@
+{
+  "create": "Create Queries",
+  "update": "Update Queries",
+  "delete": "Delete Queries",
+  "upsert": "Upserting"
+}
