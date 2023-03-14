@@ -2,6 +2,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type DocsThemeConfig, useConfig } from "nextra-theme-docs";
 
+const NAME = "Prisma Client Rust";
+
 export default {
   logo: (
     <>
@@ -19,7 +21,7 @@ export default {
           fill="currentColor"
         ></path>
       </svg>
-      <span className="ml-2 text-xl font-bold">Prisma Client Rust</span>
+      <span className="ml-2 text-xl font-bold">{NAME}</span>
     </>
   ),
   project: {
@@ -31,7 +33,7 @@ export default {
     const { asPath } = useRouter();
     if (asPath !== "/") {
       return {
-        titleTemplate: "%s – Prisma Client Rust",
+        titleTemplate: `%s – ${NAME}`,
       };
     }
   },
@@ -73,29 +75,24 @@ export default {
   },
   head: () => {
     const { title } = useConfig();
+    const { route } = useRouter();
+
+    const ogTitle = route === "/" ? NAME : title ? `${title} – ${NAME}` : NAME;
 
     return (
       <>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta httpEquiv="Content-Language" content="en" />
-        <meta
-          name="description"
-          content="Make beautiful websites with Next.js & MDX."
-        />
+        <meta name="description" content="Type-safe database access for Rust" />
         <meta
           name="og:description"
-          content="Make beautiful websites with Next.js & MDX."
+          content="Type-safe database access for Rust"
         />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:site:domain" content="prisma.brendonovich.dev" />
         <meta name="twitter:url" content="https://prisma.brendonovich.dev" />
-        <meta
-          name="og:title"
-          content={
-            title ? `${title}  – Prisma Client Rust` : "Prisma Client Rust"
-          }
-        />
-        <meta name="apple-mobile-web-app-title" content="Nextra" />
+        <meta name="og:title" content={ogTitle} />
+        <meta name="apple-mobile-web-app-title" content={NAME} />
       </>
     );
   },
