@@ -68,7 +68,7 @@ async fn create_post(
 async fn main() -> std::io::Result<()> {
     let client = web::Data::new(db::new_client().await.unwrap());
 
-    #[cfg(debug)]
+    #[cfg(debug_assertions)]
     client._push_db(false).await.unwrap();
 
     HttpServer::new(move || {
