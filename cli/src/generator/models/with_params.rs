@@ -24,8 +24,8 @@ fn enum_variant(field: &dml::RelationField) -> TokenStream {
 }
 
 fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
-    let field_name_str = &field.name;
-    let field_name_pascal = pascal_ident(field_name_str);
+    let field_name_snake = snake_ident(&field.name);
+    let field_name_pascal = pascal_ident(&field.name);
     let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
 
     let pcr = quote!(::prisma_client_rust);
@@ -36,7 +36,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
             nested_selections.extend(<super::#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections());
 
             #pcr::Selection::new(
-                #field_name_str,
+                #field_name_snake::NAME,
                 None,
                 arguments,
                 nested_selections
@@ -47,7 +47,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
             selections.extend(args.with_params.into_iter().map(Into::<#pcr::Selection>::into));
 
             #pcr::Selection::new(
-                #field_name_str,
+                #field_name_snake::NAME,
                 None,
                 [],
                 selections

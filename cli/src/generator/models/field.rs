@@ -15,11 +15,11 @@ pub fn module(
     let field_name_snake = snake_ident(field_name);
     let field_type = root_field.type_tokens(quote!());
 
-    let connect_variant = format_ident!("Connect{}", field_name_pascal);
-    let disconnect_variant = format_ident!("Disconnect{}", field_name_pascal);
-    let set_variant = format_ident!("Set{}", field_name_pascal);
-    let is_null_variant = format_ident!("{}IsNull", field_name_pascal);
-    let equals_variant = format_ident!("{}Equals", &field_name_pascal);
+    let connect_variant = format_ident!("Connect{field_name_pascal}");
+    let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
+    let set_variant = format_ident!("Set{field_name_pascal}");
+    let is_null_variant = format_ident!("{field_name_pascal}IsNull");
+    let equals_variant = format_ident!("{field_name_pascal}Equals");
 
     let field_module_contents = match root_field {
         dml::Field::RelationField(field) => {
@@ -80,7 +80,7 @@ pub fn module(
                             definition: quote!(#is_null_variant),
                             match_arm: quote! {
                                 Self::#is_null_variant => (
-                                    #field_name,
+                                    #field_name_snake::NAME,
                                     #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
                                 )
                             },
@@ -140,7 +140,7 @@ pub fn module(
                     definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
                     match_arm: quote! {
                         Self::#variant_name(where_params) => (
-                            #field_name,
+                            #field_name_snake::NAME,
                             #pcr::SerializedWhereValue::Object(vec![(
                                 #method_action_string.to_string(),
                                 #pcr::PrismaValue::Object(
@@ -195,7 +195,7 @@ pub fn module(
                     definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
                     match_arm: quote! {
                         Self::#field_name_pascal(value) => (
-                            #field_name,
+                            #field_name_snake::NAME,
                             value.into()
                         )
                     },
@@ -277,6 +277,8 @@ pub fn module(
                 use super::super::*;
                 use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam};
                 use super::_prisma::*;
+
+                pub const NAME: &str = #field_name;
 
                 #field_module_contents
 

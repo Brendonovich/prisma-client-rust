@@ -3722,6 +3722,7 @@ dependencies = [
  "indexmap",
  "migration-core",
  "paste",
+ "prisma-client-rust-macros",
  "prisma-models",
  "psl",
  "query-connector",
@@ -3756,6 +3757,13 @@ dependencies = [
  "serde_path_to_error",
  "syn",
  "thiserror",
+]
+
+[[package]]
+name = "prisma-client-rust-macros"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.6.0",
 ]
 
 [[package]]
@@ -5074,8 +5082,7 @@ dependencies = [
 [[package]]
 name = "specta"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a27c41db2eeac1d45f34554de1f2a4f33c0ff357abdeb87a85c4398cbc29917"
+source = "git+https://github.com/oscartbeaumont/specta?rev=cd12b17c6d77be75117b919dff1e60767538a741#cd12b17c6d77be75117b919dff1e60767538a741"
 dependencies = [
  "chrono",
  "document-features",
@@ -5106,8 +5113,7 @@ dependencies = [
 [[package]]
 name = "specta-macros"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf06715ef4029f77b5e4796cddf59577b0411174769e7c9120c9e9486e4bab3b"
+source = "git+https://github.com/oscartbeaumont/specta?rev=cd12b17c6d77be75117b919dff1e60767538a741#cd12b17c6d77be75117b919dff1e60767538a741"
 dependencies = [
  "Inflector",
  "itertools",
