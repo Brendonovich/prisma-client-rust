@@ -3761,7 +3761,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-macros"
-version = "0.1.0"
+version = "0.6.5"
 dependencies = [
  "convert_case 0.6.0",
 ]
@@ -4532,7 +4532,7 @@ dependencies = [
  "futures",
  "serde",
  "serde_json",
- "specta 1.0.0",
+ "specta",
  "thiserror",
  "tokio",
 ]
@@ -4544,7 +4544,6 @@ dependencies = [
  "prisma-client-rust",
  "rspc",
  "serde",
- "specta 0.0.6",
  "tokio",
 ]
 
@@ -5067,22 +5066,9 @@ dependencies = [
 
 [[package]]
 name = "specta"
-version = "0.0.6"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "427e2820d72e030de0f4e3d57a4b1060d1d5865d822751f9cc21a12ffe4e8c80"
-dependencies = [
- "document-features",
- "once_cell",
- "paste",
- "serde",
- "serde_json",
- "specta-macros 0.0.6",
-]
-
-[[package]]
-name = "specta"
-version = "1.0.0"
-source = "git+https://github.com/oscartbeaumont/specta?rev=cd12b17c6d77be75117b919dff1e60767538a741#cd12b17c6d77be75117b919dff1e60767538a741"
+checksum = "4be6d92bb3d2a34fd5da2463089b44e67d6e83eedff074a82ba0b3e830dbff7c"
 dependencies = [
  "chrono",
  "document-features",
@@ -5092,28 +5078,16 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
- "specta-macros 1.0.0",
+ "specta-macros",
  "thiserror",
  "uuid",
 ]
 
 [[package]]
 name = "specta-macros"
-version = "0.0.6"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fb7a302eb421c00c45715b2c8abb61650dd01d26a475505834f3e8ee23ffcbb"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn",
- "termcolor",
-]
-
-[[package]]
-name = "specta-macros"
-version = "1.0.0"
-source = "git+https://github.com/oscartbeaumont/specta?rev=cd12b17c6d77be75117b919dff1e60767538a741#cd12b17c6d77be75117b919dff1e60767538a741"
+checksum = "123bd8f0d65f556dce3d0e84346b759ad9701c49700cd9aa12c522bd0310d90b"
 dependencies = [
  "Inflector",
  "itertools",

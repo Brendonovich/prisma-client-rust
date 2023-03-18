@@ -9,4 +9,3 @@ prisma-client-rust = { features = ["rspc", "migrations", "sqlite", "mocking"], d
 serde = { version = "1.0", features = ["derive"] }
 rspc.workspace = true
 tokio = "1.20.1"
-specta = "0.0.6"

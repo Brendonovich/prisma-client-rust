@@ -91,6 +91,3 @@ rspc = { optional = true, workspace = true, features = [
   "chrono",
   "uuid",
 ] }
-
-[patch.crates-io]
-specta = { git = "https://github.com/oscartbeaumont/specta", rev = "cd12b17c6d77be75117b919dff1e60767538a741" }
