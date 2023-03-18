@@ -48,7 +48,7 @@ struct SetParam {
 
 fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
     let field_name_pascal = pascal_ident(field.name());
-    let field_name_str = field.name();
+    let field_name_snake = snake_ident(field.name());
 
     let pcr = quote!(::prisma_client_rust);
 
@@ -64,7 +64,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                 variant: quote!(#set_variant_name(#field_type)),
                 into_pv_arm: quote! {
                     SetParam::#set_variant_name(value) => (
-                        #field_name_str.to_string(),
+                        #field_name_snake::NAME.to_string(),
                         #converter
                     )
                 },
@@ -85,7 +85,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name(#typ)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(value) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -111,7 +111,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_params) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -135,7 +135,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_param) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -158,7 +158,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name),
                         into_pv_arm: quote! {
                             SetParam::#variant_name => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),

@@ -40,6 +40,8 @@ pub use raw::*;
 pub use traits::*;
 pub use transaction::*;
 
+pub use prisma_client_rust_macros as macros;
+
 #[cfg(feature = "rspc")]
 pub use rspc;
 

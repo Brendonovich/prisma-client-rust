@@ -154,7 +154,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
     args.dml.models.iter().map(|model| {
         let mut where_params_entries = vec![];
 
-        let model_name_snake = snake_ident(&model.name);
+        let model_name = &model.name;
+        let model_name_snake = snake_ident(model_name);
 
         where_params_entries.extend(OPERATORS.iter().map(|op| {
             let variant_name = pascal_ident(&op.name);
@@ -209,7 +210,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let variant_name_string = fields.iter().map(|f| pascal_ident(f.name()).to_string()).collect::<String>();
                 let variant_name = format_ident!("{}Equals", &variant_name_string);
                 
-                let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
+                let variant_data_names = fields.iter().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
             
                 let ((field_defs, field_types), (prisma_values, field_names_snake)): 
                     ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
@@ -234,7 +235,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         match_arm: quote! {
                             Self::#variant_name(#(#field_names_snake),*) => (
                                 #field_names_joined,
-                                #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #prisma_values)),*])
+                                #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
                             )
                         },
                     },
@@ -280,6 +281,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             pub mod #model_name_snake {
                 use super::*;
                 use super::_prisma::*;
+
+                pub const NAME: &str = #model_name;
                 
                 #(#field_modules)*
 
