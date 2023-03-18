@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust"
-version = "0.6.5"
+version = "0.6.6"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 description = "A prisma client for Rust"
@@ -15,14 +15,14 @@ members = [
   "sdk",
   "sdk/example/*",
   "cli",
-	"macros",
+  "macros",
   "prisma-cli",
 ]
 resolver = "2"
 
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
-rspc = ["dep:rspc"]
+rspc = ["dep:rspc", "prisma-client-rust-macros"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
 mocking = ["tokio"]
@@ -66,7 +66,7 @@ base64 = "0.13.0"
 tokio = { version = "1.21.0", optional = true }
 futures = "0.3"
 paste = "1.0.11"
-prisma-client-rust-macros = { path = "./macros" }
+prisma-client-rust-macros = { path = "./macros", optional = true }
 
 query-core.workspace = true
 query-connector.workspace = true

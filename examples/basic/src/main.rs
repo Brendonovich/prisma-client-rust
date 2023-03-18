@@ -4,10 +4,10 @@ pub mod db;
 
 #[tokio::main]
 pub async fn main() {
-    let client = new_client().await.unwrap();
+    let client = PrismaClient::_builder().build().await.unwrap();
 
     #[cfg(debug_assertions)]
-    client._db_push(false).await.unwrap();
+    client._db_push().await.unwrap();
 
     client
         .user()
