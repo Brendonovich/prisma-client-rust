@@ -337,9 +337,9 @@ fn model_macro<'a>(
 
     let data_struct = {
         let specta_rename = cfg!(feature = "rspc").then(|| {
-            quote!(#[specta(rename_from_expr = {
+            quote!(#[specta(rename_from_path = 
                 $crate::#module_path::#model_name_snake::$field::NAME
-            })])
+            )])
         });
 
         quote! {
