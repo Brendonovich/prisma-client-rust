@@ -5,13 +5,17 @@ struct ExampleGenerator {
     client_path: String,
 }
 
+#[derive(thiserror::Error, serde::Serialize, Debug)]
+#[error("Example Generator Error")]
+struct Error;
+
 impl PrismaGenerator for ExampleGenerator {
     const NAME: &'static str = "Example Generator";
     const DEFAULT_OUTPUT: &'static str = "./prisma-example-generator.rs";
 
-    type Error = ();
+    type Error = Error;
 
-    fn generate(self, args: GenerateArgs) -> Result<TokenStream, ()> {
+    fn generate(self, args: GenerateArgs) -> Result<String, Error> {
         let client_path = ident(&self.client_path);
 
         let model_impls = args.dml.models().map(|model| {
@@ -47,7 +51,8 @@ impl PrismaGenerator for ExampleGenerator {
             use crate::#client_path as prisma;
 
             #(#model_impls)*
-        })
+        }
+        .to_string())
     }
 }
 

@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 mod db;
 
-use db::{user, PrismaClient};
+use db::*;
 
 #[get("/users")]
 async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
@@ -66,10 +66,10 @@ async fn create_post(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let client = web::Data::new(db::new_client().await.unwrap());
+    let client = web::Data::new(PrismaClient::_builder().build().await.unwrap());
 
     #[cfg(debug_assertions)]
-    client._push_db(false).await.unwrap();
+    client._db_push().await.unwrap();
 
     HttpServer::new(move || {
         App::new()

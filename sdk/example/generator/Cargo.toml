@@ -17,3 +17,4 @@ mongodb = ["prisma-client-rust-sdk/mongodb"]
 [dependencies]
 prisma-client-rust-sdk = { path = "../..", default-features = false }
 serde = { version = "1.0.145", features = ["derive"] }
+thiserror = "1.0.40"
