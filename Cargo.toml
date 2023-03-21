@@ -12,6 +12,7 @@ exclude = ["examples", "integration-tests"]
 members = [
   "examples/*",
   "integration-tests",
+  # "tests/*",
   "sdk",
   "sdk/example/*",
   "cli",

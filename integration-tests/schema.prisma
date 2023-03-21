@@ -93,3 +93,28 @@ model Ref {
     id   String @id @default(uuid())
     impl Int
 }
+
+// https://github.com/Brendonovich/prisma-client-rust/issues/282
+model Child {
+    // Fields
+    name                String  @unique
+    primary_parent_name String?
+
+    // Relations
+    primary_parent Parent?  @relation("primary_child", fields: [name, primary_parent_name], references: [primary_child_name, name])
+    parents        Parent[]
+
+    @@unique([name, primary_parent_name])
+}
+
+model Parent {
+    // Fields
+    name               String @default("default")
+    primary_child_name String
+
+    // Relations
+    child             Child  @relation(fields: [primary_child_name], references: [name], onDelete: Cascade)
+    is_primary_parent Child? @relation("primary_child")
+
+    @@unique([primary_child_name, name])
+}

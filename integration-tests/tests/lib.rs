@@ -8,7 +8,7 @@ mod utils;
 async fn aaaa_run_migrations() -> TestResult {
     let client = db::new_client().await.unwrap();
 
-    client._db_push().await.unwrap();
+    client._db_push().accept_data_loss().await.unwrap();
 
     client
         .user()
@@ -37,3 +37,5 @@ mod specta;
 mod update;
 mod upsert;
 mod with;
+
+mod github_issues;
