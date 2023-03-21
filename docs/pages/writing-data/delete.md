@@ -26,15 +26,14 @@ model Comment {
 
 ## Delete
 
-`delete` will delete the record referenced by a single unique filter,
-returning the record's data if it existed.
+`delete` will delete the record referenced by a single unique filter and return it.
 
 The following example finds a single post and deletes it, returning the deleted post.
 
 ```rust
 use prisma::post;
 
-let deleted_post: Option<post::Data> = client
+let deleted_post: post::Data = client
     .post()
     .delete(post::id::equals("id".to_string()))
     .exec()
