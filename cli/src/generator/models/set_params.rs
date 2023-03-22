@@ -75,11 +75,11 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
                     let typ = method.type_tokens(quote!());
-                    
+
                     let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity());
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
-                    
+
                     let action = &method.action;
                     params.push(SetParam {
                         variant: quote!(#variant_name(#typ)),
@@ -176,18 +176,52 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
 }
 
 pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
-    let set_params = model
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .fields()
-        .map(|f| field_set_params(f, args))
-        .flatten()
-        .collect::<Vec<_>>();
-
-    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params
-        .iter()
-        .map(|p| (&p.variant, &p.into_pv_arm))
+        .flat_map(|f| field_set_params(f, args))
+        .map(|p| (p.variant, p.into_pv_arm))
         .unzip();
 
     let pcr = quote!(::prisma_client_rust);
+
+    let unchecked_enum = {
+        let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
+            .fields()
+            .filter(|f| f.is_scalar_field())
+            .map(|field| {
+                let field_name_pascal = pascal_ident(field.name());
+                let field_name_snake = snake_ident(field.name());
+
+                let converter = field.type_prisma_value(&format_ident!("value"));
+                let field_type = field.type_tokens(quote!());
+
+                (
+                    quote!(#field_name_pascal(#field_type)),
+                    quote! {
+                        UncheckedSetParam::#field_name_pascal(value) => (
+                             #field_name_snake::NAME.to_string(),
+                               #converter
+                         )
+                    },
+                )
+            })
+            .unzip();
+
+        quote! {
+            #[derive(Clone)]
+            pub enum UncheckedSetParam {
+                  #(#variants),*
+            }
+
+            impl From<UncheckedSetParam> for (String, #pcr::PrismaValue) {
+                fn from(param: UncheckedSetParam) -> Self {
+                    match param {
+                         #(#into_pv_arms),*
+                     }
+                }
+            }
+        }
+    };
 
     quote! {
         #[derive(Clone)]
@@ -195,12 +229,14 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(String, #pcr::PrismaValue)> for SetParam {
-            fn into(self) -> (String, #pcr::PrismaValue) {
-                match self {
+        impl From<SetParam> for (String, #pcr::PrismaValue) {
+            fn from(param: SetParam) -> Self {
+                match param {
                     #(#into_pv_arms),*
                 }
             }
         }
+
+        #unchecked_enum
     }
 }
