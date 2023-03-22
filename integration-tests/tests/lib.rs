@@ -37,5 +37,3 @@ mod specta;
 mod update;
 mod upsert;
 mod with;
-
-mod github_issues;

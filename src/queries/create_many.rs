@@ -21,7 +21,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
         }
     }
 
-    #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
+    #[cfg(any(feature = "mysql", feature = "sqlite", feature = "postgresql"))]
     pub fn skip_duplicates(mut self) -> Self {
         self.skip_duplicates = true;
         self
@@ -34,7 +34,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
     ) -> Selection {
         Self::base_selection(
             [
-                (
+                Some((
                     "data".to_string(),
                     PrismaValue::List(
                         set_params
@@ -47,13 +47,16 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
                             .collect(),
                     )
                     .into(),
-                ),
-                #[cfg(not(any(feature = "mongodb", feature = "mssql")))]
-                (
-                    "skipDuplicates".to_string(),
-                    PrismaValue::Boolean(_skip_duplicates).into(),
-                ),
-            ],
+                )),
+                _skip_duplicates.then(|| {
+                    (
+                        "skipDuplicates".to_string(),
+                        PrismaValue::Boolean(_skip_duplicates).into(),
+                    )
+                }),
+            ]
+            .into_iter()
+            .flatten(),
             nested_selections,
         )
     }
