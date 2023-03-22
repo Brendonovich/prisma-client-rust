@@ -17,7 +17,7 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
 
             Create::new(
                 self.client,
-                _params
+                _params.into_iter().map(Into::into).collect()
             )
         }
     }

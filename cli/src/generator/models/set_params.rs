@@ -190,18 +190,15 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
             .filter(|f| f.is_scalar_field())
             .map(|field| {
                 let field_name_pascal = pascal_ident(field.name());
-                let field_name_snake = snake_ident(field.name());
 
-                let converter = field.type_prisma_value(&format_ident!("value"));
+                let set_variant = format_ident!("Set{}", field_name_pascal);
+
                 let field_type = field.type_tokens(quote!());
 
                 (
                     quote!(#field_name_pascal(#field_type)),
                     quote! {
-                        UncheckedSetParam::#field_name_pascal(value) => (
-                             #field_name_snake::NAME.to_string(),
-                               #converter
-                         )
+                        UncheckedSetParam::#field_name_pascal(value) => Self::#set_variant(value)
                     },
                 )
             })
@@ -213,7 +210,7 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
                   #(#variants),*
             }
 
-            impl From<UncheckedSetParam> for (String, #pcr::PrismaValue) {
+            impl From<UncheckedSetParam> for SetParam {
                 fn from(param: UncheckedSetParam) -> Self {
                     match param {
                          #(#into_pv_arms),*
