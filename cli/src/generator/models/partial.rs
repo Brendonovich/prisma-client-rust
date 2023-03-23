@@ -31,10 +31,10 @@ pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> Toke
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
-            ($vis:vis struct $struct_name:ident {
+            ($struct_name:ident {
                 $($scalar_field:ident)+
             }) => {
-                $vis struct $struct_name {
+                pub struct $struct_name {
                     $(pub $scalar_field: Option<#model_module::partial!(@field_type; $scalar_field)>),+
                 }
 

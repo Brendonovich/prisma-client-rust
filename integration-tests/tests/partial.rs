@@ -1,6 +1,6 @@
 use crate::{db::*, utils::*};
 
-user::partial!(struct UserPartialType {
+user::partial!(UserPartialType {
     name
     email
 });
