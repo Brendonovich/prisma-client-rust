@@ -126,6 +126,13 @@ pub trait PaginatedQuery<'a>: ModelQuery<'a> {
     fn set_take(&mut self, take: i64);
 }
 
+pub trait UncheckedSetQuery<'a>: ModelQuery<'a> {
+    fn add_unchecked_set(
+        &mut self,
+        param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::UncheckedSet,
+    );
+}
+
 pub trait SetQuery<'a>: ModelQuery<'a> {
     fn add_set(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::Set);
 }

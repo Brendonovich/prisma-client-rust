@@ -209,17 +209,17 @@ pub fn module(
 
                     let typ = method.type_tokens(quote!());
 
-                    Some(quote! {
-                        pub fn #method_name_snake(value: #typ) -> WhereParam {
-                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
-                        }
-                    })
+                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
                 });
 
                 quote! {
                     #equals
 
-                    #(#read_methods)*
+                    #pcr::scalar_where_param_fns!(
+                        _prisma::read_filters::#filter_enum,
+                        #field_name_pascal,
+                        { #(#read_methods)* }
+                    );
                 }
             });
 

@@ -158,7 +158,16 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
+            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> Update<'a> {
+                Update::new(
+                    self.client,
+                    _where.into(),
+                    _params.into_iter().map(Into::into).collect(),
+                    vec![]
+                )
+            }
+
+            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<UncheckedSetParam>) -> UpdateMany<'a> {
                 UpdateMany::new(
                     self.client,
                     _where,
