@@ -1,4 +1,4 @@
-use prisma_client_rust_sdk::{GenerateArgs, prelude::pascal_ident};
+use prisma_client_rust_sdk::{prelude::pascal_ident, GenerateArgs};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -31,12 +31,12 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             })
             .collect::<Vec<_>>();
 
-        let specta_derive = cfg!(feature = "rspc").then(|| {
+        let specta_derive = cfg!(feature = "specta").then(|| {
             let model_name_pascal_str = name.to_string();
-    
+
             quote! {
-                #[derive(::prisma_client_rust::rspc::Type)]
-                #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::rspc::internal::specta")]
+                #[derive(::prisma_client_rust::specta::Type)]
+                #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
             }
         });
 

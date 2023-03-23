@@ -2303,8 +2303,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "prisma-client-rust",
- "rspc",
  "serde",
+ "specta",
  "thiserror",
  "tokio",
 ]
@@ -3732,6 +3732,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
+ "specta",
  "tempdir",
  "thiserror",
  "tokio",

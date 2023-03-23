@@ -18,10 +18,10 @@ prisma-client-rust = { path = "..", features = [
   "sqlite-create-many",
   "sqlite",
   "migrations",
-  "rspc",
+  "specta",
   # "mutation-callbacks",
   "mocking",
 ], default-features = false }
 async-trait = "0.1.60"
 thiserror = "1.0.37"
-rspc.workspace = true 
+specta.workspace = true

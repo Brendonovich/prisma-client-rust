@@ -160,7 +160,7 @@ fn model_macro<'a>(
         let field_name_snake = snake_ident(f.name());
         let field_type = f.type_tokens(quote!(crate::#module_path::));
 
-        let specta_rename = cfg!(feature = "rspc").then(|| {
+        let specta_rename = cfg!(feature = "specta").then(|| {
             quote!(#[specta(rename_from_path = crate::#module_path::#model_name_snake::#field_name_snake::NAME)])
         });
 
@@ -312,13 +312,13 @@ fn model_macro<'a>(
         #[derive(std::fmt::Debug, Clone)]
     };
 
-    let specta_macro_arms = cfg!(feature = "rspc").then(|| {
+    let specta_macro_arms = cfg!(feature = "specta").then(|| {
         let data_struct_attrs = quote! {
             #data_struct_attrs
-            #[derive(::prisma_client_rust::rspc::Type)]
+            #[derive(::prisma_client_rust::specta::Type)]
             #[specta(
                 rename_from_path = SPECTA_TYPE_NAME,
-                crate = "prisma_client_rust::rspc::internal::specta"
+                crate = "prisma_client_rust::specta"
             )]
         };
 
@@ -336,7 +336,7 @@ fn model_macro<'a>(
     });
 
     let data_struct = {
-        let specta_rename = cfg!(feature = "rspc").then(|| {
+        let specta_rename = cfg!(feature = "specta").then(|| {
             quote!(#[specta(rename_from_path = 
                 $crate::#module_path::#model_name_snake::$field::NAME
             )])
@@ -353,7 +353,7 @@ fn model_macro<'a>(
         }
     };
 
-    let data_struct = cfg!(feature = "rspc").then(|| {
+    let data_struct = cfg!(feature = "specta").then(|| {
         quote! {
             const SPECTA_TYPE_NAME: &'static str = prisma_client_rust::macros::to_pascal_case!(
                 $($module_name)?
