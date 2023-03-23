@@ -3717,6 +3717,7 @@ dependencies = [
  "diagnostics",
  "dml",
  "dmmf",
+ "dotenv",
  "futures",
  "include_dir",
  "indexmap",
