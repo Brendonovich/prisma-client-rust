@@ -55,7 +55,7 @@ impl Deref for RequiredField<'_> {
     }
 }
 
-pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
+pub fn required_fields(model: &dml::Model) -> Option<Vec<RequiredField>> {
     model
         .fields()
         .filter(|field| match field {
@@ -65,11 +65,11 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
             dml::Field::RelationField(_) => field.required_on_create(),
             _ => unreachable!(),
         })
-        .map(|field| {
+        .map(|field| Some({
             let field_name_snake = snake_ident(&field.name());
 
             let typ = match field {
-                dml::Field::ScalarField(_) => field.type_tokens(quote!()),
+                dml::Field::ScalarField(_) => field.type_tokens(quote!())?,
                 dml::Field::RelationField(relation_field) => {
                     let relation_model_name_snake =
                         snake_ident(&relation_field.relation_info.referenced_model);
@@ -90,7 +90,7 @@ pub fn required_fields(model: &dml::Model) -> Vec<RequiredField> {
                 push_wrapper: quote!(#field_name_snake::#push_wrapper),
                 typ,
             }
-        })
+        }))
         .collect()
 }
 
@@ -218,13 +218,13 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                     let field_type = match field.arity() {
                         dml::FieldArity::List | dml::FieldArity::Required => field.type_tokens(quote!()),
                         dml::FieldArity::Optional => field.field_type().to_tokens(quote!(), &dml::FieldArity::Required)
-                    };
-
+                    }.unwrap();
+                    
                     let field_name_snake = snake_ident(field.name());
 
                     (
                         (quote!(#field_name_snake: #field_type), field_type),
-                        (field.field_type().to_prisma_value(&field_name_snake, &dml::FieldArity::Required), field_name_snake)
+                        (field.field_type().to_prisma_value(&field_name_snake, &dml::FieldArity::Required).unwrap(), field_name_snake)
                     )
                 }).unzip();
 
@@ -260,6 +260,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = model
             .fields
             .iter()
+            .filter(|f| !f.field_type().is_unsupported())
             .map(|f| field::module(f, model, args))
             .unzip();
 

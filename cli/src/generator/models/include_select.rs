@@ -182,7 +182,7 @@ fn model_macro<'a>(
         quote!(#i)
     });
 
-    let field_serde_names = model.fields().map(|f| {
+    let field_serde_names = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|f| {
         let field_name_str = f.name();
         let field_name_snake = snake_ident(f.name());
 
@@ -627,14 +627,14 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) -> TokenStream {
     let variant_pascal = pascal_ident(&variant.to_string());
 
-    let variants = model.fields().map(|field| {
+    let variants = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|field| {
         let field_name_snake = snake_ident(field.name());
         let field_name_pascal = pascal_ident(field.name());
 
         quote!(#field_name_pascal(#field_name_snake::#variant_pascal))
     });
 
-    let field_names_pascal = model.fields().map(|field| pascal_ident(field.name()));
+    let field_names_pascal = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|field| pascal_ident(field.name()));
 
     let variant_param = variant.param();
 
@@ -661,8 +661,8 @@ pub mod include {
             model,
             module_path,
             Variant::Include,
-            model.fields().filter(|f| f.is_scalar_field()),
-            model.fields().filter(|f| f.is_relation()),
+            model.fields().filter(|f| f.is_scalar_field() && !f.field_type().is_unsupported()),
+            model.fields().filter(|f| f.is_relation() && !f.field_type().is_unsupported()),
         )
     }
 
@@ -684,7 +684,7 @@ pub mod select {
             module_path,
             Variant::Select,
             [].iter(),
-            model.fields(),
+            model.fields().filter(|f| !f.field_type().is_unsupported()),
         )
     }
 

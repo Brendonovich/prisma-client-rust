@@ -26,9 +26,9 @@ impl ModelExt for Model {
 }
 
 pub trait FieldExt {
-    fn type_tokens(&self, prefix: TokenStream) -> TokenStream;
+    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream>;
 
-    fn type_prisma_value(&self, var: &Ident) -> TokenStream;
+    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream>;
 
     fn relation_methods(&self) -> &'static [&'static str];
 
@@ -36,11 +36,11 @@ pub trait FieldExt {
 }
 
 impl FieldExt for Field {
-    fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
+    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream> {
         self.field_type().to_tokens(prefix, self.arity())
     }
 
-    fn type_prisma_value(&self, var: &Ident) -> TokenStream {
+    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream> {
         self.field_type().to_prisma_value(var, self.arity())
     }
 
@@ -60,12 +60,12 @@ impl FieldExt for Field {
     }
 }
 pub trait FieldTypeExt {
-    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream;
-    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream;
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream>;
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
 }
 
 impl FieldTypeExt for FieldType {
-    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> TokenStream {
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream> {
         let base = match self {
             Self::Enum(name) => {
                 let name = pascal_ident(name);
@@ -76,17 +76,18 @@ impl FieldTypeExt for FieldType {
                 quote!(#prefix #model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
+            Self::Unsupported(_) => return None,
             _ => unimplemented!(),
         };
 
-        match arity {
+        Some(match arity {
             FieldArity::List => quote!(Vec<#base>),
             FieldArity::Optional => quote!(Option<#base>),
             FieldArity::Required => quote!(#base),
-        }
+        })
     }
 
-    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> TokenStream {
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
         let scalar_identifier = if arity.is_list() {
             format_ident!("v")
         } else {
@@ -98,10 +99,11 @@ impl FieldTypeExt for FieldType {
         let scalar_converter = match self {
             Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
             Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
+            Self::Unsupported(_) => return None,
             typ => unimplemented!("{:?}", typ),
         };
 
-        match arity {
+        Some(match arity {
             FieldArity::List => {
                 quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
             }
@@ -109,7 +111,7 @@ impl FieldTypeExt for FieldType {
                 quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
             }
             FieldArity::Required => scalar_converter,
-        }
+        })
     }
 }
 

@@ -1,7 +1,10 @@
 use crate::generator::prelude::*;
 
 pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
-    let scalar_fields_snake = model.scalar_fields().map(|f| snake_ident(&f.name));
+    let scalar_fields_snake = model.scalar_fields().flat_map(|f| {
+        f.field_type.to_tokens(quote!(), &f.arity)?;
+        Some(snake_ident(&f.name))
+    });
 
     quote! {
         fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {

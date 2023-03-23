@@ -118,3 +118,9 @@ model Parent {
 
     @@unique([primary_child_name, name])
 }
+
+model Unsupported {
+    id Int @id @default(autoincrement())
+
+    unsupprted Unsupported("invalid")
+}

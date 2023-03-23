@@ -14,6 +14,7 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
 
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .scalar_fields()
+        .filter(|f| !f.field_type.is_unsupported())
         .map(|field| {
             let field_name_snake = snake_ident(&field.name);
             let field_name_pascal = pascal_ident(&field.name);

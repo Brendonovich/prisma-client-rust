@@ -24,7 +24,8 @@ impl Variant {
             field_name: field.name().to_string(),
             field_required_type: field
                 .field_type()
-                .to_tokens(quote!(), &dml::FieldArity::Required),
+                .to_tokens(quote!(), &dml::FieldArity::Required)
+                .unwrap(),
             read_filter_name: read_filter.name.to_string(),
             optional: matches!(field.arity(), dml::FieldArity::Optional),
         }

@@ -3,13 +3,13 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn create_fn(model: &dml::Model) -> TokenStream {
-    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)
+pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
         .into_iter()
         .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
         .unzip();
 
-    quote! {
+    Some(quote! {
         pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
             _params.extend([
                 #(#push_wrappers(#names)),*
@@ -20,17 +20,19 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
                 _params
             )
         }
-    }
+    })
 }
 
-pub fn create_unchecked_fn(model: &dml::Model) -> TokenStream {
+pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
         .required_scalar_fields()
         .iter()
-        .map(|f| (snake_ident(f.name()), f.type_tokens(quote!())))
+        .map(|f| Some((snake_ident(f.name()), f.type_tokens(quote!())?)))
+        .collect::<Option<Vec<_>>>()?
+        .into_iter()
         .unzip();
 
-    quote! {
+    Some(quote! {
         pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> Create<'a> {
             _params.extend([
                 #(#names::set(#names)),*
@@ -41,10 +43,10 @@ pub fn create_unchecked_fn(model: &dml::Model) -> TokenStream {
                 _params.into_iter().map(Into::into).collect()
             )
         }
-    }
+    })
 }
 
-pub fn create_many_fn(model: &dml::Model) -> TokenStream {
+pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     let scalar_field_names = model
         .required_scalar_fields()
         .iter()
@@ -56,9 +58,9 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
         .required_scalar_fields()
         .iter()
         .map(|f| f.type_tokens(quote!()))
-        .collect::<Vec<_>>();
+        .collect::<Option<Vec<_>>>()?;
 
-    quote! {
+    Some(quote! {
         pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
                 _params.extend([
@@ -73,16 +75,16 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
                 data
             )
         }
-    }
+    })
 }
 
-pub fn upsert_fn(model: &dml::Model) -> TokenStream {
-    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)
+pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
         .into_iter()
         .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
         .unzip();
 
-    quote! {
+    Some(quote! {
         pub fn upsert(
             self,
              _where: UniqueWhereParam,
@@ -100,7 +102,7 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
                 _update
             )
         }
-    }
+    })
 }
 
 pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {

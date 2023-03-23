@@ -46,17 +46,17 @@ struct SetParam {
     into_pv_arm: TokenStream,
 }
 
-fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
+fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetParam>> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_snake = snake_ident(field.name());
 
     let pcr = quote!(::prisma_client_rust);
 
-    match &field {
+    Some(match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens(quote!());
+            let field_type = field.type_tokens(quote!())?;
 
-            let converter = field.type_prisma_value(&format_ident!("value"));
+            let converter = field.type_prisma_value(&format_ident!("value"))?;
 
             let set_variant_name = format_ident!("Set{}", &field_name_pascal);
 
@@ -76,7 +76,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                 for method in &write_type.methods {
                     let typ = method.type_tokens(quote!());
 
-                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity());
+                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity()).unwrap();
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
 
@@ -172,13 +172,14 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             }
         }).collect(),
         dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
-    }
+    })
 }
 
 pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .fields()
         .flat_map(|f| field_set_params(f, args))
+        .flatten()
         .map(|p| (p.variant, p.into_pv_arm))
         .unzip();
 
@@ -186,21 +187,20 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
 
     let unchecked_enum = {
         let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
-            .fields()
-            .filter(|f| f.is_scalar_field())
-            .map(|field| {
-                let field_name_pascal = pascal_ident(field.name());
+            .scalar_fields()
+            .flat_map(|field| {
+                let field_name_pascal = pascal_ident(&field.name);
 
                 let set_variant = format_ident!("Set{}", field_name_pascal);
 
-                let field_type = field.type_tokens(quote!());
+                let field_type = field.field_type.to_tokens(quote!(), &field.arity)?;
 
-                (
+                Some((
                     quote!(#field_name_pascal(#field_type)),
                     quote! {
                         UncheckedSetParam::#field_name_pascal(value) => Self::#set_variant(value)
                     },
-                )
+                ))
             })
             .unzip();
 
