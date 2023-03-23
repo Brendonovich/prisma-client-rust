@@ -2,6 +2,7 @@ use utils::{cleanup, TestResult};
 
 mod db;
 mod transaction;
+mod unsupported;
 mod utils;
 
 #[tokio::test]

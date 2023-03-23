@@ -3,31 +3,33 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn create_args_params_pushes(model: &dml::Model) -> Vec<TokenStream> {
-    let required_fields = required_fields(model);
+pub fn create_args_params_pushes(model: &dml::Model) -> Option<Vec<TokenStream>> {
+    let required_fields = required_fields(model)?;
 
-    required_fields
-        .iter()
-        .map(|field| {
-            let field_name_snake = snake_ident(field.name());
-            let push_wrapper = &field.push_wrapper;
+    Some(
+        required_fields
+            .iter()
+            .map(|field| {
+                let field_name_snake = snake_ident(field.name());
+                let push_wrapper = &field.push_wrapper;
 
-            quote!(_params.push(#push_wrapper(#field_name_snake)))
-        })
-        .collect()
+                quote!(_params.push(#push_wrapper(#field_name_snake)))
+            })
+            .collect(),
+    )
 }
 
-pub fn create_fn(model: &dml::Model) -> TokenStream {
-    let required_fields = required_fields(model);
+pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
+    let required_fields = required_fields(model)?;
 
     let required_field_names = required_fields
         .iter()
         .map(|field| snake_ident(field.name()));
     let required_field_types = required_fields.iter().map(|field| &field.typ);
 
-    let create_args_params_pushes = create_args_params_pushes(model);
+    let create_args_params_pushes = create_args_params_pushes(model)?;
 
-    quote! {
+    Some(quote! {
         pub fn create(self, #(#required_field_names: #required_field_types,)* mut _params: Vec<SetParam>) -> Create<'a> {
             #(#create_args_params_pushes;)*
 
@@ -36,10 +38,10 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
                 _params
             )
         }
-    }
+    })
 }
 
-pub fn create_many_fn(model: &dml::Model) -> TokenStream {
+pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     let scalar_field_names = model
         .required_scalar_fields()
         .iter()
@@ -51,9 +53,9 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
         .required_scalar_fields()
         .iter()
         .map(|f| f.type_tokens(quote!()))
-        .collect::<Vec<_>>();
+        .collect::<Option<Vec<_>>>()?;
 
-    quote! {
+    Some(quote! {
         pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
                 #(_params.push(#scalar_field_names::set(#scalar_field_names));)*
@@ -66,19 +68,19 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
                 data
             )
         }
-    }
+    })
 }
 
-pub fn upsert_fn(model: &dml::Model) -> TokenStream {
-    let required_fields = required_fields(model);
+pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
+    let required_fields = required_fields(model)?;
 
     let create_args_names_snake = required_fields
         .iter()
         .map(|field| snake_ident(field.name()));
     let create_args_typs = required_fields.iter().map(|field| &field.typ);
-    let create_args_params_pushes = create_args_params_pushes(model);
+    let create_args_params_pushes = create_args_params_pushes(model)?;
 
-    quote! {
+    Some(quote! {
         pub fn upsert(self, _where: UniqueWhereParam, (#(#create_args_names_snake,)* mut _params): (#(#create_args_typs,)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
             #(#create_args_params_pushes;)*
 
@@ -89,7 +91,7 @@ pub fn upsert_fn(model: &dml::Model) -> TokenStream {
                 _update
             )
         }
-    }
+    })
 }
 
 pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {

@@ -40,40 +40,41 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
 
     let fields = model
         .fields()
-        .filter(|f| !f.field_type().is_unsupported())
-        .map(|field| match field {
-            dml::Field::RelationField(relation_field) => {
-                let relation_model_name_snake =
-                    snake_ident(&relation_field.relation_info.referenced_model);
+        .flat_map(|field| {
+            Some(match field {
+                dml::Field::RelationField(relation_field) => {
+                    let relation_model_name_snake =
+                        snake_ident(&relation_field.relation_info.referenced_model);
 
-                let base_data = quote!(super::#relation_model_name_snake::Data);
+                    let base_data = quote!(super::#relation_model_name_snake::Data);
 
-                let typ = match &relation_field.arity {
-                    dml::FieldArity::List => quote!(Vec<#base_data>),
-                    dml::FieldArity::Optional => {
-                        quote!(Option<Box<#base_data>>)
-                    }
-                    dml::FieldArity::Required => {
-                        quote!(Box<#base_data>)
-                    }
-                };
+                    let typ = match &relation_field.arity {
+                        dml::FieldArity::List => quote!(Vec<#base_data>),
+                        dml::FieldArity::Optional => {
+                            quote!(Option<Box<#base_data>>)
+                        }
+                        dml::FieldArity::Required => {
+                            quote!(Box<#base_data>)
+                        }
+                    };
 
-                Field::Relation(RelationField {
-                    typ,
-                    name: field.name(),
-                    inner: &relation_field,
-                })
-            }
-            dml::Field::ScalarField(scalar_field) => {
-                let typ = field.type_tokens(quote!());
+                    Field::Relation(RelationField {
+                        typ,
+                        name: field.name(),
+                        inner: &relation_field,
+                    })
+                }
+                dml::Field::ScalarField(scalar_field) => {
+                    let typ = field.type_tokens(quote!())?;
 
-                Field::Scalar(ScalarField {
-                    typ,
-                    name: field.name(),
-                    inner: &scalar_field,
-                })
-            }
-            dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
+                    Field::Scalar(ScalarField {
+                        typ,
+                        name: field.name(),
+                        inner: &scalar_field,
+                    })
+                }
+                dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
+            })
         })
         .collect::<Vec<_>>();
 

@@ -388,7 +388,7 @@ impl Method {
         }
     }
 
-    pub fn type_tokens(&self, prefix: TokenStream) -> TokenStream {
+    pub fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream> {
         self.base_type.to_tokens(prefix, &self.arity())
     }
 

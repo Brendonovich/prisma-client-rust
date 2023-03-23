@@ -1,0 +1,12 @@
+   Compiling integration-tests v0.1.0 (/Users/brendonovich/github.com/brendonovich/prisma-client-rust/integration-tests)
+warning: unused import: `db::*`
+ --> integration-tests/tests/unsupported.rs:1:13
+  |
+1 | use crate::{db::*, utils::*};
+  |             ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `integration-tests` (test "integration_tests") generated 1 warning
+    Finished test [unoptimized + debuginfo] target(s) in 7.49s
+     Running tests/lib.rs (/Users/brendonovich/github.com/brendonovich/prisma-client-rust/target/debug/deps/integration_tests-f104741e1ea3fba2)
