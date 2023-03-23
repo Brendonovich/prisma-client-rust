@@ -25,6 +25,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         impl #pcr::ModelTypes for Types {
             type Data = Data;
             type Where = WhereParam;
+            type UncheckedSet = UncheckedSetParam;
             type Set = SetParam;
             type With = WithParam;
             type OrderBy = OrderByParam;

@@ -17,7 +17,7 @@ pub fn create_fn(model: &dml::Model) -> TokenStream {
 
             Create::new(
                 self.client,
-                _params.into_iter().map(Into::into).collect()
+                _params
             )
         }
     }
@@ -31,14 +31,14 @@ pub fn create_unchecked_fn(model: &dml::Model) -> TokenStream {
         .unzip();
 
     quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
+        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> Create<'a> {
             _params.extend([
                 #(#names::set(#names)),*
             ]);
 
             Create::new(
                 self.client,
-                _params
+                _params.into_iter().map(Into::into).collect()
             )
         }
     }
@@ -59,7 +59,7 @@ pub fn create_many_fn(model: &dml::Model) -> TokenStream {
         .collect::<Vec<_>>();
 
     quote! {
-        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
+        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
                 _params.extend([
                     #(#scalar_field_names::set(#scalar_field_names)),*

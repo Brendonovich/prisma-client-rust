@@ -5,9 +5,9 @@ async fn create_posts(client: &PrismaClient) -> TestResult {
     client
         .post()
         .create_many(vec![
-            post::create("Hi from Prisma!".to_string(), true, vec![]),
-            post::create("Hi from Prisma!".to_string(), true, vec![]),
-            post::create("Hi from Prisma!".to_string(), false, vec![]),
+            post::create_unchecked("Hi from Prisma!".to_string(), true, vec![]),
+            post::create_unchecked("Hi from Prisma!".to_string(), true, vec![]),
+            post::create_unchecked("Hi from Prisma!".to_string(), false, vec![]),
         ])
         .exec()
         .await?;

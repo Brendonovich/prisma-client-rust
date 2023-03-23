@@ -20,6 +20,7 @@ pub trait Query<'a>: QueryConvert {
 pub trait ModelTypes {
     type Data: Data;
     type Where: WhereInput;
+    type UncheckedSet: Into<Self::Set>;
     type Set: Into<(String, PrismaValue)>;
     type With: Into<Selection>;
     type OrderBy: Into<(String, PrismaValue)>;
