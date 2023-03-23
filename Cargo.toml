@@ -98,3 +98,4 @@ specta = { optional = true, workspace = true, features = [
 # features = "rspc"
 convert_case.workspace = true
 rspc = { optional = true, workspace = true }
+dotenv = "0.15.0"
