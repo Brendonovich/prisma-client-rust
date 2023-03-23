@@ -20,6 +20,7 @@ pub trait Query<'a>: QueryConvert {
 pub trait ModelTypes {
     type Data: Data;
     type Where: WhereInput;
+    type UncheckedSet: Into<Self::Set>;
     type Set: Into<(String, PrismaValue)>;
     type With: Into<Selection>;
     type OrderBy: Into<(String, PrismaValue)>;
@@ -123,6 +124,13 @@ pub trait PaginatedQuery<'a>: ModelQuery<'a> {
     fn add_cursor(&mut self, param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::Cursor);
     fn set_skip(&mut self, skip: i64);
     fn set_take(&mut self, take: i64);
+}
+
+pub trait UncheckedSetQuery<'a>: ModelQuery<'a> {
+    fn add_unchecked_set(
+        &mut self,
+        param: <<Self as ModelQuery<'a>>::Types as ModelTypes>::UncheckedSet,
+    );
 }
 
 pub trait SetQuery<'a>: ModelQuery<'a> {

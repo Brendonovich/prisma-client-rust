@@ -79,3 +79,25 @@ async fn set_none() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn unchecked() -> TestResult {
+    let client = client().await;
+
+    let user = client
+        .user()
+        .create("Brendan".to_string(), vec![])
+        .exec()
+        .await?;
+
+    let file_path = client
+        .file_path()
+        .create_unchecked(0, "".to_string(), user.id, vec![])
+        .include(file_path::include!({ user }))
+        .exec()
+        .await?;
+
+    assert_eq!(&file_path.user.name, &user.name);
+
+    cleanup(client).await
+}

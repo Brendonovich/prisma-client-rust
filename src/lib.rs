@@ -1,5 +1,6 @@
 pub mod actions;
 mod client;
+mod gen_macros;
 #[cfg(feature = "migrations")]
 pub mod migrations;
 #[cfg(feature = "mocking")]

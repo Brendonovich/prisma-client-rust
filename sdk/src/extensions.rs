@@ -11,7 +11,7 @@ impl ModelExt for Model {
     fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool {
         self.fields.iter().any(|field| {
             if let FieldType::Relation(info) = field.field_type() {
-                info.fields.iter().any(|f| f == &scalar.name)
+                field.arity().is_required() && info.fields.iter().any(|f| f == &scalar.name)
             } else {
                 false
             }

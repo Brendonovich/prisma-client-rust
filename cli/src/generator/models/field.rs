@@ -209,17 +209,17 @@ pub fn module(
 
                     let typ = method.type_tokens(quote!());
 
-                    Some(quote! {
-                        pub fn #method_name_snake(value: #typ) -> WhereParam {
-                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
-                        }
-                    })
+                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
                 });
 
                 quote! {
                     #equals
 
-                    #(#read_methods)*
+                    #pcr::scalar_where_param_fns!(
+                        _prisma::read_filters::#filter_enum,
+                        #field_name_pascal,
+                        { #(#read_methods)* }
+                    );
                 }
             });
 
@@ -246,9 +246,16 @@ pub fn module(
 
             quote! {
                 pub struct Set(pub #field_type);
+
                 impl From<Set> for SetParam {
                     fn from(value: Set) -> Self {
                         Self::#set_variant(value.0)
+                    }
+                }
+
+                impl From<Set> for UncheckedSetParam {
+                    fn from(value: Set) -> Self {
+                        Self::#field_name_pascal(value.0)
                     }
                 }
 
@@ -275,7 +282,7 @@ pub fn module(
         quote! {
             pub mod #field_name_snake {
                 use super::super::*;
-                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam};
+                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam, UncheckedSetParam};
                 use super::_prisma::*;
 
                 pub const NAME: &str = #field_name;
