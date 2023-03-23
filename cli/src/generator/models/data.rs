@@ -99,7 +99,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                 },
             };
 
-            let specta_attrs = cfg!(feature = "rspc").then(|| quote!(#[specta(skip)]));
+            let specta_attrs = cfg!(feature = "specta").then(|| quote!(#[specta(skip)]));
 
             quote! {
                 #attrs
@@ -151,12 +151,12 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
         _ => None,
     });
 
-    let specta_derive = cfg!(feature = "rspc").then(|| {
+    let specta_derive = cfg!(feature = "specta").then(|| {
         let model_name_pascal_str = pascal_ident(&model.name).to_string();
 
         quote! {
-            #[derive(::prisma_client_rust::rspc::Type)]
-            #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::rspc::internal::specta")]
+            #[derive(::prisma_client_rust::specta::Type)]
+            #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
         }
     });
 

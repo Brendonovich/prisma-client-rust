@@ -1,5 +1,5 @@
 use crate::db::*;
-use rspc::internal::specta;
+use specta;
 
 #[test]
 fn ts_export() {

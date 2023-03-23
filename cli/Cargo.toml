@@ -7,7 +7,8 @@ rust-version = "1.62"
 
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
-rspc = []
+specta = []
+rspc = ["specta"]
 migrations = []
 sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
 # mutation-callbacks = []

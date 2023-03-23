@@ -23,7 +23,8 @@ resolver = "2"
 
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
-rspc = ["dep:rspc", "prisma-client-rust-macros"]
+rspc = ["dep:rspc", "specta"]
+specta = ["dep:specta", "prisma-client-rust-macros"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
 mocking = ["tokio"]
@@ -53,6 +54,8 @@ serde_json = "1.0"
 
 convert_case = "0.6.0"
 rspc = { version = "0.1.3" }
+
+specta = { version = "1.0.2" }
 
 [dependencies]
 serde.workspace = true
@@ -85,10 +88,13 @@ include_dir = { version = "0.7.2", optional = true }
 tempdir = { version = "0.3.7", optional = true }
 tracing = { version = "0.1.36", optional = true }
 
-# features = "rspc"
-convert_case.workspace = true
-rspc = { optional = true, workspace = true, features = [
+# features = "specta"
+specta = { optional = true, workspace = true, features = [
   "indexmap",
   "chrono",
   "uuid",
 ] }
+
+# features = "rspc"
+convert_case.workspace = true
+rspc = { optional = true, workspace = true }
