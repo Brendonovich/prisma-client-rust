@@ -9,8 +9,7 @@ datasource db {
 // }
 
 generator client {
-    // tee to stderr.log is useful for debugging panics
-    provider = "cargo prisma 2> >(tee stderr.log >&2)"
+    provider = "cargo prisma"
     output   = "tests/db.rs"
 
     // necessary since the generated file won't be at crate::prisma
