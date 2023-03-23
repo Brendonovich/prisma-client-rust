@@ -31,6 +31,7 @@ mod find_many;
 mod find_unique;
 mod include;
 mod mock;
+mod partial;
 mod raw;
 mod select;
 mod specta;
