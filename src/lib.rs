@@ -1,5 +1,6 @@
 pub mod actions;
 mod client;
+mod gen_macros;
 #[cfg(feature = "migrations")]
 pub mod migrations;
 #[cfg(feature = "mocking")]
@@ -39,6 +40,11 @@ pub use queries::*;
 pub use raw::*;
 pub use traits::*;
 pub use transaction::*;
+
+#[cfg(feature = "specta")]
+pub use prisma_client_rust_macros as macros;
+#[cfg(feature = "specta")]
+pub use specta;
 
 #[cfg(feature = "rspc")]
 pub use rspc;

@@ -14,15 +14,16 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
 
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .scalar_fields()
+        .filter(|f| !f.field_type.is_unsupported())
         .map(|field| {
-            let field_name_str = &field.name;
+            let field_name_snake = snake_ident(&field.name);
             let field_name_pascal = pascal_ident(&field.name);
 
             (
                 quote!(#field_name_pascal(#pcr::Direction)),
                 quote! {
                     Self::#field_name_pascal(direction) => (
-                        #field_name_str.to_string(),
+                        #field_name_snake::NAME.to_string(),
                         #pcr::PrismaValue::String(direction.to_string())
                     )
                 },

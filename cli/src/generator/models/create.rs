@@ -12,8 +12,8 @@ fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(#(#scalar_field_names: #scalar_field_types,)* _params: Vec<SetParam>)
-            -> (#(#scalar_field_types,)* Vec<SetParam>) {
+        pub fn create_unchecked(#(#scalar_field_names: #scalar_field_types,)* _params: Vec<UncheckedSetParam>)
+            -> (#(#scalar_field_types,)* Vec<UncheckedSetParam>) {
             (#(#scalar_field_names,)* _params)
         }
     })

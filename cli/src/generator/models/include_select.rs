@@ -18,11 +18,11 @@ impl core::fmt::Display for Variant {
 
 impl Variant {
     fn type_trait(&self) -> Ident {
-        format_ident!("{}Type", self.to_string().to_case(Case::Pascal))
+        format_ident!("{}Type", pascal_ident(&self.to_string()))
     }
 
     fn param(&self) -> Ident {
-        format_ident!("{}Param", self.to_string().to_case(Case::Pascal))
+        format_ident!("{}Param", pascal_ident(&self.to_string()))
     }
 }
 
@@ -35,9 +35,12 @@ fn model_macro<'a>(
     // Fields that can be picked from
     selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
 ) -> TokenStream {
-    let model_name_pascal_str = model.name.to_case(Case::Pascal);
+    let model_name_pascal_str = pascal_ident(&model.name).to_string();
     let model_name_snake = snake_ident(&model.name);
-    let macro_name = format_ident!("_{variant}_{model_name_snake}");
+    let model_name_snake_raw = snake_ident_raw(&model.name);
+    let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
+
+    let model_module = quote!($crate::#module_path::#model_name_snake);
 
     let selection_type = variant.type_trait();
     let selection_param = variant.param();
@@ -80,7 +83,7 @@ fn model_macro<'a>(
     let field_module_impls = model.relation_fields().map(|field| {
         let field_name_snake = snake_ident(&field.name);
         let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
-        
+
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
                 $crate::#module_path::#relation_model_name_snake::#variant_ident!(@definitions; ; $($selections)+);
@@ -90,22 +93,26 @@ fn model_macro<'a>(
 
     let selection_field_to_selection_param_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
-        
+
+        let field_module = quote!(#model_module::#field_name_snake);
+
         match field {
             dml::Field::RelationField(relation_field) =>{
                 let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
+
+                let relation_model_module = quote!($crate::#module_path::#relation_model_name_snake);
 
                 match relation_field.arity {
                     dml::FieldArity::List => {
                         quote! {
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                Into::<#model_module::#selection_param>::into(
+                                    #field_module::#variant_pascal::$selection_mode(
+                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?,
-                                        $crate::#module_path::#relation_model_name_snake::select!(
+                                        #relation_model_module::select!(
                                             @selections_to_params;
                                             #selections_pattern_consume
                                         ).into_iter().collect()
@@ -113,9 +120,9 @@ fn model_macro<'a>(
                                 )
                             }};
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                Into::<#model_module::#selection_param>::into(
+                                    #field_module::#variant_pascal::Fetch(
+                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?
@@ -126,9 +133,9 @@ fn model_macro<'a>(
                     },
                     _ => quote! {
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
-                                    $crate::#module_path::#relation_model_name_snake::select!(
+                            Into::<#model_module::#selection_param>::into(
+                                #field_module::#variant_pascal::$selection_mode(
+                                    #relation_model_module::select!(
                                         @selections_to_params;
                                         #selections_pattern_consume
                                     ).into_iter().collect()
@@ -136,18 +143,18 @@ fn model_macro<'a>(
                             )
                         }};
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch
+                            Into::<#model_module::#selection_param>::into(
+                                #field_module::#variant_pascal::Fetch
                             )
                         }};
                     }
                 }
-                
+
             },
             dml::Field::ScalarField(_) => quote! {
                 (@selection_field_to_selection_param; #field_name_snake) => {
-                    Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                        $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal
+                    Into::<#model_module::#selection_param>::into(
+                        #field_module::#variant_pascal
                     )
                 };
             },
@@ -159,8 +166,15 @@ fn model_macro<'a>(
         let field_name_snake = snake_ident(f.name());
         let field_type = f.type_tokens(quote!(crate::#module_path::));
 
+        let specta_rename = cfg!(feature = "specta").then(|| {
+            quote!(#[specta(rename_from_path = crate::#module_path::#model_name_snake::#field_name_snake::NAME)])
+        });
+
         f.as_scalar_field()
-            .map(|_| quote!(pub #field_name_snake: #field_type))
+            .map(|_| quote! {
+                #specta_rename
+                pub #field_name_snake: #field_type
+            })
     });
 
     let fields_enum_variants = selection_fields.clone().map(|f| {
@@ -201,10 +215,10 @@ fn model_macro<'a>(
                         type Value = Field;
 
                         fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                            formatter.write_str(concat!(
-                                $($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field), ", "),+,
-                                #($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake), ", "),*
-                            ))
+                            formatter.write_str(&[
+                                $(#model_module::$field::NAME),+,
+                                #(#model_module::#base_field_names_snake::NAME),*
+                            ].into_iter().collect::<Vec<_>>().join(", "))
                         }
 
                         fn visit_str<E>(self, value: &str) -> Result<Field, E>
@@ -212,8 +226,8 @@ fn model_macro<'a>(
                             E: ::serde::de::Error,
                         {
                             match value {
-                                $($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field) => Ok(Field::$field)),*,
-                                #($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake) => Ok(Field::#base_field_names_snake),)*
+                                $(#model_module::$field::NAME => Ok(Field::$field)),*,
+                                #(#model_module::#base_field_names_snake::NAME => Ok(Field::#base_field_names_snake),)*
                                 _ => Err(::serde::de::Error::unknown_field(value, FIELDS)),
                             }
                         }
@@ -243,21 +257,29 @@ fn model_macro<'a>(
                         match key {
                             #(Field::#base_field_names_snake => {
                                 if #base_field_names_snake.is_some() {
-                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake)));
+                                    return Err(::serde::de::Error::duplicate_field(
+                                        #model_module::#base_field_names_snake::NAME
+                                    ));
                                 }
                                 #base_field_names_snake = Some(map.next_value()?);
                             })*
                             $(Field::$field => {
                                 if $field.is_some() {
-                                    return Err(::serde::de::Error::duplicate_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field)));
+                                    return Err(::serde::de::Error::duplicate_field(
+                                        #model_module::$field::NAME
+                                    ));
                                 }
                                 $field = Some(map.next_value()?);
                             })*
                         }
                     }
 
-                    $(let $field = $field.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field)))?;)*
-                    #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(|| serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake)))?;)*
+                    $(let $field = $field.ok_or_else(||
+                        serde::de::Error::missing_field(#model_module::$field::NAME)
+                    )?;)*
+                    #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(||
+                        serde::de::Error::missing_field(#model_module::#base_field_names_snake::NAME)
+                    )?;)*
 
                     Ok(Data { #(#base_field_names_snake,)* $($field),* })
                 }
@@ -279,128 +301,73 @@ fn model_macro<'a>(
                     #(stringify!(#base_field_names_snake)),*
                 ].len()
             )?;
-            $(state.serialize_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field), &self.$field)?;)*
-            #(state.serialize_field($crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; #base_field_names_snake), &self.#base_field_names_snake)?;)*
+            $(state.serialize_field(#model_module::$field::NAME, &self.$field)?;)*
+            #(state.serialize_field(#model_module::#base_field_names_snake::NAME, &self.#base_field_names_snake)?;)*
             state.end()
         }
     };
 
     let all_fields_str = selection_fields
         .clone()
-        .map(|f| f.name().to_case(Case::Snake))
+        .map(|f| snake_ident(f.name()).to_string())
         .collect::<Vec<_>>()
         .join(", ");
 
-    let specta = quote!(prisma_client_rust::rspc::internal::specta);
+    let data_struct_attrs = quote! {
+        #[allow(warnings)]
+        #[derive(std::fmt::Debug, Clone)]
+    };
 
-    let specta_impl = cfg!(feature = "rspc").then(|| {
-        let base_field_types = base_fields.clone().filter_map(|f| {
-            let field_name_str = f.name();
-            let field_type = f.type_tokens(quote!(crate::#module_path::));
+    let specta_macro_arms = cfg!(feature = "specta").then(|| {
+        let data_struct_attrs = quote! {
+            #data_struct_attrs
+            #[derive(::prisma_client_rust::specta::Type)]
+            #[specta(
+                rename_from_path = SPECTA_TYPE_NAME,
+                crate = "prisma_client_rust::specta"
+            )]
+        };
 
-            f.as_scalar_field().map(|_| 
-                quote!(#specta::ObjectField {
-                    name: #field_name_str.to_string(),
-                    optional: false,
-                    ty: <#field_type as #specta::Type>::reference(
-                        #specta::DefOpts {
-                            parent_inline: false,
-                            type_map: _opts.type_map
-                        },
-                        &[]
-                    )
-                },)
-            )
+        quote! {
+            (@specta_data_struct; $struct:item;) => {
+                #data_struct_attrs
+                #[specta(inline)]
+                $struct
+            };
+            (@specta_data_struct; $struct:item; $name:ident) => {
+                #data_struct_attrs
+                $struct
+            };
+        }
+    });
+
+    let data_struct = {
+        let specta_rename = cfg!(feature = "specta").then(|| {
+            quote!(#[specta(rename_from_path =
+                #model_module::$field::NAME
+            )])
         });
 
         quote! {
-            impl #specta::Type for Data {
-                const NAME: &'static str = $crate::#module_path::#model_name_snake::#variant_ident!(@specta_type_name; $($module_name)?);
-
-                fn inline(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    use ::prisma_client_rust::convert_case::Casing;
-
-                    #specta::DataType::Object(#specta::ObjectType {
-                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
-                        tag: None,
-                        generics: vec![],
-                        fields: vec![#(#base_field_types)* $(#specta::ObjectField {
-                            name: $crate::#module_path::#model_name_snake::#variant_ident!(@field_serde_name; $field).to_string(),
-                            optional: false,
-                            ty: <$crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?) as #specta::Type>::reference(
-                                #specta::DefOpts {
-                                    parent_inline: false,
-                                    type_map: _opts.type_map
-                                },
-                                &[]
-                            )
-                        }),*],
-                        type_id: None
-                    })
-                }
-
-                $crate::#module_path::#model_name_snake::#variant_ident!(@specta_reference_body; $($module_name)?);
+            pub struct Data {
+                #(#data_struct_scalar_fields,)*
+                $(
+                    #specta_rename
+                    pub $field: #model_module::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),
+                )+
             }
         }
-    });
-
-    let specta_macro_arms = cfg!(feature = "rspc").then(|| {
-        quote! {
-            (@specta_reference_body; $name:ident) =>  {
-                fn reference(opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    use ::prisma_client_rust::convert_case::Casing;
-
-                    if !opts.type_map.contains_key(Self::NAME) {
-                        Self::definition(#specta::DefOpts {
-                            parent_inline: false,
-                            type_map: opts.type_map
-                        });
-                    }
-
-                    #specta::DataType::Reference {
-                        name: Self::NAME.to_case(::prisma_client_rust::convert_case::Case::Pascal),
-                        generics: vec![],
-                        type_id: std::any::TypeId::of::<Self>()
-                    }
-                }
-
-                fn definition(opts: #specta::DefOpts) -> #specta::DataType {
-                    if !opts.type_map.contains_key(Self::NAME) {
-                        opts.type_map.insert(Self::NAME, #specta::DataType::Object(#specta::ObjectType {
-                            name: "PLACEHOLDER".to_string(),
-                            generics: vec![],
-                            fields: vec![],
-                            tag: None,
-                            type_id: Some(std::any::TypeId::of::<Self>())
-                        }));
-
-                        let def = Self::inline(#specta::DefOpts {
-                            parent_inline: false,
-                            type_map: opts.type_map
-                        }, &[]);
-
-                        opts.type_map.insert(Self::NAME, def.clone());
-                    }
-
-                    opts.type_map.get(Self::NAME).unwrap().clone()
-                }
-            };
-            (@specta_reference_body;) => {
-                fn reference(_opts: #specta::DefOpts, _: &[#specta::DataType]) -> #specta::DataType {
-                    Self::inline(_opts, &[])
-                }
-
-                fn definition(_opts: #specta::DefOpts) -> #specta::DataType {
-                    unreachable!()
-                }
-            };
-
-            (@specta_type_name; $name:ident) => {
-                stringify!($name)
-            };
-            (@specta_type_name;) => { "Data" };
-        }
-    });
+    };
+    let data_struct = cfg!(feature = "specta")
+        .then(|| {
+            quote! {
+                const SPECTA_TYPE_NAME: &'static str = prisma_client_rust::macros::to_pascal_case!(
+                    $($module_name)?
+                );
+                #model_module::#variant_ident!(@specta_data_struct; #data_struct; $($module_name)?);
+            }
+        })
+        .unwrap_or(quote!( #data_struct_attrs #data_struct ));
 
     let selection = {
         let scalar_selections = matches!(variant, Variant::Include).then(||
@@ -431,7 +398,7 @@ fn model_macro<'a>(
 
         impl ::prisma_client_rust::#selection_type for Selection {
             type Data = Data;
-            type ModelData = $crate::#module_path::#model_name_snake::Data;
+            type ModelData = #model_module::Data;
 
             fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
                 self.0
@@ -445,7 +412,7 @@ fn model_macro<'a>(
             ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_name:ident { $(#selection_pattern_produce)+ }) => {
                 #[allow(warnings)]
                 pub mod $module_name {
-                    $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; $module_name; $(#selection_pattern_consume)+);
+                    #model_module::#variant_ident!(@definitions; $module_name; $(#selection_pattern_consume)+);
 
                     use super::*;
 
@@ -457,7 +424,7 @@ fn model_macro<'a>(
                 }
             };
             ({ $(#selection_pattern_produce)+ }) => {{
-                $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
+                #model_module::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
 
                 #selection_struct
 
@@ -476,12 +443,7 @@ fn model_macro<'a>(
                     }
                 }
 
-                #[allow(warnings)]
-                #[derive(std::fmt::Debug, Clone)]
-                pub struct Data {
-                    #(#data_struct_scalar_fields,)*
-                    $(pub $field: $crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),)+
-                }
+                #data_struct
 
                 impl ::serde::Serialize for Data {
                     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -501,10 +463,8 @@ fn model_macro<'a>(
                     }
                 }
 
-                #specta_impl
-
                 $($(pub mod $field {
-                    $crate::#module_path::#model_name_snake::$selection_mode!(@field_module; $field #selections_pattern_consume);
+                    #model_module::$selection_mode!(@field_module; $field #selections_pattern_consume);
                 })?)+
             };
 
@@ -590,7 +550,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                                 )
                             };
 
-                            #pcr::Selection::new(#field_name_str, None, args, selections)
+                            #pcr::Selection::new(NAME, None, args, selections)
                         }
 
                         pub fn select(args: #relation_model_name_snake::ManyArgs, nested_selections: Vec<#relation_model_name_snake::SelectParam>) -> Self {
@@ -656,7 +616,7 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
 
             impl #variant_pascal {
                 pub fn to_selection(self) -> #pcr::Selection {
-                    #pcr::sel(#field_name_str)
+                    #pcr::sel(NAME)
                 }
             }
         },

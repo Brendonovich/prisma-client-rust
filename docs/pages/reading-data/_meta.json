@@ -1,0 +1,8 @@
+{
+  "find": "Find Queries",
+  "fetch": "Fetching Relations",
+  "pagination": "Pagination",
+  "ordering": "Ordering",
+  "count": "Counting Records",
+  "select-include": "Select & Include"
+}

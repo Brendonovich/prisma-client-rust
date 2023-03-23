@@ -1,17 +1,17 @@
-use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
+use prisma_client_rust_sdk::{prelude::pascal_ident, GenerateArgs};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let enums = args.dml.enums.iter().map(|e| {
-        let name = format_ident!("{}", e.name.to_case(Case::Pascal));
+        let name = pascal_ident(&e.name);
 
         let variants = e
             .values
             .iter()
             .map(|v| {
                 let name = &v.name;
-                let variant_name = format_ident!("{}", v.name.to_case(Case::Pascal));
+                let variant_name = pascal_ident(&v.name);
 
                 quote! {
                     #[serde(rename=#name)]
@@ -25,18 +25,18 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             .iter()
             .map(|v| {
                 let name = &v.name;
-                let variant_name = format_ident!("{}", v.name.to_case(Case::Pascal));
+                let variant_name = pascal_ident(&v.name);
 
                 quote!(Self::#variant_name => #name.to_string())
             })
             .collect::<Vec<_>>();
 
-        let specta_derive = cfg!(feature = "rspc").then(|| {
+        let specta_derive = cfg!(feature = "specta").then(|| {
             let model_name_pascal_str = name.to_string();
-    
+
             quote! {
-                #[derive(::prisma_client_rust::rspc::Type)]
-                #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::rspc::internal::specta")]
+                #[derive(::prisma_client_rust::specta::Type)]
+                #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
             }
         });
 

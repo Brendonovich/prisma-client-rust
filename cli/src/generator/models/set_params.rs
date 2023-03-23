@@ -46,17 +46,17 @@ struct SetParam {
     into_pv_arm: TokenStream,
 }
 
-fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
+fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetParam>> {
     let field_name_pascal = pascal_ident(field.name());
-    let field_name_str = field.name();
+    let field_name_snake = snake_ident(field.name());
 
     let pcr = quote!(::prisma_client_rust);
 
-    match &field {
+    Some(match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens(quote!());
+            let field_type = field.type_tokens(quote!())?;
 
-            let converter = field.type_prisma_value(&format_ident!("value"));
+            let converter = field.type_prisma_value(&format_ident!("value"))?;
 
             let set_variant_name = format_ident!("Set{}", &field_name_pascal);
 
@@ -64,7 +64,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                 variant: quote!(#set_variant_name(#field_type)),
                 into_pv_arm: quote! {
                     SetParam::#set_variant_name(value) => (
-                        #field_name_str.to_string(),
+                        #field_name_snake::NAME.to_string(),
                         #converter
                     )
                 },
@@ -75,17 +75,17 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
                     let typ = method.type_tokens(quote!());
-                    
-                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity());
+
+                    let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity()).unwrap();
 
                     let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
-                    
+
                     let action = &method.action;
                     params.push(SetParam {
                         variant: quote!(#variant_name(#typ)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(value) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -111,7 +111,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_params) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -135,7 +135,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
                         into_pv_arm: quote! {
                             SetParam::#variant_name(where_param) => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -158,7 +158,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
                         variant: quote!(#variant_name),
                         into_pv_arm: quote! {
                             SetParam::#variant_name => (
-                                #field_name_str.to_string(),
+                                #field_name_snake::NAME.to_string(),
                                 #pcr::PrismaValue::Object(
                                     vec![(
                                         #action.to_string(),
@@ -172,23 +172,53 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Vec<SetParam> {
             }
         }).collect(),
         dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
-    }
+    })
 }
 
 pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
-    let set_params = model
+    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .fields()
-        .filter(|f| !f.field_type().is_unsupported())
-        .map(|f| field_set_params(f, args))
+        .flat_map(|f| field_set_params(f, args))
         .flatten()
-        .collect::<Vec<_>>();
-
-    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = set_params
-        .iter()
-        .map(|p| (&p.variant, &p.into_pv_arm))
+        .map(|p| (p.variant, p.into_pv_arm))
         .unzip();
 
     let pcr = quote!(::prisma_client_rust);
+
+    let unchecked_enum = {
+        let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
+            .scalar_fields()
+            .flat_map(|field| {
+                let field_name_pascal = pascal_ident(&field.name);
+
+                let set_variant = format_ident!("Set{}", field_name_pascal);
+
+                let field_type = field.field_type.to_tokens(quote!(), &field.arity)?;
+
+                Some((
+                    quote!(#field_name_pascal(#field_type)),
+                    quote! {
+                        UncheckedSetParam::#field_name_pascal(value) => Self::#set_variant(value)
+                    },
+                ))
+            })
+            .unzip();
+
+        quote! {
+            #[derive(Clone)]
+            pub enum UncheckedSetParam {
+                  #(#variants),*
+            }
+
+            impl From<UncheckedSetParam> for SetParam {
+                fn from(param: UncheckedSetParam) -> Self {
+                    match param {
+                         #(#into_pv_arms),*
+                     }
+                }
+            }
+        }
+    };
 
     quote! {
         #[derive(Clone)]
@@ -196,12 +226,14 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(String, #pcr::PrismaValue)> for SetParam {
-            fn into(self) -> (String, #pcr::PrismaValue) {
-                match self {
+        impl From<SetParam> for (String, #pcr::PrismaValue) {
+            fn from(param: SetParam) -> Self {
+                match param {
                     #(#into_pv_arms),*
                 }
             }
         }
+
+        #unchecked_enum
     }
 }

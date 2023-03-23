@@ -131,6 +131,41 @@ async fn disconnect() -> TestResult {
 }
 
 #[tokio::test]
+async fn unchecked() -> TestResult {
+    let client = client().await;
+
+    let user_id = create_user(&client).await?;
+
+    let user = client
+        .user()
+        .find_unique(user::id::equals(user_id.clone()))
+        .with(user::posts::fetch(vec![]))
+        .exec()
+        .await?
+        .unwrap();
+    assert_eq!(user.posts.unwrap().len(), 0);
+
+    let post = client
+        .post()
+        .create("My post".to_string(), true, vec![])
+        .exec()
+        .await?;
+
+    let updated = client
+        .post()
+        .update_unchecked(
+            post::id::equals(post.id.clone()),
+            vec![post::author_id::set(Some(user.id.clone()))],
+        )
+        .with(post::author::fetch())
+        .exec()
+        .await?;
+    assert!(updated.author().unwrap().is_some());
+
+    cleanup(client).await
+}
+
+#[tokio::test]
 async fn atomic() -> TestResult {
     let client = client().await;
 

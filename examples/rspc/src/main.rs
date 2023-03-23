@@ -16,7 +16,7 @@ async fn main() {
     client._db_push().await.unwrap();
 
     // A router doesn't do anything on its own, you need to use it with
-    // an integration to make it do anything: https://rspc.otbeaumont.me/
+    // an integration to make it do anything: https://rspc.dev/
 
     Router::<Ctx>::new()
         .config(Config::new().export_ts_bindings("./bindings.ts"))

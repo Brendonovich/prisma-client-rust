@@ -1,15 +1,17 @@
 use axum::{extract::Extension, Router};
 use std::sync::Arc;
 
+use crate::db::*;
+
 pub mod db;
 pub mod routes;
 
 #[tokio::main]
 async fn main() {
-    let prisma_client = Arc::new(db::new_client().await.unwrap());
+    let prisma_client = Arc::new(PrismaClient::_builder().build().await.unwrap());
 
-    #[cfg(debug)]
-    prisma_client._db_push(false).await.unwrap();
+    #[cfg(debug_assertions)]
+    prisma_client._db_push().await.unwrap();
 
     let app = Router::new()
         .nest("/api", routes::create_route())

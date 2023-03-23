@@ -5,6 +5,7 @@ mod field;
 mod include_select;
 mod order_by;
 mod pagination;
+mod partial;
 mod set_params;
 mod types;
 mod where_params;
@@ -154,12 +155,13 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
     args.dml.models.iter().map(|model| {
         let mut where_params_entries = vec![];
 
-        let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
+        let model_name = &model.name;
+        let model_name_snake = snake_ident(model_name);
 
         where_params_entries.extend(OPERATORS.iter().map(|op| {
-            let variant_name = format_ident!("{}", op.name.to_case(Case::Pascal));
+            let variant_name = pascal_ident(&op.name);
             let op_action = &op.action;
-            
+
             let value = match op.list {
                 true => quote! {
                     #pcr::SerializedWhereValue::List(
@@ -201,28 +203,28 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let field = fields[0];
 
                 let read_filter = args.read_filter(field.as_scalar_field().unwrap()).unwrap();
-                
+
                 where_params_entries.push(Variant::unique(field, read_filter));
 
                 None
             } else {
-                let variant_name_string = fields.iter().map(|f| f.name().to_case(Case::Pascal)).collect::<String>();
+                let variant_name_string = fields.iter().map(|f| pascal_ident(f.name()).to_string()).collect::<String>();
                 let variant_name = format_ident!("{}Equals", &variant_name_string);
-                
-                let variant_data_names = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
-            
-                let ((field_defs, field_types), (prisma_values, field_names_snake)): 
+
+                let variant_data_names = fields.iter().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
+
+                let ((field_defs, field_types), (prisma_values, field_names_snake)):
                     ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
                     let field_type = match field.arity() {
                         dml::FieldArity::List | dml::FieldArity::Required => field.type_tokens(quote!()),
                         dml::FieldArity::Optional => field.field_type().to_tokens(quote!(), &dml::FieldArity::Required)
                     }.unwrap();
                     
-                    let field_name_snake = format_ident!("{}", field.name().to_case(Case::Snake));
-                    
+                    let field_name_snake = snake_ident(field.name());
+
                     (
                         (quote!(#field_name_snake: #field_type), field_type),
-                        (field.field_type().to_prisma_value(&field_name_snake, &dml::FieldArity::Required), field_name_snake)
+                        (field.field_type().to_prisma_value(&field_name_snake, &dml::FieldArity::Required).unwrap(), field_name_snake)
                     )
                 }).unzip();
 
@@ -234,7 +236,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                         match_arm: quote! {
                             Self::#variant_name(#(#field_names_snake),*) => (
                                 #field_names_joined,
-                                #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names.to_string(), #prisma_values)),*])
+                                #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
                             )
                         },
                     },
@@ -263,7 +265,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             .unzip();
 
         where_params_entries.extend(field_where_param_entries.into_iter().flatten());
-        
+
         let where_params_enums = where_params::collate_entries(where_params_entries);
         let data_struct = data::struct_definition(&model);
         let with_params_enum = with_params::enum_definition(&model);
@@ -276,23 +278,28 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let include_params_enum = include::model_module_enum(&model, &pcr);
         let actions_struct = actions::struct_definition(&model, args);
         let types_struct = types::struct_definition(&model);
+        let partial_macro = partial::model_macro(&model, &module_path);
 
         quote! {
             pub mod #model_name_snake {
                 use super::*;
                 use super::_prisma::*;
-                
+
+                pub const NAME: &str = #model_name;
+
                 #(#field_modules)*
 
                 #compound_field_accessors
 
                 #create_fn
-                
+
                 #select_macro
                 #select_params_enum
 
                 #include_macro
                 #include_params_enum
+
+                #partial_macro
 
                 #data_struct
 
@@ -310,7 +317,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<Types>;
                 pub type ManyArgs = ::prisma_client_rust::ManyArgs<Types>;
-                
+
                 pub type Count<'a> = ::prisma_client_rust::Count<'a, Types>;
                 pub type Create<'a> = ::prisma_client_rust::Create<'a, Types>;
                 pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, Types>;
@@ -322,7 +329,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, Types>;
                 pub type Delete<'a> = ::prisma_client_rust::Delete<'a, Types>;
                 pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, Types>;
-              
+
                 #actions_struct
             }
         }

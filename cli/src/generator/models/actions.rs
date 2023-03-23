@@ -3,39 +3,44 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn create_args_params_pushes(model: &dml::Model) -> Option<Vec<TokenStream>> {
-    let required_fields = required_fields(model)?;
-
-    Some(
-        required_fields
-            .iter()
-            .map(|field| {
-                let field_name_snake = snake_ident(field.name());
-                let push_wrapper = &field.push_wrapper;
-
-                quote!(_params.push(#push_wrapper(#field_name_snake)))
-            })
-            .collect(),
-    )
-}
-
 pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
-    let required_fields = required_fields(model)?;
-
-    let required_field_names = required_fields
-        .iter()
-        .map(|field| snake_ident(field.name()));
-    let required_field_types = required_fields.iter().map(|field| &field.typ);
-
-    let create_args_params_pushes = create_args_params_pushes(model)?;
+    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+        .into_iter()
+        .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
+        .unzip();
 
     Some(quote! {
-        pub fn create(self, #(#required_field_names: #required_field_types,)* mut _params: Vec<SetParam>) -> Create<'a> {
-            #(#create_args_params_pushes;)*
+        pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
+            _params.extend([
+                #(#push_wrappers(#names)),*
+            ]);
 
             Create::new(
                 self.client,
                 _params
+            )
+        }
+    })
+}
+
+pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, types): (Vec<_>, Vec<_>) = model
+        .required_scalar_fields()
+        .iter()
+        .map(|f| Some((snake_ident(f.name()), f.type_tokens(quote!())?)))
+        .collect::<Option<Vec<_>>>()?
+        .into_iter()
+        .unzip();
+
+    Some(quote! {
+        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> Create<'a> {
+            _params.extend([
+                #(#names::set(#names)),*
+            ]);
+
+            Create::new(
+                self.client,
+                _params.into_iter().map(Into::into).collect()
             )
         }
     })
@@ -56,9 +61,11 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
         .collect::<Option<Vec<_>>>()?;
 
     Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<SetParam>)>) -> CreateMany<'a> {
+        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
-                #(_params.push(#scalar_field_names::set(#scalar_field_names));)*
+                _params.extend([
+                    #(#scalar_field_names::set(#scalar_field_names)),*
+                ]);
 
                 _params
             }).collect();
@@ -72,17 +79,21 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
 }
 
 pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
-    let required_fields = required_fields(model)?;
-
-    let create_args_names_snake = required_fields
-        .iter()
-        .map(|field| snake_ident(field.name()));
-    let create_args_typs = required_fields.iter().map(|field| &field.typ);
-    let create_args_params_pushes = create_args_params_pushes(model)?;
+    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+        .into_iter()
+        .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
+        .unzip();
 
     Some(quote! {
-        pub fn upsert(self, _where: UniqueWhereParam, (#(#create_args_names_snake,)* mut _params): (#(#create_args_typs,)* Vec<SetParam>), _update: Vec<SetParam>) -> Upsert<'a> {
-            #(#create_args_params_pushes;)*
+        pub fn upsert(
+            self,
+             _where: UniqueWhereParam,
+              (#(#names,)* mut _params): (#(#types,)* Vec<SetParam>),
+               _update: Vec<SetParam>
+        ) -> Upsert<'a> {
+            _params.extend([
+                #(#push_wrappers(#names)),*
+            ]);
 
             Upsert::new(
                 self.client,
@@ -98,6 +109,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
     let pcr = quote!(::prisma_client_rust);
 
     let create_fn = create_fn(model);
+    let create_unchecked_fn = create_unchecked_fn(model);
     let upsert_fn = upsert_fn(model);
 
     let create_many_fn = (args
@@ -135,6 +147,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
             }
 
             #create_fn
+            #create_unchecked_fn
 
             #create_many_fn
 
@@ -147,7 +160,16 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
+            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> Update<'a> {
+                Update::new(
+                    self.client,
+                    _where.into(),
+                    _params.into_iter().map(Into::into).collect(),
+                    vec![]
+                )
+            }
+
+            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<UncheckedSetParam>) -> UpdateMany<'a> {
                 UpdateMany::new(
                     self.client,
                     _where,

@@ -30,6 +30,8 @@ pub async fn cleanup(client: PrismaClient) -> TestResult {
             client.profile().delete_many(vec![]),
             client.user().delete_many(vec![]),
             client.types().delete_many(vec![]),
+            client.child().delete_many(vec![]),
+            client.parent().delete_many(vec![]),
         ))
         .await
         .unwrap();

@@ -1,6 +1,6 @@
-use prisma_client_rust_sdk::{Case, Casing, GenerateArgs};
+use prisma_client_rust_sdk::{prelude::*, GenerateArgs};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let model_actions = args
@@ -8,7 +8,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         .models
         .iter()
         .map(|model| {
-            let model_name_snake = format_ident!("{}", model.name.to_case(Case::Snake));
+            let model_name_snake = snake_ident(&model.name);
 
             quote! {
                 pub fn #model_name_snake(&self) -> super::#model_name_snake::Actions {

@@ -1,0 +1,12 @@
+[package]
+name = "prisma-client-rust-macros"
+version = "0.6.6"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+convert_case.workspace = true

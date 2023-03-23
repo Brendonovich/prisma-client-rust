@@ -3,4 +3,5 @@ target
 DS_STORE
 .DS_Store
 *db*
-stderr.log
+node_modules
+.next

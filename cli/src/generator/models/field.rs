@@ -11,15 +11,15 @@ pub fn module(
     let mut where_param_entries = vec![];
 
     let field_name = root_field.name();
-    let field_name_pascal = format_ident!("{}", field_name.to_case(Case::Pascal));
-    let field_name_snake = format_ident!("{}", field_name.to_case(Case::Snake));
+    let field_name_pascal = pascal_ident(field_name);
+    let field_name_snake = snake_ident(field_name);
     let field_type = root_field.type_tokens(quote!());
 
-    let connect_variant = format_ident!("Connect{}", field_name_pascal);
-    let disconnect_variant = format_ident!("Disconnect{}", field_name_pascal);
-    let set_variant = format_ident!("Set{}", field_name_pascal);
-    let is_null_variant = format_ident!("{}IsNull", field_name_pascal);
-    let equals_variant = format_ident!("{}Equals", &field_name_pascal);
+    let connect_variant = format_ident!("Connect{field_name_pascal}");
+    let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
+    let set_variant = format_ident!("Set{field_name_pascal}");
+    let is_null_variant = format_ident!("{field_name_pascal}IsNull");
+    let equals_variant = format_ident!("{field_name_pascal}Equals");
 
     let field_module_contents = match root_field {
         dml::Field::RelationField(field) => {
@@ -80,7 +80,7 @@ pub fn module(
                             definition: quote!(#is_null_variant),
                             match_arm: quote! {
                                 Self::#is_null_variant => (
-                                    #field_name,
+                                    #field_name_snake::NAME,
                                     #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
                                 )
                             },
@@ -132,15 +132,15 @@ pub fn module(
             };
 
             let relation_methods = root_field.relation_methods().iter().map(|method| {
-                let method_action_string = method.to_case(Case::Camel);
-                let variant_name = format_ident!("{}{}", &field_name_pascal, method.to_case(Case::Pascal));
-                let method_name_snake = format_ident!("{}", method.to_case(Case::Snake));
+                let method_action_string = method.to_case(Case::Camel, false);
+                let variant_name = format_ident!("{}{}", &field_name_pascal, pascal_ident(method));
+                let method_name_snake = snake_ident(method);
 
                 where_param_entries.push(Variant::BaseVariant {
                     definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
                     match_arm: quote! {
                         Self::#variant_name(where_params) => (
-                            #field_name,
+                            #field_name_snake::NAME,
                             #pcr::SerializedWhereValue::Object(vec![(
                                 #method_action_string.to_string(),
                                 #pcr::PrismaValue::Object(
@@ -195,7 +195,7 @@ pub fn module(
                     definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
                     match_arm: quote! {
                         Self::#field_name_pascal(value) => (
-                            #field_name,
+                            #field_name_snake::NAME,
                             value.into()
                         )
                     },
@@ -204,23 +204,22 @@ pub fn module(
                 let read_methods = read_filter.methods.iter().filter_map(|method| {
                     if method.name == "Equals" { return None }
 
-                    let method_name_snake = format_ident!("{}", method.name.to_case(Case::Snake));
-                    let method_name_pascal =
-                        format_ident!("{}", method.name.to_case(Case::Pascal));
+                    let method_name_snake = snake_ident(&method.name);
+                    let method_name_pascal = pascal_ident(&method.name);
 
                     let typ = method.type_tokens(quote!());
 
-                    Some(quote! {
-                        pub fn #method_name_snake(value: #typ) -> WhereParam {
-                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::#method_name_pascal(value))
-                        }
-                    })
+                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
                 });
 
                 quote! {
                     #equals
 
-                    #(#read_methods)*
+                    #pcr::scalar_where_param_fns!(
+                        _prisma::read_filters::#filter_enum,
+                        #field_name_pascal,
+                        { #(#read_methods)* }
+                    );
                 }
             });
 
@@ -229,16 +228,12 @@ pub fn module(
                     .methods
                     .iter()
                     .map(|method| {
-                        let method_name_snake =
-                            format_ident!("{}", method.name.to_case(Case::Snake));
+                        let method_name_snake = snake_ident(&method.name);
 
                         let typ = method.type_tokens(quote!());
 
-                        let variant_name = format_ident!(
-                            "{}{}",
-                            method.name.to_case(Case::Pascal),
-                            field_name_pascal
-                        );
+                        let variant_name =
+                            format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
 
                         quote! {
                             pub fn #method_name_snake(value: #typ) -> SetParam {
@@ -251,9 +246,16 @@ pub fn module(
 
             quote! {
                 pub struct Set(pub #field_type);
+
                 impl From<Set> for SetParam {
                     fn from(value: Set) -> Self {
                         Self::#set_variant(value.0)
+                    }
+                }
+
+                impl From<Set> for UncheckedSetParam {
+                    fn from(value: Set) -> Self {
+                        Self::#field_name_pascal(value.0)
                     }
                 }
 
@@ -280,8 +282,10 @@ pub fn module(
         quote! {
             pub mod #field_name_snake {
                 use super::super::*;
-                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam};
+                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam, UncheckedSetParam};
                 use super::_prisma::*;
+
+                pub const NAME: &str = #field_name;
 
                 #field_module_contents
 
