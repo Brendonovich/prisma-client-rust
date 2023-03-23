@@ -5,6 +5,7 @@ mod field;
 mod include_select;
 mod order_by;
 mod pagination;
+mod partial;
 mod set_params;
 mod types;
 mod where_params;
@@ -276,6 +277,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
         let include_params_enum = include::model_module_enum(&model, &pcr);
         let actions_struct = actions::struct_definition(&model, args);
         let types_struct = types::struct_definition(&model);
+        let partial_macro = partial::model_macro(&model, &module_path);
 
         quote! {
             pub mod #model_name_snake {
@@ -295,6 +297,8 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 #include_macro
                 #include_params_enum
+
+                #partial_macro
 
                 #data_struct
 

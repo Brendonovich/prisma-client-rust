@@ -40,6 +40,8 @@ fn model_macro<'a>(
     let model_name_snake_raw = snake_ident_raw(&model.name);
     let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
 
+    let model_module = quote!($crate::#module_path::#model_name_snake);
+
     let selection_type = variant.type_trait();
     let selection_param = variant.param();
 
@@ -81,7 +83,7 @@ fn model_macro<'a>(
     let field_module_impls = model.relation_fields().map(|field| {
         let field_name_snake = snake_ident(&field.name);
         let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
-        
+
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
                 $crate::#module_path::#relation_model_name_snake::#variant_ident!(@definitions; ; $($selections)+);
@@ -91,22 +93,26 @@ fn model_macro<'a>(
 
     let selection_field_to_selection_param_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
-        
+
+        let field_module = quote!(#model_module::#field_name_snake);
+
         match field {
             dml::Field::RelationField(relation_field) =>{
                 let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
+
+                let relation_model_module = quote!($crate::#module_path::#relation_model_name_snake);
 
                 match relation_field.arity {
                     dml::FieldArity::List => {
                         quote! {
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                Into::<#model_module::#selection_param>::into(
+                                    #field_module::#variant_pascal::$selection_mode(
+                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?,
-                                        $crate::#module_path::#relation_model_name_snake::select!(
+                                        #relation_model_module::select!(
                                             @selections_to_params;
                                             #selections_pattern_consume
                                         ).into_iter().collect()
@@ -114,9 +120,9 @@ fn model_macro<'a>(
                                 )
                             }};
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                                Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                    $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch(
-                                        $crate::#module_path::#relation_model_name_snake::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                Into::<#model_module::#selection_param>::into(
+                                    #field_module::#variant_pascal::Fetch(
+                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?
@@ -127,9 +133,9 @@ fn model_macro<'a>(
                     },
                     _ => quote! {
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
-                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::$selection_mode(
-                                    $crate::#module_path::#relation_model_name_snake::select!(
+                            Into::<#model_module::#selection_param>::into(
+                                #field_module::#variant_pascal::$selection_mode(
+                                    #relation_model_module::select!(
                                         @selections_to_params;
                                         #selections_pattern_consume
                                     ).into_iter().collect()
@@ -137,18 +143,18 @@ fn model_macro<'a>(
                             )
                         }};
                         (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
-                            Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                                $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal::Fetch
+                            Into::<#model_module::#selection_param>::into(
+                                #field_module::#variant_pascal::Fetch
                             )
                         }};
                     }
                 }
-                
+
             },
             dml::Field::ScalarField(_) => quote! {
                 (@selection_field_to_selection_param; #field_name_snake) => {
-                    Into::<$crate::#module_path::#model_name_snake::#selection_param>::into(
-                        $crate::#module_path::#model_name_snake::#field_name_snake::#variant_pascal
+                    Into::<#model_module::#selection_param>::into(
+                        #field_module::#variant_pascal
                     )
                 };
             },
@@ -210,8 +216,8 @@ fn model_macro<'a>(
 
                         fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                             formatter.write_str(&[
-                                $($crate::#module_path::#model_name_snake::$field::NAME),+,
-                                #($crate::#module_path::#model_name_snake::#base_field_names_snake::NAME),*
+                                $(#model_module::$field::NAME),+,
+                                #(#model_module::#base_field_names_snake::NAME),*
                             ].into_iter().collect::<Vec<_>>().join(", "))
                         }
 
@@ -220,8 +226,8 @@ fn model_macro<'a>(
                             E: ::serde::de::Error,
                         {
                             match value {
-                                $($crate::#module_path::#model_name_snake::$field::NAME => Ok(Field::$field)),*,
-                                #($crate::#module_path::#model_name_snake::#base_field_names_snake::NAME => Ok(Field::#base_field_names_snake),)*
+                                $(#model_module::$field::NAME => Ok(Field::$field)),*,
+                                #(#model_module::#base_field_names_snake::NAME => Ok(Field::#base_field_names_snake),)*
                                 _ => Err(::serde::de::Error::unknown_field(value, FIELDS)),
                             }
                         }
@@ -252,7 +258,7 @@ fn model_macro<'a>(
                             #(Field::#base_field_names_snake => {
                                 if #base_field_names_snake.is_some() {
                                     return Err(::serde::de::Error::duplicate_field(
-                                        $crate::#module_path::#model_name_snake::#base_field_names_snake::NAME
+                                        #model_module::#base_field_names_snake::NAME
                                     ));
                                 }
                                 #base_field_names_snake = Some(map.next_value()?);
@@ -260,7 +266,7 @@ fn model_macro<'a>(
                             $(Field::$field => {
                                 if $field.is_some() {
                                     return Err(::serde::de::Error::duplicate_field(
-                                        $crate::#module_path::#model_name_snake::$field::NAME
+                                        #model_module::$field::NAME
                                     ));
                                 }
                                 $field = Some(map.next_value()?);
@@ -268,11 +274,11 @@ fn model_macro<'a>(
                         }
                     }
 
-                    $(let $field = $field.ok_or_else(|| 
-                        serde::de::Error::missing_field($crate::#module_path::#model_name_snake::$field::NAME)
+                    $(let $field = $field.ok_or_else(||
+                        serde::de::Error::missing_field(#model_module::$field::NAME)
                     )?;)*
-                    #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(|| 
-                        serde::de::Error::missing_field($crate::#module_path::#model_name_snake::#base_field_names_snake::NAME)
+                    #(let #base_field_names_snake = #base_field_names_snake.ok_or_else(||
+                        serde::de::Error::missing_field(#model_module::#base_field_names_snake::NAME)
                     )?;)*
 
                     Ok(Data { #(#base_field_names_snake,)* $($field),* })
@@ -295,8 +301,8 @@ fn model_macro<'a>(
                     #(stringify!(#base_field_names_snake)),*
                 ].len()
             )?;
-            $(state.serialize_field($crate::#module_path::#model_name_snake::$field::NAME, &self.$field)?;)*
-            #(state.serialize_field($crate::#module_path::#model_name_snake::#base_field_names_snake::NAME, &self.#base_field_names_snake)?;)*
+            $(state.serialize_field(#model_module::$field::NAME, &self.$field)?;)*
+            #(state.serialize_field(#model_module::#base_field_names_snake::NAME, &self.#base_field_names_snake)?;)*
             state.end()
         }
     };
@@ -322,7 +328,7 @@ fn model_macro<'a>(
             )]
         };
 
-        quote!{
+        quote! {
             (@specta_data_struct; $struct:item;) => {
                 #data_struct_attrs
                 #[specta(inline)]
@@ -337,8 +343,8 @@ fn model_macro<'a>(
 
     let data_struct = {
         let specta_rename = cfg!(feature = "specta").then(|| {
-            quote!(#[specta(rename_from_path = 
-                $crate::#module_path::#model_name_snake::$field::NAME
+            quote!(#[specta(rename_from_path =
+                #model_module::$field::NAME
             )])
         });
 
@@ -347,20 +353,21 @@ fn model_macro<'a>(
                 #(#data_struct_scalar_fields,)*
                 $(
                     #specta_rename
-                    pub $field: $crate::#module_path::#model_name_snake::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),
+                    pub $field: #model_module::#variant_ident!(@field_type; $field $(#selections_pattern_consume)?),
                 )+
             }
         }
     };
-
-    let data_struct = cfg!(feature = "specta").then(|| {
-        quote! {
-            const SPECTA_TYPE_NAME: &'static str = prisma_client_rust::macros::to_pascal_case!(
-                $($module_name)?
-            );
-            $crate::#module_path::#model_name_snake::#variant_ident!(@specta_data_struct; #data_struct; $($module_name)?);
-        }
-    }).unwrap_or(quote!( #data_struct_attrs #data_struct ));
+    let data_struct = cfg!(feature = "specta")
+        .then(|| {
+            quote! {
+                const SPECTA_TYPE_NAME: &'static str = prisma_client_rust::macros::to_pascal_case!(
+                    $($module_name)?
+                );
+                #model_module::#variant_ident!(@specta_data_struct; #data_struct; $($module_name)?);
+            }
+        })
+        .unwrap_or(quote!( #data_struct_attrs #data_struct ));
 
     let selection = {
         let scalar_selections = matches!(variant, Variant::Include).then(||
@@ -391,7 +398,7 @@ fn model_macro<'a>(
 
         impl ::prisma_client_rust::#selection_type for Selection {
             type Data = Data;
-            type ModelData = $crate::#module_path::#model_name_snake::Data;
+            type ModelData = #model_module::Data;
 
             fn to_selections(self) -> Vec<::prisma_client_rust::Selection> {
                 self.0
@@ -405,7 +412,7 @@ fn model_macro<'a>(
             ($(($($func_arg:ident: $func_arg_ty:ty),+) =>)? $module_name:ident { $(#selection_pattern_produce)+ }) => {
                 #[allow(warnings)]
                 pub mod $module_name {
-                    $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; $module_name; $(#selection_pattern_consume)+);
+                    #model_module::#variant_ident!(@definitions; $module_name; $(#selection_pattern_consume)+);
 
                     use super::*;
 
@@ -417,7 +424,7 @@ fn model_macro<'a>(
                 }
             };
             ({ $(#selection_pattern_produce)+ }) => {{
-                $crate::#module_path::#model_name_snake::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
+                #model_module::#variant_ident!(@definitions; ; $(#selection_pattern_consume)+);
 
                 #selection_struct
 
@@ -457,7 +464,7 @@ fn model_macro<'a>(
                 }
 
                 $($(pub mod $field {
-                    $crate::#module_path::#model_name_snake::$selection_mode!(@field_module; $field #selections_pattern_consume);
+                    #model_module::$selection_mode!(@field_module; $field #selections_pattern_consume);
                 })?)+
             };
 
