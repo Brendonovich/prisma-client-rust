@@ -3782,6 +3782,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mongodb-tests"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "multer"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

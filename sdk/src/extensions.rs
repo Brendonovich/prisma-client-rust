@@ -1,4 +1,7 @@
-use dml::{Field, FieldArity, FieldType, Model, ScalarField, ScalarType};
+use dml::{
+    CompositeTypeField, CompositeTypeFieldType, Field, FieldArity, FieldType, Model, ScalarField,
+    ScalarType,
+};
 
 use crate::prelude::*;
 
@@ -59,6 +62,25 @@ impl FieldExt for Field {
             && !matches!(self, Field::RelationField(r) if r.arity.is_list())
     }
 }
+
+impl FieldExt for CompositeTypeField {
+    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream> {
+        self.r#type.to_tokens(prefix, &self.arity)
+    }
+
+    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream> {
+        self.r#type.to_prisma_value(var, &self.arity)
+    }
+
+    fn relation_methods(&self) -> &'static [&'static str] {
+        todo!()
+    }
+
+    fn required_on_create(&self) -> bool {
+        self.arity.is_required() && self.default_value.is_none()
+    }
+}
+
 pub trait FieldTypeExt {
     fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream>;
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
@@ -78,6 +100,56 @@ impl FieldTypeExt for FieldType {
             Self::Scalar(typ, _) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
             _ => unimplemented!(),
+        };
+
+        Some(match arity {
+            FieldArity::List => quote!(Vec<#base>),
+            FieldArity::Optional => quote!(Option<#base>),
+            FieldArity::Required => quote!(#base),
+        })
+    }
+
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
+        let scalar_identifier = if arity.is_list() {
+            format_ident!("v")
+        } else {
+            var.clone()
+        };
+
+        let v = quote!(::prisma_client_rust::PrismaValue);
+
+        let scalar_converter = match self {
+            Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
+            Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
+            Self::Unsupported(_) => return None,
+            typ => unimplemented!("{:?}", typ),
+        };
+
+        Some(match arity {
+            FieldArity::List => {
+                quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
+            }
+            FieldArity::Optional => {
+                quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
+            }
+            FieldArity::Required => scalar_converter,
+        })
+    }
+}
+
+impl FieldTypeExt for CompositeTypeFieldType {
+    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream> {
+        let base = match self {
+            Self::Enum(name) => {
+                let name = pascal_ident(name);
+                quote!(#prefix #name)
+            }
+            Self::Scalar(typ, _) => typ.to_tokens(),
+            Self::Unsupported(_) => return None,
+            Self::CompositeType(name) => {
+                let ty = snake_ident(&name);
+                quote!(#prefix #ty::Data)
+            }
         };
 
         Some(match arity {

@@ -1,4 +1,5 @@
 mod client;
+mod composite_types;
 mod enums;
 mod header;
 mod internal_enums;

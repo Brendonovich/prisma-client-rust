@@ -1,0 +1,23 @@
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "cargo prisma"
+    output   = "tests/db.rs"
+
+    module_path = "db"
+}
+
+model Post {
+    id    String @id @default(auto()) @map("_id") @db.ObjectId
+    title String
+    image Image
+}
+
+type Image {
+    width  Int
+    height Int
+    url    String
+}
