@@ -29,7 +29,7 @@ impl ModelExt for Model {
 }
 
 pub trait FieldExt {
-    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream>;
+    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream>;
 
     fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream>;
 
@@ -39,7 +39,7 @@ pub trait FieldExt {
 }
 
 impl FieldExt for Field {
-    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream> {
+    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream> {
         self.field_type().to_tokens(prefix, self.arity())
     }
 
@@ -64,7 +64,7 @@ impl FieldExt for Field {
 }
 
 impl FieldExt for CompositeTypeField {
-    fn type_tokens(&self, prefix: TokenStream) -> Option<TokenStream> {
+    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream> {
         self.r#type.to_tokens(prefix, &self.arity)
     }
 
@@ -82,26 +82,26 @@ impl FieldExt for CompositeTypeField {
 }
 
 pub trait FieldTypeExt {
-    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream>;
+    fn to_tokens(&self, prefix: &TokenStream, arity: &FieldArity) -> Option<TokenStream>;
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
 }
 
 impl FieldTypeExt for FieldType {
-    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream> {
+    fn to_tokens(&self, module_path: &TokenStream, arity: &FieldArity) -> Option<TokenStream> {
         let base = match self {
             Self::Enum(name) => {
                 let name = pascal_ident(name);
-                quote!(#prefix #name)
+                quote!(#module_path::#name)
             }
             Self::Relation(info) => {
                 let model = snake_ident(&info.referenced_model);
-                quote!(#prefix #model::Data)
+                quote!(#module_path::#model::Data)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
             Self::CompositeType(name) => {
                 let ct = snake_ident(&name);
-                quote!(#prefix #ct::Data)
+                quote!(#module_path::#ct::Data)
             }
         };
 
@@ -125,7 +125,8 @@ impl FieldTypeExt for FieldType {
             Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
             Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
             Self::Unsupported(_) => return None,
-            typ => unimplemented!("{:?}", typ),
+            Self::CompositeType(_) => quote!(#v::Object(vec![])),
+            _ => todo!(),
         };
 
         Some(match arity {
@@ -141,17 +142,17 @@ impl FieldTypeExt for FieldType {
 }
 
 impl FieldTypeExt for CompositeTypeFieldType {
-    fn to_tokens(&self, prefix: TokenStream, arity: &FieldArity) -> Option<TokenStream> {
+    fn to_tokens(&self, module_path: &TokenStream, arity: &FieldArity) -> Option<TokenStream> {
         let base = match self {
             Self::Enum(name) => {
                 let name = pascal_ident(name);
-                quote!(#prefix #name)
+                quote!(#module_path::#name)
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
             Self::CompositeType(name) => {
                 let ty = snake_ident(&name);
-                quote!(#prefix #ty::Data)
+                quote!(#module_path::#ty::Data)
             }
         };
 

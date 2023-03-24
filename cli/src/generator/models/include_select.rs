@@ -61,7 +61,7 @@ fn model_macro<'a>(
 
     let field_type_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
-        let field_type = field.type_tokens(quote!(crate::#module_path::));
+        let field_type = field.type_tokens(module_path);
 
         let selection_type_impl = field.as_relation_field().map(|_| {
             let field_type = quote!(#field_name_snake::Data);
@@ -164,7 +164,7 @@ fn model_macro<'a>(
 
     let data_struct_scalar_fields = base_fields.clone().filter_map(|f| {
         let field_name_snake = snake_ident(f.name());
-        let field_type = f.type_tokens(quote!(crate::#module_path::));
+        let field_type = f.type_tokens(module_path);
 
         let specta_rename = cfg!(feature = "specta").then(|| {
             quote!(#[specta(rename_from_path = crate::#module_path::#model_name_snake::#field_name_snake::NAME)])
@@ -627,7 +627,21 @@ fn field_module_enum(
                 }
             }
         },
-        dml::Field::CompositeField(_) => return None,
+        dml::Field::CompositeField(_) => quote! {
+            pub struct #variant_pascal;
+
+            impl Into<super::#variant_param> for #variant_pascal {
+                fn into(self) -> super::#variant_param {
+                    super::#variant_param::#field_name_pascal(self)
+                }
+            }
+
+            impl #variant_pascal {
+                pub fn to_selection(self) -> #pcr::Selection {
+                    #pcr::sel(NAME)
+                }
+            }
+        },
     })
 }
 

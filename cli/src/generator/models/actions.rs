@@ -3,16 +3,17 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
-    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
-        .into_iter()
-        .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
-        .unzip();
+pub fn create_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
+    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) =
+        required_fields(model, module_path)?
+            .into_iter()
+            .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+            .unzip();
 
     Some(quote! {
         pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
             _params.extend([
-                #(#push_wrappers(#names)),*
+                #(#wrapped_params),*
             ]);
 
             Create::new(
@@ -23,11 +24,11 @@ pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn create_unchecked_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
         .required_scalar_fields()
         .iter()
-        .map(|f| Some((snake_ident(f.name()), f.type_tokens(quote!())?)))
+        .map(|f| Some((snake_ident(f.name()), f.type_tokens(module_path)?)))
         .collect::<Option<Vec<_>>>()?
         .into_iter()
         .unzip();
@@ -46,7 +47,7 @@ pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn create_many_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
     let scalar_field_names = model
         .required_scalar_fields()
         .iter()
@@ -57,7 +58,7 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     let scalar_field_types = model
         .required_scalar_fields()
         .iter()
-        .map(|f| f.type_tokens(quote!()))
+        .map(|f| f.type_tokens(module_path))
         .collect::<Option<Vec<_>>>()?;
 
     Some(quote! {
@@ -78,11 +79,12 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
-    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
-        .into_iter()
-        .map(|field| (snake_ident(field.name()), (field.typ, field.push_wrapper)))
-        .unzip();
+pub fn upsert_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
+    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) =
+        required_fields(model, module_path)?
+            .into_iter()
+            .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+            .unzip();
 
     Some(quote! {
         pub fn upsert(
@@ -92,7 +94,7 @@ pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
                _update: Vec<SetParam>
         ) -> Upsert<'a> {
             _params.extend([
-                #(#push_wrappers(#names)),*
+                #(#wrapped_params),*
             ]);
 
             Upsert::new(
@@ -105,18 +107,22 @@ pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
+pub fn struct_definition(
+    model: &dml::Model,
+    args: &GenerateArgs,
+    module_path: &TokenStream,
+) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let create_fn = create_fn(model);
-    let create_unchecked_fn = create_unchecked_fn(model);
-    let upsert_fn = upsert_fn(model);
+    let create_fn = create_fn(model, module_path);
+    let create_unchecked_fn = create_unchecked_fn(model, module_path);
+    let upsert_fn = upsert_fn(model, module_path);
 
     let create_many_fn = (args
         .connector
         .capabilities()
         .contains(&datamodel_connector::ConnectorCapability::CreateMany))
-    .then(|| create_many_fn(model));
+    .then(|| create_many_fn(model, module_path));
 
     quote! {
         #[derive(Clone)]

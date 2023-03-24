@@ -6,6 +6,7 @@ pub fn module(
     root_field: &dml::Field,
     model: &dml::Model,
     args: &GenerateArgs,
+    module_path: &TokenStream,
 ) -> (TokenStream, Vec<Variant>) {
     let pcr = quote!(::prisma_client_rust);
     let mut where_param_entries = vec![];
@@ -13,7 +14,7 @@ pub fn module(
     let field_name = root_field.name();
     let field_name_pascal = pascal_ident(field_name);
     let field_name_snake = snake_ident(field_name);
-    let field_type = root_field.type_tokens(quote!());
+    let field_type = root_field.type_tokens(module_path);
 
     let connect_variant = format_ident!("Connect{field_name_pascal}");
     let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
@@ -207,7 +208,7 @@ pub fn module(
                     let method_name_snake = snake_ident(&method.name);
                     let method_name_pascal = pascal_ident(&method.name);
 
-                    let typ = method.type_tokens(quote!());
+                    let typ = method.type_tokens(module_path);
 
                     Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
                 });
@@ -230,7 +231,7 @@ pub fn module(
                     .map(|method| {
                         let method_name_snake = snake_ident(&method.name);
 
-                        let typ = method.type_tokens(quote!());
+                        let typ = method.type_tokens(module_path);
 
                         let variant_name =
                             format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
@@ -272,8 +273,68 @@ pub fn module(
                 #write_fns
             }
         }
-        dml::Field::CompositeField(composite_field) => {
-            quote!()
+        dml::Field::CompositeField(cf) => {
+            let comp_type_snake = snake_ident(&cf.composite_type);
+
+            let comp_type = args
+                .dml
+                .composite_types
+                .iter()
+                .find(|ty| ty.name == cf.composite_type)
+                .unwrap();
+
+            let set_fn = comp_type
+                .fields
+                .iter()
+                .filter(|f| f.required_on_create())
+                .map(|field| Some((field, field.type_tokens(module_path)?)))
+                .collect::<Option<Vec<_>>>()
+                .map(|v| {
+                    let set_struct = quote!(#comp_type_snake::Set);
+
+                    let (required_fields, required_field_types): (Vec<_>, Vec<_>) =
+                        v.into_iter().unzip();
+
+                    let required_field_names_snake = required_fields
+                        .iter()
+                        .map(|f| snake_ident(&f.name))
+                        .collect::<Vec<_>>();
+
+                    quote! {
+                        pub struct Set(#set_struct);
+
+                        pub fn set<T: From<Set>>(
+                            #(#required_field_names_snake: #required_field_types,)*
+                            _params: Vec<#comp_type_snake::SetParam>
+                        ) -> T {
+                            Set(#set_struct {
+                                #(#required_field_names_snake,)*
+                                _params
+                            }).into()
+                        }
+
+                        impl From<Set> for SetParam {
+                            fn from(Set(v): Set) -> Self {
+                                Self::#set_variant(v)
+                            }
+                        }
+                    }
+                });
+
+            let unset_fn = cf.arity.is_optional().then(|| {
+                let unset_variant = format_ident!("Unset{field_name_pascal}");
+
+                quote! {
+                    pub fn unset() -> SetParam {
+                        SetParam::#unset_variant()
+                    }
+                }
+            });
+
+            quote! {
+                #set_fn
+                #unset_fn
+            }
         }
     };
 

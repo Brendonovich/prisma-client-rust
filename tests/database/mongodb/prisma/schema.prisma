@@ -7,17 +7,25 @@ generator client {
     provider = "cargo prisma"
     output   = "../tests/db.rs"
 
-    module_path = "db"
+    module_path = "crate::db"
 }
 
 model Post {
     id    String @id @default(auto()) @map("_id") @db.ObjectId
     title String
     image Image
+    image2 Image?
 }
 
 type Image {
     width  Int
     height Int
     url    String
+    format ImageFormat
+}
+
+enum ImageFormat {
+    PNG
+    JPEG
+    GIF
 }

@@ -1,8 +1,8 @@
 use crate::generator::prelude::*;
 
-pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
+pub fn scalar_selections_fn(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let scalar_fields_snake = model.scalar_fields().flat_map(|f| {
-        f.field_type.to_tokens(quote!(), &f.arity)?;
+        f.field_type.to_tokens(module_path, &f.arity)?;
         Some(snake_ident(&f.name))
     });
 
@@ -16,10 +16,10 @@ pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
     }
 }
 
-pub fn struct_definition(model: &dml::Model) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let scalar_selections_fn = scalar_selections_fn(model);
+    let scalar_selections_fn = scalar_selections_fn(model, module_path);
 
     quote! {
         #[derive(Clone)]

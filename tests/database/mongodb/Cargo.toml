@@ -2,18 +2,25 @@
 name = "mongodb-tests"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Brendan Allan <brendonovich@outlook.com>"]
+autotests = false
+autobenches = false
 
 [[test]]
 name = "integration_tests"
 path = "tests/lib.rs"
 harness = true
 
+[dependencies]
+prisma-client-rust = { workspace = true, features = [
+  "mongodb",
+  "migrations",
+], default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+
 [dev-dependencies]
 tokio = { version = "1.17.0", features = ["rt", "macros"] }
-serde = { version = "1.0", features = ["derive"] }
 prisma-client-rust = { workspace = true, features = [
-	"mongodb",
+  "mongodb",
   "migrations",
 ], default-features = false }

@@ -46,7 +46,11 @@ struct SetParam {
     into_pv_arm: TokenStream,
 }
 
-fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetParam>> {
+fn field_set_params(
+    field: &dml::Field,
+    args: &GenerateArgs,
+    module_path: &TokenStream,
+) -> Option<Vec<SetParam>> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_snake = snake_ident(field.name());
 
@@ -54,7 +58,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetPa
 
     Some(match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens(quote!())?;
+            let field_type = field.type_tokens(module_path)?;
 
             let converter = field.type_prisma_value(&format_ident!("value"))?;
 
@@ -74,7 +78,7 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetPa
 
             if let Some(write_type) = args.write_filter(&scalar_field) {
                 for method in &write_type.methods {
-                    let typ = method.type_tokens(quote!());
+                    let typ = method.type_tokens(module_path);
 
                     let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity()).unwrap();
 
@@ -171,16 +175,54 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetPa
                 }
             }
         }).collect(),
-        dml::Field::CompositeField(_) => {
-            return None
+        dml::Field::CompositeField(cf) => {
+        	let field_type_snake = snake_ident(&cf.composite_type);
+
+	        let converter = field.type_prisma_value(&format_ident!("value"))?;
+
+	        let set_variant_name = format_ident!("Set{}", &field_name_pascal);
+
+	        let set_variant = SetParam {
+		        variant: quote!(#set_variant_name(super::#field_type_snake::Set)),
+		        into_pv_arm: quote! {
+			        SetParam::#set_variant_name(value) => (
+				        #field_name_snake::NAME.to_string(),
+				        #converter
+			        )
+		        },
+	        }
+			let unset_variant = cf.arity.is_optional().then(|| {
+    			let unset_variant_name = format_ident!("Unset{}", &field_name_pascal);
+
+				SetParam {
+					variant: quote!(#unset_variant_name),
+					into_pv_arm: quote! {
+						SetParam::#unset_variant_name(value) => (
+							#field_name_snake::NAME.to_string(),
+							#converter
+						)
+					},
+				}
+			});
+
+			let params = [
+				Some(set_variant),
+				unset_variant
+			];
+
+			params.into_iter().flatten().collect()
         },
     })
 }
 
-pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
+pub fn enum_definition(
+    model: &dml::Model,
+    args: &GenerateArgs,
+    module_path: &TokenStream,
+) -> TokenStream {
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .fields()
-        .flat_map(|f| field_set_params(f, args))
+        .flat_map(|f| field_set_params(f, args, module_path))
         .flatten()
         .map(|p| (p.variant, p.into_pv_arm))
         .unzip();
@@ -195,7 +237,7 @@ pub fn enum_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
 
                 let set_variant = format_ident!("Set{}", field_name_pascal);
 
-                let field_type = field.field_type.to_tokens(quote!(), &field.arity)?;
+                let field_type = field.field_type.to_tokens(module_path, &field.arity)?;
 
                 Some((
                     quote!(#field_name_pascal(#field_type)),

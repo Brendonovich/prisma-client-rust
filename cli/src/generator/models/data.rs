@@ -41,7 +41,7 @@ enum Field<'a> {
     Composite(CompositeField<'a>),
 }
 
-pub fn struct_definition(model: &dml::Model) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let fields = model
@@ -71,7 +71,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                     })
                 }
                 dml::Field::ScalarField(scalar_field) => {
-                    let typ = field.type_tokens(quote!())?;
+                    let typ = field.type_tokens(module_path)?;
 
                     Field::Scalar(ScalarField {
                         typ,
@@ -93,6 +93,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                             quote!(Box<#base_data>)
                         }
                     };
+
                     Field::Composite(CompositeField {
                         typ,
                         name: field.name(),

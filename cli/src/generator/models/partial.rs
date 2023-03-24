@@ -11,7 +11,7 @@ pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> Toke
         let field_name_snake = snake_ident(&scalar_field.name);
         let field_type = scalar_field
             .field_type
-            .to_tokens(quote!(crate::#module_path::), &scalar_field.arity);
+            .to_tokens(module_path, &scalar_field.arity);
 
         quote! {
             (@field_type; #field_name_snake) => { #field_type };

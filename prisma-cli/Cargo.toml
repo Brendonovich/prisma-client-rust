@@ -7,10 +7,10 @@ edition = "2021"
 sqlite = ["prisma-client-rust-cli/sqlite", "prisma-client-rust-cli/sqlite-create-many"]
 mongodb = ["prisma-client-rust-cli/mongodb"]
 specta = ["prisma-client-rust-cli/specta"]
+mocking = ["prisma-client-rust-cli/mocking"]
 
 [dependencies]
 prisma-client-rust-cli = { features = [
   "migrations",
   # "mutation-callbacks",
-  "mocking"
 ], default_features = false, path = "../cli" }
