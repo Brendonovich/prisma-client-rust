@@ -41,8 +41,8 @@ pub use raw::*;
 pub use traits::*;
 pub use transaction::*;
 
-#[cfg(feature = "specta")]
 pub use prisma_client_rust_macros as macros;
+
 #[cfg(feature = "specta")]
 pub use specta;
 
