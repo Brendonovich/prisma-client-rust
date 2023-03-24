@@ -1,0 +1,27 @@
+[package]
+name = "tauri"
+version = "0.0.0"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.2", features = [] }
+
+[dependencies]
+tauri = { version = "1.2", features = ["shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+prisma-client-rust = { path = "../../..", default-features = false, features = ["sqlite", "migrations", "mocking", "specta"] }
+specta = "1.0.0"
+tauri-specta = { version = "1.0.0", features = ["typescript"] }
+tokio = { version = "1.26.0", features = ["macros"] }
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

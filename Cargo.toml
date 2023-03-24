@@ -11,6 +11,7 @@ exclude = ["examples", "integration-tests"]
 [workspace]
 members = [
   "examples/*",
+  "examples/tauri/src-tauri",
   "integration-tests",
   # "tests/*",
   "sdk",
@@ -19,6 +20,7 @@ members = [
   "macros",
   "prisma-cli",
 ]
+exclude = ["examples/tauri"]
 resolver = "2"
 
 [features]
@@ -37,6 +39,8 @@ postgresql = ["query-core/postgresql", "migration-core/postgresql"]
 mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 
 [workspace.dependencies]
+prisma-client-rust = { path = "." }
+
 diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
 dml = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
 dmmf = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
