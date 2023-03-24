@@ -12,14 +12,4 @@ model Post {
     id      Int    @id @default(autoincrement())
     title   String
     content String
-
-    comments Comment[]
-}
-
-model Comment {
-    id      Int    @id @default(autoincrement())
-    message String
-
-    postId Int
-    post   Post @relation(fields: [postId], references: [id])
 }

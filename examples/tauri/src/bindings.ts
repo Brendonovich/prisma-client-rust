@@ -12,19 +12,9 @@ export function getPosts() {
     return invoke<Post[]>("get_posts")
 }
 
-export function getPostComments(postId: number) {
-    return invoke<Comment[]>("get_post_comments", { postId })
-}
-
 export function createPost(data: CreatePostData) {
     return invoke<Post>("create_post", { data })
 }
 
-export function createComment(data: CreateCommentData) {
-    return invoke<Comment>("create_comment", { data })
-}
-
-export type CreateCommentData = { message: string; post_id: number }
 export type Post = { id: number; title: string; content: string }
 export type CreatePostData = { title: string; content: string }
-export type Comment = { id: number; message: string; postId: number }

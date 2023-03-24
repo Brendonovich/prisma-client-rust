@@ -1,7 +1,21 @@
-# Tauri + Solid + Typescript
+# Tauri Example
 
-This template should help get you started developing with Tauri, Solid and Typescript in Vite.
+This example demonstrates how to combine Prisma Client Rust and Tauri,
+with [`tauri-specta`](https://github.com/oscartbeaumont/tauri-specta) being used to provide end-to-end typesafety.
 
-## Recommended IDE Setup
+[SolidJS](https://www.solidjs.com/) is being used to render the UI,
+and [`pnpm`](https://pnpm.io/) is being used as a package manager (but using npm/yarn should work too).
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Runing
+
+Generate the client:
+
+```bash
+cd src-tauri && cargo prisma generate
+```
+
+Then run the app:
+
+```bash
+pnpm tauri dev
+```
