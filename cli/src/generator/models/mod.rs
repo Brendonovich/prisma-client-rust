@@ -63,7 +63,7 @@ pub fn required_fields(model: &dml::Model) -> Option<Vec<RequiredField>> {
                 !model.scalar_field_has_relation(scalar_field) && field.required_on_create()
             }
             dml::Field::RelationField(_) => field.required_on_create(),
-            _ => unreachable!(),
+            dml::Field::CompositeField(_) => field.required_on_create(),
         })
         .map(|field| Some({
             let field_name_snake = snake_ident(&field.name());
@@ -76,13 +76,13 @@ pub fn required_fields(model: &dml::Model) -> Option<Vec<RequiredField>> {
 
                     quote!(super::#relation_model_name_snake::UniqueWhereParam)
                 }
-                _ => unreachable!(),
+                dml::Field::CompositeField(_) => field.type_tokens(quote!(super::))?,
             };
 
             let push_wrapper = match field {
                 dml::Field::ScalarField(_) => quote!(set),
                 dml::Field::RelationField(_) => quote!(connect),
-                _ => unreachable!(),
+                dml::Field::CompositeField(_) => quote!(set),
             };
 
             RequiredField {
@@ -149,7 +149,7 @@ pub fn unique_field_combos(model: &dml::Model) -> Vec<Vec<&dml::Field>> {
     combos
 }
 
-pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
+pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
     args.dml.models.iter().map(|model| {

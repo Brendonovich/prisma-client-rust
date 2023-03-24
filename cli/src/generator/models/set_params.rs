@@ -171,7 +171,9 @@ fn field_set_params(field: &dml::Field, args: &GenerateArgs) -> Option<Vec<SetPa
                 }
             }
         }).collect(),
-        dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
+        dml::Field::CompositeField(_) => {
+            return None
+        },
     })
 }
 

@@ -272,7 +272,9 @@ pub fn module(
                 #write_fns
             }
         }
-        _ => unreachable!("Cannot codegen for composite field"),
+        dml::Field::CompositeField(composite_field) => {
+            quote!()
+        }
     };
 
     let include_enum = include::field_module_enum(&root_field, &pcr);

@@ -99,7 +99,10 @@ impl FieldTypeExt for FieldType {
             }
             Self::Scalar(typ, _) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
-            _ => unimplemented!(),
+            Self::CompositeType(name) => {
+                let ct = snake_ident(&name);
+                quote!(#prefix #ct::Data)
+            }
         };
 
         Some(match arity {

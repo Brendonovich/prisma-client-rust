@@ -158,7 +158,7 @@ fn model_macro<'a>(
                     )
                 };
             },
-            dml::Field::CompositeField(_) => todo!()
+            dml::Field::CompositeField(_) => quote!()
         }
     });
 
@@ -182,12 +182,15 @@ fn model_macro<'a>(
         quote!(#i)
     });
 
-    let field_serde_names = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|f| {
-        let field_name_str = f.name();
-        let field_name_snake = snake_ident(f.name());
+    let field_serde_names = model
+        .fields()
+        .filter(|f| !f.field_type().is_unsupported())
+        .map(|f| {
+            let field_name_str = f.name();
+            let field_name_snake = snake_ident(f.name());
 
-        quote!((@field_serde_name; #field_name_snake) => { #field_name_str };)
-    });
+            quote!((@field_serde_name; #field_name_snake) => { #field_name_str };)
+        });
 
     let base_field_names_snake = base_fields
         .clone()
@@ -496,14 +499,18 @@ fn model_macro<'a>(
     }
 }
 
-fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) -> TokenStream {
+fn field_module_enum(
+    field: &dml::Field,
+    pcr: &TokenStream,
+    variant: Variant,
+) -> Option<TokenStream> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_str = field.name();
 
     let variant_pascal = pascal_ident(&variant.to_string());
     let variant_param = variant.param();
 
-    match field {
+    Some(match field {
         dml::Field::RelationField(relation_field) => {
             let relation_model_name_snake =
                 snake_ident(&relation_field.relation_info.referenced_model);
@@ -620,21 +627,27 @@ fn field_module_enum(field: &dml::Field, pcr: &TokenStream, variant: Variant) ->
                 }
             }
         },
-        dml::Field::CompositeField(_) => todo!(),
-    }
+        dml::Field::CompositeField(_) => return None,
+    })
 }
 
 fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) -> TokenStream {
     let variant_pascal = pascal_ident(&variant.to_string());
 
-    let variants = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|field| {
-        let field_name_snake = snake_ident(field.name());
-        let field_name_pascal = pascal_ident(field.name());
+    let variants = model
+        .fields()
+        .filter(|f| !f.field_type().is_unsupported())
+        .map(|field| {
+            let field_name_snake = snake_ident(field.name());
+            let field_name_pascal = pascal_ident(field.name());
 
-        quote!(#field_name_pascal(#field_name_snake::#variant_pascal))
-    });
+            quote!(#field_name_pascal(#field_name_snake::#variant_pascal))
+        });
 
-    let field_names_pascal = model.fields().filter(|f| !f.field_type().is_unsupported()).map(|field| pascal_ident(field.name()));
+    let field_names_pascal = model
+        .fields()
+        .filter(|f| !f.field_type().is_unsupported())
+        .map(|field| pascal_ident(field.name()));
 
     let variant_param = variant.param();
 
@@ -661,12 +674,16 @@ pub mod include {
             model,
             module_path,
             Variant::Include,
-            model.fields().filter(|f| f.is_scalar_field() && !f.field_type().is_unsupported()),
-            model.fields().filter(|f| f.is_relation() && !f.field_type().is_unsupported()),
+            model
+                .fields()
+                .filter(|f| f.is_scalar_field() && !f.field_type().is_unsupported()),
+            model
+                .fields()
+                .filter(|f| f.is_relation() && !f.field_type().is_unsupported()),
         )
     }
 
-    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
+    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> Option<TokenStream> {
         super::field_module_enum(field, pcr, Variant::Include)
     }
 
@@ -688,7 +705,7 @@ pub mod select {
         )
     }
 
-    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> TokenStream {
+    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> Option<TokenStream> {
         super::field_module_enum(field, pcr, Variant::Select)
     }
 

@@ -2,7 +2,7 @@ mod data;
 
 use prisma_client_rust_sdk::prelude::*;
 
-pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
+pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     args.dml
         .composite_types()
         .map(|ty| {
