@@ -33,3 +33,51 @@ async fn scalars() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn serde() -> TestResult {
+    let client = client().await;
+
+    let json = serde_json::json!({
+        "email": "brendonovich@outlook.com",
+    });
+
+    let updates = UserPartialType {
+        name: None,
+        email: Some(Some("brendonovich@outlook.com".to_string())),
+    };
+
+    let deserialized: UserPartialType = serde_json::from_value(json).unwrap();
+
+    assert_eq!(&deserialized.name, &updates.name);
+    assert_eq!(&deserialized.email, &updates.email);
+
+    let json = serde_json::json!({
+        "name": "Brendan",
+        "email": null
+    });
+
+    let updates = UserPartialType {
+        name: Some("Brendan".to_string()),
+        email: Some(None),
+    };
+
+    let deserialized: UserPartialType = serde_json::from_value(json).unwrap();
+
+    assert_eq!(&deserialized.name, &updates.name);
+    assert_eq!(&deserialized.email, &updates.email);
+
+    let json = serde_json::json!({});
+
+    let updates = UserPartialType {
+        name: None,
+        email: None,
+    };
+
+    let deserialized: UserPartialType = serde_json::from_value(json).unwrap();
+
+    assert_eq!(&deserialized.name, &updates.name);
+    assert_eq!(&deserialized.email, &updates.email);
+
+    cleanup(client).await
+}
