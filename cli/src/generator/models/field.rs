@@ -340,7 +340,7 @@ pub fn module(
 
                     quote! {
                         pub fn set(create: #create_struct) -> SetParam {
-                        	SetParam::#set_variant(create)
+                            SetParam::#set_variant(create)
                         }
                     }
                 });
@@ -389,10 +389,21 @@ pub fn module(
 
                 quote! {
                     pub fn update_many(
-                    	_where: Vec<#comp_type_snake::WhereParam>,
+                        _where: Vec<#comp_type_snake::WhereParam>,
                         update: Vec<#comp_type_snake::SetParam>
                     ) -> SetParam {
                         SetParam::#set_param_variant(_where, update)
+                    }
+                }
+            });
+            let delete_many_fn = cf.arity.is_list().then(|| {
+                let set_param_variant = format_ident!("DeleteMany{field_name_pascal}");
+
+                quote! {
+                    pub fn delete_many(
+                        _where: Vec<#comp_type_snake::WhereParam>,
+                    ) -> SetParam {
+                        SetParam::#set_param_variant(_where)
                     }
                 }
             });
@@ -406,6 +417,7 @@ pub fn module(
                 #upsert_fn
                 #push_fn
                 #update_many_fn
+                #delete_many_fn
             }
         }
     };

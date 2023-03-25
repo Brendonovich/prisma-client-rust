@@ -41,6 +41,7 @@ async fn set_unset() -> TestResult {
         .exec()
         .await?;
 
+    // Null set
     client
         .post()
         .update(
@@ -50,6 +51,7 @@ async fn set_unset() -> TestResult {
         .exec()
         .await?;
 
+    // Unset
     client
         .post()
         .update(
@@ -66,7 +68,6 @@ async fn set_unset() -> TestResult {
 async fn update() -> TestResult {
     let client = client().await;
 
-    // Required set
     let post = client
         .post()
         .create(
@@ -104,7 +105,6 @@ async fn update() -> TestResult {
 async fn upsert() -> TestResult {
     let client = client().await;
 
-    // Required set
     let post = client
         .post()
         .create(
@@ -148,7 +148,6 @@ async fn upsert() -> TestResult {
 async fn push() -> TestResult {
     let client = client().await;
 
-    // Required set
     let post = client
         .post()
         .create(
@@ -189,7 +188,6 @@ async fn push() -> TestResult {
 async fn update_many() -> TestResult {
     let client = client().await;
 
-    // Required set
     let post = client
         .post()
         .create(
@@ -212,6 +210,8 @@ async fn update_many() -> TestResult {
         .exec()
         .await?;
 
+    assert_eq!(post.images[0].format, ImageFormat::Gif);
+
     let updated = client
         .post()
         .update(
@@ -223,6 +223,52 @@ async fn update_many() -> TestResult {
         )
         .exec()
         .await?;
+
+    assert_eq!(updated.images[0].format, ImageFormat::Png);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn delete_many() -> TestResult {
+    let client = client().await;
+
+    let post = client
+        .post()
+        .create(
+            "Title".to_string(),
+            image::create(
+                10,
+                10,
+                "some://link.com".to_string(),
+                ImageFormat::Png,
+                vec![],
+            ),
+            vec![post::images::set(vec![image::create(
+                20,
+                20,
+                "another://link.com".to_string(),
+                ImageFormat::Gif,
+                vec![],
+            )])],
+        )
+        .exec()
+        .await?;
+
+    assert_eq!(post.images[0].format, ImageFormat::Gif);
+
+    let updated = client
+        .post()
+        .update(
+            post::id::equals(post.id),
+            vec![post::images::delete_many(vec![image::format::equals(
+                ImageFormat::Gif,
+            )])],
+        )
+        .exec()
+        .await?;
+
+    assert!(updated.images.is_empty());
 
     cleanup(client).await
 }

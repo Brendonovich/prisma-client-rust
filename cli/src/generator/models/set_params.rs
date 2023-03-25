@@ -347,13 +347,44 @@ fn field_set_params(
 				}
 			});
 
+			let delete_many_variant = cf.arity.is_list().then(|| {
+				let variant_name = format_ident!("DeleteMany{field_name_pascal}");
+
+				SetParam {
+					variant: quote!(#variant_name(
+						Vec<super::#field_type_snake::WhereParam>
+					)),
+					into_pv_arm: quote! {
+						SetParam::#variant_name(_where) => (
+							#field_name_snake::NAME.to_string(),
+							#pcr::PrismaValue::Object(vec![(
+								"deleteMany".to_string(),
+								#pcr::PrismaValue::Object(vec![
+									(
+										"where".to_string(),
+										#pcr::PrismaValue::Object(
+											_where
+												.into_iter()
+												.map(#pcr::WhereInput::serialize)
+												.map(#pcr::SerializedWhereInput::transform_equals)
+												.collect()
+										)
+									),
+								])
+							)])
+						)
+					}
+				}
+			});
+
 			let params = [
 				Some(set_variant),
 				unset_variant,
 				update_variant,
 				upsert_variant,
 				push_variant,
-				update_many_variant
+				update_many_variant,
+				delete_many_variant
 			];
 
 			params.into_iter().flatten().collect()
