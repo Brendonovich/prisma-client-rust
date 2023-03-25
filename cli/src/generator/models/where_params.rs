@@ -19,12 +19,12 @@ pub enum Variant {
 }
 
 impl Variant {
-    pub fn unique(field: &dml::Field, read_filter: &Filter) -> Self {
+    pub fn unique(field: &dml::Field, read_filter: &Filter, module_path: &TokenStream) -> Self {
         Self::UniqueVariant {
             field_name: field.name().to_string(),
             field_required_type: field
                 .field_type()
-                .to_tokens(quote!(), &dml::FieldArity::Required)
+                .to_tokens(module_path, &dml::FieldArity::Required)
                 .unwrap(),
             read_filter_name: read_filter.name.to_string(),
             optional: matches!(field.arity(), dml::FieldArity::Optional),
@@ -63,15 +63,15 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
                 quote!{
                     impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
                         type Arg = Option<#field_required_type>;
-                        
+
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                             Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(arg))
                         }
                     }
-                    
+
                     impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
                         type Arg = #field_required_type;
-                        
+
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                             Self::#variant_name(arg)
                         }

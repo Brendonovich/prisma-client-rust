@@ -2,6 +2,7 @@ target
 .idea
 DS_STORE
 .DS_Store
-*db*
+db*.rs
+dev.db
 node_modules
 .next

@@ -36,6 +36,8 @@ impl ExecutionEngine {
     async fn execute(&self, op: Operation) -> Result<serde_value::Value> {
         match self {
             Self::Real { connector, tx_id } => {
+                println!("{op:#?}");
+
                 let response = connector
                     .executor
                     .execute(tx_id.clone(), op, connector.query_schema.clone(), None)
@@ -44,7 +46,11 @@ impl ExecutionEngine {
 
                 let data: prisma_value::Item = response.data.into();
 
-                Ok(serde_value::to_value(data)?)
+                let data = serde_value::to_value(data)?;
+
+                println!("{data:#?}");
+
+                Ok(data)
             }
             #[cfg(feature = "mocking")]
             Self::Mock(store) => Ok(store.get_op(&op).await.expect("Mock data not found")),

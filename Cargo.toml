@@ -13,7 +13,7 @@ members = [
   "examples/*",
   "examples/tauri/src-tauri",
   "integration-tests",
-  # "tests/*",
+  "tests/*/*",
   "sdk",
   "sdk/example/*",
   "cli",

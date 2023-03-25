@@ -1,25 +1,37 @@
 use crate::generator::prelude::*;
 
-pub fn scalar_selections_fn(model: &dml::Model) -> TokenStream {
-    let scalar_fields_snake = model.scalar_fields().flat_map(|f| {
-        f.field_type.to_tokens(quote!(), &f.arity)?;
-        Some(snake_ident(&f.name))
+pub fn scalar_selections_fn(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
+    let selections = model.fields().flat_map(|field| {
+        let field_name_snake = snake_ident(field.name());
+
+        Some(match field {
+            dml::Field::ScalarField(_) => {
+                field.type_tokens(module_path)?;
+                quote!(#pcr::sel(#field_name_snake::NAME))
+            }
+            dml::Field::CompositeField(composite_field) => {
+                let composite_type_snake = snake_ident(&composite_field.composite_type);
+                quote! {
+                    #pcr::Selection::new(#field_name_snake::NAME, None, [], super::#composite_type_snake::scalar_selections())
+                }
+            }
+            dml::Field::RelationField(_) => return None,
+        })
     });
 
     quote! {
         fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {
-            [#(#scalar_fields_snake::NAME),*]
-                .into_iter()
-                .map(::prisma_client_rust::sel)
-                .collect()
+            vec![#(#selections),*]
         }
     }
 }
 
-pub fn struct_definition(model: &dml::Model) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let scalar_selections_fn = scalar_selections_fn(model);
+    let scalar_selections_fn = scalar_selections_fn(model, module_path);
 
     quote! {
         #[derive(Clone)]

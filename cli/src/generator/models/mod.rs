@@ -43,7 +43,7 @@ static OPERATORS: &'static [Operator] = &[
 ];
 
 pub struct RequiredField<'a> {
-    pub push_wrapper: TokenStream,
+    pub wrapped_param: TokenStream,
     pub typ: TokenStream,
     pub field: &'a dml::Field,
 }
@@ -55,7 +55,10 @@ impl Deref for RequiredField<'_> {
     }
 }
 
-pub fn required_fields(model: &dml::Model) -> Option<Vec<RequiredField>> {
+pub fn required_fields<'a>(
+    model: &'a dml::Model,
+    module_path: &TokenStream,
+) -> Option<Vec<RequiredField<'a>>> {
     model
         .fields()
         .filter(|field| match field {
@@ -63,34 +66,42 @@ pub fn required_fields(model: &dml::Model) -> Option<Vec<RequiredField>> {
                 !model.scalar_field_has_relation(scalar_field) && field.required_on_create()
             }
             dml::Field::RelationField(_) => field.required_on_create(),
-            _ => unreachable!(),
+            dml::Field::CompositeField(_) => field.required_on_create(),
         })
-        .map(|field| Some({
-            let field_name_snake = snake_ident(&field.name());
+        .map(|field| {
+            Some({
+                let field_name_snake = snake_ident(&field.name());
 
-            let typ = match field {
-                dml::Field::ScalarField(_) => field.type_tokens(quote!())?,
-                dml::Field::RelationField(relation_field) => {
-                    let relation_model_name_snake =
-                        snake_ident(&relation_field.relation_info.referenced_model);
+                let typ = match field {
+                    dml::Field::ScalarField(_) => field.type_tokens(module_path)?,
+                    dml::Field::RelationField(relation_field) => {
+                        let relation_model_name_snake =
+                            snake_ident(&relation_field.relation_info.referenced_model);
 
-                    quote!(super::#relation_model_name_snake::UniqueWhereParam)
+                        quote!(super::#relation_model_name_snake::UniqueWhereParam)
+                    }
+                    dml::Field::CompositeField(cf) => {
+                        let type_snake = snake_ident(&cf.composite_type);
+
+                        quote!(super::#type_snake::Create)
+                    }
+                };
+
+                let push_wrapper = match field {
+                    dml::Field::ScalarField(_) => Some(quote!(set)),
+                    dml::Field::RelationField(_) => Some(quote!(connect)),
+                    dml::Field::CompositeField(_) => Some(quote!(set)),
+                };
+
+                RequiredField {
+                    field,
+                    wrapped_param: push_wrapper
+                        .map(|wrapper| quote!(#field_name_snake::#wrapper(#field_name_snake)))
+                        .unwrap_or_else(|| quote!(#field_name_snake.into())),
+                    typ,
                 }
-                _ => unreachable!(),
-            };
-
-            let push_wrapper = match field {
-                dml::Field::ScalarField(_) => quote!(set),
-                dml::Field::RelationField(_) => quote!(connect),
-                _ => unreachable!(),
-            };
-
-            RequiredField {
-                field,
-                push_wrapper: quote!(#field_name_snake::#push_wrapper),
-                typ,
-            }
-        }))
+            })
+        })
         .collect()
 }
 
@@ -149,7 +160,7 @@ pub fn unique_field_combos(model: &dml::Model) -> Vec<Vec<&dml::Field>> {
     combos
 }
 
-pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStream> {
+pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
     args.dml.models.iter().map(|model| {
@@ -204,7 +215,7 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
 
                 let read_filter = args.read_filter(field.as_scalar_field().unwrap()).unwrap();
 
-                where_params_entries.push(Variant::unique(field, read_filter));
+                where_params_entries.push(Variant::unique(field, read_filter, module_path));
 
                 None
             } else {
@@ -216,10 +227,10 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
                 let ((field_defs, field_types), (prisma_values, field_names_snake)):
                     ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
                     let field_type = match field.arity() {
-                        dml::FieldArity::List | dml::FieldArity::Required => field.type_tokens(quote!()),
-                        dml::FieldArity::Optional => field.field_type().to_tokens(quote!(), &dml::FieldArity::Required)
+                        dml::FieldArity::List | dml::FieldArity::Required => field.type_tokens(module_path),
+                        dml::FieldArity::Optional => field.field_type().to_tokens(module_path, &dml::FieldArity::Required)
                     }.unwrap();
-                    
+
                     let field_name_snake = snake_ident(field.name());
 
                     (
@@ -261,23 +272,23 @@ pub fn generate(args: &GenerateArgs, module_path: TokenStream) -> Vec<TokenStrea
             .fields
             .iter()
             .filter(|f| !f.field_type().is_unsupported())
-            .map(|f| field::module(f, model, args))
+            .map(|f| field::module(f, model, args, module_path))
             .unzip();
 
         where_params_entries.extend(field_where_param_entries.into_iter().flatten());
 
         let where_params_enums = where_params::collate_entries(where_params_entries);
-        let data_struct = data::struct_definition(&model);
+        let data_struct = data::struct_definition(&model, module_path);
         let with_params_enum = with_params::enum_definition(&model);
-        let set_params_enum = set_params::enum_definition(&model, args);
+        let set_params_enum = set_params::enum_definition(&model, args, module_path);
         let order_by_params_enum = order_by::enum_definition(&model);
-        let create_fn = create::model_fns(&model);
+        let create_fn = create::model_fns(&model, module_path);
         let select_macro = select::model_macro(model, &module_path);
         let select_params_enum = select::model_module_enum(&model, &pcr);
         let include_macro = include::model_macro(model, &module_path);
         let include_params_enum = include::model_module_enum(&model, &pcr);
-        let actions_struct = actions::struct_definition(&model, args);
-        let types_struct = types::struct_definition(&model);
+        let actions_struct = actions::struct_definition(&model, args, module_path);
+        let types_struct = types::struct_definition(&model, module_path);
         let partial_macro = partial::model_macro(&model, &module_path);
 
         quote! {

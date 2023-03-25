@@ -30,12 +30,18 @@ impl<'a> Deref for RelationField<'a> {
     }
 }
 
+struct CompositeField<'a> {
+    pub typ: TokenStream,
+    pub name: &'a str,
+}
+
 enum Field<'a> {
     Scalar(ScalarField<'a>),
     Relation(RelationField<'a>),
+    Composite(CompositeField<'a>),
 }
 
-pub fn struct_definition(model: &dml::Model) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let fields = model
@@ -65,7 +71,7 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                     })
                 }
                 dml::Field::ScalarField(scalar_field) => {
-                    let typ = field.type_tokens(quote!())?;
+                    let typ = field.type_tokens(module_path)?;
 
                     Field::Scalar(ScalarField {
                         typ,
@@ -73,7 +79,26 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
                         inner: &scalar_field,
                     })
                 }
-                dml::Field::CompositeField(_) => panic!("Composite fields are not supported!"),
+                dml::Field::CompositeField(composite_field) => {
+                    let ct_name_snake = snake_ident(&composite_field.composite_type);
+
+                    let base_data = quote!(super::#ct_name_snake::Data);
+
+                    let typ = match &composite_field.arity {
+                        dml::FieldArity::List => quote!(Vec<#base_data>),
+                        dml::FieldArity::Optional => {
+                            quote!(Option<Box<#base_data>>)
+                        }
+                        dml::FieldArity::Required => {
+                            quote!(Box<#base_data>)
+                        }
+                    };
+
+                    Field::Composite(CompositeField {
+                        typ,
+                        name: field.name(),
+                    })
+                }
             })
         })
         .collect::<Vec<_>>();
@@ -110,6 +135,17 @@ pub fn struct_definition(model: &dml::Model) -> TokenStream {
             }
         }
         Field::Scalar(field) => {
+            let typ = &field.typ;
+
+            let field_name_str = &field.name;
+            let field_name_snake = snake_ident(field_name_str);
+
+            quote! {
+                #[serde(rename = #field_name_str)]
+                pub #field_name_snake: #typ
+            }
+        }
+        Field::Composite(field) => {
             let typ = &field.typ;
 
             let field_name_str = &field.name;

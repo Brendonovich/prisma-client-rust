@@ -1,6 +1,6 @@
 use async_graphql::{Context, Object, Result};
 
-use crate::{graphql::types::Post, db::PrismaClient};
+use crate::{db::PrismaClient, graphql::types::Post};
 
 #[derive(Default)]
 pub struct PostQuery;

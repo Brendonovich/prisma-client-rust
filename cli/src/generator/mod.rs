@@ -1,4 +1,5 @@
 mod client;
+mod composite_types;
 mod enums;
 mod header;
 mod internal_enums;
@@ -33,23 +34,25 @@ impl PrismaGenerator for PrismaClientRustGenerator {
     fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
         let header = header::generate(&args);
 
-        let models = models::generate(
-            &args,
-            self.module_path
-                .parse()
-                .map_err(|_| Error::InvalidModulePath)?,
-        );
+        let module_path = self
+            .module_path
+            .parse()
+            .map_err(|_| Error::InvalidModulePath)?;
 
-        let internal_enums = internal_enums::generate(&args);
+        let models = models::modules(&args, &module_path);
+        let composite_types = composite_types::modules(&args, &module_path);
+
         let client = client::generate(&args);
+        let internal_enums = internal_enums::generate(&args);
+        let read_filters_module = read_filters::generate_module(&args, &module_path);
 
-        let read_filters_module = read_filters::generate_module(&args, quote!(super::));
         let enums = enums::generate(&args);
 
         let tokens = quote! {
             #header
 
             #(#models)*
+            #(#composite_types)*
 
             pub mod _prisma {
                 #client
