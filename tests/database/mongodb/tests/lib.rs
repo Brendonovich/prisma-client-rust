@@ -184,3 +184,45 @@ async fn push() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn update_many() -> TestResult {
+    let client = client().await;
+
+    // Required set
+    let post = client
+        .post()
+        .create(
+            "Title".to_string(),
+            image::create(
+                10,
+                10,
+                "some://link.com".to_string(),
+                ImageFormat::Png,
+                vec![],
+            ),
+            vec![post::images::set(vec![image::create(
+                20,
+                20,
+                "another://link.com".to_string(),
+                ImageFormat::Gif,
+                vec![],
+            )])],
+        )
+        .exec()
+        .await?;
+
+    let updated = client
+        .post()
+        .update(
+            post::id::equals(post.id),
+            vec![post::images::update_many(
+                vec![image::format::equals(ImageFormat::Gif)],
+                vec![image::format::set(ImageFormat::Png)],
+            )],
+        )
+        .exec()
+        .await?;
+
+    cleanup(client).await
+}

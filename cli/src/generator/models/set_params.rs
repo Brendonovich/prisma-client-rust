@@ -307,12 +307,53 @@ fn field_set_params(
 				}
 			});
 
+			let update_many_variant = cf.arity.is_list().then(|| {
+				let variant_name = format_ident!("UpdateMany{field_name_pascal}");
+
+				SetParam {
+					variant: quote!(#variant_name(
+						Vec<super::#field_type_snake::WhereParam>,
+						Vec<super::#field_type_snake::SetParam>
+					)),
+					into_pv_arm: quote! {
+						SetParam::#variant_name(_where, updates) => (
+							#field_name_snake::NAME.to_string(),
+							#pcr::PrismaValue::Object(vec![(
+								"updateMany".to_string(),
+								#pcr::PrismaValue::Object(vec![
+									(
+										"where".to_string(),
+										#pcr::PrismaValue::Object(
+											_where
+												.into_iter()
+												.map(#pcr::WhereInput::serialize)
+												.map(#pcr::SerializedWhereInput::transform_equals)
+												.collect()
+										)
+									),
+									(
+										"data".to_string(),
+										#pcr::PrismaValue::Object(
+											updates
+												.into_iter()
+												.map(Into::into)
+												.collect()
+										)
+									)
+								])
+							)])
+						)
+					}
+				}
+			});
+
 			let params = [
 				Some(set_variant),
 				unset_variant,
 				update_variant,
 				upsert_variant,
-				push_variant
+				push_variant,
+				update_many_variant
 			];
 
 			params.into_iter().flatten().collect()

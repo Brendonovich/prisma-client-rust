@@ -1,4 +1,5 @@
 mod data;
+mod where_params;
 
 use prisma_client_rust_sdk::prelude::*;
 
@@ -33,27 +34,48 @@ pub fn field_set_params(
     Some(vec![set_variant])
 }
 
-pub fn field_module(field: &dml::CompositeTypeField, module_path: &TokenStream) -> TokenStream {
+pub fn field_module(
+    field: &dml::CompositeTypeField,
+    module_path: &TokenStream,
+) -> (TokenStream, where_params::Variant) {
     let field_name_str = &field.name;
     let field_name_snake = snake_ident(&field.name);
     let field_name_pascal = pascal_ident(&field.name);
 
     let field_type = field.type_tokens(module_path);
+    let value_ident = format_ident!("value");
+    let value_to_pv = field.type_prisma_value(&value_ident);
 
     let set_variant_name = format_ident!("Set{field_name_pascal}");
+    let where_variant_name = format_ident!("{field_name_pascal}Equals");
 
-    quote! {
-        pub mod #field_name_snake {
-            use super::super::*;
-            use super::SetParam;
+    (
+        quote! {
+            pub mod #field_name_snake {
+                use super::super::*;
+                use super::{SetParam, WhereParam};
 
-            pub const NAME: &str = #field_name_str;
+                pub const NAME: &str = #field_name_str;
 
-            pub fn set(val: #field_type) -> SetParam {
-                SetParam::#set_variant_name(val)
+                pub fn set(val: #field_type) -> SetParam {
+                    SetParam::#set_variant_name(val)
+                }
+
+                pub fn equals(val: #field_type) -> WhereParam {
+                    WhereParam::#where_variant_name(val)
+                }
             }
-        }
-    }
+        },
+        where_params::Variant {
+            definition: quote!(#where_variant_name(#field_type)),
+            match_arm: quote! {
+                Self::#where_variant_name(#value_ident) => (
+                     #field_name_snake::NAME,
+                     #value_to_pv
+                 )
+            },
+        },
+    )
 }
 
 pub fn scalar_selections_fn(
@@ -103,10 +125,11 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
 
             let scalar_selections_fn = scalar_selections_fn(&comp_type, module_path);
 
-            let field_modules = comp_type
+            let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = comp_type
                 .fields
                 .iter()
-                .map(|f| field_module(f, module_path));
+                .map(|f| field_module(f, module_path))
+                .unzip();
 
             let data_struct = data::struct_definition(&comp_type, module_path);
 
@@ -178,6 +201,8 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                     }
                 });
 
+            let where_param = where_params::model_enum(field_where_param_entries);
+
             quote! {
                 pub mod #ty_name_snake {
                     use super::*;
@@ -188,6 +213,8 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                     #(#field_modules)*
 
                     #data_struct
+
+                    #where_param
 
                     #set_param
 

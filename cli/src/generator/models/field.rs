@@ -283,6 +283,52 @@ pub fn module(
                 .find(|ty| ty.name == cf.composite_type)
                 .unwrap();
 
+            // Filters
+
+            let single_filters = (!cf.arity.is_list())
+                .then(|| {
+                    ["equals", "is", "isNot"]
+                        .iter()
+                        .map(|method| {
+                            let method_snake = snake_ident(method);
+                            let method_pascal = pascal_ident(method);
+
+                            let where_param_variant =
+                                format_ident!("{field_name_pascal}{method_pascal}");
+                            let content_type =
+                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+
+                            where_param_entries.push(Variant::BaseVariant {
+                                definition: quote!(#where_param_variant(#content_type)),
+                                match_arm: quote! {
+                                    Self::#where_param_variant(where_params) => (
+                                        #field_name_snake::NAME,
+                                        #pcr::SerializedWhereValue::Object(vec![(
+                                            #method.to_string(),
+                                            #pcr::PrismaValue::Object(
+                                                where_params
+                                                    .into_iter()
+                                                    .map(#pcr::WhereInput::serialize)
+                                                    .map(#pcr::SerializedWhereInput::transform_equals)
+                                                    .collect()
+                                            )
+                                        )])
+                                     )
+                                },
+                            });
+
+                            quote! {
+                                pub fn #method_snake(params: #content_type) -> WhereParam {
+                                    WhereParam::#where_param_variant(params)
+                                }
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or(vec![]);
+
+            // Writes
+
             let set_fn = comp_type
                 .fields
                 .iter()
@@ -293,18 +339,9 @@ pub fn module(
                     let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
 
                     quote! {
-                        pub struct Set(#create_struct);
-
-                        impl From<Set> for SetParam {
-                            fn from(Set(v): Set) -> Self {
-                                Self::#set_variant(v)
-                            }
+                        pub fn set(create: #create_struct) -> SetParam {
+                        	SetParam::#set_variant(create)
                         }
-
-                        pub fn set<T: From<Set>>(create: #create_struct) -> T {
-                            Set(create).into()
-                        }
-
                     }
                 });
 
@@ -321,62 +358,54 @@ pub fn module(
                 let set_param_variant = format_ident!("Update{field_name_pascal}");
 
                 quote! {
-                    pub struct Update(Vec<#comp_type_snake::SetParam>);
-
-                    impl From<Update> for SetParam {
-                        fn from(Update(v): Update) -> Self {
-                            SetParam::#set_param_variant(v)
-                        }
-                    }
-
-                    pub fn update<T: From<Update>>(params: Vec<#comp_type_snake::SetParam>) -> T {
-                        Update(params).into()
+                    pub fn update(params: Vec<#comp_type_snake::SetParam>) -> SetParam {
+                        SetParam::#set_param_variant(params)
                     }
                 }
             });
             let upsert_fn = cf.arity.is_optional().then(|| {
-            	let set_param_variant = format_ident!("Upsert{field_name_pascal}");
+                let set_param_variant = format_ident!("Upsert{field_name_pascal}");
 
                 quote! {
-                    pub struct Upsert(#comp_type_snake::Create, Vec<#comp_type_snake::SetParam>);
-
-                    impl From<Upsert> for SetParam {
-                        fn from(Upsert(create, update): Upsert) -> Self {
-                            SetParam::#set_param_variant(create, update)
-                        }
-                    }
-
-                    pub fn upsert<T: From<Upsert>>(create: #comp_type_snake::Create, update: Vec<#comp_type_snake::SetParam>) -> T {
-                        Upsert(create, update).into()
+                    pub fn upsert(
+                        create: #comp_type_snake::Create,
+                        update: Vec<#comp_type_snake::SetParam>
+                    ) -> SetParam {
+                        SetParam::#set_param_variant(create, update)
                     }
                 }
             });
             let push_fn = cf.arity.is_list().then(|| {
                 let set_param_variant = format_ident!("Push{field_name_pascal}");
 
-                let type_create_struct = quote!(#comp_type_snake::Create);
+                quote! {
+                    pub fn push(creates: Vec<#comp_type_snake::Create>) -> SetParam {
+                        SetParam::#set_param_variant(creates)
+                    }
+                }
+            });
+            let update_many_fn = cf.arity.is_list().then(|| {
+                let set_param_variant = format_ident!("UpdateMany{field_name_pascal}");
 
                 quote! {
-                      pub struct Push(Vec<#type_create_struct>);
-
-                    impl From<Push> for SetParam {
-                         fn from(Push(creates): Push) -> Self {
-                               SetParam::#set_param_variant(creates)
-                           }
-                      }
-
-                    pub fn push<T: From<Push>>(creates: Vec<#type_create_struct>) -> T {
-                         Push(creates).into()
-                     }
+                    pub fn update_many(
+                    	_where: Vec<#comp_type_snake::WhereParam>,
+                        update: Vec<#comp_type_snake::SetParam>
+                    ) -> SetParam {
+                        SetParam::#set_param_variant(_where, update)
+                    }
                 }
             });
 
             quote! {
+                #(#single_filters)*
+
                 #set_fn
                 #unset_fn
                 #update_fn
                 #upsert_fn
                 #push_fn
+                #update_many_fn
             }
         }
     };
