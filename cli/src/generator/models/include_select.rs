@@ -40,7 +40,7 @@ fn model_macro<'a>(
     let model_name_snake_raw = snake_ident_raw(&model.name);
     let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
 
-    let model_module = quote!($crate::#module_path::#model_name_snake);
+    let model_module = quote!(#module_path::#model_name_snake);
 
     let selection_type = variant.type_trait();
     let selection_param = variant.param();
@@ -86,7 +86,7 @@ fn model_macro<'a>(
 
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
-                $crate::#module_path::#relation_model_name_snake::#variant_ident!(@definitions; ; $($selections)+);
+                #module_path::#relation_model_name_snake::#variant_ident!(@definitions; ; $($selections)+);
             };
         }
     });
@@ -100,7 +100,7 @@ fn model_macro<'a>(
             dml::Field::RelationField(relation_field) =>{
                 let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
 
-                let relation_model_module = quote!($crate::#module_path::#relation_model_name_snake);
+                let relation_model_module = quote!(#module_path::#relation_model_name_snake);
 
                 match relation_field.arity {
                     dml::FieldArity::List => {
@@ -108,7 +108,7 @@ fn model_macro<'a>(
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
                                 Into::<#model_module::#selection_param>::into(
                                     #field_module::#variant_pascal::$selection_mode(
-                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                        #relation_model_module::ManyArgs::new(#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?,
@@ -122,7 +122,7 @@ fn model_macro<'a>(
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)?) => {{
                                 Into::<#model_module::#selection_param>::into(
                                     #field_module::#variant_pascal::Fetch(
-                                        #relation_model_module::ManyArgs::new($crate::#module_path::#relation_model_name_snake::#variant_ident!(
+                                        #relation_model_module::ManyArgs::new(#module_path::#relation_model_name_snake::#variant_ident!(
                                             @filters_to_args;
                                             $($($filters)+)?
                                         )) $($(.$arg($($arg_params)*))*)?
@@ -167,7 +167,7 @@ fn model_macro<'a>(
         let field_type = f.type_tokens(module_path);
 
         let specta_rename = cfg!(feature = "specta").then(|| {
-            quote!(#[specta(rename_from_path = crate::#module_path::#model_name_snake::#field_name_snake::NAME)])
+            quote!(#[specta(rename_from_path = #module_path::#model_name_snake::#field_name_snake::NAME)])
         });
 
         f.as_scalar_field()
@@ -375,13 +375,13 @@ fn model_macro<'a>(
     let selection = {
         let scalar_selections = matches!(variant, Variant::Include).then(||
             quote! {
-                <$crate::#module_path::#model_name_snake::Types as ::prisma_client_rust::ModelTypes>::scalar_selections()
+                <#module_path::#model_name_snake::Types as ::prisma_client_rust::ModelTypes>::scalar_selections()
             }
         );
 
         quote!(Selection(
             [
-                $crate::#module_path::#model_name_snake::#variant_ident!(
+                #module_path::#model_name_snake::#variant_ident!(
                     @selections_to_params; : #variant_ident
                     { $(#selection_pattern_consume)+ }
                 )
@@ -481,7 +481,7 @@ fn model_macro<'a>(
             (@selection_field_to_selection_param; $($tokens:tt)*) => { compile_error!(stringify!($($tokens)*)) }; // ::prisma_client_rust::Selection::builder("").build() };
 
             (@selections_to_params; : $macro_name:ident {$(#selection_pattern_produce)+}) => {
-                [ $($crate::#module_path::#model_name_snake::$macro_name!(@selection_field_to_selection_param; #selection_pattern_consume),)+]
+                [ $(#module_path::#model_name_snake::$macro_name!(@selection_field_to_selection_param; #selection_pattern_consume),)+]
             };
 
             (@filters_to_args;) => {
