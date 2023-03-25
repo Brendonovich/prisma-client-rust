@@ -1,3 +1,2 @@
 [alias]
-prisma = "run -p prisma-cli --features specta --"
-
+prisma = "run -p prisma-cli --features specta,mocking --"

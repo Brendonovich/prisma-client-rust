@@ -4,13 +4,12 @@ version = "0.0.0"
 edition = "2021"
 
 [features]
+mocking = ["prisma-client-rust-cli/mocking"]
 specta = ["prisma-client-rust-cli/specta"]
 
 [dependencies]
 prisma-client-rust-cli = { features = [
   "sqlite-create-many",
   "sqlite",
-  "migrations",
-  # "mutation-callbacks",
-  "mocking"
+  "migrations"
 ], default_features = false, path = "../cli" }
