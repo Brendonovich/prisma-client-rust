@@ -292,6 +292,8 @@ pub fn module(
                 .map(|_| {
                     let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
 
+                    let update_variant = format_ident!("Update{field_name_pascal}");
+
                     quote! {
                         pub struct Set(#create_struct);
 
@@ -303,6 +305,18 @@ pub fn module(
 
                         pub fn set<T: From<Set>>(create: #create_struct) -> T {
                             Set(create).into()
+                        }
+
+                        pub struct Update(Vec<#comp_type_snake::SetParam>);
+
+                        impl From<Update> for SetParam {
+                        	fn from(Update(v): Update) -> Self {
+                         		SetParam::#update_variant(v)
+                         	}
+                        }
+
+                        pub fn update<T: From<Update>>(params: Vec<#comp_type_snake::SetParam>) -> T {
+                        	Update(params).into()
                         }
                     }
                 });

@@ -179,7 +179,7 @@ fn field_set_params(
         	let field_type_snake = snake_ident(&cf.composite_type);
 
 	        let set_variant = {
-		        let variant_name = format_ident!("Set{}", &field_name_pascal);
+		        let variant_name = format_ident!("Set{field_name_pascal}");
 
 				let contents = cf.arity.wrap_type(&quote!(super::#field_type_snake::Create));
 				let value_ident = format_ident!("value");
@@ -218,9 +218,31 @@ fn field_set_params(
 				}
 			});
 
+			let update_variant = {
+				let variant_name = format_ident!("Update{field_name_pascal}");
+
+				SetParam {
+			        variant: quote!(#variant_name(Vec<super::#field_type_snake::SetParam>)),
+			        into_pv_arm: quote! {
+				        SetParam::#variant_name(value) =>
+							(#field_name_snake::NAME.to_string(),
+								#pcr::PrismaValue::Object(vec![(
+									"update".to_string(),
+										#pcr::PrismaValue::Object(value
+										.into_iter()
+										.map(Into::into)
+										.collect()
+									)
+								)])
+							)
+			        },
+				}
+			};
+
 			let params = [
 				Some(set_variant),
-				unset_variant
+				unset_variant,
+				Some(update_variant)
 			];
 
 			params.into_iter().flatten().collect()

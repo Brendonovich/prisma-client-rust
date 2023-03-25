@@ -101,6 +101,8 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
         .map(|comp_type| {
             let ty_name_snake = snake_ident(&comp_type.name);
 
+            let scalar_selections_fn = scalar_selections_fn(&comp_type, module_path);
+
             let field_modules = comp_type
                 .fields
                 .iter()
@@ -133,7 +135,7 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                 }
             };
 
-            let create_struct = comp_type
+            let create = comp_type
                 .fields
                 .iter()
                 .filter(|f| f.required_on_create())
@@ -176,8 +178,6 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                     }
                 });
 
-            let scalar_selections_fn = scalar_selections_fn(&comp_type, module_path);
-
             quote! {
                 pub mod #ty_name_snake {
                     use super::*;
@@ -191,7 +191,7 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
 
                     #set_param
 
-                    #create_struct
+                    #create
                 }
             }
         })

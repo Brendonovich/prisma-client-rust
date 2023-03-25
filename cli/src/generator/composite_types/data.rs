@@ -5,7 +5,7 @@ pub fn struct_definition(ty: &dml::CompositeType, module_path: &TokenStream) -> 
         let field_name_snake = snake_ident(&field.name);
         let field_ty = field.type_tokens(module_path)?;
 
-        Some(quote!(#field_name_snake: #field_ty))
+        Some(quote!(pub #field_name_snake: #field_ty))
     });
 
     quote! {
