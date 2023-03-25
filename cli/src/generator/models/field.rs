@@ -292,8 +292,6 @@ pub fn module(
                 .map(|_| {
                     let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
 
-                    let update_variant = format_ident!("Update{field_name_pascal}");
-
                     quote! {
                         pub struct Set(#create_struct);
 
@@ -307,26 +305,49 @@ pub fn module(
                             Set(create).into()
                         }
 
-                        pub struct Update(Vec<#comp_type_snake::SetParam>);
-
-                        impl From<Update> for SetParam {
-                        	fn from(Update(v): Update) -> Self {
-                         		SetParam::#update_variant(v)
-                         	}
-                        }
-
-                        pub fn update<T: From<Update>>(params: Vec<#comp_type_snake::SetParam>) -> T {
-                        	Update(params).into()
-                        }
                     }
                 });
 
             let unset_fn = cf.arity.is_optional().then(|| {
-                let unset_variant = format_ident!("Unset{field_name_pascal}");
+                let set_param_variant = format_ident!("Unset{field_name_pascal}");
 
                 quote! {
                     pub fn unset() -> SetParam {
-                        SetParam::#unset_variant
+                        SetParam::#set_param_variant
+                    }
+                }
+            });
+            let update_fn = {
+                let set_param_variant = format_ident!("Update{field_name_pascal}");
+
+                quote! {
+                    pub struct Update(Vec<#comp_type_snake::SetParam>);
+
+                    impl From<Update> for SetParam {
+                        fn from(Update(v): Update) -> Self {
+                            SetParam::#set_param_variant(v)
+                        }
+                    }
+
+                    pub fn update<T: From<Update>>(params: Vec<#comp_type_snake::SetParam>) -> T {
+                        Update(params).into()
+                    }
+                }
+            };
+            let upsert_fn = cf.arity.is_optional().then(|| {
+            	let set_param_variant = format_ident!("Upsert{field_name_pascal}");
+
+                quote! {
+                    pub struct Upsert(#comp_type_snake::Create, Vec<#comp_type_snake::SetParam>);
+
+                    impl From<Upsert> for SetParam {
+                        fn from(Upsert(create, update): Upsert) -> Self {
+                            SetParam::#set_param_variant(create, update)
+                        }
+                    }
+
+                    pub fn upsert<T: From<Upsert>>(create: #comp_type_snake::Create, update: Vec<#comp_type_snake::SetParam>) -> T {
+                        Upsert(create, update).into()
                     }
                 }
             });
@@ -334,6 +355,8 @@ pub fn module(
             quote! {
                 #set_fn
                 #unset_fn
+                #update_fn
+                #upsert_fn
             }
         }
     };

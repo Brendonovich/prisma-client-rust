@@ -99,3 +99,47 @@ async fn update() -> TestResult {
 
     cleanup(client).await
 }
+
+#[tokio::test]
+async fn upsert() -> TestResult {
+    let client = client().await;
+
+    // Required set
+    let post = client
+        .post()
+        .create(
+            "Title".to_string(),
+            image::create(
+                10,
+                10,
+                "some://link.com".to_string(),
+                ImageFormat::Png,
+                vec![],
+            ),
+            vec![],
+        )
+        .exec()
+        .await?;
+
+    let updated = client
+        .post()
+        .update(
+            post::id::equals(post.id),
+            vec![post::image_2::upsert(
+                image::create(
+                    10,
+                    10,
+                    "yet://another.link".to_string(),
+                    ImageFormat::Jpeg,
+                    vec![],
+                ),
+                vec![image::url::set("woah://another.link".to_string())],
+            )],
+        )
+        .exec()
+        .await?;
+
+    assert_eq!(&updated.image_2.unwrap().url, "yet://another.link");
+
+    cleanup(client).await
+}

@@ -239,10 +239,51 @@ fn field_set_params(
 				}
 			};
 
+			let upsert_variant =  cf.arity.is_optional().then(|| {
+				let variant_name = format_ident!("Upsert{field_name_pascal}");
+
+				SetParam {
+			        variant: quote!(#variant_name(
+						super::#field_type_snake::Create,
+						Vec<super::#field_type_snake::SetParam>
+					)),
+			        into_pv_arm: quote! {
+				        SetParam::#variant_name(create, update) =>
+							(#field_name_snake::NAME.to_string(),
+								#pcr::PrismaValue::Object(vec![(
+									"upsert".to_string(),
+									#pcr::PrismaValue::Object(vec![
+										(
+											"set".to_string(),
+											#pcr::PrismaValue::Object(
+												create
+													.to_params()
+													.into_iter()
+													.map(Into::into)
+													.collect()
+											)
+										),
+										(
+											"update".to_string(),
+											#pcr::PrismaValue::Object(
+												update
+													.into_iter()
+													.map(Into::into)
+													.collect()
+											)
+										)
+									])
+								)])
+							)
+			        },
+				}
+			});
+
 			let params = [
 				Some(set_variant),
 				unset_variant,
-				Some(update_variant)
+				Some(update_variant),
+				upsert_variant
 			];
 
 			params.into_iter().flatten().collect()
