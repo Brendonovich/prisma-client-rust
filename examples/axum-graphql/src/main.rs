@@ -29,9 +29,6 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    #[cfg(debug_assertions)]
-    dotenv().ok();
-
     let schema = build_schema().await;
 
     let app = Router::new()

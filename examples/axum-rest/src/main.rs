@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::db::*;
 
-pub mod db;
-pub mod routes;
+mod db;
+mod routes;
 
 #[tokio::main]
 async fn main() {
@@ -17,9 +17,9 @@ async fn main() {
         .nest("/api", routes::create_route())
         .layer(Extension(prisma_client));
 
-    println!("Example Prisma x Axum running on http://localhost:5000/api");
+    println!("Example Prisma x Axum running on http://127.0.0.1:5000");
 
-    axum::Server::bind(&"0.0.0.0:5000".parse().unwrap())
+    axum::Server::bind(&"127.0.0.1:5000".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

@@ -9,12 +9,13 @@ use prisma_client_rust::{
     prisma_errors::query_engine::{RecordNotFound, UniqueKeyViolation},
     QueryError,
 };
+use std::sync::Arc;
 
 use serde::Deserialize;
 
-use crate::db::{self, comments, user};
+use crate::db::*;
 
-type Database = Extension<std::sync::Arc<db::PrismaClient>>;
+type Database = Extension<Arc<PrismaClient>>;
 type AppResult<T> = Result<T, AppError>;
 type AppJsonResult<T> = AppResult<Json<T>>;
 
@@ -35,7 +36,7 @@ struct CommentRequest {
 
 /api/user => GET, POST
 /api/user/:username => PUT, DELETE
-/comment => POST
+/api/comment => POST
 
 */
 pub fn create_route() -> Router {
@@ -48,7 +49,7 @@ pub fn create_route() -> Router {
         .route("/comment", post(handle_comment_post))
 }
 
-async fn handle_user_get(db: Database) -> AppResult<Json<Vec<user::Data>>> {
+async fn handle_user_get(db: Database) -> AppJsonResult<Vec<user::Data>> {
     let users = db
         .user()
         .find_many(vec![])
@@ -128,7 +129,7 @@ impl From<QueryError> for AppError {
     }
 }
 
-// This centralizes all differents errors from our app in one place
+// This centralizes all different errors from our app in one place
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match self {

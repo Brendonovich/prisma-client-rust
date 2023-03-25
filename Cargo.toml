@@ -26,7 +26,7 @@ resolver = "2"
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = ["dep:rspc", "specta"]
-specta = ["dep:specta", "prisma-client-rust-macros"]
+specta = ["dep:specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
 mocking = ["tokio"]
@@ -74,7 +74,7 @@ base64 = "0.13.0"
 tokio = { version = "1.21.0", optional = true }
 futures = "0.3"
 paste = "1.0.11"
-prisma-client-rust-macros = { path = "./macros", optional = true }
+prisma-client-rust-macros = { path = "./macros" }
 
 query-core.workspace = true
 query-connector.workspace = true
