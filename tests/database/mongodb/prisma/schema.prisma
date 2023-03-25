@@ -15,6 +15,7 @@ model Post {
     title String
     image Image
     image2 Image?
+    images Image[]
 }
 
 type Image {

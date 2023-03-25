@@ -317,7 +317,7 @@ pub fn module(
                     }
                 }
             });
-            let update_fn = {
+            let update_fn = (!cf.arity.is_list()).then(|| {
                 let set_param_variant = format_ident!("Update{field_name_pascal}");
 
                 quote! {
@@ -333,7 +333,7 @@ pub fn module(
                         Update(params).into()
                     }
                 }
-            };
+            });
             let upsert_fn = cf.arity.is_optional().then(|| {
             	let set_param_variant = format_ident!("Upsert{field_name_pascal}");
 
@@ -351,12 +351,32 @@ pub fn module(
                     }
                 }
             });
+            let push_fn = cf.arity.is_list().then(|| {
+                let set_param_variant = format_ident!("Push{field_name_pascal}");
+
+                let type_create_struct = quote!(#comp_type_snake::Create);
+
+                quote! {
+                      pub struct Push(Vec<#type_create_struct>);
+
+                    impl From<Push> for SetParam {
+                         fn from(Push(creates): Push) -> Self {
+                               SetParam::#set_param_variant(creates)
+                           }
+                      }
+
+                    pub fn push<T: From<Push>>(creates: Vec<#type_create_struct>) -> T {
+                         Push(creates).into()
+                     }
+                }
+            });
 
             quote! {
                 #set_fn
                 #unset_fn
                 #update_fn
                 #upsert_fn
+                #push_fn
             }
         }
     };

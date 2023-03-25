@@ -218,7 +218,7 @@ fn field_set_params(
 				}
 			});
 
-			let update_variant = {
+			let update_variant = (!cf.arity.is_list()).then(|| {
 				let variant_name = format_ident!("Update{field_name_pascal}");
 
 				SetParam {
@@ -237,9 +237,9 @@ fn field_set_params(
 							)
 			        },
 				}
-			};
+			});
 
-			let upsert_variant =  cf.arity.is_optional().then(|| {
+			let upsert_variant = cf.arity.is_optional().then(|| {
 				let variant_name = format_ident!("Upsert{field_name_pascal}");
 
 				SetParam {
@@ -279,11 +279,40 @@ fn field_set_params(
 				}
 			});
 
+			let push_variant = cf.arity.is_list().then(|| {
+				let variant_name = format_ident!("Push{field_name_pascal}");
+
+				SetParam {
+					variant: quote!(#variant_name(Vec<super::#field_type_snake::Create>)),
+					into_pv_arm: quote! {
+						SetParam::#variant_name(creates) => (
+							#field_name_snake::NAME.to_string(),
+							#pcr::PrismaValue::Object(vec![(
+								"push".to_string(),
+								#pcr::PrismaValue::List(
+									creates
+										.into_iter()
+										.map(|create| #pcr::PrismaValue::Object(
+											create
+												.to_params()
+												.into_iter()
+												.map(Into::into)
+												.collect()
+										))
+										.collect()
+								)
+							)])
+						)
+					}
+				}
+			});
+
 			let params = [
 				Some(set_variant),
 				unset_variant,
-				Some(update_variant),
-				upsert_variant
+				update_variant,
+				upsert_variant,
+				push_variant
 			];
 
 			params.into_iter().flatten().collect()
