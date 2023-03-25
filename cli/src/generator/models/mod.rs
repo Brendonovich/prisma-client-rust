@@ -83,7 +83,7 @@ pub fn required_fields<'a>(
                     dml::Field::CompositeField(cf) => {
                         let type_snake = snake_ident(&cf.composite_type);
 
-                        quote!(super::#type_snake::Set)
+                        quote!(#type_snake::Set)
                     }
                 };
 

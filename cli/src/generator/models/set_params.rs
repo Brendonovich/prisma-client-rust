@@ -178,8 +178,6 @@ fn field_set_params(
         dml::Field::CompositeField(cf) => {
         	let field_type_snake = snake_ident(&cf.composite_type);
 
-	        let converter = field.type_prisma_value(&format_ident!("value"))?;
-
 	        let set_variant_name = format_ident!("Set{}", &field_name_pascal);
 
 	        let set_variant = SetParam {
@@ -187,19 +185,25 @@ fn field_set_params(
 		        into_pv_arm: quote! {
 			        SetParam::#set_variant_name(value) => (
 				        #field_name_snake::NAME.to_string(),
-				        #converter
+				        #pcr::PrismaValue::Object(value
+							.to_params()
+							.into_iter()
+							.map(Into::into)
+							.collect()
+						)
 			        )
 		        },
-	        }
+			};
+
 			let unset_variant = cf.arity.is_optional().then(|| {
     			let unset_variant_name = format_ident!("Unset{}", &field_name_pascal);
 
 				SetParam {
 					variant: quote!(#unset_variant_name),
 					into_pv_arm: quote! {
-						SetParam::#unset_variant_name(value) => (
+						SetParam::#unset_variant_name => (
 							#field_name_snake::NAME.to_string(),
-							#converter
+							#pcr::PrismaValue::Null
 						)
 					},
 				}

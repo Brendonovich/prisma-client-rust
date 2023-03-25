@@ -326,7 +326,7 @@ pub fn module(
 
                 quote! {
                     pub fn unset() -> SetParam {
-                        SetParam::#unset_variant()
+                        SetParam::#unset_variant
                     }
                 }
             });

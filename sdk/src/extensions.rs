@@ -81,6 +81,20 @@ impl FieldExt for CompositeTypeField {
     }
 }
 
+pub trait FieldArityExt {
+    fn wrap_type(&self, ty: &TokenStream) -> TokenStream;
+}
+
+impl FieldArityExt for FieldArity {
+    fn wrap_type(&self, ty: &TokenStream) -> TokenStream {
+        match self {
+            FieldArity::List => quote!(Vec<#ty>),
+            FieldArity::Optional => quote!(Option<#ty>),
+            FieldArity::Required => quote!(#ty),
+        }
+    }
+}
+
 pub trait FieldTypeExt {
     fn to_tokens(&self, prefix: &TokenStream, arity: &FieldArity) -> Option<TokenStream>;
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
@@ -105,11 +119,7 @@ impl FieldTypeExt for FieldType {
             }
         };
 
-        Some(match arity {
-            FieldArity::List => quote!(Vec<#base>),
-            FieldArity::Optional => quote!(Option<#base>),
-            FieldArity::Required => quote!(#base),
-        })
+        Some(arity.wrap_type(&base))
     }
 
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
@@ -156,11 +166,7 @@ impl FieldTypeExt for CompositeTypeFieldType {
             }
         };
 
-        Some(match arity {
-            FieldArity::List => quote!(Vec<#base>),
-            FieldArity::Optional => quote!(Option<#base>),
-            FieldArity::Required => quote!(#base),
-        })
+        Some(arity.wrap_type(&base))
     }
 
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
