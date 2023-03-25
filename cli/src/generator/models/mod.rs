@@ -160,7 +160,7 @@ pub fn unique_field_combos(model: &dml::Model) -> Vec<Vec<&dml::Field>> {
     combos
 }
 
-pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
+pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
     args.dml.models.iter().map(|model| {

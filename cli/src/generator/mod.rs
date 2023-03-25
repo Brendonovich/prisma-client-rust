@@ -39,8 +39,8 @@ impl PrismaGenerator for PrismaClientRustGenerator {
             .parse()
             .map_err(|_| Error::InvalidModulePath)?;
 
-        let models = models::generate(&args, &module_path);
-        let composite_types = composite_types::generate(&args, &module_path);
+        let models = models::modules(&args, &module_path);
+        let composite_types = composite_types::modules(&args, &module_path);
 
         let client = client::generate(&args);
         let internal_enums = internal_enums::generate(&args);

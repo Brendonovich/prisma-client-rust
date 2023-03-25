@@ -1,82 +1,10 @@
 mod data;
+mod field;
+mod order_by;
+mod set_params;
 mod where_params;
 
 use prisma_client_rust_sdk::prelude::*;
-
-pub struct SetParam {
-    variant: TokenStream,
-    into_pv_arm: TokenStream,
-}
-
-pub fn field_set_params(
-    field: &dml::CompositeTypeField,
-    module_path: &TokenStream,
-) -> Option<Vec<SetParam>> {
-    let field_name_snake = snake_ident(&field.name);
-    let field_name_pascal = pascal_ident(&field.name);
-    let field_type = field.type_tokens(module_path)?;
-
-    let set_variant = {
-        let variant_name = format_ident!("Set{field_name_pascal}");
-        let converter = field.type_prisma_value(&format_ident!("value"))?;
-
-        SetParam {
-            variant: quote!(#variant_name(#field_type)),
-            into_pv_arm: quote! {
-                SetParam::#variant_name(value) => (
-                    #field_name_snake::NAME.to_string(),
-                    #converter
-                )
-            },
-        }
-    };
-
-    Some(vec![set_variant])
-}
-
-pub fn field_module(
-    field: &dml::CompositeTypeField,
-    module_path: &TokenStream,
-) -> (TokenStream, where_params::Variant) {
-    let field_name_str = &field.name;
-    let field_name_snake = snake_ident(&field.name);
-    let field_name_pascal = pascal_ident(&field.name);
-
-    let field_type = field.type_tokens(module_path);
-    let value_ident = format_ident!("value");
-    let value_to_pv = field.type_prisma_value(&value_ident);
-
-    let set_variant_name = format_ident!("Set{field_name_pascal}");
-    let where_variant_name = format_ident!("{field_name_pascal}Equals");
-
-    (
-        quote! {
-            pub mod #field_name_snake {
-                use super::super::*;
-                use super::{SetParam, WhereParam};
-
-                pub const NAME: &str = #field_name_str;
-
-                pub fn set(val: #field_type) -> SetParam {
-                    SetParam::#set_variant_name(val)
-                }
-
-                pub fn equals(val: #field_type) -> WhereParam {
-                    WhereParam::#where_variant_name(val)
-                }
-            }
-        },
-        where_params::Variant {
-            definition: quote!(#where_variant_name(#field_type)),
-            match_arm: quote! {
-                Self::#where_variant_name(#value_ident) => (
-                     #field_name_snake::NAME,
-                     #value_to_pv
-                 )
-            },
-        },
-    )
-}
 
 pub fn scalar_selections_fn(
     comp_type: &dml::CompositeType,
@@ -115,9 +43,7 @@ pub fn scalar_selections_fn(
     }
 }
 
-pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
-    let pcr = quote!(::prisma_client_rust);
-
+pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     args.dml
         .composite_types()
         .map(|comp_type| {
@@ -128,139 +54,13 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
             let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = comp_type
                 .fields
                 .iter()
-                .map(|f| field_module(f, module_path))
+                .map(|f| field::module(f, module_path))
                 .unzip();
 
-            let data_struct = data::struct_definition(&comp_type, module_path);
-
-            let set_param = {
-                let (variants, into_pv_arms): (Vec<_>, Vec<_>) = comp_type
-                    .fields
-                    .iter()
-                    .flat_map(|f| field_set_params(f, module_path))
-                    .flatten()
-                    .map(|p| (p.variant, p.into_pv_arm))
-                    .unzip();
-
-                quote! {
-                    #[derive(Clone)]
-                    pub enum SetParam {
-                        #(#variants),*
-                    }
-
-                    impl From<SetParam> for (String, #pcr::PrismaValue) {
-                        fn from(v: SetParam) -> Self {
-                            match v {
-                                #(#into_pv_arms),*
-                            }
-                        }
-                    }
-                }
-            };
-
-            let order_by_param = {
-                let (variants, into_pv_arms): (Vec<_>, Vec<_>) = comp_type
-                    .fields
-                    .iter()
-                    .flat_map(|field| {
-                        let field_name_snake = snake_ident(&field.name);
-                        let field_name_pascal = pascal_ident(&field.name);
-
-                        if field.arity.is_list() {
-                            return None;
-                        }
-
-                        Some(match &field.r#type {
-                            dml::CompositeTypeFieldType::CompositeType(cf) => {
-                                let composite_type_snake = snake_ident(&cf);
-
-                                (
-                                    quote!(#field_name_pascal(Vec<super::#composite_type_snake::OrderByParam>)),
-                                    quote! {
-                                        Self::#field_name_pascal(params) => (
-                                            #field_name_snake::NAME.to_string(),
-                                            #pcr::PrismaValue::Object(
-                                            	params
-                                             		.into_iter()
-                                             		.map(Into::into)
-                                             		.collect()
-                                            )
-                                        )
-                                    },
-                                )
-                            }
-                            _ => (
-                                quote!(#field_name_pascal(#pcr::Direction)),
-                                quote! {
-                                    Self::#field_name_pascal(direction) => (
-                                        #field_name_snake::NAME.to_string(),
-                                        #pcr::PrismaValue::String(direction.to_string())
-                                    )
-                                },
-                            )
-                        })
-                    })
-                    .unzip();
-
-                quote! {
-                	#[derive(Clone)]
-                    pub enum OrderByParam {
-                        #(#variants),*
-                    }
-
-                    impl Into<(String, #pcr::PrismaValue)> for OrderByParam {
-                        fn into(self) -> (String, #pcr::PrismaValue) {
-                            match self {
-                                #(#into_pv_arms),*
-                            }
-                        }
-                    }
-                }
-            };
-
-            let create = comp_type
-                .fields
-                .iter()
-                .filter(|f| f.required_on_create())
-                .map(|field| Some((snake_ident(&field.name), field.type_tokens(module_path)?)))
-                .collect::<Option<Vec<_>>>()
-                .map(|v| {
-                    let (required_field_names, required_field_types): (Vec<_>, Vec<_>) =
-                        v.into_iter().unzip();
-
-                    let required_fields_wrapped = required_field_names
-                        .iter()
-                        .map(|name_snake| quote!(#name_snake::set(self.#name_snake)));
-
-                    quote! {
-                        #[derive(Clone)]
-                        pub struct Create {
-                            #(pub #required_field_names: #required_field_types,)*
-                            pub _params: Vec<SetParam>
-                        }
-
-                        impl Create {
-                            pub fn to_params(self) -> Vec<SetParam> {
-                                 let mut _params = self._params;
-                                   _params.extend([
-                                     #(#required_fields_wrapped),*
-                                 ]);
-                                 _params
-                             }
-                        }
-
-                        pub fn create(
-                            #(#required_field_names: #required_field_types,)*
-                            _params: Vec<SetParam>
-                        ) -> Create {
-                            Create {
-                                #(#required_field_names,)*
-                                _params
-                            }.into()
-                        }
-                    }
-                });
-
+            let data_struct = data::struct_definition(comp_type, module_path);
+            let set_param_enum = set_params::enum_definition(comp_type, module_path);
+            let order_by_enum = order_by::enum_definition(comp_type);
+            let create_fn = set_params::create_fn(comp_type, module_path);
             let where_param = where_params::model_enum(field_where_param_entries);
 
             quote! {
@@ -276,11 +76,10 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
 
                     #where_param
 
-                    #set_param
+                    #set_param_enum
+                    #create_fn
 
-                    #order_by_param
-
-                    #create
+                    #order_by_enum
                 }
             }
         })
