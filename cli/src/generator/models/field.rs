@@ -323,7 +323,141 @@ pub fn module(
                                 }
                             }
                         })
-                        .collect::<Vec<_>>()
+                        .collect()
+                })
+                .unwrap_or(vec![]);
+
+            let optional_filters = cf
+                .arity
+                .is_optional()
+                .then(|| {
+                    let is_set_filter = {
+                        let where_param_variant = format_ident!("{field_name_pascal}IsSet");
+
+                        where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#where_param_variant),
+                            match_arm: quote! {
+                                Self::#where_param_variant => (
+                                    #field_name_snake::NAME,
+                                    #pcr::SerializedWhereValue::Value(
+                                        #pcr::PrismaValue::Boolean(true)
+                                    )
+                                 )
+                            },
+                        });
+
+                        quote! {
+                            pub fn is_set() -> WhereParam {
+                                WhereParam::#where_param_variant
+                            }
+                        }
+                    };
+
+                    vec![is_set_filter]
+                })
+                .unwrap_or(vec![]);
+
+            let many_filters = cf
+                .arity
+                .is_list()
+                .then(|| {
+                    let equals_filter = {
+                        let where_param_variant = format_ident!("{field_name_pascal}Equals");
+                        let content_type = quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+
+                        where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#where_param_variant(Vec<#content_type>)),
+                            match_arm: quote! {
+                                Self::#where_param_variant(where_params) => (
+                                    #field_name_snake::NAME,
+                                    #pcr::SerializedWhereValue::Object(vec![(
+                                        "equals".to_string(),
+                                        #pcr::PrismaValue::List(
+                                        	where_params
+                                         		.into_iter()
+                                           		.map(|params|
+	                                         		#pcr::PrismaValue::Object(
+			                                            params
+			                                                .into_iter()
+			                                                .map(#pcr::WhereInput::serialize)
+			                                                .map(#pcr::SerializedWhereInput::transform_equals)
+			                                                .collect()
+	                                           		)
+	                                         	)
+												.collect()
+                                        )
+                                    )])
+                                )
+                            },
+                        });
+
+                        quote! {
+                            pub fn equals(params: Vec<#content_type>) -> WhereParam {
+                                WhereParam::#where_param_variant(params)
+                            }
+                        }
+                    };
+
+                    let is_empty_filter = {
+                        let where_param_variant = format_ident!("{field_name_pascal}IsEmpty");
+
+                        where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#where_param_variant),
+                            match_arm: quote! {
+                                Self::#where_param_variant => (
+                                    #field_name_snake::NAME,
+                                    #pcr::SerializedWhereValue::Object(vec![(
+                                        "isEmpty".to_string(),
+                                        #pcr::PrismaValue::Boolean(true)
+                                    )])
+                                )
+                            },
+                        });
+
+                        quote! {
+                            pub fn is_empty() -> WhereParam {
+                                WhereParam::#where_param_variant
+                            }
+                        }
+                    };
+
+                    let general_filters = ["every", "some", "none"].iter().map(|method| {
+                        let method_snake = snake_ident(method);
+                        let method_pascal = pascal_ident(method);
+
+                        let where_param_variant =
+                            format_ident!("{field_name_pascal}{method_pascal}");
+                        let content_type = quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+
+                        where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#where_param_variant(#content_type)),
+                            match_arm: quote! {
+                            Self::#where_param_variant(where_params) => (
+                                #field_name_snake::NAME,
+                                #pcr::SerializedWhereValue::Object(vec![(
+                                    #method.to_string(),
+                                    #pcr::PrismaValue::Object(
+                                        where_params
+                                            .into_iter()
+                                            .map(#pcr::WhereInput::serialize)
+                                            .map(#pcr::SerializedWhereInput::transform_equals)
+                                            .collect()
+                                    )
+                                )])
+                                )
+                            },
+                        });
+
+                        quote! {
+                            pub fn #method_snake(params: #content_type) -> WhereParam {
+                                WhereParam::#where_param_variant(params)
+                            }
+                        }
+                    });
+
+                    general_filters
+                        .chain([equals_filter, is_empty_filter])
+                        .collect()
                 })
                 .unwrap_or(vec![]);
 
@@ -408,8 +542,18 @@ pub fn module(
                 }
             });
 
+            let order_by_fn = (!cf.arity.is_list()).then(|| {
+                quote! {
+                    pub fn order(params: Vec<#comp_type_snake::OrderByParam>) -> OrderByParam {
+                          OrderByParam::#field_name_pascal(params)
+                      }
+                }
+            });
+
             quote! {
                 #(#single_filters)*
+                #(#optional_filters)*
+                #(#many_filters)*
 
                 #set_fn
                 #unset_fn
@@ -418,6 +562,8 @@ pub fn module(
                 #push_fn
                 #update_many_fn
                 #delete_many_fn
+
+                #order_by_fn
             }
         }
     };
