@@ -178,32 +178,41 @@ fn field_set_params(
         dml::Field::CompositeField(cf) => {
         	let field_type_snake = snake_ident(&cf.composite_type);
 
-	        let set_variant_name = format_ident!("Set{}", &field_name_pascal);
+	        let set_variant = {
+		        let variant_name = format_ident!("Set{}", &field_name_pascal);
 
-	        let set_variant = SetParam {
-		        variant: quote!(#set_variant_name(super::#field_type_snake::Set)),
-		        into_pv_arm: quote! {
-			        SetParam::#set_variant_name(value) => (
-				        #field_name_snake::NAME.to_string(),
-				        #pcr::PrismaValue::Object(value
-							.to_params()
-							.into_iter()
-							.map(Into::into)
-							.collect()
-						)
-			        )
-		        },
+				let contents = cf.arity.wrap_type(&quote!(super::#field_type_snake::Create));
+				let value_ident = format_ident!("value");
+				let value = cf.arity.wrap_pv(&value_ident, quote! {
+					#pcr::PrismaValue::Object(value
+						.to_params()
+						.into_iter()
+						.map(Into::into)
+						.collect()
+					)
+				});
+
+				SetParam {
+			        variant: quote!(#variant_name(#contents)),
+			        into_pv_arm: quote! {
+				        SetParam::#variant_name(#value_ident) =>
+							(#field_name_snake::NAME.to_string(), #value)
+			        },
+				}
 			};
 
 			let unset_variant = cf.arity.is_optional().then(|| {
-    			let unset_variant_name = format_ident!("Unset{}", &field_name_pascal);
+    			let variant_name = format_ident!("Unset{}", &field_name_pascal);
 
 				SetParam {
-					variant: quote!(#unset_variant_name),
+					variant: quote!(#variant_name),
 					into_pv_arm: quote! {
-						SetParam::#unset_variant_name => (
+						SetParam::#variant_name => (
 							#field_name_snake::NAME.to_string(),
-							#pcr::PrismaValue::Null
+							#pcr::PrismaValue::Object(vec![(
+								"unset".to_string(),
+								#pcr::PrismaValue::Boolean(true)
+							)])
 						)
 					},
 				}

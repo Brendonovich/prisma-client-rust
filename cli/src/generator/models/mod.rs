@@ -83,14 +83,14 @@ pub fn required_fields<'a>(
                     dml::Field::CompositeField(cf) => {
                         let type_snake = snake_ident(&cf.composite_type);
 
-                        quote!(#type_snake::Set)
+                        quote!(super::#type_snake::Create)
                     }
                 };
 
                 let push_wrapper = match field {
                     dml::Field::ScalarField(_) => Some(quote!(set)),
                     dml::Field::RelationField(_) => Some(quote!(connect)),
-                    dml::Field::CompositeField(_) => None,
+                    dml::Field::CompositeField(_) => Some(quote!(set)),
                 };
 
                 RequiredField {

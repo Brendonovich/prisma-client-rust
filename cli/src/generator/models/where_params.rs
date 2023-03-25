@@ -63,15 +63,15 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
                 quote!{
                     impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
                         type Arg = Option<#field_required_type>;
-                        
+
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                             Self::#field_pascal(_prisma::read_filters::#filter_enum::Equals(arg))
                         }
                     }
-                    
+
                     impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
                         type Arg = #field_required_type;
-                        
+
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
                             Self::#variant_name(arg)
                         }

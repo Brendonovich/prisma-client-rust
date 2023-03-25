@@ -56,6 +56,43 @@ pub fn field_module(field: &dml::CompositeTypeField, module_path: &TokenStream) 
     }
 }
 
+pub fn scalar_selections_fn(
+    comp_type: &dml::CompositeType,
+    module_path: &TokenStream,
+) -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
+    let selections = comp_type.fields.iter().flat_map(|field| {
+        let field_name_snake = snake_ident(&field.name);
+
+        Some(match &field.r#type {
+            dml::CompositeTypeFieldType::Scalar(_, _) | dml::CompositeTypeFieldType::Enum(_) => {
+                field.type_tokens(module_path)?;
+                quote!(#pcr::sel(#field_name_snake::NAME))
+            }
+            dml::CompositeTypeFieldType::CompositeType(field_comp_type) => {
+                let field_comp_type_snake = snake_ident(&field_comp_type);
+
+                quote! {
+                    #pcr::Selection::new(
+                        #field_name_snake::NAME,
+                        None,
+                        [],
+                        super::#field_comp_type_snake::scalar_selections()
+                    )
+                }
+            }
+            dml::CompositeTypeFieldType::Unsupported(_) => return None,
+        })
+    });
+
+    quote! {
+        pub fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {
+            vec![#(#selections),*]
+        }
+    }
+}
+
 pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
@@ -96,7 +133,7 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                 }
             };
 
-            let set_struct = comp_type
+            let create_struct = comp_type
                 .fields
                 .iter()
                 .filter(|f| f.required_on_create())
@@ -112,12 +149,12 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
 
                     quote! {
                         #[derive(Clone)]
-                        pub struct Set {
+                        pub struct Create {
                             #(pub #required_field_names: #required_field_types,)*
                             pub _params: Vec<SetParam>
                         }
 
-                        impl Set {
+                        impl Create {
                             pub fn to_params(self) -> Vec<SetParam> {
                                  let mut _params = self._params;
                                    _params.extend([
@@ -126,20 +163,35 @@ pub fn generate(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStre
                                  _params
                              }
                         }
+
+                        pub fn create<T: From<Create>>(
+                            #(#required_field_names: #required_field_types,)*
+                            _params: Vec<SetParam>
+                        ) -> T {
+                            Create {
+                                #(#required_field_names,)*
+                                _params
+                            }.into()
+                        }
                     }
                 });
+
+            let scalar_selections_fn = scalar_selections_fn(&comp_type, module_path);
 
             quote! {
                 pub mod #ty_name_snake {
                     use super::*;
                     use super::_prisma::*;
 
+                    #scalar_selections_fn
+
                     #(#field_modules)*
 
                     #data_struct
 
                     #set_param
-                    #set_struct
+
+                    #create_struct
                 }
             }
         })

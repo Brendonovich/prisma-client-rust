@@ -15,10 +15,10 @@ pub async fn client() -> PrismaClient {
 }
 
 pub async fn cleanup(client: PrismaClient) -> TestResult {
-    client
-        ._batch(vec![client.post().delete_many(vec![])])
-        .await
-        .unwrap();
+    // client
+    //     ._batch(vec![client.post().delete_many(vec![])])
+    //     .await
+    //     .unwrap();
 
     Ok(())
 }

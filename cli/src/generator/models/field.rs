@@ -45,8 +45,8 @@ pub fn module(
                         }
 
                         impl From<Fetch> for WithParam {
-                            fn from(fetch: Fetch) -> Self {
-                                WithParam::#field_name_pascal(fetch.0)
+                            fn from(Fetch(v): Fetch) -> Self {
+                                WithParam::#field_name_pascal(v)
                             }
                         }
 
@@ -57,8 +57,8 @@ pub fn module(
                         pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
 
                         impl From<Connect> for SetParam {
-                            fn from(value: Connect) -> Self {
-                                Self::#connect_variant(value.0)
+                            fn from(Connect(v): Connect) -> Self {
+                                Self::#connect_variant(v)
                             }
                         }
 
@@ -106,8 +106,8 @@ pub fn module(
                         }
 
                         impl From<Fetch> for WithParam {
-                            fn from(fetch: Fetch) -> Self {
-                                WithParam::#field_name_pascal(fetch.0)
+                            fn from(Fetch(v): Fetch) -> Self {
+                                WithParam::#field_name_pascal(v)
                             }
                         }
 
@@ -118,8 +118,8 @@ pub fn module(
                         pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
 
                         impl From<Connect> for SetParam {
-                            fn from(value: Connect) -> Self {
-                                Self::#connect_variant(value.0)
+                            fn from(Connect(v): Connect) -> Self {
+                                Self::#connect_variant(v)
                             }
                         }
 
@@ -249,14 +249,14 @@ pub fn module(
                 pub struct Set(pub #field_type);
 
                 impl From<Set> for SetParam {
-                    fn from(value: Set) -> Self {
-                        Self::#set_variant(value.0)
+                    fn from(Set(v): Set) -> Self {
+                        Self::#set_variant(v)
                     }
                 }
 
                 impl From<Set> for UncheckedSetParam {
-                    fn from(value: Set) -> Self {
-                        Self::#field_name_pascal(value.0)
+                    fn from(Set(v): Set) -> Self {
+                        Self::#field_name_pascal(v)
                     }
                 }
 
@@ -289,34 +289,20 @@ pub fn module(
                 .filter(|f| f.required_on_create())
                 .map(|field| Some((field, field.type_tokens(module_path)?)))
                 .collect::<Option<Vec<_>>>()
-                .map(|v| {
-                    let set_struct = quote!(#comp_type_snake::Set);
-
-                    let (required_fields, required_field_types): (Vec<_>, Vec<_>) =
-                        v.into_iter().unzip();
-
-                    let required_field_names_snake = required_fields
-                        .iter()
-                        .map(|f| snake_ident(&f.name))
-                        .collect::<Vec<_>>();
+                .map(|_| {
+                    let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
 
                     quote! {
-                        pub struct Set(#set_struct);
-
-                        pub fn set<T: From<Set>>(
-                            #(#required_field_names_snake: #required_field_types,)*
-                            _params: Vec<#comp_type_snake::SetParam>
-                        ) -> T {
-                            Set(#set_struct {
-                                #(#required_field_names_snake,)*
-                                _params
-                            }).into()
-                        }
+                        pub struct Set(#create_struct);
 
                         impl From<Set> for SetParam {
                             fn from(Set(v): Set) -> Self {
                                 Self::#set_variant(v)
                             }
+                        }
+
+                        pub fn set<T: From<Set>>(create: #create_struct) -> T {
+                            Set(create).into()
                         }
                     }
                 });

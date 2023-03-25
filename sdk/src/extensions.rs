@@ -83,6 +83,8 @@ impl FieldExt for CompositeTypeField {
 
 pub trait FieldArityExt {
     fn wrap_type(&self, ty: &TokenStream) -> TokenStream;
+
+    fn wrap_pv(&self, var: &Ident, pv: TokenStream) -> TokenStream;
 }
 
 impl FieldArityExt for FieldArity {
@@ -91,6 +93,20 @@ impl FieldArityExt for FieldArity {
             FieldArity::List => quote!(Vec<#ty>),
             FieldArity::Optional => quote!(Option<#ty>),
             FieldArity::Required => quote!(#ty),
+        }
+    }
+
+    fn wrap_pv(&self, var: &Ident, value: TokenStream) -> TokenStream {
+        let pv = quote!(::prisma_client_rust::PrismaValue);
+
+        match self {
+            FieldArity::List => {
+                quote!(#pv::List(#var.into_iter().map(|#var| #value).collect()))
+            }
+            FieldArity::Optional => {
+                quote!(#var.map(|#var| #value).unwrap_or_else(|| #pv::Null))
+            }
+            FieldArity::Required => value,
         }
     }
 }
@@ -123,31 +139,17 @@ impl FieldTypeExt for FieldType {
     }
 
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
-        let scalar_identifier = if arity.is_list() {
-            format_ident!("v")
-        } else {
-            var.clone()
-        };
-
-        let v = quote!(::prisma_client_rust::PrismaValue);
+        let pv = quote!(::prisma_client_rust::PrismaValue);
 
         let scalar_converter = match self {
-            Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
-            Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
+            Self::Scalar(typ, _) => typ.to_prisma_value(&var),
+            Self::Enum(_) => quote!(#pv::Enum(#var.to_string())),
             Self::Unsupported(_) => return None,
-            Self::CompositeType(_) => quote!(#v::Object(vec![])),
+            Self::CompositeType(_) => quote!(#pv::Object(vec![])),
             _ => todo!(),
         };
 
-        Some(match arity {
-            FieldArity::List => {
-                quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
-            }
-            FieldArity::Optional => {
-                quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
-            }
-            FieldArity::Required => scalar_converter,
-        })
+        Some(arity.wrap_pv(&var, scalar_converter))
     }
 }
 
@@ -170,30 +172,16 @@ impl FieldTypeExt for CompositeTypeFieldType {
     }
 
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
-        let scalar_identifier = if arity.is_list() {
-            format_ident!("v")
-        } else {
-            var.clone()
-        };
-
         let v = quote!(::prisma_client_rust::PrismaValue);
 
         let scalar_converter = match self {
-            Self::Scalar(typ, _) => typ.to_prisma_value(&scalar_identifier),
-            Self::Enum(_) => quote!(#v::Enum(#scalar_identifier.to_string())),
+            Self::Scalar(typ, _) => typ.to_prisma_value(&var),
+            Self::Enum(_) => quote!(#v::Enum(#var.to_string())),
             Self::Unsupported(_) => return None,
             typ => unimplemented!("{:?}", typ),
         };
 
-        Some(match arity {
-            FieldArity::List => {
-                quote!(#v::List(#var.into_iter().map(|v| #scalar_converter).collect()))
-            }
-            FieldArity::Optional => {
-                quote!(#var.map(|#var| #scalar_converter).unwrap_or_else(|| #v::Null))
-            }
-            FieldArity::Required => scalar_converter,
-        })
+        Some(arity.wrap_pv(var, scalar_converter))
     }
 }
 

@@ -8,15 +8,17 @@ pub fn generate_module(args: &GenerateArgs, module_path: &TokenStream) -> TokenS
             let variant_name = pascal_ident(&method.name);
             let method_action_string = &method.action;
 
+            let value_ident = format_ident!("value");
+
             let value_as_prisma_value = method
                 .base_type
-                .to_prisma_value(&format_ident!("value"), &method.arity());
+                .to_prisma_value(&value_ident, &method.arity());
             let typ = method.type_tokens(module_path).unwrap();
 
-            ( 
+            (
                 quote!(#variant_name(#typ)),
                 quote! {
-                    Self::#variant_name(value) => ::prisma_client_rust::SerializedWhereValue::Object(vec![
+                    Self::#variant_name(#value_ident) => ::prisma_client_rust::SerializedWhereValue::Object(vec![
                         (#method_action_string.to_string(), #value_as_prisma_value)
                     ])
                 },
