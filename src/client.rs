@@ -36,8 +36,6 @@ impl ExecutionEngine {
     async fn execute(&self, op: Operation) -> Result<serde_value::Value> {
         match self {
             Self::Real { connector, tx_id } => {
-                println!("{op:#?}");
-
                 let response = connector
                     .executor
                     .execute(tx_id.clone(), op, connector.query_schema.clone(), None)
@@ -46,9 +44,9 @@ impl ExecutionEngine {
 
                 let data: prisma_value::Item = response.data.into();
 
-                let data = serde_value::to_value(data)?;
-
-                println!("{data:#?}");
+                let data = serde_value::to_value(data)
+                    .map_err(|e| e.to_string())
+                    .map_err(QueryError::Deserialize)?;
 
                 Ok(data)
             }
@@ -83,7 +81,9 @@ impl ExecutionEngine {
                             .data
                             .into();
 
-                        Ok(serde_value::to_value(data)?)
+                        Ok(serde_value::to_value(data)
+                            .map_err(|e| e.to_string())
+                            .map_err(QueryError::Deserialize)?)
                     })
                     .collect())
             }

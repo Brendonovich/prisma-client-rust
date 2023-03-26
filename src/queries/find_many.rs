@@ -159,8 +159,8 @@ impl<'a, Actions: ModelTypes> QueryConvert for FindMany<'a, Actions> {
     type RawType = Vec<Actions::Data>;
     type ReturnValue = Self::RawType;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw)
     }
 }
 

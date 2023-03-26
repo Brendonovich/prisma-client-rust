@@ -2,6 +2,7 @@ mod db;
 mod utils;
 
 use db::*;
+use prisma_client_rust::serde_json::{self, json, Value};
 use utils::*;
 
 #[tokio::test]
@@ -269,6 +270,96 @@ async fn delete_many() -> TestResult {
         .await?;
 
     assert!(updated.images.is_empty());
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn run_command_raw() -> TestResult {
+    let client = client().await;
+
+    let res: serde_json::Value = client
+        ._run_command_raw(serde_json::json!({
+            "insert": "Post",
+            "documents": [
+              {
+                "_id": "1",
+                "title": "Post One"
+              },
+            ],
+        }))
+        .exec()
+        .await?;
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn find_raw() -> TestResult {
+    let client = client().await;
+
+    let post = client
+        .post()
+        .create(
+            "Title".to_string(),
+            image::create(
+                10,
+                10,
+                "some://link.com".to_string(),
+                ImageFormat::Png,
+                vec![],
+            ),
+            vec![],
+        )
+        .exec()
+        .await?;
+
+    let res: Vec<serde_json::Value> = client
+        .post()
+        .find_raw()
+        .filter(serde_json::json!({ "title": { "$eq": post.title } }))
+        .exec()
+        .await?;
+
+    assert_eq!(res.len(), 1);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn aggregate_raw() -> TestResult {
+    let client = client().await;
+
+    client
+        .post()
+        .create_many(vec![
+            post::create_unchecked(
+                "Title".to_string(),
+                image::create(
+                    10,
+                    10,
+                    "some://link.com".to_string(),
+                    ImageFormat::Png,
+                    vec![],
+                ),
+                vec![]
+            );
+            10
+        ])
+        .exec()
+        .await?;
+
+    let res: Vec<Value> = client
+        .post()
+        .aggregate_raw()
+        .pipeline(json!([
+            { "$match": { "title": "Title" } },
+            { "$group": { "_id": "$title" } }
+        ]))
+        .exec()
+        .await?;
+
+    assert_eq!(res.len(), 1);
 
     cleanup(client).await
 }

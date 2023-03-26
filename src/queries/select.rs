@@ -37,8 +37,8 @@ impl<'a, Data: DeserializeOwned + 'static> QueryConvert for Select<'a, Data> {
     type RawType = Data;
     type ReturnValue = Self::RawType;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw)
     }
 }
 

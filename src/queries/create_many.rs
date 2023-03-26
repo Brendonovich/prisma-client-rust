@@ -73,8 +73,8 @@ impl<'a, Actions: ModelTypes> QueryConvert for CreateMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw.count
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw.count)
     }
 }
 

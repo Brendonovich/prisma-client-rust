@@ -95,7 +95,7 @@ pub async fn batch<'batch, 'b, T: BatchContainer<'batch, Marker>, Marker>(
         .into_iter()
         .collect::<super::Result<VecDeque<_>>>()?;
 
-    Ok(T::resolve(meta, values))
+    T::resolve(meta, values)
 }
 
 pub trait BatchItemParent {
@@ -108,7 +108,7 @@ pub trait BatchItem<'a>: BatchItemParent {
     fn resolve(
         meta: &BatchItemDataMeta,
         values: &mut VecDeque<serde_value::Value>,
-    ) -> <Self as BatchItemParent>::ReturnValue;
+    ) -> super::Result<<Self as BatchItemParent>::ReturnValue>;
 }
 
 impl<Q: QueryConvert> BatchItemParent for Q {
@@ -123,7 +123,7 @@ impl<'a, 'b, Q: Query<'a>> BatchItem<'b> for Q {
     fn resolve(
         _: &BatchItemDataMeta,
         values: &mut VecDeque<serde_value::Value>,
-    ) -> <Self as BatchItemParent>::ReturnValue {
+    ) -> super::Result<<Self as BatchItemParent>::ReturnValue> {
         Q::convert(
             values
                 .pop_front()
@@ -146,16 +146,16 @@ impl<'batch, 'query, I: Query<'query>> BatchItem<'batch> for Vec<I> {
     fn resolve(
         meta: &BatchItemDataMeta,
         values: &mut VecDeque<serde_value::Value>,
-    ) -> <Self as BatchItemParent>::ReturnValue {
-        match meta {
+    ) -> super::Result<<Self as BatchItemParent>::ReturnValue> {
+        Ok(match meta {
             BatchItemDataMeta::Vec(meta) => match meta {
                 VecMeta::Empty => vec![],
                 VecMeta::NotEmpty(size, meta) => (0..size.get())
                     .map(|_| <I as BatchItem>::resolve(meta.as_ref(), values))
-                    .collect(),
+                    .collect::<super::Result<Vec<_>>>()?,
             },
             _ => unreachable!(),
-        }
+        })
     }
 }
 
@@ -165,7 +165,10 @@ pub trait BatchContainer<'batch, Marker> {
 
     fn data(self) -> BatchData;
 
-    fn resolve(meta: BatchDataMeta, values: VecDeque<serde_value::Value>) -> Self::ReturnType;
+    fn resolve(
+        meta: BatchDataMeta,
+        values: VecDeque<serde_value::Value>,
+    ) -> super::Result<Self::ReturnType>;
 }
 
 impl<'batch, 't: 'batch, T: BatchItem<'t>, I: IntoIterator<Item = T>> BatchContainer<'batch, ()>
@@ -177,16 +180,19 @@ impl<'batch, 't: 'batch, T: BatchItem<'t>, I: IntoIterator<Item = T>> BatchConta
         BatchData::Iterator(self.into_iter().map(BatchItem::data).collect())
     }
 
-    fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
-        match meta {
+    fn resolve(
+        meta: BatchDataMeta,
+        mut values: VecDeque<serde_value::Value>,
+    ) -> super::Result<Self::ReturnType> {
+        Ok(match meta {
             BatchDataMeta::Iterator(meta) => match meta {
                 VecMeta::Empty => vec![],
                 VecMeta::NotEmpty(size, meta) => (0..size.get())
                     .map(|_| T::resolve(&meta, &mut values))
-                    .collect(),
+                    .collect::<super::Result<Vec<_>>>()?,
             },
             _ => unreachable!(),
-        }
+        })
     }
 }
 
@@ -213,15 +219,15 @@ macro_rules! impl_tuple {
                     )
                 }
 
-                fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
-                    match meta {
+                fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> $crate::Result<Self::ReturnType> {
+                    Ok(match meta {
                         BatchDataMeta::Tuple(metas) => {
                             let mut metas_iter = metas.iter();
 
-                            (($(<$generic as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)),+))
+                            ($(<$generic as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)?),+)
                         },
                         _ => unreachable!()
-                    }
+                    })
                 }
             }
 
@@ -243,15 +249,15 @@ macro_rules! impl_tuple {
                 fn resolve(
                     meta: &BatchItemDataMeta,
                     values: &mut VecDeque<serde_value::Value>,
-                ) -> <Self as BatchItemParent>::ReturnValue {
-                    match meta {
+                ) -> $crate::Result<<Self as BatchItemParent>::ReturnValue> {
+                    Ok(match meta {
                         BatchItemDataMeta::Tuple(meta) => {
                             let mut meta = meta.iter();
 
-                            ($($generic::resolve(meta.next().unwrap(), values)),+)
+                            ($($generic::resolve(meta.next().unwrap(), values)?),+)
                         },
                         _ => unreachable!(),
-                    }
+                    })
                 }
             }
         }
@@ -269,14 +275,17 @@ impl<'batch, 'query, Q: Query<'query>> BatchContainer<'batch, TupleMarker> for Q
         BatchData::Tuple(vec![BatchItem::data(self)])
     }
 
-    fn resolve(meta: BatchDataMeta, mut values: VecDeque<serde_value::Value>) -> Self::ReturnType {
-        match meta {
+    fn resolve(
+        meta: BatchDataMeta,
+        mut values: VecDeque<serde_value::Value>,
+    ) -> super::Result<Self::ReturnType> {
+        Ok(match meta {
             BatchDataMeta::Tuple(metas) => {
                 let mut metas_iter = metas.iter();
 
-                <Q as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)
+                <Q as BatchItem>::resolve(metas_iter.next().unwrap(), &mut values)?
             }
             _ => unreachable!(),
-        }
+        })
     }
 }
