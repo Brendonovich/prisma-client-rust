@@ -2,6 +2,7 @@
   "raw": "Raw Queries",
   "batching": "Batching Queries",
   "transactions": "Transactions",
+  "composite-types": "Composite Types",
   "mocking": "Mocking Queries",
   "error-handling": "Error Handling",
   "migrations": "Migrations",
