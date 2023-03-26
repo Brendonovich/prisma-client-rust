@@ -1,6 +1,10 @@
 # Raw Queries
 
-Sometimes the methods exposed by Prisma Client Rust cannot express the query you need. In this case, the client's `_query_raw` and `_execute_raw` can be used to send raw SQL to your database with fully sanitised arguments.
+Sometimes the methods exposed by Prisma Client Rust cannot express the query you need. In this case, you can use the client's raw query capabilities to send arbitrary queries to your database.
+
+## Relational Databases
+
+`_query_raw` and `_execute_raw` can be used to send raw SQL to your database with fully sanitised arguments.
 
 The `prisma_client_rust::raw` macro takes an SQL query as its first argument, followed by query variables of type `prisma_client_rust::PrismaValue`.
 To specify where in the query the variables should be inserted, use `{}`.
@@ -24,10 +28,11 @@ model Post {
 }
 ```
 
-## `_query_raw`
+### `_query_raw`
 
 Use `_query_raw` for reading data.
-The return type is a `Vec` of a generic you specify, which must implement `serde::Deserialize`.
+The return type is a `Vec` of a generic you specify, which must implement
+[`serde::Deserialize`](https://docs.rs/serde/latest/serde/trait.Deserialize.html).
 The generic represents the shape of a row returned by the query.
 
 See <a href="https://github.com/Brendonovich/prisma-client-rust/blob/0.6.3/src/raw.rs#L119-L139" target="_blank">this enum</a> for a reference of how database types map to Rust types.
@@ -51,7 +56,7 @@ let data: Vec<QueryReturnType> = client
     .await?;
 ```
 
-## `_execute_raw`
+### `_execute_raw`
 
 Use `_execute_raw` for writing data. It returns the number of rows that were modified.
 
@@ -68,4 +73,91 @@ let count = client
     .await?;
 
 assert_eq!(count, 1);
+```
+
+## MongoDB
+
+When using MongDB,
+the client exposes multiple functions for performing raw queries that use [`serde_json::Value`](https://docs.rs/serde_json/latest/serde_json/value/enum.Value.html)
+as arguments.
+
+All of them return a generic type that must implement
+[serde::Deserialize](https://docs.rs/serde/latest/serde/trait.Deserialize.html). 
+
+### `_run_command_raw`
+
+Runs an arbitrary command against the database,
+accepting all
+[MongoDB database commands](https://www.mongodb.com/docs/manual/reference/command/)
+except for:
+
+- `find` (use [`find_raw`](#find_raw) instead)
+- `aggregate` (use [`aggregate_raw`](#aggregate_raw) instead)
+
+There are a few rules around using this query,
+which are documented in [Prisma's documentation](https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#runcommandraw)
+(their equivalent is `$runCommandRaw`).
+
+```rust
+use serde_json::{json, Value};
+
+let data = client
+	._run_command_raw::<Vec<Value>>(json!({
+        "insert": "Post",
+        "documents": [{
+            "_id": "1",
+            "title": "Post One"
+        }]
+    }))
+	.exec()
+	.await?;
+
+assert_eq!(data.len(), 1);
+```
+
+### `find_raw`
+
+Returns actual database records for a given model.
+
+**Methods**
+
+- `filter` - Provides the query predicate filter
+- `options` - Additional options to pass to the 
+[`find` command](https://www.mongodb.com/docs/manual/reference/command/find/#command-fields)
+
+
+```rust
+use serde_json::{json, Value};
+
+let res = client
+	.post()
+	.find_raw::<Vec<Value>>()
+	.filter(json!({ "title": { "$eq": "Some Title" } }))
+	.options(json!({ "projection": { "_id": false } }))
+	.exec()
+	.await?;
+```
+
+### `aggregate_raw`
+
+Returns aggregated database records for a given model.
+
+**Methods**
+
+- `pipeline` - An [aggregation pipeline](https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/)
+- `options` - Additional options to pass to the 
+[`aggregate` command](https://www.mongodb.com/docs/manual/reference/command/aggregate/#command-fields)
+
+```rust
+use serde_json::{json, Value};
+
+let res = client
+	.post()
+	.aggregate_raw::<Vec<Value>>()
+	.pipeline(json!([
+		{ "$match": { "title": "Title" } },
+		{ "$group": { "_id": "$title" } }
+	]))
+	.exec()
+	.await?;
 ```
