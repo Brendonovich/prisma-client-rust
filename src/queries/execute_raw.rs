@@ -30,8 +30,8 @@ impl<'a> QueryConvert for ExecuteRaw<'a> {
     type RawType = i64;
     type ReturnValue = Self::RawType;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw)
     }
 }
 

@@ -10,7 +10,7 @@ pub trait QueryConvert {
 
     /// Function for converting between raw database data and the type expected by the user.
     /// Necessary for things like raw queries
-    fn convert(raw: Self::RawType) -> Self::ReturnValue;
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue>;
 }
 
 pub trait Query<'a>: QueryConvert {

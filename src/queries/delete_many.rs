@@ -32,8 +32,8 @@ impl<'a, Actions: ModelTypes> QueryConvert for DeleteMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw)
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(Self::convert(raw))
     }
 }
 

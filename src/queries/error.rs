@@ -7,10 +7,10 @@ pub enum QueryError {
     Execute(user_facing_errors::Error),
 
     #[error("Error serializing query result: {0}")]
-    Serialize(#[from] serde_value::SerializerError),
+    Serialize(String),
 
     #[error("Error deserializing query result into return type: {0}")]
-    Deserialize(#[from] serde_value::DeserializerError),
+    Deserialize(String),
 }
 
 impl QueryError {

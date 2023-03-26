@@ -24,13 +24,28 @@ pub fn create_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenS
     })
 }
 
-pub fn create_unchecked_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
+pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
-        .required_scalar_fields()
-        .iter()
-        .map(|f| Some((snake_ident(f.name()), f.type_tokens(module_path)?)))
-        .collect::<Option<Vec<_>>>()?
-        .into_iter()
+        .fields()
+        .filter_map(|field| {
+            let name_snake = snake_ident(field.name());
+
+            if !field.required_on_create() {
+                return None;
+            }
+
+            Some((
+                name_snake,
+                match field {
+                    dml::Field::RelationField(_) => return None,
+                    dml::Field::CompositeField(cf) => {
+                        let comp_type_snake = snake_ident(&cf.composite_type);
+                        quote!(super::#comp_type_snake::Create)
+                    }
+                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
+                },
+            ))
+        })
         .unzip();
 
     Some(quote! {
@@ -47,25 +62,35 @@ pub fn create_unchecked_fn(model: &dml::Model, module_path: &TokenStream) -> Opt
     })
 }
 
-pub fn create_many_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
-    let scalar_field_names = model
-        .required_scalar_fields()
-        .iter()
-        .map(|f| snake_ident(f.name()))
-        .collect::<Vec<_>>();
-    let scalar_field_names2 = scalar_field_names.clone();
+pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, types): (Vec<_>, Vec<_>) = model
+        .fields()
+        .filter_map(|field| {
+            let name_snake = snake_ident(field.name());
 
-    let scalar_field_types = model
-        .required_scalar_fields()
-        .iter()
-        .map(|f| f.type_tokens(module_path))
-        .collect::<Option<Vec<_>>>()?;
+            if !field.required_on_create() {
+                return None;
+            }
+
+            Some((
+                name_snake,
+                match field {
+                    dml::Field::RelationField(_) => return None,
+                    dml::Field::CompositeField(cf) => {
+                        let comp_type_snake = snake_ident(&cf.composite_type);
+                        quote!(super::#comp_type_snake::Create)
+                    }
+                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
+                },
+            ))
+        })
+        .unzip();
 
     Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#scalar_field_types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
-            let data = data.into_iter().map(|(#(#scalar_field_names2,)* mut _params)| {
+        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
+            let data = data.into_iter().map(|(#(#names,)* mut _params)| {
                 _params.extend([
-                    #(#scalar_field_names::set(#scalar_field_names)),*
+                    #(#names::set(#names)),*
                 ]);
 
                 _params
@@ -107,6 +132,24 @@ pub fn upsert_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenS
     })
 }
 
+pub fn mongo_raw_fns() -> Option<TokenStream> {
+    let pcr = quote!(::prisma_client_rust);
+
+    if cfg!(not(feature = "mongodb")) {
+        return None;
+    };
+
+    Some(quote! {
+        pub fn find_raw<T: #pcr::Data>(self) -> #pcr::FindRaw<'a, Types, T> {
+            #pcr::FindRaw::new(self.client)
+        }
+
+        pub fn aggregate_raw<T: #pcr::Data>(self) -> #pcr::AggregateRaw<'a, Types, T> {
+            #pcr::AggregateRaw::new(self.client)
+        }
+    })
+}
+
 pub fn struct_definition(
     model: &dml::Model,
     args: &GenerateArgs,
@@ -115,14 +158,15 @@ pub fn struct_definition(
     let pcr = quote!(::prisma_client_rust);
 
     let create_fn = create_fn(model, module_path);
-    let create_unchecked_fn = create_unchecked_fn(model, module_path);
+    let create_unchecked_fn = create_unchecked_fn(model);
     let upsert_fn = upsert_fn(model, module_path);
+    let monogo_raw_fns = mongo_raw_fns();
 
     let create_many_fn = (args
         .connector
         .capabilities()
         .contains(&datamodel_connector::ConnectorCapability::CreateMany))
-    .then(|| create_many_fn(model, module_path));
+    .then(|| create_many_fn(model));
 
     quote! {
         #[derive(Clone)]
@@ -206,6 +250,8 @@ pub fn struct_definition(
                     _where
                 )
             }
+
+            #monogo_raw_fns
         }
     }
 }

@@ -68,8 +68,8 @@ impl<'a, Actions: ModelTypes> QueryConvert for Count<'a, Actions> {
     type RawType = CountAggregateResult;
     type ReturnValue = i64;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw._count._all
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw._count._all)
     }
 }
 

@@ -73,8 +73,8 @@ impl<'a, Actions: ModelTypes> QueryConvert for Create<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        raw
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Ok(raw)
     }
 }
 

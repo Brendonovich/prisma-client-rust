@@ -467,14 +467,31 @@ pub fn module(
                 .fields
                 .iter()
                 .filter(|f| f.required_on_create())
-                .map(|field| Some((field, field.type_tokens(module_path)?)))
+                .map(|field| {
+                    field.type_tokens(module_path)?;
+                    Some(field)
+                })
                 .collect::<Option<Vec<_>>>()
                 .map(|_| {
                     let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
 
                     quote! {
-                        pub fn set(create: #create_struct) -> SetParam {
-                            SetParam::#set_variant(create)
+                        pub struct Set(#create_struct);
+
+                        pub fn set<T: From<Set>>(create: #create_struct) -> T {
+                            Set(create).into()
+                        }
+
+                        impl From<Set> for SetParam {
+                            fn from(Set(create): Set) -> Self {
+                                 SetParam::#set_variant(create)
+                            }
+                        }
+
+                        impl From<Set> for UncheckedSetParam {
+                            fn from(Set(create): Set) -> Self {
+                                 UncheckedSetParam::#field_name_pascal(create)
+                            }
                         }
                     }
                 });

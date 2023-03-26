@@ -10,6 +10,7 @@ mod find_first;
 mod find_many;
 mod find_unique;
 mod include;
+mod mongo_raw;
 mod query;
 mod query_raw;
 mod select;
@@ -29,6 +30,7 @@ pub use find_first::*;
 pub use find_many::*;
 pub use find_unique::*;
 pub use include::*;
+pub use mongo_raw::*;
 pub use query::*;
 pub use query_raw::*;
 pub use select::*;
@@ -112,11 +114,14 @@ pub fn exec<'a, Q: Query<'a> + 'a>(
         let value = value?;
 
         Ok(match client.engine {
-            ExecutionEngine::Real { .. } => {
-                Q::RawType::deserialize(value.into_deserializer()).map(Q::convert)?
-            }
+            ExecutionEngine::Real { .. } => Q::RawType::deserialize(value.into_deserializer())
+                .map_err(|e| e.to_string())
+                .map_err(QueryError::Deserialize)
+                .and_then(Q::convert)?,
             #[cfg(feature = "mocking")]
-            ExecutionEngine::Mock(_) => Q::ReturnValue::deserialize(value.into_deserializer())?,
+            ExecutionEngine::Mock(_) => Q::ReturnValue::deserialize(value.into_deserializer())
+                .map_err(|e| e.to_string())
+                .map_err(QueryError::Deserialize)?,
         })
     })
 }

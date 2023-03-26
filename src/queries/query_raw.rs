@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     raw::{Raw, RawOperationData, RawPrismaValue},
-    PrismaClientInternals, Query, QueryConvert,
+    PrismaClientInternals, Query, QueryConvert, QueryError,
 };
 
 pub struct QueryRaw<'a, Data>
@@ -48,8 +48,13 @@ where
         typed_data
             .into_iter()
             .map(|row| {
-                let v = serde_value::to_value(&row).unwrap();
+                let v = serde_value::to_value(&row)
+                    .map_err(|e| e.to_string())
+                    .map_err(QueryError::Deserialize)?;
+
                 v.deserialize_into::<Data>()
+                    .map_err(|e| e.to_string())
+                    .map_err(QueryError::Deserialize)
             })
             .collect::<Result<_, _>>()
             .map_err(Into::into)
@@ -67,8 +72,8 @@ where
     type RawType = RawOperationData;
     type ReturnValue = Vec<Data>;
 
-    fn convert(raw: Self::RawType) -> Self::ReturnValue {
-        Self::convert(raw).unwrap()
+    fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
+        Self::convert(raw)
     }
 }
 

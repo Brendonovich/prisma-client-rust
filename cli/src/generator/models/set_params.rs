@@ -406,15 +406,26 @@ pub fn enum_definition(
 
     let pcr = quote!(::prisma_client_rust);
 
-    let unchecked_enum = {
-        let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
-            .scalar_fields()
+    let unchecked_enum =
+        {
+            let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
+            .fields()
             .flat_map(|field| {
-                let field_name_pascal = pascal_ident(&field.name);
+                if field.is_relation() {
+                    return None;
+                }
+
+                let field_name_pascal = pascal_ident(field.name());
 
                 let set_variant = format_ident!("Set{}", field_name_pascal);
 
-                let field_type = field.field_type.to_tokens(module_path, &field.arity)?;
+                let field_type = match field.field_type() {
+                    dml::FieldType::CompositeType(comp_type) => {
+                        let comp_type_snake = snake_ident(&comp_type);
+                        field.arity().wrap_type(&quote!(super::#comp_type_snake::Create))
+                    }
+                    t => t.to_tokens(module_path, &field.arity())?,
+                };
 
                 Some((
                     quote!(#field_name_pascal(#field_type)),
@@ -425,21 +436,21 @@ pub fn enum_definition(
             })
             .unzip();
 
-        quote! {
-            #[derive(Clone)]
-            pub enum UncheckedSetParam {
-                  #(#variants),*
-            }
+            quote! {
+                #[derive(Clone)]
+                pub enum UncheckedSetParam {
+                      #(#variants),*
+                }
 
-            impl From<UncheckedSetParam> for SetParam {
-                fn from(param: UncheckedSetParam) -> Self {
-                    match param {
-                         #(#into_pv_arms),*
-                     }
+                impl From<UncheckedSetParam> for SetParam {
+                    fn from(param: UncheckedSetParam) -> Self {
+                        match param {
+                             #(#into_pv_arms),*
+                         }
+                    }
                 }
             }
-        }
-    };
+        };
 
     quote! {
         #[derive(Clone)]

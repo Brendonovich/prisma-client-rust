@@ -63,6 +63,36 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         }
     });
 
+    let raw_queries = match args.connector.name() {
+        name if psl::builtin_connectors::MONGODB.name() == name => {
+            quote! {
+                pub fn _run_command_raw<T: #pcr::Data>(&self, command: #pcr::serde_json::Value) -> #pcr::RunCommandRaw<T> {
+                    #pcr::RunCommandRaw::new(
+                         &self.0,
+                         command
+                    )
+                }
+            }
+        }
+        _ => quote! {
+            pub fn _query_raw<T: #pcr::Data>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
+                #pcr::QueryRaw::new(
+                    &self.0,
+                    query,
+                    super::DATABASE_STR,
+                )
+            }
+
+            pub fn _execute_raw(&self, query: #pcr::Raw) -> #pcr::ExecuteRaw {
+                #pcr::ExecuteRaw::new(
+                    &self.0,
+                    query,
+                    super::DATABASE_STR,
+                )
+            }
+        },
+    };
+
     quote! {
         pub struct PrismaClientBuilder {
             url: Option<String>,
@@ -111,21 +141,7 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
 
             #mock_ctor
 
-            pub fn _query_raw<T: #pcr::Data>(&self, query: #pcr::Raw) -> #pcr::QueryRaw<T> {
-                #pcr::QueryRaw::new(
-                    &self.0,
-                    query,
-                    super::DATABASE_STR,
-                )
-            }
-
-            pub fn _execute_raw(&self, query: #pcr::Raw) -> #pcr::ExecuteRaw {
-                #pcr::ExecuteRaw::new(
-                    &self.0,
-                    query,
-                    super::DATABASE_STR,
-                )
-            }
+            #raw_queries
 
             pub async fn _batch<'batch, T: #pcr::BatchContainer<'batch, Marker>, Marker>(&self, queries: T) -> #pcr::Result<<T as #pcr::BatchContainer<'batch, Marker>>::ReturnType> {
                 #pcr::batch(queries, &self.0).await
