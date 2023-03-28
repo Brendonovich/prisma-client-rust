@@ -1,0 +1,72 @@
+# Partial  Types
+
+_Available since v0.6.7_
+
+The `partial!` macro can be found in all model modules,
+and allows structs to be defined that have a `to_params` function which converts them for use inside `update` and `upsert` queries.
+Each field of the generated structs has the same type as the equivalent field in the module's `Data` struct,
+just wrapped inside `Option`.
+
+This can be useful for thing like web APIs built with 
+[`axum`](https://github.com/tokio-rs/axum) or 
+[`rspc`](https://www.rspc.dev/),
+where receiving updates is more ergonomic as structs rather than a list of changes. 
+
+Currently `partial!` only supports scalar fields.
+Support for relations will be considered once [nested writes](https://github.com/Brendonovich/prisma-client-rust/issues/44)
+are implemented.
+
+## Example
+
+Given the following schema:
+
+```prisma
+model Post {
+	id Int @id @default(autoincrement())
+	title String
+	content String
+}
+```
+
+An updater function can be written like so:
+
+```rust
+post::partial!(PostUpdateData {
+	title
+	content
+})
+
+pub async fn update_post(
+	db: &PrismaClient,
+	id: i32,
+	data: PostUpdateData
+) {
+	db.post()
+		.update(post::id::equals(id), data.to_params())
+		.exec()
+		.await;
+}
+```
+
+The above use of `partial!` generates the following:
+
+```rust
+pub struct PostUpdateData {
+	title: Option<String>,
+	content: Option<String>
+}
+
+impl PostUpdateData {
+	pub fn to_params(self) -> Vec<WhereParam> {
+		[
+			self.title.map(post::title::set),
+			self.content.map(post::content::set)
+		].into_iter().flatten().collect()
+	}
+}
+```
+
+
+## Specta
+
+

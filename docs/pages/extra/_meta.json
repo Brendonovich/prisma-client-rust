@@ -6,6 +6,7 @@
   "mocking": "Mocking Queries",
   "error-handling": "Error Handling",
   "migrations": "Migrations",
+  "partial-types": "Partial Types",
   "rspc": "rspc Integration",
   "traits": "Query Traits"
 }
