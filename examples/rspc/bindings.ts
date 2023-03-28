@@ -2,17 +2,17 @@
 
 export type Procedures = {
     queries: 
-        { key: "namedUserType", input: never, result: named_user_include[] } | 
+        { key: "namedUserType", input: never, result: NamedUserInclude[] } | 
         { key: "posts", input: never, result: Post[] } | 
-        { key: "userNames", input: never, result: { display_name: string }[] } | 
+        { key: "userNames", input: never, result: { displayName: string }[] } | 
         { key: "users", input: never, result: User[] } | 
-        { key: "usersWithPosts", input: never, result: { id: string; display_name: string; posts: { id: string; content: string; user: { id: string; display_name: string } }[] }[] },
+        { key: "usersWithPosts", input: never, result: { id: string; displayName: string; posts: { id: string; content: string; user: { id: string; displayName: string } }[] }[] },
     mutations: never,
     subscriptions: never
 };
 
 export type User = { id: string; displayName: string }
 
-export type Post = { id: string; content: string; userId: string }
+export type NamedUserInclude = { id: string; displayName: string; posts: Post[] }
 
-export type named_user_include = { id: string; display_name: string; posts: Post[] }
+export type Post = { id: string; content: string; userId: string }
