@@ -16,8 +16,8 @@ First, the main library and CLI package must be added to your project's Cargo.to
 
 ```toml
 [dependencies]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.7" }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.7" }
 ```
 
 The generated client will need `serde`, so run `cargo add` to install it:

@@ -13,7 +13,7 @@ generator client {
     output   = "tests/db.rs"
 
     // necessary since the generated file won't be at crate::prisma
-    module_path = "crate::db"
+    module_path = "db"
 }
 
 model Post {

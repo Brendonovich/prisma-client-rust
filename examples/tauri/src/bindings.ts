@@ -16,5 +16,5 @@ export function createPost(data: CreatePostData) {
     return invoke<Post>("create_post", { data })
 }
 
-export type Post = { id: number; title: string; content: string }
 export type CreatePostData = { title: string; content: string }
+export type Post = { id: number; title: string; content: string; lmao: string | null }
