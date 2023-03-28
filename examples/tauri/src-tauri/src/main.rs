@@ -45,7 +45,7 @@ async fn main() {
     db._db_push().await.unwrap();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_posts, create_post,])
+        .invoke_handler(tauri::generate_handler![get_posts, create_post])
         .manage(Arc::new(db))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

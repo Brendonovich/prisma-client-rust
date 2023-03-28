@@ -27,7 +27,7 @@ resolver = "2"
 [features]
 default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = ["dep:rspc", "specta"]
-specta = ["dep:specta"]
+specta = ["dep:specta", "prisma-client-rust-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
 mocking = ["tokio"]

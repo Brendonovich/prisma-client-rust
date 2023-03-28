@@ -4831,6 +4831,7 @@ dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
  "quote",
+ "specta",
  "syn 1.0.109",
 ]
 
