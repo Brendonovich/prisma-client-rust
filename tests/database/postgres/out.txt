@@ -1,0 +1,2747 @@
+{
+    "prisma": [
+        DmmfInputType {
+            name: "SomeModelWhereInput",
+            meta: Some(
+                DmmfInputTypeMeta {
+                    source: Some(
+                        "SomeModel",
+                    ),
+                },
+            ),
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "AND",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelWhereInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "SomeModelWhereInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "OR",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelWhereInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "NOT",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelWhereInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "SomeModelWhereInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "StringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "JsonNullableFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelOrderByWithRelationInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    0,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelWhereUniqueInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    1,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelOrderByWithAggregationInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    0,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_count",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelCountOrderByAggregateInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_max",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelMaxOrderByAggregateInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_min",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelMinOrderByAggregateInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelScalarWhereWithAggregatesInput",
+            meta: Some(
+                DmmfInputTypeMeta {
+                    source: Some(
+                        "SomeModel",
+                    ),
+                },
+            ),
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "AND",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelScalarWhereWithAggregatesInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "SomeModelScalarWhereWithAggregatesInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "OR",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelScalarWhereWithAggregatesInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "NOT",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SomeModelScalarWhereWithAggregatesInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "SomeModelScalarWhereWithAggregatesInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "StringWithAggregatesFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "JsonNullableWithAggregatesFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelCreateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: true,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelUncheckedCreateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: true,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelUpdateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "StringFieldUpdateOperationsInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelUncheckedUpdateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "StringFieldUpdateOperationsInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelCreateManyInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: true,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelUpdateManyMutationInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "StringFieldUpdateOperationsInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelUncheckedUpdateManyInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "StringFieldUpdateOperationsInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NullableJsonNullValueInput",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "StringFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "startsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "endsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "mode",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "QueryMode",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "JsonNullableFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "path",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_starts_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_ends_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_contains",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_starts_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_ends_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelCountOrderByAggregateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    1,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "some_column",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelMaxOrderByAggregateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    1,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "SomeModelMinOrderByAggregateInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    1,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "id",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "SortOrder",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "StringWithAggregatesFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "startsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "endsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "mode",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "QueryMode",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedStringWithAggregatesFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_count",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedIntFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_min",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_max",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "JsonNullableWithAggregatesFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "path",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_starts_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_ends_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_contains",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_starts_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_ends_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_count",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedIntNullableFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_min",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedJsonNullableFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_max",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedJsonNullableFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "StringFieldUpdateOperationsInput",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: Some(
+                    1,
+                ),
+                min_num_fields: Some(
+                    1,
+                ),
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "set",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "NestedStringFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "startsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "endsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "NestedStringWithAggregatesFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "startsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "endsWith",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedStringWithAggregatesFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_count",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedIntFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_min",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "_max",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "NestedStringFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "NestedIntFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedIntFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "NestedIntNullableFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "in",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "notIn",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Int",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "NestedIntNullableFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: InputObjectTypes,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+        DmmfInputType {
+            name: "NestedJsonNullableFilter",
+            meta: None,
+            constraints: DmmfInputTypeConstraints {
+                max_num_fields: None,
+                min_num_fields: None,
+                fields: None,
+            },
+            fields: [
+                DmmfInputField {
+                    name: "equals",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "path",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: true,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_contains",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_starts_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "string_ends_with",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "String",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_contains",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_starts_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "array_ends_with",
+                    is_required: false,
+                    is_nullable: true,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "Null",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "lte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gt",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "gte",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+                DmmfInputField {
+                    name: "not",
+                    is_required: false,
+                    is_nullable: false,
+                    input_types: [
+                        DmmfTypeReference {
+                            typ: "Json",
+                            namespace: None,
+                            location: Scalar,
+                            is_list: false,
+                        },
+                        DmmfTypeReference {
+                            typ: "JsonNullValueFilter",
+                            namespace: Some(
+                                "prisma",
+                            ),
+                            location: EnumTypes,
+                            is_list: false,
+                        },
+                    ],
+                    deprecation: None,
+                },
+            ],
+        },
+    ],
+}

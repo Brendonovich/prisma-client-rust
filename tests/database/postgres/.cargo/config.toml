@@ -1,0 +1,3 @@
+[alias]
+prisma = "run -p prisma-cli --features postgresql --"
+

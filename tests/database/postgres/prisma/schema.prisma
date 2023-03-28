@@ -1,0 +1,16 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "cargo prisma"
+    output   = "../tests/db.rs"
+
+    module_path = "db"
+}
+
+model SomeModel {
+    id          String @id
+    some_column Json?
+}

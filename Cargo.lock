@@ -4722,6 +4722,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "postgres-tests"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "postgres-types"
 version = "0.2.4"
 source = "git+https://github.com/pimeys/rust-postgres?branch=pgbouncer-mode#74f0847e9a8ac350c48dd65c4c33e9be5fcf6010"

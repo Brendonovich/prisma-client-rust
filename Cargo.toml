@@ -19,6 +19,7 @@ members = [
   "cli",
   "macros",
   "prisma-cli",
+  "tests/*/*"
 ]
 exclude = ["examples/tauri"]
 resolver = "2"
