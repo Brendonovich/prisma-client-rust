@@ -17,7 +17,6 @@ use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
-pub use convert_case;
 pub use dml;
 pub use dmmf;
 pub use prisma_models::{self, PrismaValue};

@@ -100,7 +100,7 @@ specta = { optional = true, workspace = true, features = [
   "uuid",
 ] }
 
+
 # features = "rspc"
-convert_case.workspace = true
 rspc = { optional = true, workspace = true }
 dotenv = "0.15.0"
