@@ -58,7 +58,7 @@ fn field_set_params(
 
     Some(match &field {
         dml::Field::ScalarField(scalar_field) => {
-            let field_type = field.type_tokens(module_path)?;
+            let field_type = field.type_tokens(&quote!(super))?;
 
             let converter = field.type_prisma_value(&format_ident!("value"))?;
 
@@ -424,7 +424,7 @@ pub fn enum_definition(
                         let comp_type_snake = snake_ident(&comp_type);
                         field.arity().wrap_type(&quote!(super::#comp_type_snake::Create))
                     }
-                    t => t.to_tokens(module_path, &field.arity())?,
+                    t => t.to_tokens(&quote!(super), &field.arity())?,
                 };
 
                 Some((

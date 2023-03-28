@@ -37,6 +37,7 @@ impl PrismaGenerator for PrismaClientRustGenerator {
         let module_path = self
             .module_path
             .parse()
+            .map(|p: TokenStream| quote!(crate::#p))
             .map_err(|_| Error::InvalidModulePath)?;
 
         let models = models::modules(&args, &module_path);

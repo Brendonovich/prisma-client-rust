@@ -14,7 +14,7 @@ pub fn module(
     let field_name = root_field.name();
     let field_name_pascal = pascal_ident(field_name);
     let field_name_snake = snake_ident(field_name);
-    let field_type = root_field.type_tokens(module_path);
+    let field_type = root_field.type_tokens(&quote!(self));
 
     let connect_variant = format_ident!("Connect{field_name_pascal}");
     let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
