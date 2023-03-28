@@ -71,7 +71,7 @@ pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> Token
                     })
                 }
                 dml::Field::ScalarField(scalar_field) => {
-                    let typ = field.type_tokens(module_path)?;
+                    let typ = field.type_tokens(&quote!(super))?;
 
                     Field::Scalar(ScalarField {
                         typ,
