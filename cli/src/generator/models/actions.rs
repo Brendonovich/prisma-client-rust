@@ -3,12 +3,11 @@ use prisma_client_rust_sdk::GenerateArgs;
 
 use super::required_fields;
 
-pub fn create_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
-    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) =
-        required_fields(model, module_path)?
-            .into_iter()
-            .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
-            .unzip();
+pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+        .into_iter()
+        .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+        .unzip();
 
     Some(quote! {
         pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
@@ -104,12 +103,11 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn upsert_fn(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
-    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) =
-        required_fields(model, module_path)?
-            .into_iter()
-            .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
-            .unzip();
+pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
+    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+        .into_iter()
+        .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+        .unzip();
 
     Some(quote! {
         pub fn upsert(
@@ -150,16 +148,12 @@ pub fn mongo_raw_fns() -> Option<TokenStream> {
     })
 }
 
-pub fn struct_definition(
-    model: &dml::Model,
-    args: &GenerateArgs,
-    module_path: &TokenStream,
-) -> TokenStream {
+pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let create_fn = create_fn(model, module_path);
+    let create_fn = create_fn(model);
     let create_unchecked_fn = create_unchecked_fn(model);
-    let upsert_fn = upsert_fn(model, module_path);
+    let upsert_fn = upsert_fn(model);
     let monogo_raw_fns = mongo_raw_fns();
 
     let create_many_fn = (args

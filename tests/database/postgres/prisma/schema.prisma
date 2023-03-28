@@ -11,6 +11,13 @@ generator client {
 }
 
 model SomeModel {
-    id          String @id
-    some_column Json?
+    id                 String    @id
+    some_column        Json?
+    some_enum          SomeEnum
+    some_enum_optional SomeEnum?
+}
+
+enum SomeEnum {
+    A
+    B
 }

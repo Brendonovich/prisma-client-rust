@@ -55,10 +55,7 @@ impl Deref for RequiredField<'_> {
     }
 }
 
-pub fn required_fields<'a>(
-    model: &'a dml::Model,
-    module_path: &TokenStream,
-) -> Option<Vec<RequiredField<'a>>> {
+pub fn required_fields<'a>(model: &'a dml::Model) -> Option<Vec<RequiredField<'a>>> {
     model
         .fields()
         .filter(|field| match field {
@@ -73,7 +70,7 @@ pub fn required_fields<'a>(
                 let field_name_snake = snake_ident(&field.name());
 
                 let typ = match field {
-                    dml::Field::ScalarField(_) => field.type_tokens(module_path)?,
+                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
                     dml::Field::RelationField(relation_field) => {
                         let relation_model_name_snake =
                             snake_ident(&relation_field.relation_info.referenced_model);
@@ -282,12 +279,12 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         let with_params_enum = with_params::enum_definition(&model);
         let set_params_enum = set_params::enum_definition(&model, args, module_path);
         let order_by_params_enum = order_by::enum_definition(&model);
-        let create_fn = create::model_fns(&model, module_path);
+        let create_fn = create::model_fns(&model);
         let select_macro = select::model_macro(model, &module_path);
         let select_params_enum = select::model_module_enum(&model, &pcr);
         let include_macro = include::model_macro(model, &module_path);
         let include_params_enum = include::model_module_enum(&model, &pcr);
-        let actions_struct = actions::struct_definition(&model, args, module_path);
+        let actions_struct = actions::struct_definition(&model, args);
         let types_struct = types::struct_definition(&model, module_path);
         let partial_macro = partial::model_macro(&model, &module_path);
 

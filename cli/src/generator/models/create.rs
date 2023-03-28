@@ -34,12 +34,11 @@ fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-fn create(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> {
-    let (required_field_names, required_field_types): (Vec<_>, Vec<_>) =
-        required_fields(model, module_path)?
-            .iter()
-            .map(|field| (snake_ident(field.name()), field.typ.clone()))
-            .unzip();
+fn create(model: &dml::Model) -> Option<TokenStream> {
+    let (required_field_names, required_field_types): (Vec<_>, Vec<_>) = required_fields(model)?
+        .iter()
+        .map(|field| (snake_ident(field.name()), field.typ.clone()))
+        .unzip();
 
     Some(quote! {
         pub fn create(#(#required_field_names: #required_field_types,)* _params: Vec<SetParam>)
@@ -49,9 +48,9 @@ fn create(model: &dml::Model, module_path: &TokenStream) -> Option<TokenStream> 
     })
 }
 
-pub fn model_fns(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+pub fn model_fns(model: &dml::Model) -> TokenStream {
     let create_unchecked = create_unchecked(model);
-    let create = create(model, module_path);
+    let create = create(model);
 
     quote! {
         #create
