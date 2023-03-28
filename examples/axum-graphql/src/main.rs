@@ -8,9 +8,6 @@ use axum::{
 };
 use graphql::schema::{build_schema, AppSchema};
 
-#[cfg(debug_assertions)]
-use dotenv::dotenv;
-
 pub mod db;
 pub mod graphql;
 

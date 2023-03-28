@@ -5,5 +5,5 @@ use db::*;
 
 #[tokio::main]
 async fn main() {
-    let client = PrismaClient::_builder().build().await.unwrap();
+    PrismaClient::_builder().build().await.unwrap();
 }

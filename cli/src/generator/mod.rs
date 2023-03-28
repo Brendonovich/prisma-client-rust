@@ -44,7 +44,7 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
         let client = client::generate(&args);
         let internal_enums = internal_enums::generate(&args);
-        let read_filters_module = read_filters::generate_module(&args, &module_path);
+        let read_filters_module = read_filters::generate_module(&args);
 
         let enums = enums::generate(&args);
 

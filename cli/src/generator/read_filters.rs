@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub fn generate_module(args: &GenerateArgs, module_path: &TokenStream) -> TokenStream {
+pub fn generate_module(args: &GenerateArgs) -> TokenStream {
     let read_filters = args.read_filters.iter().map(|filter| {
         let name = format_ident!("{}Filter", &filter.name);
 
