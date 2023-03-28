@@ -40,8 +40,11 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             let ident = &field.ident;
             let ty = &field.ty;
 
+            let specta_attrs = cfg!(feature = "specta").then(|| quote!(#[specta(optiona)]));
+
             quote! {
                 #(#attrs)*
+                #specta_attrs
                 #ident: Option<#ty>
             }
         });
