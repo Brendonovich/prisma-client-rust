@@ -27,8 +27,8 @@ fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(#(#names: #types,)* _params: Vec<UncheckedSetParam>)
-            -> (#(#types,)* Vec<UncheckedSetParam>) {
+        pub fn create_unchecked(#(#names: #types,)* _params: Vec<SetParam>)
+            -> (#(#types,)* Vec<SetParam>) {
             (#(#names,)* _params)
         }
     })

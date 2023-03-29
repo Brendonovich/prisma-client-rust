@@ -94,19 +94,45 @@ let comment: comment::Data = client
 Connecting records like this is equivalent to directly setting the values of the relation's foreign keys, eg.
 setting `post_id` from the above example with `comment::post_id::set()`.
 
+
+## Create Unchecked
+
+_Available since v0.6.7_
+
+`create_unchecked` is similar to `create` but only allows setting scalar fields using `UncheckedSetParam`.
+`unchecked` is a Prisma term describing inputs that only accept a model's scalar fields.
+
+```rust
+use prisma::{comment, post};
+
+let comment: comment::Data = client
+    .comment()
+    .create(
+        "content".to_string(),
+		// requires specifying field for postID,
+		// rather than connecting a relation
+        0,
+        vec![]
+    )
+    .exec()
+    .await?;
+```
+
 ## Create Many
 
 `create_many` can be used to create many records of a single model type.
-It accepts a `Vec` of tuples with a similar shape as the arguments to `create`,
-except only scalar fields can be provided.
-Connecting relations using relation field operations is not possible.
+It accepts a `Vec` of tuples with the same shape as `create_unchecked`,
+so only scalar fields can be set.
+
+import { Callout } from "nextra-theme-docs";
+
+<Callout type="info">
+	SQLite support for `create_many` is **UNSTABLE**,
+	but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
+</Callout>
 
 To assist in constructing tuples of the right shape,
 each model module contains a `create_unchecked` function that accepts a model's scalar fields and returns the correct tuple.
-`unchecked` is a Prisma term,
-describing inputs that only accept a model's scalar fields.
-
-SQLite support for `create_many` is **UNSTABLE**, but can be enabled by adding the `sqlite-create-many` feature to `prisma-client-rust` and `prisma-client-rust-cli` in your `Cargo.toml` files.
 
 The following example iterates an array of titles, turns it into tuples and creates multiple posts.
 

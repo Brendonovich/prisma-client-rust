@@ -1,5 +1,7 @@
 # Composite Types
 
+_Available since v0.6.7_
+
 When using MongoDB you will likely need to use [`embedded documents`](https://www.mongodb.com/docs/manual/core/data-model-design/#std-label-data-modeling-embedding),
 which Prisma calls 'Composite Types'.
 Prisma Client Rust will generate field & type modules whenever you use composite types,

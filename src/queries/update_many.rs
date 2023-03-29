@@ -3,20 +3,20 @@ use query_core::Operation;
 
 use crate::{
     merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, UncheckedSetQuery, WhereInput, WhereQuery,
+    PrismaClientInternals, Query, QueryConvert, SetQuery, WhereInput, WhereQuery,
 };
 
 pub struct UpdateMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
-    pub set_params: Vec<Actions::UncheckedSet>,
+    pub set_params: Vec<Actions::Set>,
 }
 
 impl<'a, Actions: ModelTypes> UpdateMany<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_params: Vec<Actions::Where>,
-        set_params: Vec<Actions::UncheckedSet>,
+        set_params: Vec<Actions::Set>,
     ) -> Self {
         Self {
             client,
@@ -90,8 +90,8 @@ impl<'a, Actions: ModelTypes> WhereQuery<'a> for UpdateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> UncheckedSetQuery<'a> for UpdateMany<'a, Actions> {
-    fn add_unchecked_set(&mut self, param: Actions::UncheckedSet) {
+impl<'a, Actions: ModelTypes> SetQuery<'a> for UpdateMany<'a, Actions> {
+    fn add_set(&mut self, param: Actions::Set) {
         self.set_params.push(param);
     }
 }

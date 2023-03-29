@@ -4,13 +4,13 @@ use syn::{
     bracketed, parse::Parse, parse_macro_input, punctuated::Punctuated, ItemStruct, Path, Token,
 };
 
-struct PartialInput {
+struct PartialUncheckedInput {
     model_module: Path,
     data: ItemStruct,
     selection: Punctuated<Ident, Token![,]>,
 }
 
-impl Parse for PartialInput {
+impl Parse for PartialUncheckedInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
             model_module: input.parse()?,
@@ -25,11 +25,11 @@ impl Parse for PartialInput {
 }
 
 pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let PartialInput {
+    let PartialUncheckedInput {
         model_module,
         data,
         selection,
-    } = parse_macro_input!(input as PartialInput);
+    } = parse_macro_input!(input as PartialUncheckedInput);
 
     let fields = data
         .fields
@@ -69,7 +69,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
 
         impl #ident {
-            pub fn to_params(self) -> Vec<#model_module::SetParam> {
+            pub fn to_params(self) -> Vec<#model_module::UncheckedSetParam> {
                 [
                     #(self.#selection.map(#model_module::#selection::set)),*
                 ].into_iter().flatten().collect()

@@ -86,7 +86,7 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
+        pub fn create_many(self, data: Vec<(#(#types,)* Vec<SetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#names,)* mut _params)| {
                 _params.extend([
                     #(#names::set(#names)),*
@@ -213,7 +213,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<UncheckedSetParam>) -> UpdateMany<'a> {
+            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
                 UpdateMany::new(
                     self.client,
                     _where,

@@ -3,7 +3,7 @@ use crate::generator::prelude::*;
 pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> TokenStream {
     let model_name_snake = snake_ident(&model.name);
     let model_name_snake_raw = snake_ident_raw(&model.name);
-    let macro_name = format_ident!("_partial_{model_name_snake_raw}");
+    let macro_name = format_ident!("_partial_unchecked_{model_name_snake_raw}");
 
     let model_module = quote!(#module_path::#model_name_snake);
 
@@ -33,7 +33,7 @@ pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> Toke
             ($struct_name:ident {
                 $($scalar_field:ident)+
             }) => {
-                ::prisma_client_rust::macros::partial! {
+                ::prisma_client_rust::macros::partial_unchecked! {
                     #model_module
                     struct $struct_name {
                         #(#struct_fields),*
@@ -43,6 +43,6 @@ pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> Toke
             };
         }
 
-        pub use #macro_name as partial;
+        pub use #macro_name as partial_unchecked;
     }
 }

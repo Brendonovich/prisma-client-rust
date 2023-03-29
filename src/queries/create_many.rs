@@ -8,15 +8,12 @@ use crate::{
 
 pub struct CreateMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
-    pub set_params: Vec<Vec<Actions::UncheckedSet>>,
+    pub set_params: Vec<Vec<Actions::Set>>,
     pub skip_duplicates: bool,
 }
 
 impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
-    pub fn new(
-        client: &'a PrismaClientInternals,
-        set_params: Vec<Vec<Actions::UncheckedSet>>,
-    ) -> Self {
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Vec<Actions::Set>>) -> Self {
         Self {
             client,
             set_params,
@@ -31,7 +28,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
     }
 
     fn to_selection(
-        set_params: Vec<Vec<Actions::UncheckedSet>>,
+        set_params: Vec<Vec<Actions::Set>>,
         _skip_duplicates: bool,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {

@@ -49,6 +49,25 @@ let updated_post: post::Data = client
     .await?;
 ```
 
+## Update Unchecked
+
+_Available since v0.6.7_
+
+`update_unchecked` is similar to `update` but only allows setting scalar fields using `UncheckedSetParam`.
+
+```rust
+use prisma::{comment, post};
+
+let comment: comment::Data = client
+    .comment()
+    .update(
+        comment::id::equals("some comment id".to_string()),
+        vec![comment::post_id::set("some post id".to_string())]
+    )
+    .exec()
+    .await?;
+```
+
 ## Update Many
 
 `update_many` accepts a `Vec` of filters (not just unique filters), and a `Vec` of updates to apply to all records found.

@@ -1,4 +1,4 @@
-mod partial;
+mod partial_unchecked;
 
 #[proc_macro]
 pub fn to_pascal_case(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -7,6 +7,6 @@ pub fn to_pascal_case(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     proc_macro::TokenTree::Literal(proc_macro::Literal::string(&converted)).into()
 }
 #[proc_macro]
-pub fn partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    partial::proc_macro(input)
+pub fn partial_unchecked(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    partial_unchecked::proc_macro(input)
 }

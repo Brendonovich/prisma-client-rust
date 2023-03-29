@@ -1,9 +1,9 @@
-# Partial  Types
+# Partial Types
 
 _Available since v0.6.7_
 
-The `partial!` macro can be found in all model modules,
-and allows structs to be defined that have a `to_params` function which converts them for use inside `update` and `upsert` queries.
+The `partial_unchecked!` macro can be found in all model modules,
+and allows structs to be defined that have a `to_params` function which converts them for use inside `update_unchecked`.
 Each field of the generated structs has the same type as the equivalent field in the module's `Data` struct,
 just wrapped inside `Option`.
 
@@ -12,9 +12,14 @@ This can be useful for thing like web APIs built with
 [`rspc`](https://www.rspc.dev/),
 where receiving updates is more ergonomic as structs rather than a list of changes. 
 
-Currently `partial!` only supports scalar fields.
-Support for relations will be considered once [nested writes](https://github.com/Brendonovich/prisma-client-rust/issues/44)
-are implemented.
+A more general `partial!` does not yet exist,
+as supporting relations is not possible until [nested writes](https://github.com/Brendonovich/prisma-client-rust/issues/44)
+are supported.
+
+## Setup
+
+Using partial macros requires the same setup as [Select & Include](/reading-data/select-include#setup),
+as `module_path` must be provided.
 
 ## Example
 
@@ -31,7 +36,7 @@ model Post {
 An updater function can be written like so:
 
 ```rust
-post::partial!(PostUpdateData {
+post::partial_unchecked!(PostUpdateData {
 	title
 	content
 })
@@ -42,13 +47,13 @@ pub async fn update_post(
 	data: PostUpdateData
 ) {
 	db.post()
-		.update(post::id::equals(id), data.to_params())
+		.update_unchecked(post::id::equals(id), data.to_params())
 		.exec()
 		.await;
 }
 ```
 
-The above use of `partial!` generates the following:
+The above use of `partial_unchecked!` generates something like the following:
 
 ```rust
 pub struct PostUpdateData {
@@ -57,7 +62,7 @@ pub struct PostUpdateData {
 }
 
 impl PostUpdateData {
-	pub fn to_params(self) -> Vec<WhereParam> {
+	pub fn to_params(self) -> Vec<post::UncheckedSetParam> {
 		[
 			self.title.map(post::title::set),
 			self.content.map(post::content::set)
@@ -65,8 +70,3 @@ impl PostUpdateData {
 	}
 }
 ```
-
-
-## Specta
-
-

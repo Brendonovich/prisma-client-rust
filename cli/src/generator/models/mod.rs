@@ -5,7 +5,7 @@ mod field;
 mod include_select;
 mod order_by;
 mod pagination;
-mod partial;
+mod partial_unchecked;
 mod set_params;
 mod types;
 mod where_params;
@@ -275,7 +275,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         where_params_entries.extend(field_where_param_entries.into_iter().flatten());
 
         let where_params_enums = where_params::collate_entries(where_params_entries);
-        let data_struct = data::struct_definition(&model, module_path);
+        let data_struct = data::struct_definition(&model);
         let with_params_enum = with_params::enum_definition(&model);
         let set_params_enum = set_params::enum_definition(&model, args, module_path);
         let order_by_params_enum = order_by::enum_definition(&model);
@@ -286,7 +286,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         let include_params_enum = include::model_module_enum(&model, &pcr);
         let actions_struct = actions::struct_definition(&model, args);
         let types_struct = types::struct_definition(&model, module_path);
-        let partial_macro = partial::model_macro(&model, &module_path);
+        let partial_macro = partial_unchecked::model_macro(&model, &module_path);
 
         quote! {
             pub mod #model_name_snake {

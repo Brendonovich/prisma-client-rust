@@ -41,7 +41,7 @@ enum Field<'a> {
     Composite(CompositeField<'a>),
 }
 
-pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+pub fn struct_definition(model: &dml::Model) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let fields = model

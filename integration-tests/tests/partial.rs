@@ -1,6 +1,6 @@
 use crate::{db::*, utils::*};
 
-user::partial!(UserPartialType {
+user::partial_unchecked!(UserPartialType {
     name
     email
 });
@@ -22,7 +22,7 @@ async fn scalars() -> TestResult {
 
     let updated_user = client
         .user()
-        .update(user::id::equals(user.id), updates.to_params())
+        .update_unchecked(user::id::equals(user.id), updates.to_params())
         .exec()
         .await?;
 

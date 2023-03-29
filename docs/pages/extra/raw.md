@@ -77,6 +77,8 @@ assert_eq!(count, 1);
 
 ## MongoDB
 
+_Available since v0.6.7_
+
 When using MongDB,
 the client exposes multiple functions for performing raw queries that use [`serde_json::Value`](https://docs.rs/serde_json/latest/serde_json/value/enum.Value.html)
 as arguments.
