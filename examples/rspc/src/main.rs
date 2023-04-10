@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rspc::{Config, Router};
 
+#[allow(warnings, unused)]
 mod db;
 
 type Ctx = Arc<db::PrismaClient>;

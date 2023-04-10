@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::db::*;
 
+#[allow(warnings, unused)]
 mod db;
 mod routes;
 

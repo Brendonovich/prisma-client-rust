@@ -1,6 +1,7 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 
+#[allow(warnings, unused)]
 mod db;
 
 use db::*;

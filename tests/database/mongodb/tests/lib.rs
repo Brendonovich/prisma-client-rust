@@ -1,3 +1,4 @@
+#[allow(warnings, unused)]
 mod db;
 mod utils;
 

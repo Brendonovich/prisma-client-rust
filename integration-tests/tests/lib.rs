@@ -1,5 +1,6 @@
 use utils::{cleanup, TestResult};
 
+#[allow(warnings, unused)]
 mod db;
 mod transaction;
 mod utils;
