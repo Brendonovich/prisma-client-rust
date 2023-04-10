@@ -108,10 +108,11 @@ impl GenerateArgs {
 
                     let mut name = e.name.clone();
 
-                    if p.name.contains("ListFilter") {
+                    // checking for both is invalid - fields can be list or null but not both
+                    // TODO: make this more typesafe to correspond with fields
+                    if p.name.contains("List") {
                         name += "List";
-                    }
-                    if p.name.contains("Nullable") {
+                    } else if p.name.contains("Nullable") {
                         name += "Nullable";
                     }
 
@@ -305,34 +306,24 @@ impl GenerateArgs {
     }
 
     pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        match &field.field_type {
-            FieldType::Scalar(typ, _) => {
-                let mut typ = match typ.to_string().as_str() {
-                    "Boolean" => "Bool".to_string(),
-                    n => n.to_string(),
-                };
+        let postfix = match field.arity {
+            FieldArity::List => "List",
+            FieldArity::Optional => "Nullable",
+            _ => "",
+        };
 
-                match field.arity {
-                    FieldArity::List => typ += "List",
-                    FieldArity::Optional => typ += "Nullable",
-                    _ => {}
-                }
+        let base = match &field.field_type {
+            FieldType::Scalar(typ, _) => match typ.to_string().as_str() {
+                "Boolean" => "Bool".to_string(),
+                n => n.to_string(),
+            },
+            FieldType::Enum(e) => e.clone(),
+            _ => return None,
+        };
 
-                self.read_filters.iter().find(|f| f.name == typ)
-            }
-            FieldType::Enum(e) => {
-                let mut typ = e.clone();
-
-                match field.arity {
-                    FieldArity::List => typ += "List",
-                    FieldArity::Optional => typ += "Nullable",
-                    _ => {}
-                }
-
-                self.read_filters.iter().find(|f| &f.name == e)
-            }
-            _ => None,
-        }
+        self.read_filters
+            .iter()
+            .find(|f| f.name == format!("{base}{postfix}"))
     }
 
     pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {

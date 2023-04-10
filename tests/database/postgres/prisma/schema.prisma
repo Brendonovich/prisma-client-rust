@@ -11,10 +11,12 @@ generator client {
 }
 
 model SomeModel {
-    id                 String    @id
+    id                 String     @id
     some_column        Json?
     some_enum          SomeEnum
     some_enum_optional SomeEnum?
+    // https://github.com/Brendonovich/prisma-client-rust/issues/303
+    enum_list          SomeEnum[]
 }
 
 enum SomeEnum {
