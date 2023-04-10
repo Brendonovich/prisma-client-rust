@@ -8,6 +8,7 @@ use axum::{
 };
 use graphql::schema::{build_schema, AppSchema};
 
+#[allow(warnings, unused)]
 pub mod db;
 pub mod graphql;
 

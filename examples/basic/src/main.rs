@@ -1,5 +1,6 @@
 use crate::db::*;
 
+#[allow(warnings, unused)]
 pub mod db;
 
 #[tokio::main]

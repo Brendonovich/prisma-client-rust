@@ -36,8 +36,6 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         .unwrap_or_default();
 
     quote! {
-        #![allow(warnings, unused)]
-
         pub static DATAMODEL_STR: &'static str = include_str!(#schema_path_str);
         static DATABASE_STR: &'static str = #database_string;
 

@@ -5,6 +5,7 @@ use rocket::serde::json::Json;
 #[macro_use]
 extern crate rocket;
 
+#[allow(warnings, unused)]
 pub mod db;
 
 use db::{post, user};
