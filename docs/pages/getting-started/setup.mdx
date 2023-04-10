@@ -60,6 +60,8 @@ Using the above schema for reference,
 this builder creates a client in a `main.rs` file right next to `prisma.rs`:
 
 ```rust filename="src/main.rs"
+// Stops the client from outputing a huge number of warnings during compilation.
+#[allow(warnings, unused)]
 mod prisma;
 
 use prisma::PrismaClient;
