@@ -1,7 +1,8 @@
+use serde::Serialize;
 use thiserror::Error;
 use user_facing_errors::UserFacingError;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum QueryError {
     #[error("Error executing query: {} - {}", .0.as_known().map(|k| k.error_code.to_string()).unwrap_or("Unknown".to_string()), .0.message())]
     Execute(user_facing_errors::Error),
