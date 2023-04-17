@@ -5,6 +5,7 @@
 mod db;
 
 use db::*;
+use prisma_client_rust::QueryError;
 use serde::Deserialize;
 use specta::{collect_types, Type};
 use std::sync::Arc;
@@ -15,8 +16,8 @@ type DbState<'a> = State<'a, Arc<PrismaClient>>;
 
 #[tauri::command]
 #[specta::specta]
-async fn get_posts(db: DbState<'_>) -> Result<Vec<post::Data>, ()> {
-    db.post().find_many(vec![]).exec().await.map_err(|_| ())
+async fn get_posts(db: DbState<'_>) -> Result<Vec<post::Data>, QueryError> {
+    db.post().find_many(vec![]).exec().await
 }
 
 #[derive(Deserialize, Type)]

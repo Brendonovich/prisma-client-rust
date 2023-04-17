@@ -23,7 +23,7 @@ pub fn model_macro<'a>(model: &'a dml::Model, module_path: &TokenStream) -> Toke
         quote! {
             #[serde(rename = #field_name_str)]
             #double_option_attrs
-            #field_name_snake: #field_type
+            pub #field_name_snake: #field_type
         }
     });
 
