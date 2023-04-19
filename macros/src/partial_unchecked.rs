@@ -45,7 +45,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             quote! {
                 #(#attrs)*
                 #specta_attrs
-                #ident: Option<#ty>
+                pub #ident: Option<#ty>
             }
         });
 
