@@ -4,11 +4,11 @@ use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let model_actions = args
-        .dml
-        .models
-        .iter()
+        .schema
+        .db
+        .walk_models()
         .map(|model| {
-            let model_name_snake = snake_ident(&model.name);
+            let model_name_snake = snake_ident(model.name());
 
             quote! {
                 pub fn #model_name_snake(&self) -> super::#model_name_snake::Actions {

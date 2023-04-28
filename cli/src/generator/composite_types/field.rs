@@ -1,13 +1,15 @@
 use super::where_params::Variant;
-use prisma_client_rust_sdk::prelude::*;
+use prisma_client_rust_sdk::{
+    prelude::*, prisma::prisma_models::walkers::CompositeTypeFieldWalker,
+};
 
 pub fn module(
-    field: &dml::CompositeTypeField,
+    field: CompositeTypeFieldWalker,
     module_path: &TokenStream,
 ) -> (TokenStream, Variant) {
-    let field_name_str = &field.name;
-    let field_name_snake = snake_ident(&field.name);
-    let field_name_pascal = pascal_ident(&field.name);
+    let field_name_str = field.name();
+    let field_name_snake = snake_ident(field.name());
+    let field_name_pascal = pascal_ident(field.name());
 
     let field_type = field.type_tokens(module_path);
     let value_ident = format_ident!("value");

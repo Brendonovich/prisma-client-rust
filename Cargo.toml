@@ -25,34 +25,32 @@ exclude = ["examples/tauri"]
 resolver = "2"
 
 [features]
-default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 rspc = ["dep:rspc", "specta"]
 specta = ["dep:specta", "prisma-client-rust-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
-migrations = ["migration-core", "include_dir", "tempdir", "tokio/fs", "tracing"]
+migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:tracing"]
 mocking = ["tokio"]
 # mutation-callbacks = []
 
-mysql = ["query-core/mysql", "migration-core/mysql"]
-sqlite = ["query-core/sqlite", "migration-core/sqlite"]
-mssql = ["query-core/mssql", "migration-core/mssql"]
-postgresql = ["query-core/postgresql", "migration-core/postgresql"]
-mongodb = ["query-core/mongodb", "migration-core/mongodb"]
+mysql = ["schema-core/mysql", "request-handlers/mysql"]
+sqlite = ["schema-core/sqlite", "request-handlers/sqlite"]
+mssql = ["schema-core/mssql", "request-handlers/mssql"]
+postgresql = ["schema-core/postgresql", "request-handlers/postgresql"]
+
+mongodb = ["schema-core/mongodb", "request-handlers/mongodb"]
+
 
 [workspace.dependencies]
 prisma-client-rust = { path = "." }
 
-diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-dml = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-migration-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-psl = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-schema = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.5" }
+diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+schema-core = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", branch = "new-4.14.0-pcr" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -77,18 +75,15 @@ futures = "0.3"
 paste = "1.0.11"
 prisma-client-rust-macros = { path = "./macros" }
 
-query-core.workspace = true
-query-connector.workspace = true
-prisma-models.workspace = true
-dml.workspace = true
-user-facing-errors.workspace = true
-dmmf.workspace = true
-schema.workspace = true
-psl.workspace = true
-diagnostics.workspace = true
+prisma-models = { workspace = true }
+user-facing-errors = { workspace = true }
+psl = { workspace = true }
+diagnostics = { workspace = true }
+request-handlers = { workspace = true }
+query-core = { workspace = true }
 
 # features = "migrations"
-migration-core = { workspace = true, optional = true }
+schema-core = { workspace = true, optional = true }
 include_dir = { version = "0.7.2", optional = true }
 tempdir = { version = "0.3.7", optional = true }
 tracing = { version = "0.1.36", optional = true }
@@ -99,7 +94,6 @@ specta = { optional = true, workspace = true, features = [
   "chrono",
   "uuid",
 ] }
-
 
 # features = "rspc"
 rspc = { optional = true, workspace = true }

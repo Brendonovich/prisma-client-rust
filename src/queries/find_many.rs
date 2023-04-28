@@ -1,5 +1,5 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection};
+use query_core::{ArgumentValue, Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
@@ -107,8 +107,8 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                         .into(),
                     )
                 }),
-                skip.map(|skip| ("skip".to_string(), QueryValue::Int(skip as i64))),
-                take.map(|take| ("take".to_string(), QueryValue::Int(take as i64))),
+                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
+                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
             ]
             .into_iter()
             .flatten(),
@@ -269,60 +269,60 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
         self
     }
 
-    pub fn to_graphql(self) -> (Vec<(String, QueryValue)>, Vec<Selection>) {
-        let (mut arguments, mut nested_selections) = (vec![], vec![]);
-
-        if self.with_params.len() > 0 {
-            nested_selections = self.with_params.into_iter().map(Into::into).collect()
-        }
-
-        if self.where_params.len() > 0 {
-            arguments.push((
-                "where".to_string(),
-                PrismaValue::Object(
-                    self.where_params
-                        .into_iter()
-                        .map(WhereInput::serialize)
-                        .map(Into::into)
-                        .collect(),
+    pub fn to_graphql(self) -> (Vec<(String, ArgumentValue)>, Vec<Selection>) {
+        let arguments = [
+            (!self.where_params.is_empty()).then(|| {
+                (
+                    "where".to_string(),
+                    PrismaValue::Object(
+                        self.where_params
+                            .into_iter()
+                            .map(WhereInput::serialize)
+                            .map(Into::into)
+                            .collect(),
+                    )
+                    .into(),
                 )
-                .into(),
-            ));
-        }
-
-        if self.order_by_params.len() > 0 {
-            arguments.push((
-                "orderBy".to_string(),
-                PrismaValue::List(
-                    self.order_by_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(|v| PrismaValue::Object(vec![v]))
-                        .collect(),
+            }),
+            (!self.order_by_params.is_empty()).then(|| {
+                (
+                    "orderBy".to_string(),
+                    PrismaValue::List(
+                        self.order_by_params
+                            .into_iter()
+                            .map(Into::into)
+                            .map(|v| PrismaValue::Object(vec![v]))
+                            .collect(),
+                    )
+                    .into(),
                 )
-                .into(),
-            ));
-        }
-
-        if self.cursor_params.len() > 0 {
-            arguments.push((
-                "cursor".to_string(),
-                PrismaValue::Object(
-                    self.cursor_params
-                        .into_iter()
-                        .map(Into::into)
-                        .map(WhereInput::serialize)
-                        .map(SerializedWhereInput::transform_equals)
-                        .collect(),
+            }),
+            (!self.cursor_params.is_empty()).then(|| {
+                (
+                    "cursor".to_string(),
+                    PrismaValue::Object(
+                        self.cursor_params
+                            .into_iter()
+                            .map(Into::into)
+                            .map(WhereInput::serialize)
+                            .map(SerializedWhereInput::transform_equals)
+                            .collect(),
+                    )
+                    .into(),
                 )
-                .into(),
-            ));
-        }
+            }),
+            self.skip
+                .map(|skip| ("skip".to_string(), PrismaValue::Int(skip).into())),
+            self.take
+                .map(|take| ("take".to_string(), PrismaValue::Int(take).into())),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
 
-        self.skip
-            .map(|skip| arguments.push(("skip".to_string(), QueryValue::Int(skip))));
-        self.take
-            .map(|take| arguments.push(("take".to_string(), QueryValue::Int(take))));
+        let nested_selections = (self.with_params.len() > 0)
+            .then(|| self.with_params.into_iter().map(Into::into).collect())
+            .unwrap_or_default();
 
         (arguments, nested_selections)
     }

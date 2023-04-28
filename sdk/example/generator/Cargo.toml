@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
-
 mysql = ["prisma-client-rust-sdk/mysql"]
 sqlite = ["prisma-client-rust-sdk/sqlite"]
 mssql = ["prisma-client-rust-sdk/mssql"]

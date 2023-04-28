@@ -4,6 +4,7 @@ use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let internal_enums = args
+        .dmmf
         .schema
         .enum_types
         .get("prisma")

@@ -1,6 +1,6 @@
 use std::{future::Future, marker::PhantomData};
 
-use query_core::TxId;
+use query_core::{protocol::EngineProtocol, TransactionOptions, TxId};
 
 use crate::{ExecutionEngine, PrismaClient, PrismaClientInternals, QueryError};
 
@@ -50,9 +50,8 @@ impl<'a, TClient: PrismaClient> TransactionBuilder<'a, TClient> {
                     .executor
                     .start_tx(
                         connector.query_schema.clone(),
-                        self.max_wait,
-                        self.timeout,
-                        self.isolation_level,
+                        EngineProtocol::Graphql,
+                        TransactionOptions::new(self.max_wait, self.timeout, self.isolation_level),
                     )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
@@ -85,9 +84,8 @@ impl<'a, TClient: PrismaClient> TransactionBuilder<'a, TClient> {
                     .executor
                     .start_tx(
                         connector.query_schema.clone(),
-                        self.max_wait,
-                        self.timeout,
-                        self.isolation_level,
+                        EngineProtocol::Graphql,
+                        TransactionOptions::new(self.max_wait, self.timeout, self.isolation_level),
                     )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;

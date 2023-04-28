@@ -1,8 +1,13 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::walkers::{ModelWalker, RefinedFieldWalker},
+    psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
 use super::required_fields;
 
-fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
+fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
         .fields()
         .filter_map(|field| {
@@ -14,13 +19,20 @@ fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
 
             Some((
                 name_snake,
-                match field {
-                    dml::Field::RelationField(_) => return None,
-                    dml::Field::CompositeField(cf) => {
-                        let comp_type_snake = snake_ident(&cf.composite_type);
-                        quote!(super::#comp_type_snake::Create)
+                match field.refine() {
+                    RefinedFieldWalker::Relation(_) => return None,
+                    RefinedFieldWalker::Scalar(scalar_field) => {
+                        match scalar_field.scalar_field_type() {
+                            ScalarFieldType::CompositeType(id) => {
+                                let comp_type = model.db.walk(id);
+
+                                let comp_type_snake = snake_ident(comp_type.name());
+
+                                quote!(super::#comp_type_snake::Create)
+                            }
+                            _ => field.type_tokens(&quote!(super))?,
+                        }
                     }
-                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
                 },
             ))
         })
@@ -34,10 +46,10 @@ fn create_unchecked(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-fn create(model: &dml::Model) -> Option<TokenStream> {
+fn create(model: ModelWalker) -> Option<TokenStream> {
     let (required_field_names, required_field_types): (Vec<_>, Vec<_>) = required_fields(model)?
         .iter()
-        .map(|field| (snake_ident(field.name()), field.typ.clone()))
+        .map(|field| (snake_ident(field.inner.name()), field.typ.clone()))
         .unzip();
 
     Some(quote! {
@@ -48,7 +60,7 @@ fn create(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn model_fns(model: &dml::Model) -> TokenStream {
+pub fn model_fns(model: ModelWalker) -> TokenStream {
     let create_unchecked = create_unchecked(model);
     let create = create(model);
 

@@ -1,12 +1,11 @@
 use std::{future::Future, pin::Pin};
 
 pub use include_dir;
-pub use migration_core::CoreError;
-use migration_core::{
+pub use schema_core::CoreError;
+use schema_core::{
     commands,
     json_rpc::types::{ApplyMigrationsInput, MarkMigrationAppliedInput, SchemaPushInput},
-    state::EngineState,
-    GenericApi,
+    EngineState, GenericApi,
 };
 use thiserror::Error;
 use tokio::fs::remove_dir_all;
@@ -20,13 +19,13 @@ fn format_error_array(arr: &[String]) -> String {
 #[derive(Error, Debug)]
 pub enum DbPushError {
     #[error("Failed to reset database: ${0}")]
-    ResetFailed(migration_core::CoreError),
+    ResetFailed(CoreError),
     #[error("Some changes could not be executed:\n {}", format_error_array(.0))]
     UnexecutableChanges(Vec<String>),
     #[error("Data loss may occur:\n {}", format_error_array(.0))]
     PossibleDataLoss(Vec<String>),
     #[error("An error occured pushing schema to the database: ${0}")]
-    Other(#[from] migration_core::CoreError),
+    Other(#[from] CoreError),
 }
 
 pub struct DbPush<'a> {
@@ -119,7 +118,7 @@ pub enum MigrateDeployError {
     #[error("An error occurred extracting the migrations to the temporary directory: {0}")]
     ExtractMigrations(std::io::Error),
     #[error("An error occurred running the migrations: {0}")]
-    Connector(#[from] migration_core::CoreError),
+    Connector(#[from] CoreError),
     #[error("An error occurred removing the temporary directory for the migrations: {0}")]
     RemoveDir(std::io::Error),
 }
@@ -191,7 +190,7 @@ impl<'a> Future for MigrateDeploy<'a> {
                     .with_connector_for_url(
                         url.to_string(),
                         Box::new(|connector| {
-                            Box::pin(commands::apply_migrations(input, connector))
+                            Box::pin(commands::apply_migrations(input, connector, None))
                         }),
                     )
                     .await;
@@ -224,7 +223,7 @@ pub enum MigrateResolveError {
     #[error("An error occurred extracting the migrations to the temporary directory: {0}")]
     ExtractMigrations(std::io::Error),
     #[error("An error occurred running the migrations: {0}")]
-    Connector(#[from] migration_core::CoreError),
+    Connector(#[from] CoreError),
     #[error("An error occurred removing the temporary directory for the migrations: {0}")]
     RemoveDir(std::io::Error),
 }

@@ -6,13 +6,12 @@ edition = "2021"
 rust-version = "1.62"
 
 [features]
-default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
+mysql = ["request-handlers/mysql"]
+sqlite = ["request-handlers/sqlite"]
+mssql = ["request-handlers/mssql"]
+postgresql = ["request-handlers/postgresql"]
 
-mysql = ["query-core/mysql"]
-sqlite = ["query-core/sqlite"]
-mssql = ["query-core/mssql"]
-postgresql = ["query-core/postgresql"]
-mongodb = ["query-core/mongodb"]
+mongodb = ["request-handlers/mongodb"]
 
 sqlite-create-many = ["psl/sqlite-create-many"]
 
@@ -26,9 +25,8 @@ syn = "1.0.91"
 proc-macro2 = "1.0.39"
 thiserror = "1.0.37"
 
-prisma-models.workspace = true
-request-handlers.workspace = true
-query-core.workspace = true
-dmmf.workspace = true
-dml.workspace = true
-psl.workspace = true
+prisma-models = { workspace = true }
+request-handlers = { workspace = true }
+query-core = { workspace = true }
+dmmf = { workspace = true }
+psl = { workspace = true }

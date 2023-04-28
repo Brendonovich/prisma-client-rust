@@ -1,83 +1,108 @@
-use dml::{
-    CompositeTypeField, CompositeTypeFieldType, Field, FieldArity, FieldType, Model, ScalarField,
-    ScalarType,
+use prisma_models::walkers::{
+    CompositeTypeFieldWalker, FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker,
 };
+use prisma_models::FieldArity;
+use psl::parser_database::{ParserDatabase, ScalarFieldType, ScalarType};
 
 use crate::prelude::*;
 
-pub trait ModelExt {
-    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool;
-    fn required_scalar_fields(&self) -> Vec<&Field>;
+pub trait ModelExt<'a> {
+    fn scalar_field_has_relation(self, scalar: ScalarFieldWalker) -> bool;
+    fn required_scalar_fields(self) -> Vec<FieldWalker<'a>>;
 }
 
-impl ModelExt for Model {
-    fn scalar_field_has_relation(&self, scalar: &ScalarField) -> bool {
-        self.fields.iter().any(|field| {
-            if let FieldType::Relation(info) = field.field_type() {
-                field.arity().is_required() && info.fields.iter().any(|f| f == &scalar.name)
-            } else {
-                false
+impl<'a> ModelExt<'a> for ModelWalker<'a> {
+    fn scalar_field_has_relation(self, scalar: ScalarFieldWalker) -> bool {
+        self.fields().any(|field| match field.refine() {
+            RefinedFieldWalker::Relation(relation_field) => {
+                field.ast_field().arity.is_required()
+                    && relation_field
+                        .fields()
+                        .unwrap()
+                        .any(|f| f.field_id() == scalar.field_id())
             }
+            _ => false,
         })
     }
 
-    fn required_scalar_fields(&self) -> Vec<&Field> {
+    fn required_scalar_fields(self) -> Vec<FieldWalker<'a>> {
         self.fields()
-            .filter(|f| f.required_on_create() && f.is_scalar_field())
+            .filter(|&f| {
+                f.required_on_create() && matches!(f.refine(), RefinedFieldWalker::Relation(_))
+            })
             .collect()
     }
 }
 
-pub trait FieldExt {
-    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream>;
+pub trait FieldExt<'a> {
+    fn type_tokens(self, prefix: &TokenStream) -> Option<TokenStream>;
 
-    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream>;
+    fn type_prisma_value(self, var: &Ident) -> Option<TokenStream>;
 
-    fn relation_methods(&self) -> &'static [&'static str];
+    fn relation_methods(self) -> &'static [&'static str];
 
-    fn required_on_create(&self) -> bool;
+    fn required_on_create(self) -> bool;
 }
 
-impl FieldExt for Field {
-    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream> {
-        self.field_type().to_tokens(prefix, self.arity())
+impl<'a> FieldExt<'a> for FieldWalker<'a> {
+    fn type_tokens(self, prefix: &TokenStream) -> Option<TokenStream> {
+        match self.refine() {
+            RefinedFieldWalker::Scalar(scalar_field) => scalar_field.scalar_field_type().to_tokens(
+                prefix,
+                &self.ast_field().arity,
+                &self.db,
+            ),
+            RefinedFieldWalker::Relation(relation_field) => {
+                let related_model_name_snake = snake_ident(relation_field.related_model().name());
+
+                Some(
+                    self.ast_field()
+                        .arity
+                        .wrap_type(&quote!(#prefix::#related_model_name_snake::Data)),
+                )
+            }
+        }
     }
 
-    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream> {
-        self.field_type().to_prisma_value(var, self.arity())
+    fn type_prisma_value(self, var: &Ident) -> Option<TokenStream> {
+        match self.refine() {
+            RefinedFieldWalker::Scalar(scalar_field) => scalar_field.type_prisma_value(var),
+            RefinedFieldWalker::Relation(_) => None,
+        }
     }
 
-    fn relation_methods(&self) -> &'static [&'static str] {
-        if self.arity().is_list() {
+    fn relation_methods(self) -> &'static [&'static str] {
+        if self.ast_field().arity.is_list() {
             &["some", "every", "none"]
         } else {
             &["is", "is_not"]
         }
     }
 
-    fn required_on_create(&self) -> bool {
-        self.arity().is_required()
-            && !self.is_updated_at()
-            && self.default_value().is_none()
-            && !matches!(self, Field::RelationField(r) if r.arity.is_list())
+    fn required_on_create(self) -> bool {
+        self.ast_field().arity.is_required()
+            && match self.refine() {
+                RefinedFieldWalker::Scalar(scalar_field) => scalar_field.required_on_create(),
+                RefinedFieldWalker::Relation(_) => true,
+            }
     }
 }
 
-impl FieldExt for CompositeTypeField {
-    fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream> {
-        self.r#type.to_tokens(prefix, &self.arity)
+impl<'a> FieldExt<'a> for CompositeTypeFieldWalker<'a> {
+    fn type_tokens(self, prefix: &TokenStream) -> Option<TokenStream> {
+        self.r#type().to_tokens(prefix, &self.arity(), &self.db)
     }
 
-    fn type_prisma_value(&self, var: &Ident) -> Option<TokenStream> {
-        self.r#type.to_prisma_value(var, &self.arity)
+    fn type_prisma_value(self, var: &Ident) -> Option<TokenStream> {
+        self.r#type().to_prisma_value(var, &self.arity())
     }
 
-    fn relation_methods(&self) -> &'static [&'static str] {
+    fn relation_methods(self) -> &'static [&'static str] {
         todo!()
     }
 
-    fn required_on_create(&self) -> bool {
-        self.arity.is_required() && self.default_value.is_none()
+    fn required_on_create(self) -> bool {
+        self.ast_field().arity.is_required() && self.default_value().is_none()
     }
 }
 
@@ -111,27 +136,60 @@ impl FieldArityExt for FieldArity {
     }
 }
 
-pub trait FieldTypeExt {
+pub trait ScalarFieldWalkerExt {
     fn to_tokens(&self, prefix: &TokenStream, arity: &FieldArity) -> Option<TokenStream>;
     fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
 }
 
-impl FieldTypeExt for FieldType {
-    fn to_tokens(&self, module_path: &TokenStream, arity: &FieldArity) -> Option<TokenStream> {
-        let base = match self {
-            Self::Enum(name) => {
-                let name = pascal_ident(name);
+impl<'a> FieldExt<'a> for ScalarFieldWalker<'a> {
+    fn type_tokens(self, prefix: &TokenStream) -> Option<TokenStream> {
+        self.scalar_field_type()
+            .to_tokens(prefix, &self.ast_field().arity, self.db)
+    }
+
+    fn type_prisma_value(self, var: &Ident) -> Option<TokenStream> {
+        self.scalar_field_type()
+            .to_prisma_value(var, &self.ast_field().arity)
+    }
+
+    fn relation_methods(self) -> &'static [&'static str] {
+        &[]
+    }
+
+    fn required_on_create(self) -> bool {
+        self.ast_field().arity.is_required()
+            && !self.is_updated_at()
+            && self.default_value().is_none()
+    }
+}
+
+pub trait ScalarFieldTypeExt {
+    fn to_tokens(
+        &self,
+        prefix: &TokenStream,
+        arity: &FieldArity,
+        db: &ParserDatabase,
+    ) -> Option<TokenStream>;
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
+}
+
+impl ScalarFieldTypeExt for ScalarFieldType {
+    fn to_tokens(
+        &self,
+        module_path: &TokenStream,
+        arity: &FieldArity,
+        db: &ParserDatabase,
+    ) -> Option<TokenStream> {
+        let base = match *self {
+            Self::Enum(id) => {
+                let name = snake_ident(db.walk(id).name());
                 quote!(#module_path::#name)
             }
-            Self::Relation(info) => {
-                let model = snake_ident(&info.referenced_model);
-                quote!(#module_path::#model::Data)
-            }
-            Self::Scalar(typ, _) => typ.to_tokens(),
+            Self::BuiltInScalar(typ) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
-            Self::CompositeType(name) => {
-                let ct = snake_ident(&name);
-                quote!(#module_path::#ct::Data)
+            Self::CompositeType(id) => {
+                let name = snake_ident(db.walk(id).name());
+                quote!(#module_path::#name::Data)
             }
         };
 
@@ -142,46 +200,13 @@ impl FieldTypeExt for FieldType {
         let pv = quote!(::prisma_client_rust::PrismaValue);
 
         let scalar_converter = match self {
-            Self::Scalar(typ, _) => typ.to_prisma_value(&var),
+            Self::BuiltInScalar(typ) => typ.to_prisma_value(&var),
             Self::Enum(_) => quote!(#pv::Enum(#var.to_string())),
             Self::Unsupported(_) => return None,
             Self::CompositeType(_) => quote!(#pv::Object(vec![])),
-            _ => todo!(),
         };
 
         Some(arity.wrap_pv(&var, scalar_converter))
-    }
-}
-
-impl FieldTypeExt for CompositeTypeFieldType {
-    fn to_tokens(&self, module_path: &TokenStream, arity: &FieldArity) -> Option<TokenStream> {
-        let base = match self {
-            Self::Enum(name) => {
-                let name = pascal_ident(name);
-                quote!(#module_path::#name)
-            }
-            Self::Scalar(typ, _) => typ.to_tokens(),
-            Self::Unsupported(_) => return None,
-            Self::CompositeType(name) => {
-                let ty = snake_ident(&name);
-                quote!(#module_path::#ty::Data)
-            }
-        };
-
-        Some(arity.wrap_type(&base))
-    }
-
-    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
-        let v = quote!(::prisma_client_rust::PrismaValue);
-
-        let scalar_converter = match self {
-            Self::Scalar(typ, _) => typ.to_prisma_value(&var),
-            Self::Enum(_) => quote!(#v::Enum(#var.to_string())),
-            Self::Unsupported(_) => return None,
-            typ => unimplemented!("{:?}", typ),
-        };
-
-        Some(arity.wrap_pv(var, scalar_converter))
     }
 }
 

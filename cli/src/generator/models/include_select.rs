@@ -1,3 +1,11 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::{
+        walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
+        FieldArity,
+    },
+    psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
 enum Variant {
@@ -27,17 +35,17 @@ impl Variant {
 }
 
 fn model_macro<'a>(
-    model: &'a dml::Model,
+    model: ModelWalker<'a>,
     module_path: &TokenStream,
     variant: Variant,
     // Fields that should always be included
-    base_fields: impl Iterator<Item = &'a dml::Field> + Clone,
+    base_fields: impl Iterator<Item = ScalarFieldWalker<'a>> + Clone,
     // Fields that can be picked from
-    selection_fields: impl Iterator<Item = &'a dml::Field> + Clone,
+    selection_fields: impl Iterator<Item = FieldWalker<'a>> + Clone,
 ) -> TokenStream {
-    let model_name_pascal_str = pascal_ident(&model.name).to_string();
-    let model_name_snake = snake_ident(&model.name);
-    let model_name_snake_raw = snake_ident_raw(&model.name);
+    let model_name_pascal_str = pascal_ident(model.name()).to_string();
+    let model_name_snake = snake_ident(model.name());
+    let model_name_snake_raw = snake_ident_raw(model.name());
     let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
 
     let model_module = quote!(#module_path::#model_name_snake);
@@ -63,13 +71,11 @@ fn model_macro<'a>(
         let field_name_snake = snake_ident(field.name());
         let field_type = field.type_tokens(module_path);
 
-        let selection_type_impl = field.as_relation_field().map(|_| {
-            let field_type = quote!(#field_name_snake::Data);
-            let field_type = match field.arity() {
-                dml::FieldArity::Required => field_type,
-                dml::FieldArity::Optional => quote!(Option<#field_type>),
-                dml::FieldArity::List => quote!(Vec<#field_type>),
-            };
+        let selection_type_impl = matches!(field.refine(), RefinedFieldWalker::Relation(_)).then(|| {
+            let field_type = field
+                .ast_field()
+                .arity
+                .wrap_type(&quote!(#field_name_snake::Data));
 
             quote!((@field_type; #field_name_snake #selections_pattern_produce) => { #field_type };)
         });
@@ -81,8 +87,8 @@ fn model_macro<'a>(
     });
 
     let field_module_impls = model.relation_fields().map(|field| {
-        let field_name_snake = snake_ident(&field.name);
-        let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
+        let field_name_snake = snake_ident(field.name());
+        let relation_model_name_snake = snake_ident(field.related_model().name());
 
         quote! {
             (@field_module; #field_name_snake #selections_pattern_produce) => {
@@ -96,14 +102,14 @@ fn model_macro<'a>(
 
         let field_module = quote!(#model_module::#field_name_snake);
 
-        match field {
-            dml::Field::RelationField(relation_field) =>{
-                let relation_model_name_snake = snake_ident(&relation_field.relation_info.referenced_model);
+        match field.refine() {
+            RefinedFieldWalker::Relation(relation_field) =>{
+                let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
                 let relation_model_module = quote!(#module_path::#relation_model_name_snake);
 
-                match relation_field.arity {
-                    dml::FieldArity::List => {
+                match relation_field.ast_field().arity {
+                    FieldArity::List => {
                         quote! {
                             (@selection_field_to_selection_param; #field_name_snake $(#filters_pattern_produce)? #selections_pattern_produce) => {{
                                 Into::<#model_module::#selection_param>::into(
@@ -149,32 +155,34 @@ fn model_macro<'a>(
                         }};
                     }
                 }
-
             },
-            dml::Field::ScalarField(_) => quote! {
-                (@selection_field_to_selection_param; #field_name_snake) => {
-                    Into::<#model_module::#selection_param>::into(
-                        #field_module::#variant_pascal
-                    )
-                };
-            },
-            dml::Field::CompositeField(_) => quote!()
+            RefinedFieldWalker::Scalar(scalar_field) => match scalar_field.scalar_field_type() {
+                ScalarFieldType::CompositeType(_) => quote!(),
+                _ => {
+                    quote! {
+                        (@selection_field_to_selection_param; #field_name_snake) => {
+                            Into::<#model_module::#selection_param>::into(
+                                #field_module::#variant_pascal
+                            )
+                        };
+                    }
+                }
+            }
         }
     });
 
-    let data_struct_scalar_fields = base_fields.clone().filter_map(|f| {
+    let data_struct_scalar_fields = base_fields.clone().map(|f| {
         let field_name_snake = snake_ident(f.name());
         let field_type = f.type_tokens(module_path);
 
         let specta_rename = cfg!(feature = "specta").then(|| {
             quote!(#[specta(rename_from_path = #module_path::#model_name_snake::#field_name_snake::NAME)])
         });
-
-        f.as_scalar_field()
-            .map(|_| quote! {
-                #specta_rename
-                pub #field_name_snake: #field_type
-            })
+        
+        quote! {
+            #specta_rename
+            pub #field_name_snake: #field_type
+        }
     });
 
     let fields_enum_variants = selection_fields.clone().map(|f| {
@@ -184,7 +192,7 @@ fn model_macro<'a>(
 
     let field_serde_names = model
         .fields()
-        .filter(|f| !f.field_type().is_unsupported())
+        .filter(|f| f.ast_field().field_type.as_unsupported().is_none())
         .map(|f| {
             let field_name_str = f.name();
             let field_name_snake = snake_ident(f.name());
@@ -500,7 +508,7 @@ fn model_macro<'a>(
 }
 
 fn field_module_enum(
-    field: &dml::Field,
+    field: FieldWalker,
     pcr: &TokenStream,
     variant: Variant,
 ) -> Option<TokenStream> {
@@ -510,10 +518,9 @@ fn field_module_enum(
     let variant_pascal = pascal_ident(&variant.to_string());
     let variant_param = variant.param();
 
-    Some(match field {
-        dml::Field::RelationField(relation_field) => {
-            let relation_model_name_snake =
-                snake_ident(&relation_field.relation_info.referenced_model);
+    Some(match field.refine() {
+        RefinedFieldWalker::Relation(relation_field) => {
+            let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
             let initial_nested_selections = match variant {
                 Variant::Include => {
@@ -522,8 +529,8 @@ fn field_module_enum(
                 Variant::Select => quote!(vec![]),
             };
 
-            match field.arity() {
-                dml::FieldArity::List => quote! {
+            match field.ast_field().arity {
+                FieldArity::List => quote! {
                     pub enum #variant_pascal {
                         Select(#relation_model_name_snake::ManyArgs, Vec<#relation_model_name_snake::SelectParam>),
                         Include(#relation_model_name_snake::ManyArgs, Vec<#relation_model_name_snake::IncludeParam>),
@@ -612,22 +619,7 @@ fn field_module_enum(
                 },
             }
         }
-        dml::Field::ScalarField(_) => quote! {
-            pub struct #variant_pascal;
-
-            impl Into<super::#variant_param> for #variant_pascal {
-                fn into(self) -> super::#variant_param {
-                    super::#variant_param::#field_name_pascal(self)
-                }
-            }
-
-            impl #variant_pascal {
-                pub fn to_selection(self) -> #pcr::Selection {
-                    #pcr::sel(NAME)
-                }
-            }
-        },
-        dml::Field::CompositeField(_) => quote! {
+        RefinedFieldWalker::Scalar(_) => quote! {
             pub struct #variant_pascal;
 
             impl Into<super::#variant_param> for #variant_pascal {
@@ -645,12 +637,12 @@ fn field_module_enum(
     })
 }
 
-fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) -> TokenStream {
+fn model_module_enum(model: ModelWalker, pcr: &TokenStream, variant: Variant) -> TokenStream {
     let variant_pascal = pascal_ident(&variant.to_string());
 
     let variants = model
         .fields()
-        .filter(|f| !f.field_type().is_unsupported())
+        .filter(|f| !f.ast_field().field_type.as_unsupported().is_some())
         .map(|field| {
             let field_name_snake = snake_ident(field.name());
             let field_name_pascal = pascal_ident(field.name());
@@ -660,7 +652,7 @@ fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) ->
 
     let field_names_pascal = model
         .fields()
-        .filter(|f| !f.field_type().is_unsupported())
+        .filter(|f| !f.ast_field().field_type.as_unsupported().is_some())
         .map(|field| pascal_ident(field.name()));
 
     let variant_param = variant.param();
@@ -681,49 +673,59 @@ fn model_module_enum(model: &dml::Model, pcr: &TokenStream, variant: Variant) ->
 }
 
 pub mod include {
+    use prisma_client_rust_sdk::prisma::prisma_models::walkers::{
+        FieldWalker, ModelWalker, RefinedFieldWalker,
+    };
+
     use super::*;
 
-    pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+    pub fn model_macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
         super::model_macro(
             model,
             module_path,
             Variant::Include,
             model
-                .fields()
-                .filter(|f| f.is_scalar_field() && !f.field_type().is_unsupported()),
+                .scalar_fields()
+                .filter(|f| !f.scalar_field_type().is_unsupported())
+                .collect::<Vec<_>>()
+                .into_iter(),
             model
                 .fields()
-                .filter(|f| f.is_relation() && !f.field_type().is_unsupported()),
+                .filter(|f| matches!(f.refine(), RefinedFieldWalker::Relation(_))),
         )
     }
 
-    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> Option<TokenStream> {
+    pub fn field_module_enum(field: FieldWalker, pcr: &TokenStream) -> Option<TokenStream> {
         super::field_module_enum(field, pcr, Variant::Include)
     }
 
-    pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
+    pub fn model_module_enum(model: ModelWalker, pcr: &TokenStream) -> TokenStream {
         super::model_module_enum(model, pcr, Variant::Include)
     }
 }
 
 pub mod select {
+    use prisma_client_rust_sdk::prisma::prisma_models::walkers::{FieldWalker, ModelWalker};
+
     use super::*;
 
-    pub fn model_macro(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+    pub fn model_macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
         super::model_macro(
             model,
             module_path,
             Variant::Select,
-            [].iter(),
-            model.fields().filter(|f| !f.field_type().is_unsupported()),
+            vec![].into_iter(),
+            model
+                .fields()
+                .filter(|f| f.ast_field().field_type.as_unsupported().is_none()),
         )
     }
 
-    pub fn field_module_enum(field: &dml::Field, pcr: &TokenStream) -> Option<TokenStream> {
+    pub fn field_module_enum(field: FieldWalker, pcr: &TokenStream) -> Option<TokenStream> {
         super::field_module_enum(field, pcr, Variant::Select)
     }
 
-    pub fn model_module_enum(model: &dml::Model, pcr: &TokenStream) -> TokenStream {
+    pub fn model_module_enum(model: ModelWalker, pcr: &TokenStream) -> TokenStream {
         super::model_module_enum(model, pcr, Variant::Select)
     }
 }

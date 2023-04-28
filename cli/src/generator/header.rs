@@ -13,11 +13,11 @@ fn find_migrations_path(schema_path: &PathBuf) -> PathBuf {
 }
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
-    let database_string = &args.dmmf.datasources[0].provider;
+    let database_string = &args.engine_dmmf.datasources[0].provider;
 
     let pcr = quote!(::prisma_client_rust);
 
-    let schema_path_str = &args.dmmf.schema_path;
+    let schema_path_str = &args.engine_dmmf.schema_path;
     let schema_path = schema_path_str
         .parse()
         .expect("Failed to parse schema path!");

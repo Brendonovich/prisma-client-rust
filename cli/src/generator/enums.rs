@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
-    let enums = args.dml.enums.iter().map(|e| {
+    let enums = args.dmmf.data_model.enums.iter().map(|e| {
         let name = pascal_ident(&e.name);
 
         let variants = e

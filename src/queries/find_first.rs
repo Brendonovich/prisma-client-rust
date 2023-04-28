@@ -1,5 +1,5 @@
 use prisma_models::PrismaValue;
-use query_core::{Operation, QueryValue, Selection};
+use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
@@ -107,8 +107,8 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                         .into(),
                     )
                 }),
-                skip.map(|skip| ("skip".to_string(), QueryValue::Int(skip as i64))),
-                take.map(|take| ("take".to_string(), QueryValue::Int(take as i64))),
+                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
+                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
             ]
             .into_iter()
             .flatten(),

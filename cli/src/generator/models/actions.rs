@@ -1,12 +1,23 @@
 use crate::generator::prelude::{prisma::psl::datamodel_connector, *};
-use prisma_client_rust_sdk::GenerateArgs;
+use prisma_client_rust_sdk::{
+    prisma::{
+        prisma_models::walkers::{ModelWalker, RefinedFieldWalker},
+        psl::parser_database::ScalarFieldType,
+    },
+    GenerateArgs,
+};
 
 use super::required_fields;
 
-pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
         .into_iter()
-        .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+        .map(|field| {
+            (
+                snake_ident(field.inner.name()),
+                (field.typ, field.wrapped_param),
+            )
+        })
         .unzip();
 
     Some(quote! {
@@ -23,7 +34,7 @@ pub fn create_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
         .fields()
         .filter_map(|field| {
@@ -35,13 +46,20 @@ pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
 
             Some((
                 name_snake,
-                match field {
-                    dml::Field::RelationField(_) => return None,
-                    dml::Field::CompositeField(cf) => {
-                        let comp_type_snake = snake_ident(&cf.composite_type);
-                        quote!(super::#comp_type_snake::Create)
+                match field.refine() {
+                    RefinedFieldWalker::Relation(_) => return None,
+                    RefinedFieldWalker::Scalar(scalar_field) => {
+                        match scalar_field.scalar_field_type() {
+                            ScalarFieldType::CompositeType(id) => {
+                                let comp_type = model.db.walk(id);
+
+                                let comp_type_snake = snake_ident(comp_type.name());
+
+                                quote!(super::#comp_type_snake::Create)
+                            }
+                            _ => field.type_tokens(&quote!(super))?,
+                        }
                     }
-                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
                 },
             ))
         })
@@ -61,7 +79,7 @@ pub fn create_unchecked_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
         .fields()
         .filter_map(|field| {
@@ -73,13 +91,20 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
 
             Some((
                 name_snake,
-                match field {
-                    dml::Field::RelationField(_) => return None,
-                    dml::Field::CompositeField(cf) => {
-                        let comp_type_snake = snake_ident(&cf.composite_type);
-                        quote!(super::#comp_type_snake::Create)
+                match field.refine() {
+                    RefinedFieldWalker::Relation(_) => return None,
+                    RefinedFieldWalker::Scalar(scalar_field) => {
+                        match scalar_field.scalar_field_type() {
+                            ScalarFieldType::CompositeType(id) => {
+                                let comp_type = model.db.walk(id);
+
+                                let comp_type_snake = snake_ident(comp_type.name());
+
+                                quote!(super::#comp_type_snake::Create)
+                            }
+                            _ => field.type_tokens(&quote!(super))?,
+                        }
                     }
-                    dml::Field::ScalarField(_) => field.type_tokens(&quote!(super))?,
                 },
             ))
         })
@@ -103,10 +128,15 @@ pub fn create_many_fn(model: &dml::Model) -> Option<TokenStream> {
     })
 }
 
-pub fn upsert_fn(model: &dml::Model) -> Option<TokenStream> {
+pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
         .into_iter()
-        .map(|field| (snake_ident(field.name()), (field.typ, field.wrapped_param)))
+        .map(|field| {
+            (
+                snake_ident(field.inner.name()),
+                (field.typ, field.wrapped_param),
+            )
+        })
         .unzip();
 
     Some(quote! {
@@ -148,7 +178,7 @@ pub fn mongo_raw_fns() -> Option<TokenStream> {
     })
 }
 
-pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream {
+pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let create_fn = create_fn(model);
@@ -159,7 +189,7 @@ pub fn struct_definition(model: &dml::Model, args: &GenerateArgs) -> TokenStream
     let create_many_fn = (args
         .connector
         .capabilities()
-        .contains(&datamodel_connector::ConnectorCapability::CreateMany))
+        .contains(datamodel_connector::ConnectorCapability::CreateMany))
     .then(|| create_many_fn(model));
 
     quote! {

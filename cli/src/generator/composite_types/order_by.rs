@@ -1,22 +1,27 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::walkers::CompositeTypeWalker, psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
-pub fn enum_definition(comp_type: &dml::CompositeType) -> TokenStream {
+pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = comp_type
-        .fields
-        .iter()
+        .fields()
         .flat_map(|field| {
-            let field_name_snake = snake_ident(&field.name);
-            let field_name_pascal = pascal_ident(&field.name);
+            let field_name_snake = snake_ident(field.name());
+            let field_name_pascal = pascal_ident(field.name());
 
-            if field.arity.is_list() {
+            if field.ast_field().arity.is_list() {
                 return None;
             }
 
-            Some(match &field.r#type {
-                dml::CompositeTypeFieldType::CompositeType(cf) => {
-                    let composite_type_snake = snake_ident(&cf);
+            Some(match field.r#type() {
+                ScalarFieldType::CompositeType(id) => {
+                    let comp_type = field.db.walk(id);
+
+                    let composite_type_snake = snake_ident(comp_type.name());
 
                     (
                         quote!(#field_name_pascal(Vec<super::#composite_type_snake::OrderByParam>)),

@@ -1,23 +1,29 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
-pub fn scalar_selections_fn(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+pub fn scalar_selections_fn(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let selections = model.fields().flat_map(|field| {
+    let selections = model.scalar_fields().flat_map(|field| {
         let field_name_snake = snake_ident(field.name());
 
-        Some(match field {
-            dml::Field::ScalarField(_) => {
+        Some(match field.scalar_field_type() {
+            ScalarFieldType::CompositeType(id) => {
+                let comp_type = model.db.walk(id);
+
+                let comp_type_name_snake = snake_ident(comp_type.name());
+
+                quote! {
+                    #pcr::Selection::new(#field_name_snake::NAME, None, [], super::#comp_type_name_snake::scalar_selections())
+                }
+            }
+            _ => {
                 field.type_tokens(module_path)?;
                 quote!(#pcr::sel(#field_name_snake::NAME))
             }
-            dml::Field::CompositeField(composite_field) => {
-                let composite_type_snake = snake_ident(&composite_field.composite_type);
-                quote! {
-                    #pcr::Selection::new(#field_name_snake::NAME, None, [], super::#composite_type_snake::scalar_selections())
-                }
-            }
-            dml::Field::RelationField(_) => return None,
         })
     });
 
@@ -28,7 +34,7 @@ pub fn scalar_selections_fn(model: &dml::Model, module_path: &TokenStream) -> To
     }
 }
 
-pub fn struct_definition(model: &dml::Model, module_path: &TokenStream) -> TokenStream {
+pub fn struct_definition(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let scalar_selections_fn = scalar_selections_fn(model, module_path);

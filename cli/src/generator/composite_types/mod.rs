@@ -4,24 +4,29 @@ mod order_by;
 mod set_params;
 mod where_params;
 
-use prisma_client_rust_sdk::prelude::*;
+use prisma_client_rust_sdk::{
+    prelude::*,
+    prisma::{prisma_models::walkers::CompositeTypeWalker, psl::parser_database::ScalarFieldType},
+};
 
 pub fn scalar_selections_fn(
-    comp_type: &dml::CompositeType,
+    comp_type: CompositeTypeWalker,
     module_path: &TokenStream,
 ) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let selections = comp_type.fields.iter().flat_map(|field| {
-        let field_name_snake = snake_ident(&field.name);
+    let selections = comp_type.fields().flat_map(|field| {
+        let field_name_snake = snake_ident(field.name());
 
-        Some(match &field.r#type {
-            dml::CompositeTypeFieldType::Scalar(_, _) | dml::CompositeTypeFieldType::Enum(_) => {
+        Some(match field.r#type() {
+            ScalarFieldType::BuiltInScalar(_) | ScalarFieldType::Enum(_) => {
                 field.type_tokens(module_path)?;
                 quote!(#pcr::sel(#field_name_snake::NAME))
             }
-            dml::CompositeTypeFieldType::CompositeType(field_comp_type) => {
-                let field_comp_type_snake = snake_ident(&field_comp_type);
+            ScalarFieldType::CompositeType(id) => {
+                let comp_type = comp_type.db.walk(id);
+
+                let field_comp_type_snake = snake_ident(comp_type.name());
 
                 quote! {
                     #pcr::Selection::new(
@@ -32,7 +37,7 @@ pub fn scalar_selections_fn(
                     )
                 }
             }
-            dml::CompositeTypeFieldType::Unsupported(_) => return None,
+            ScalarFieldType::Unsupported(_) => return None,
         })
     });
 
@@ -44,16 +49,16 @@ pub fn scalar_selections_fn(
 }
 
 pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
-    args.dml
-        .composite_types()
+    args.schema
+        .db
+        .walk_composite_types()
         .map(|comp_type| {
-            let ty_name_snake = snake_ident(&comp_type.name);
+            let comp_type_name_snake = snake_ident(comp_type.name());
 
-            let scalar_selections_fn = scalar_selections_fn(&comp_type, module_path);
+            let scalar_selections_fn = scalar_selections_fn(comp_type, module_path);
 
             let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = comp_type
-                .fields
-                .iter()
+                .fields()
                 .map(|f| field::module(f, module_path))
                 .unzip();
 
@@ -64,7 +69,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
             let where_param = where_params::model_enum(field_where_param_entries);
 
             quote! {
-                pub mod #ty_name_snake {
+                pub mod #comp_type_name_snake {
                     use super::*;
                     use super::_prisma::*;
 

@@ -1,7 +1,12 @@
+use prisma_client_rust_sdk::prisma::prisma_models::{
+    walkers::{ModelWalker, RelationFieldWalker},
+    FieldArity,
+};
+
 use crate::generator::prelude::*;
 
-pub fn builder_fn(field: &dml::RelationField) -> TokenStream {
-    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
+pub fn builder_fn(field: RelationFieldWalker) -> TokenStream {
+    let relation_model_name_snake = snake_ident(field.related_model().name());
 
     quote! {
         pub fn with(mut self, params: impl Into<#relation_model_name_snake::WithParam>) -> Self {
@@ -11,27 +16,27 @@ pub fn builder_fn(field: &dml::RelationField) -> TokenStream {
     }
 }
 
-fn enum_variant(field: &dml::RelationField) -> TokenStream {
-    let field_name_pascal = pascal_ident(&field.name);
-    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
+fn enum_variant(field: RelationFieldWalker) -> TokenStream {
+    let field_name_pascal = pascal_ident(field.name());
+    let relation_model_name_snake = snake_ident(field.related_model().name());
 
-    let args = match field.arity {
-        dml::FieldArity::List => quote!(ManyArgs),
+    let args = match field.ast_field().arity {
+        FieldArity::List => quote!(ManyArgs),
         _ => quote!(UniqueArgs),
     };
 
     quote!(#field_name_pascal(super::#relation_model_name_snake::#args))
 }
 
-fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
-    let field_name_snake = snake_ident(&field.name);
-    let field_name_pascal = pascal_ident(&field.name);
-    let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
+fn into_selection_arm(field: RelationFieldWalker) -> TokenStream {
+    let field_name_snake = snake_ident(field.name());
+    let field_name_pascal = pascal_ident(field.name());
+    let relation_model_name_snake = snake_ident(field.related_model().name());
 
     let pcr = quote!(::prisma_client_rust);
 
-    let body = match field.arity {
-        dml::FieldArity::List => quote! {
+    let body = match field.ast_field().arity {
+        FieldArity::List => quote! {
             let (arguments, mut nested_selections) = args.to_graphql();
             nested_selections.extend(<super::#relation_model_name_snake::Types as #pcr::ModelTypes>::scalar_selections());
 
@@ -62,7 +67,7 @@ fn into_selection_arm(field: &dml::RelationField) -> TokenStream {
     }
 }
 
-pub fn enum_definition(model: &dml::Model) -> TokenStream {
+pub fn enum_definition(model: ModelWalker) -> TokenStream {
     let variants = model.relation_fields().map(enum_variant);
     let into_selection_arms = model.relation_fields().map(into_selection_arm);
 
