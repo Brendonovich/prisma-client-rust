@@ -72,47 +72,21 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
 }
 
 pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
-    let (names, types): (Vec<_>, Vec<_>) = model
+    model
         .scalar_fields()
-        .filter_map(|scalar_field| {
-            let name_snake = snake_ident(scalar_field.name());
+        .all(|scalar_field| !scalar_field.required_on_create() || !scalar_field.is_unsupported())
+        .then(|| {
+            quote! {
+                pub fn create_many(self, data: Vec<CreateUnchecked>) -> CreateManyQuery<'a> {
+                    let data = data.into_iter().map(CreateUnchecked::to_unchecked_params).collect();
 
-            if !scalar_field.required_on_create() {
-                return None;
+                    CreateManyQuery::new(
+                        self.client,
+                        data
+                    )
+                }
             }
-
-            Some((
-                name_snake,
-                match scalar_field.scalar_field_type() {
-                    ScalarFieldType::CompositeType(id) => {
-                        let comp_type = model.db.walk(id);
-
-                        let comp_type_snake = snake_ident(comp_type.name());
-
-                        quote!(super::#comp_type_snake::Create)
-                    }
-                    _ => scalar_field.type_tokens(&quote!(super))?,
-                },
-            ))
         })
-        .unzip();
-
-    Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateManyQuery<'a> {
-            let data = data.into_iter().map(|(#(#names,)* mut _params)| {
-                _params.extend([
-                    #(#names::set(#names)),*
-                ]);
-
-                _params
-            }).collect();
-
-            CreateManyQuery::new(
-                self.client,
-                data
-            )
-        }
-    })
 }
 
 pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
