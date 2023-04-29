@@ -11,8 +11,8 @@ export type Procedures = {
     subscriptions: never
 };
 
+export type Post = { id: string; content: string; userId: string }
+
 export type User = { id: string; displayName: string }
 
 export type NamedUserInclude = { id: string; displayName: string; posts: Post[] }
-
-export type Post = { id: string; content: string; userId: string }

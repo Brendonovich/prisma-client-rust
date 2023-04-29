@@ -10,7 +10,7 @@ use prisma_client_rust_sdk::prelude::*;
 use serde::Serialize;
 
 fn default_module_path() -> String {
-    "prisma".to_string()
+    "crate::prisma".to_string()
 }
 
 #[derive(serde::Deserialize)]
@@ -37,7 +37,6 @@ impl PrismaGenerator for PrismaClientRustGenerator {
         let module_path = self
             .module_path
             .parse()
-            .map(|p: TokenStream| quote!(crate::#p))
             .map_err(|_| Error::InvalidModulePath)?;
 
         let models = models::modules(&args, &module_path);
