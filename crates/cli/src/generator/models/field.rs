@@ -1,5 +1,8 @@
 use prisma_client_rust_sdk::prisma::{
-    prisma_models::{walkers::{FieldWalker, RefinedFieldWalker}, FieldArity},
+    prisma_models::{
+        walkers::{FieldWalker, RefinedFieldWalker},
+        FieldArity,
+    },
     psl::parser_database::ScalarFieldType,
 };
 
@@ -477,118 +480,121 @@ pub fn module(
                 }
             } else {
                 let read_fns = args.read_filter(scalar_field).map(|read_filter| {
-                let filter_enum = format_ident!("{}Filter", &read_filter.name);
+                    let filter_enum = format_ident!("{}Filter", &read_filter.name);
 
-                let model = field.model();
+                    let model = field.model();
 
-                // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
-                let equals = match (
-                    scalar_field.is_single_pk(),
-                    model.indexes().any(|idx| {
-                        let mut fields = idx.fields();
-                        idx.is_unique() && fields.len() == 1 && fields.next().map(|f| f.field_id()) == Some(scalar_field.field_id())
-                    }), 
-                    arity.is_required()
-                ) {
-                    (true, _, _) | (_, true, true) => quote! {
-                        pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-                            UniqueWhereParam::#equals_variant(value).into()
+                    // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
+                    let equals = match (
+                        scalar_field.is_single_pk(),
+                        model.indexes().any(|idx| {
+                            let mut fields = idx.fields();
+                            idx.is_unique() && fields.len() == 1 && fields.next().map(|f| f.field_id()) == Some(scalar_field.field_id())
+                        }),
+                        arity.is_required()
+                    ) {
+                        (true, _, _) | (_, true, true) => quote! {
+                            pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
+                                UniqueWhereParam::#equals_variant(value).into()
+                            }
+                        },
+                        (_, true, false) => quote! {
+                            pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+                                T::from_arg(value)
+                            }
+                        },
+                        (_, _, _) => quote! {
+                            pub fn equals(value: #field_type) -> WhereParam {
+                                WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+                            }
                         }
-                    },
-                    (_, true, false) => quote! {
-                        pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
-                            T::from_arg(value)
-                        }
-                    },
-                    (_, _, _) => quote! {
-                        pub fn equals(value: #field_type) -> WhereParam {
-                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
-                        }
+                    };
+
+                    where_param_entries.push(Variant::BaseVariant {
+                        definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
+                        match_arm: quote! {
+                            Self::#field_name_pascal(value) => (
+                                #field_name_snake::NAME,
+                                value.into()
+                            )
+                        },
+                    });
+
+                    let read_methods = read_filter.methods.iter().filter_map(|method| {
+                        if method.name == "Equals" { return None }
+
+                        let method_name_snake = snake_ident(&method.name);
+                        let method_name_pascal = pascal_ident(&method.name);
+
+                        let typ = method.type_tokens(&quote!(super::super), &args.schema.db);
+
+                        Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
+                    });
+
+                    quote! {
+                        #equals
+
+                        #pcr::scalar_where_param_fns!(
+                            _prisma::read_filters::#filter_enum,
+                            #field_name_pascal,
+                            { #(#read_methods)* }
+                        );
                     }
-                };
-
-                where_param_entries.push(Variant::BaseVariant {
-                    definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
-                    match_arm: quote! {
-                        Self::#field_name_pascal(value) => (
-                            #field_name_snake::NAME,
-                            value.into()
-                        )
-                    },
                 });
 
-                let read_methods = read_filter.methods.iter().filter_map(|method| {
-                    if method.name == "Equals" { return None }
+                let write_fns = args.write_param(scalar_field).map(|write_param| {
+                    let param_enum = format_ident!("{}Param", &write_param.name);
 
-                    let method_name_snake = snake_ident(&method.name);
-                    let method_name_pascal = pascal_ident(&method.name);
-
-                    let typ = method.type_tokens(&quote!(super::super), &args.schema.db);
-
-                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
-                });
-
-                quote! {
-                    #equals
-
-                    #pcr::scalar_where_param_fns!(
-                        _prisma::read_filters::#filter_enum,
-                        #field_name_pascal,
-                        { #(#read_methods)* }
-                    );
-                }
-            });
-
-                let write_fns = args.write_filter(scalar_field).map(|write_type| {
-                    write_type
+                    let other_fns = write_param
                         .methods
                         .iter()
-                        .map(|method| {
+                        .flat_map(|method| {
+                            if method.name == "Set" { return None }
+
                             let method_name_snake = snake_ident(&method.name);
+                            let method_name_pascal = pascal_ident(&method.name);
 
-                            let typ = method.type_tokens(module_path, &args.schema.db);
+                            let typ = method.type_tokens(&quote!(), &args.schema.db);
 
-                            let variant_name = format_ident!(
-                                "{}{}",
-                                pascal_ident(&method.name),
-                                field_name_pascal
-                            );
-
-                            quote! {
+                            Some(quote! {
                                 pub fn #method_name_snake(value: #typ) -> SetParam {
-                                    SetParam::#variant_name(value)
+                                    SetParam::#field_name_pascal(_prisma::write_params::#param_enum::#method_name_pascal(value))
                                 }
-                            }
+                            })
                         })
-                        .collect::<TokenStream>()
+                        .collect::<TokenStream>();
+
+                    quote! {
+	                    pub struct Set(pub #field_type);
+
+	                    impl From<Set> for SetParam {
+		                    fn from(Set(v): Set) -> Self {
+			                    Self::#field_name_pascal(_prisma::write_params::#param_enum::Set(v))
+		                    }
+	                    }
+
+	                    impl From<Set> for UncheckedSetParam {
+		                    fn from(Set(v): Set) -> Self {
+			                    Self::#field_name_pascal(v)
+		                    }
+	                    }
+
+	                    pub fn set<T: From<Set>>(value: #field_type) -> T {
+		                    Set(value).into()
+	                    }
+
+                    	#other_fns
+                    }
                 });
 
                 quote! {
-                    pub struct Set(pub #field_type);
+                    #read_fns
 
-                    impl From<Set> for SetParam {
-                        fn from(Set(v): Set) -> Self {
-                            Self::#set_variant(v)
-                        }
-                    }
-
-                    impl From<Set> for UncheckedSetParam {
-                        fn from(Set(v): Set) -> Self {
-                            Self::#field_name_pascal(v)
-                        }
-                    }
-
-                    pub fn set<T: From<Set>>(value: #field_type) -> T {
-                        Set(value).into()
-                    }
+                    #write_fns
 
                     pub fn order(direction: #pcr::Direction) -> OrderByParam {
                         OrderByParam::#field_name_pascal(direction)
                     }
-
-                    #read_fns
-
-                    #write_fns
                 }
             }
         }
