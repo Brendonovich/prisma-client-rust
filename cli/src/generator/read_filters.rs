@@ -13,7 +13,7 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
             let value_as_prisma_value = method
                 .base_type
                 .to_prisma_value(&value_ident, &method.arity());
-            let typ = method.type_tokens(&quote!(super::super)).unwrap();
+            let typ = method.type_tokens(&quote!(super::super), &args.schema.db).unwrap();
 
             (
                 quote!(#variant_name(#typ)),

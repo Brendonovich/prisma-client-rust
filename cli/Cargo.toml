@@ -6,7 +6,6 @@ edition = "2021"
 rust-version = "1.62"
 
 [features]
-default = ["mysql", "sqlite", "mssql", "postgresql", "mongodb"]
 specta = []
 rspc = ["specta"]
 migrations = []

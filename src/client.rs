@@ -1,7 +1,10 @@
 use crate::ActionNotifier;
-use diagnostics::Diagnostics;
-use query_core::{schema_builder, BatchDocumentTransaction, CoreError, Operation, TxId};
-use schema::QuerySchema;
+use psl::Diagnostics;
+use query_core::{
+    protocol::EngineProtocol,
+    schema::{self, QuerySchema},
+    BatchDocumentTransaction, CoreError, Operation, TxId,
+};
 
 use std::sync::Arc;
 use thiserror::Error;
@@ -38,7 +41,13 @@ impl ExecutionEngine {
             Self::Real { connector, tx_id } => {
                 let response = connector
                     .executor
-                    .execute(tx_id.clone(), op, connector.query_schema.clone(), None)
+                    .execute(
+                        tx_id.clone(),
+                        op,
+                        connector.query_schema.clone(),
+                        None,
+                        EngineProtocol::Graphql,
+                    )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
 
@@ -69,6 +78,7 @@ impl ExecutionEngine {
                         Some(BatchDocumentTransaction::new(None)),
                         connector.query_schema.clone(),
                         None,
+                        EngineProtocol::Graphql,
                     )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
@@ -180,13 +190,8 @@ impl PrismaClientInternals {
             }
         };
 
-        let (db_name, executor) =
-            query_core::executor::load(source, config.preview_features(), &url).await?;
-
-        let query_schema = Arc::new(schema_builder::build(
-            prisma_models::convert(schema.clone(), db_name),
-            true,
-        ));
+        let executor =
+            request_handlers::load_executor(source, config.preview_features(), &url).await?;
 
         executor.primary_connector().get_connection().await?;
 
@@ -194,7 +199,7 @@ impl PrismaClientInternals {
             engine: ExecutionEngine::Real {
                 connector: Arc::new(ExecutorConnector {
                     executor,
-                    query_schema,
+                    query_schema: Arc::new(schema::build(schema.clone(), true)),
                     url,
                 }),
                 tx_id: None,
@@ -252,7 +257,7 @@ pub enum NewClientError {
     Executor(#[from] CoreError),
 
     #[error("Error getting database connection: {0}")]
-    Connection(#[from] query_connector::error::ConnectorError),
+    Connection(#[from] query_core::ConnectorError),
 }
 
 impl From<Diagnostics> for NewClientError {

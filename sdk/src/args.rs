@@ -1,27 +1,35 @@
-use std::str::FromStr;
+use prisma_models::{walkers::ScalarFieldWalker, FieldArity};
+use psl::{
+    builtin_connectors,
+    datamodel_connector::Connector,
+    parser_database::{ParserDatabase, ScalarFieldType, ScalarType},
+    ValidatedSchema,
+};
+use std::sync::Arc;
 
-use dml::{FieldArity, FieldType, ScalarField, ScalarType};
-use psl::{builtin_connectors, datamodel_connector::Connector};
-
-use dmmf::{DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use dmmf::{DataModelMetaFormat, DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 
-use crate::{dmmf::EngineDMMF, prelude::*, FieldTypeExt};
+use crate::{dmmf::EngineDMMF, prelude::*};
 
 pub struct GenerateArgs {
-    pub dml: dml::Datamodel,
-    pub dmmf: EngineDMMF,
-    pub schema: DmmfSchema,
+    pub schema: Arc<ValidatedSchema>,
+    pub engine_dmmf: EngineDMMF,
+    pub dmmf: DataModelMetaFormat,
     pub read_filters: Vec<Filter>,
     pub write_filters: Vec<Filter>,
     pub connector: &'static dyn Connector,
 }
 
 impl GenerateArgs {
-    pub fn new(dml: dml::Datamodel, schema: DmmfSchema, dmmf: EngineDMMF) -> Self {
+    pub fn new(
+        schema: Arc<ValidatedSchema>,
+        dmmf: DataModelMetaFormat,
+        engine_dmmf: EngineDMMF,
+    ) -> Self {
         let scalars = {
             let mut scalars = Vec::new();
-            for scalar in schema.input_object_types.get("prisma").unwrap() {
+            for scalar in dmmf.schema.input_object_types.get("prisma").unwrap() {
                 for field in &scalar.fields {
                     for input in &field.input_types {
                         if let TypeLocation::Scalar = input.location {
@@ -56,7 +64,7 @@ impl GenerateArgs {
                 ];
 
                 for c in combinations {
-                    let p = match schema.find_input_type(&c) {
+                    let p = match dmmf.schema.find_input_type(&c) {
                         Some(p) => p,
                         None => continue,
                     };
@@ -64,7 +72,7 @@ impl GenerateArgs {
                     let mut fields = vec![];
 
                     for field in &p.fields {
-                        if let Some(method) = input_field_as_method(field) {
+                        if let Some(method) = input_field_as_method(field, &schema.db) {
                             fields.push(method);
                         }
                     }
@@ -86,14 +94,14 @@ impl GenerateArgs {
                 }
             }
 
-            for e in &dml.enums {
+            for e in schema.db.walk_enums() {
                 let combinations = [
-                    "Enum".to_string() + &e.name + "Filter",
-                    "Enum".to_string() + &e.name + "NullableFilter",
+                    "Enum".to_string() + &e.ast_enum().name.name + "Filter",
+                    "Enum".to_string() + &e.ast_enum().name.name + "NullableFilter",
                 ];
 
                 for c in combinations {
-                    let p = match schema.find_input_type(&c) {
+                    let p = match dmmf.schema.find_input_type(&c) {
                         Some(t) => t,
                         None => continue,
                     };
@@ -101,12 +109,12 @@ impl GenerateArgs {
                     let mut fields = vec![];
 
                     for field in &p.fields {
-                        if let Some(method) = input_field_as_method(field) {
+                        if let Some(method) = input_field_as_method(field, &schema.db) {
                             fields.push(method);
                         }
                     }
 
-                    let mut name = e.name.clone();
+                    let mut name = e.ast_enum().name.name.clone();
 
                     // checking for both is invalid - fields can be list or null but not both
                     // TODO: make this more typesafe to correspond with fields
@@ -166,7 +174,7 @@ impl GenerateArgs {
                 ];
 
                 for c in combinations {
-                    let p = match schema.find_input_type(&c) {
+                    let p = match dmmf.schema.find_input_type(&c) {
                         Some(p) => p,
                         None => continue,
                     };
@@ -193,9 +201,13 @@ impl GenerateArgs {
                             fields.push(Method::new(
                                 pascal_ident(&field.name).to_string(),
                                 field.name.clone(),
-                                ScalarType::from_str(&type_name)
-                                    .map(|t| FieldType::Scalar(t, None))
-                                    .unwrap_or(FieldType::Enum(type_name)),
+                                ScalarType::try_from_str(&type_name)
+                                    .map(ScalarFieldType::BuiltInScalar)
+                                    .unwrap_or_else(|| {
+                                        ScalarFieldType::Enum(
+                                            schema.db.find_enum(&type_name).unwrap().id,
+                                        )
+                                    }),
                                 is_list,
                                 field.is_nullable,
                             ));
@@ -208,10 +220,10 @@ impl GenerateArgs {
                 }
             }
 
-            for model in &dml.models {
-                for field in &model.fields {
-                    let p = match schema.find_input_type(
-                        &(model.name.to_string() + "Update" + field.name() + "Input"),
+            for model in schema.db.walk_models() {
+                for field in model.fields() {
+                    let p = match dmmf.schema.find_input_type(
+                        &(model.name().to_string() + "Update" + field.name() + "Input"),
                     ) {
                         Some(p) => p,
                         None => continue,
@@ -253,9 +265,8 @@ impl GenerateArgs {
                                 fields.push(Method::new(
                                     pascal_ident(&field.name).to_string(),
                                     field.name.clone(),
-                                    FieldType::Scalar(
-                                        ScalarType::from_str(&type_name).unwrap(),
-                                        None,
+                                    ScalarFieldType::BuiltInScalar(
+                                        ScalarType::try_from_str(&type_name).unwrap(),
                                     ),
                                     is_list,
                                     field.is_nullable,
@@ -277,7 +288,7 @@ impl GenerateArgs {
         };
 
         use builtin_connectors::*;
-        let connector = match &dmmf.datasources[0].provider {
+        let connector = match &engine_dmmf.datasources[0].provider {
             #[cfg(feature = "sqlite")]
             p if SQLITE.is_provider(p) => SQLITE,
             #[cfg(feature = "postgresql")]
@@ -296,28 +307,28 @@ impl GenerateArgs {
         };
 
         Self {
-            dml,
-            dmmf,
             schema,
+            dmmf,
+            engine_dmmf,
             read_filters,
             write_filters,
             connector,
         }
     }
 
-    pub fn read_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        let postfix = match field.arity {
+    pub fn read_filter(&self, field: ScalarFieldWalker) -> Option<&Filter> {
+        let postfix = match field.ast_field().arity {
             FieldArity::List => "List",
             FieldArity::Optional => "Nullable",
             _ => "",
         };
 
-        let base = match &field.field_type {
-            FieldType::Scalar(typ, _) => match typ.to_string().as_str() {
+        let base = match field.scalar_field_type() {
+            ScalarFieldType::BuiltInScalar(typ) => match typ.as_str() {
                 "Boolean" => "Bool".to_string(),
                 n => n.to_string(),
             },
-            FieldType::Enum(e) => e.clone(),
+            ScalarFieldType::Enum(e) => field.db.walk(e).name().to_string(),
             _ => return None,
         };
 
@@ -326,12 +337,12 @@ impl GenerateArgs {
             .find(|f| f.name == format!("{base}{postfix}"))
     }
 
-    pub fn write_filter(&self, field: &ScalarField) -> Option<&Filter> {
-        match &field.field_type {
-            FieldType::Scalar(typ, _) => {
-                let mut typ = typ.to_string();
+    pub fn write_filter(&self, field: ScalarFieldWalker) -> Option<&Filter> {
+        match &field.scalar_field_type() {
+            ScalarFieldType::BuiltInScalar(typ) => {
+                let mut typ = typ.as_str().to_string();
 
-                if field.arity.is_list() {
+                if field.ast_field().arity.is_list() {
                     typ += "List";
                 }
 
@@ -360,14 +371,14 @@ pub struct Method {
     pub action: String,
     pub is_list: bool,
     pub is_nullable: bool,
-    pub base_type: FieldType,
+    pub base_type: ScalarFieldType,
 }
 
 impl Method {
     fn new(
         name: String,
         action: String,
-        base_type: FieldType,
+        base_type: ScalarFieldType,
         is_list: bool,
         is_nullable: bool,
     ) -> Self {
@@ -380,8 +391,8 @@ impl Method {
         }
     }
 
-    pub fn type_tokens(&self, prefix: &TokenStream) -> Option<TokenStream> {
-        self.base_type.to_tokens(prefix, &self.arity())
+    pub fn type_tokens(&self, prefix: &TokenStream, db: &ParserDatabase) -> Option<TokenStream> {
+        self.base_type.to_tokens(prefix, &self.arity(), db)
     }
 
     pub fn arity(&self) -> FieldArity {
@@ -402,12 +413,16 @@ pub struct Filter {
 }
 
 /// Gets a method definition from an input field.
-fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
+fn input_field_as_method(field: &DmmfInputField, db: &ParserDatabase) -> Option<Method> {
     field.input_types.iter().find(|input_type|
         matches!(input_type.location, TypeLocation::Scalar | TypeLocation::EnumTypes if input_type.typ != "Null")
     ).map(|input_type| {
         let type_name = input_type.typ.clone();
         let is_list = input_type.is_list;
+
+        // if let None = db.find_enum(&type_name) {
+        //     panic!("bruh: {type_name}");
+        // }
 
         Method::new(
             // 'in' is a reserved keyword in Rust
@@ -417,9 +432,9 @@ fn input_field_as_method(field: &DmmfInputField) -> Option<Method> {
                 name => pascal_ident(name).to_string(),
             },
             field.name.clone(),
-            ScalarType::from_str(&type_name)
-                .map(|t| FieldType::Scalar(t, None))
-                .unwrap_or(FieldType::Enum(type_name)),
+            ScalarType::try_from_str(&type_name)
+                .map(ScalarFieldType::BuiltInScalar)
+                .unwrap_or_else(|| ScalarFieldType::Enum(db.find_enum(&type_name).unwrap().id)),
             is_list,
             field.is_nullable,
         )

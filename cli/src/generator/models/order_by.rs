@@ -1,3 +1,7 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
 pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
@@ -9,18 +13,17 @@ pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
     }
 }
 
-pub fn enum_definition(model: &dml::Model) -> TokenStream {
+pub fn enum_definition(model: ModelWalker) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
-        .fields()
-        .filter(|f| !f.field_type().is_unsupported() && !f.is_relation())
+        .scalar_fields()
         .flat_map(|field| {
             let field_name_snake = snake_ident(field.name());
             let field_name_pascal = pascal_ident(field.name());
 
-            Some(match field {
-                dml::Field::ScalarField(_) => (
+            Some(match field.scalar_field_type() {
+                ScalarFieldType::BuiltInScalar(_) | ScalarFieldType::Enum(_) => (
                     quote!(#field_name_pascal(#pcr::Direction)),
                     quote! {
                         Self::#field_name_pascal(direction) => (
@@ -29,10 +32,10 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
                         )
                     },
                 ),
-                dml::Field::CompositeField(cf) => {
-                    let composite_type_snake = snake_ident(&cf.composite_type);
+                ScalarFieldType::CompositeType(id) => {
+                    let composite_type_snake = snake_ident(model.db.walk(id).name());
 
-                    if cf.arity.is_list() {
+                    if field.ast_field().arity.is_list() {
                         return None;
                     }
 
@@ -51,7 +54,7 @@ pub fn enum_definition(model: &dml::Model) -> TokenStream {
                         },
                     )
                 }
-                _ => return None,
+                ScalarFieldType::Unsupported(_) => return None,
             })
         })
         .unzip();

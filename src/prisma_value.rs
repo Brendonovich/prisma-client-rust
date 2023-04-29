@@ -3,6 +3,7 @@ use std::sync::Arc;
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use chrono::{DateTime, FixedOffset};
 use indexmap::IndexMap;
+use query_core::response_ir::Item as PrismaItem;
 use serde::{Serialize, Serializer};
 use uuid::Uuid;
 
@@ -44,18 +45,16 @@ pub enum Item {
     Json(serde_json::Value),
 }
 
-impl From<query_core::Item> for Item {
-    fn from(item: query_core::Item) -> Self {
+impl From<PrismaItem> for Item {
+    fn from(item: PrismaItem) -> Self {
         match item {
-            query_core::Item::Map(map) => {
+            PrismaItem::Map(map) => {
                 Item::Map(map.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
-            query_core::Item::List(list) => {
-                Item::List(list.into_iter().map(|v| v.into()).collect())
-            }
-            query_core::Item::Value(scalar) => Item::Value(scalar.into()),
-            query_core::Item::Json(json) => Item::Json(json),
-            query_core::Item::Ref(arc) => Arc::try_unwrap(arc)
+            PrismaItem::List(list) => Item::List(list.into_iter().map(|v| v.into()).collect()),
+            PrismaItem::Value(scalar) => Item::Value(scalar.into()),
+            PrismaItem::Json(json) => Item::Json(json),
+            PrismaItem::Ref(arc) => Arc::try_unwrap(arc)
                 .unwrap_or_else(|arc| (*arc).to_owned())
                 .into(),
         }

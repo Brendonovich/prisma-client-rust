@@ -19,7 +19,6 @@ pub use extensions::*;
 pub use quote::quote;
 
 pub mod prisma {
-    pub use dml;
     pub use dmmf;
     pub use prisma_models;
     pub use psl;

@@ -1,5 +1,8 @@
+use prisma_client_rust_sdk::prisma::prisma_models::{walkers::ScalarFieldWalker, FieldArity};
+
 use crate::generator::prelude::*;
 
+#[derive(Debug)]
 pub enum Variant {
     BaseVariant {
         definition: TokenStream,
@@ -19,15 +22,19 @@ pub enum Variant {
 }
 
 impl Variant {
-    pub fn unique(field: &dml::Field, read_filter: &Filter, module_path: &TokenStream) -> Self {
+    pub fn unique(
+        field: ScalarFieldWalker,
+        read_filter: &Filter,
+        module_path: &TokenStream,
+    ) -> Self {
         Self::UniqueVariant {
             field_name: field.name().to_string(),
             field_required_type: field
-                .field_type()
-                .to_tokens(module_path, &dml::FieldArity::Required)
+                .scalar_field_type()
+                .to_tokens(module_path, &FieldArity::Required, field.db)
                 .unwrap(),
             read_filter_name: read_filter.name.to_string(),
-            optional: matches!(field.arity(), dml::FieldArity::Optional),
+            optional: field.ast_field().arity.is_optional(),
         }
     }
 }

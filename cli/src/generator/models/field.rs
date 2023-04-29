@@ -1,20 +1,24 @@
+use prisma_client_rust_sdk::prisma::{
+    prisma_models::{walkers::{FieldWalker, RefinedFieldWalker}, FieldArity},
+    psl::parser_database::ScalarFieldType,
+};
+
 use crate::generator::prelude::*;
 
 use super::{include, order_by, pagination, select, where_params::Variant, with_params};
 
 pub fn module(
-    root_field: &dml::Field,
-    model: &dml::Model,
+    field: FieldWalker,
     args: &GenerateArgs,
     module_path: &TokenStream,
 ) -> (TokenStream, Vec<Variant>) {
     let pcr = quote!(::prisma_client_rust);
     let mut where_param_entries = vec![];
 
-    let field_name = root_field.name();
+    let field_name = field.name();
     let field_name_pascal = pascal_ident(field_name);
     let field_name_snake = snake_ident(field_name);
-    let field_type = root_field.type_tokens(&quote!(self));
+    let field_type = field.type_tokens(&quote!(self));
 
     let connect_variant = format_ident!("Connect{field_name_pascal}");
     let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
@@ -22,14 +26,16 @@ pub fn module(
     let is_null_variant = format_ident!("{field_name_pascal}IsNull");
     let equals_variant = format_ident!("{field_name_pascal}Equals");
 
-    let field_module_contents = match root_field {
-        dml::Field::RelationField(field) => {
-            let relation_model_name_snake = snake_ident(&field.relation_info.referenced_model);
+    let arity = field.ast_field().arity;
 
-            let with_fn = with_params::builder_fn(&field);
+    let field_module_contents = match field.refine() {
+        RefinedFieldWalker::Relation(relation_field) => {
+            let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
-            let base = match field.arity {
-                dml::FieldArity::List => {
+            let with_fn = with_params::builder_fn(relation_field);
+
+            let base = match arity {
+                FieldArity::List => {
                     let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
                     let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
 
@@ -76,7 +82,7 @@ pub fn module(
                     }
                 }
                 _ => {
-                    let optional_fns = field.arity.is_optional().then(|| {
+                    let optional_fns = arity.is_optional().then(|| {
                         where_param_entries.push(Variant::BaseVariant {
                             definition: quote!(#is_null_variant),
                             match_arm: quote! {
@@ -132,7 +138,7 @@ pub fn module(
                 }
             };
 
-            let relation_methods = root_field.relation_methods().iter().map(|method| {
+            let relation_methods = field.relation_methods().iter().map(|method| {
                 let method_action_string = method.to_case(Case::Camel, false);
                 let variant_name = format_ident!("{}{}", &field_name_pascal, pascal_ident(method));
                 let method_name_snake = snake_ident(method);
@@ -169,125 +175,148 @@ pub fn module(
                 #relation_methods
             }
         }
-        dml::Field::ScalarField(field) => {
-            let read_fns = args.read_filter(&field).map(|read_filter| {
-                let filter_enum = format_ident!("{}Filter", &read_filter.name);
+        RefinedFieldWalker::Scalar(scalar_field) => {
+            if let ScalarFieldType::CompositeType(cf_id) = scalar_field.scalar_field_type() {
+                let comp_type = field.db.walk(cf_id);
 
-                // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
-                let equals = match (model.field_is_primary(field_name), model.field_is_unique(field_name), field.arity.is_required()) {
-                    (true, _, _) | (_, true, true) => quote! {
-                        pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-                            UniqueWhereParam::#equals_variant(value).into()
-                        }
-                    },
-                    (_, true, false) => quote! {
-                        pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
-                            T::from_arg(value)
-                        }
-                    },
-                    (_, _, _) => quote! {
-                        pub fn equals(value: #field_type) -> WhereParam {
-                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
-                        }
-                    }
-                };
+                let comp_type_snake = snake_ident(comp_type.name());
 
-                where_param_entries.push(Variant::BaseVariant {
-                    definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
-                    match_arm: quote! {
-                        Self::#field_name_pascal(value) => (
-                            #field_name_snake::NAME,
-                            value.into()
-                        )
-                    },
-                });
+                // Filters
 
-                let read_methods = read_filter.methods.iter().filter_map(|method| {
-                    if method.name == "Equals" { return None }
+                let optional_filters = arity
+                    .is_optional()
+                    .then(|| {
+                        let is_set_filter = {
+                            let where_param_variant = format_ident!("{field_name_pascal}IsSet");
 
-                    let method_name_snake = snake_ident(&method.name);
-                    let method_name_pascal = pascal_ident(&method.name);
+                            where_param_entries.push(Variant::BaseVariant {
+                                definition: quote!(#where_param_variant),
+                                match_arm: quote! {
+                                    Self::#where_param_variant => (
+                                        #field_name_snake::NAME,
+                                        #pcr::SerializedWhereValue::Value(
+                                            #pcr::PrismaValue::Boolean(true)
+                                        )
+                                     )
+                                },
+                            });
 
-                    let typ = method.type_tokens(&quote!(super::super));
-
-                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
-                });
-
-                quote! {
-                    #equals
-
-                    #pcr::scalar_where_param_fns!(
-                        _prisma::read_filters::#filter_enum,
-                        #field_name_pascal,
-                        { #(#read_methods)* }
-                    );
-                }
-            });
-
-            let write_fns = args.write_filter(&field).map(|write_type| {
-                write_type
-                    .methods
-                    .iter()
-                    .map(|method| {
-                        let method_name_snake = snake_ident(&method.name);
-
-                        let typ = method.type_tokens(module_path);
-
-                        let variant_name =
-                            format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
-
-                        quote! {
-                            pub fn #method_name_snake(value: #typ) -> SetParam {
-                                SetParam::#variant_name(value)
+                            quote! {
+                                pub fn is_set() -> WhereParam {
+                                    WhereParam::#where_param_variant
+                                }
                             }
-                        }
+                        };
+
+                        vec![is_set_filter]
                     })
-                    .collect::<TokenStream>()
-            });
+                    .unwrap_or(vec![]);
 
-            quote! {
-                pub struct Set(pub #field_type);
+                let many_filters: Vec<_> = arity
+                    .is_list()
+                    .then(|| {
+                        let equals_filter = {
+                            let where_param_variant = format_ident!("{field_name_pascal}Equals");
+                            let content_type =
+                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
 
-                impl From<Set> for SetParam {
-                    fn from(Set(v): Set) -> Self {
-                        Self::#set_variant(v)
-                    }
-                }
+                            where_param_entries.push(Variant::BaseVariant {
+                            definition: quote!(#where_param_variant(Vec<#content_type>)),
+                            match_arm: quote! {
+                                Self::#where_param_variant(where_params) => (
+                                    #field_name_snake::NAME,
+                                    #pcr::SerializedWhereValue::Object(vec![(
+                                        "equals".to_string(),
+                                        #pcr::PrismaValue::List(
+                                        	where_params
+                                         		.into_iter()
+                                           		.map(|params|
+	                                         		#pcr::PrismaValue::Object(
+			                                            params
+			                                                .into_iter()
+			                                                .map(#pcr::WhereInput::serialize)
+			                                                .map(#pcr::SerializedWhereInput::transform_equals)
+			                                                .collect()
+	                                           		)
+	                                         	)
+												.collect()
+                                        )
+                                    )])
+                                )
+                            },
+                        });
 
-                impl From<Set> for UncheckedSetParam {
-                    fn from(Set(v): Set) -> Self {
-                        Self::#field_name_pascal(v)
-                    }
-                }
+                            quote! {
+                                pub fn equals(params: Vec<#content_type>) -> WhereParam {
+                                    WhereParam::#where_param_variant(params)
+                                }
+                            }
+                        };
 
-                pub fn set<T: From<Set>>(value: #field_type) -> T {
-                    Set(value).into()
-                }
+                        let is_empty_filter = {
+                            let where_param_variant = format_ident!("{field_name_pascal}IsEmpty");
 
-                pub fn order(direction: #pcr::Direction) -> OrderByParam {
-                    OrderByParam::#field_name_pascal(direction)
-                }
+                            where_param_entries.push(Variant::BaseVariant {
+                                definition: quote!(#where_param_variant),
+                                match_arm: quote! {
+                                    Self::#where_param_variant => (
+                                        #field_name_snake::NAME,
+                                        #pcr::SerializedWhereValue::Object(vec![(
+                                            "isEmpty".to_string(),
+                                            #pcr::PrismaValue::Boolean(true)
+                                        )])
+                                    )
+                                },
+                            });
 
-                #read_fns
+                            quote! {
+                                pub fn is_empty() -> WhereParam {
+                                    WhereParam::#where_param_variant
+                                }
+                            }
+                        };
 
-                #write_fns
-            }
-        }
-        dml::Field::CompositeField(cf) => {
-            let comp_type_snake = snake_ident(&cf.composite_type);
+                        let general_filters = ["every", "some", "none"].iter().map(|method| {
+                            let method_snake = snake_ident(method);
+                            let method_pascal = pascal_ident(method);
 
-            let comp_type = args
-                .dml
-                .composite_types
-                .iter()
-                .find(|ty| ty.name == cf.composite_type)
-                .unwrap();
+                            let where_param_variant =
+                                format_ident!("{field_name_pascal}{method_pascal}");
+                            let content_type =
+                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
 
-            // Filters
+                            where_param_entries.push(Variant::BaseVariant {
+                                definition: quote!(#where_param_variant(#content_type)),
+                                match_arm: quote! {
+                                Self::#where_param_variant(where_params) => (
+                                    #field_name_snake::NAME,
+                                    #pcr::SerializedWhereValue::Object(vec![(
+                                        #method.to_string(),
+                                        #pcr::PrismaValue::Object(
+                                            where_params
+                                                .into_iter()
+                                                .map(#pcr::WhereInput::serialize)
+                                                .map(#pcr::SerializedWhereInput::transform_equals)
+                                                .collect()
+                                        )
+                                    )])
+                                    )
+                                },
+                            });
 
-            let single_filters = (!cf.arity.is_list())
-                .then(|| {
-                    ["equals", "is", "isNot"]
+                            quote! {
+                                pub fn #method_snake(params: #content_type) -> WhereParam {
+                                    WhereParam::#where_param_variant(params)
+                                }
+                            }
+                        });
+
+                        general_filters
+                            .chain([equals_filter, is_empty_filter])
+                            .collect()
+                    })
+                    .unwrap_or_else(|| {
+                         ["equals", "is", "isNot"]
                         .iter()
                         .map(|method| {
                             let method_snake = snake_ident(method);
@@ -324,269 +353,249 @@ pub fn module(
                             }
                         })
                         .collect()
-                })
-                .unwrap_or(vec![]);
 
-            let optional_filters = cf
-                .arity
-                .is_optional()
-                .then(|| {
-                    let is_set_filter = {
-                        let where_param_variant = format_ident!("{field_name_pascal}IsSet");
+                    });
 
-                        where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#where_param_variant),
-                            match_arm: quote! {
-                                Self::#where_param_variant => (
-                                    #field_name_snake::NAME,
-                                    #pcr::SerializedWhereValue::Value(
-                                        #pcr::PrismaValue::Boolean(true)
-                                    )
-                                 )
-                            },
-                        });
+                // Writes
+
+                let set_fn = comp_type
+                    .fields()
+                    .filter(|f| f.required_on_create())
+                    .map(|field| {
+                        field.type_tokens(module_path)?;
+                        Some(field)
+                    })
+                    .collect::<Option<Vec<_>>>()
+                    .map(|_| {
+                        let create_struct = arity.wrap_type(&quote!(#comp_type_snake::Create));
 
                         quote! {
-                            pub fn is_set() -> WhereParam {
-                                WhereParam::#where_param_variant
+                            pub struct Set(#create_struct);
+
+                            pub fn set<T: From<Set>>(create: #create_struct) -> T {
+                                Set(create).into()
                             }
-                        }
-                    };
 
-                    vec![is_set_filter]
-                })
-                .unwrap_or(vec![]);
-
-            let many_filters = cf
-                .arity
-                .is_list()
-                .then(|| {
-                    let equals_filter = {
-                        let where_param_variant = format_ident!("{field_name_pascal}Equals");
-                        let content_type = quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
-
-                        where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#where_param_variant(Vec<#content_type>)),
-                            match_arm: quote! {
-                                Self::#where_param_variant(where_params) => (
-                                    #field_name_snake::NAME,
-                                    #pcr::SerializedWhereValue::Object(vec![(
-                                        "equals".to_string(),
-                                        #pcr::PrismaValue::List(
-                                        	where_params
-                                         		.into_iter()
-                                           		.map(|params|
-	                                         		#pcr::PrismaValue::Object(
-			                                            params
-			                                                .into_iter()
-			                                                .map(#pcr::WhereInput::serialize)
-			                                                .map(#pcr::SerializedWhereInput::transform_equals)
-			                                                .collect()
-	                                           		)
-	                                         	)
-												.collect()
-                                        )
-                                    )])
-                                )
-                            },
-                        });
-
-                        quote! {
-                            pub fn equals(params: Vec<#content_type>) -> WhereParam {
-                                WhereParam::#where_param_variant(params)
+                            impl From<Set> for SetParam {
+                                fn from(Set(create): Set) -> Self {
+                                     SetParam::#set_variant(create)
+                                }
                             }
-                        }
-                    };
 
-                    let is_empty_filter = {
-                        let where_param_variant = format_ident!("{field_name_pascal}IsEmpty");
-
-                        where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#where_param_variant),
-                            match_arm: quote! {
-                                Self::#where_param_variant => (
-                                    #field_name_snake::NAME,
-                                    #pcr::SerializedWhereValue::Object(vec![(
-                                        "isEmpty".to_string(),
-                                        #pcr::PrismaValue::Boolean(true)
-                                    )])
-                                )
-                            },
-                        });
-
-                        quote! {
-                            pub fn is_empty() -> WhereParam {
-                                WhereParam::#where_param_variant
-                            }
-                        }
-                    };
-
-                    let general_filters = ["every", "some", "none"].iter().map(|method| {
-                        let method_snake = snake_ident(method);
-                        let method_pascal = pascal_ident(method);
-
-                        let where_param_variant =
-                            format_ident!("{field_name_pascal}{method_pascal}");
-                        let content_type = quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
-
-                        where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#where_param_variant(#content_type)),
-                            match_arm: quote! {
-                            Self::#where_param_variant(where_params) => (
-                                #field_name_snake::NAME,
-                                #pcr::SerializedWhereValue::Object(vec![(
-                                    #method.to_string(),
-                                    #pcr::PrismaValue::Object(
-                                        where_params
-                                            .into_iter()
-                                            .map(#pcr::WhereInput::serialize)
-                                            .map(#pcr::SerializedWhereInput::transform_equals)
-                                            .collect()
-                                    )
-                                )])
-                                )
-                            },
-                        });
-
-                        quote! {
-                            pub fn #method_snake(params: #content_type) -> WhereParam {
-                                WhereParam::#where_param_variant(params)
+                            impl From<Set> for UncheckedSetParam {
+                                fn from(Set(create): Set) -> Self {
+                                     UncheckedSetParam::#field_name_pascal(create)
+                                }
                             }
                         }
                     });
 
-                    general_filters
-                        .chain([equals_filter, is_empty_filter])
-                        .collect()
-                })
-                .unwrap_or(vec![]);
-
-            // Writes
-
-            let set_fn = comp_type
-                .fields
-                .iter()
-                .filter(|f| f.required_on_create())
-                .map(|field| {
-                    field.type_tokens(module_path)?;
-                    Some(field)
-                })
-                .collect::<Option<Vec<_>>>()
-                .map(|_| {
-                    let create_struct = cf.arity.wrap_type(&quote!(#comp_type_snake::Create));
+                let unset_fn = arity.is_optional().then(|| {
+                    let set_param_variant = format_ident!("Unset{field_name_pascal}");
 
                     quote! {
-                        pub struct Set(#create_struct);
-
-                        pub fn set<T: From<Set>>(create: #create_struct) -> T {
-                            Set(create).into()
+                        pub fn unset() -> SetParam {
+                            SetParam::#set_param_variant
                         }
+                    }
+                });
+                let update_fn = (!arity.is_list()).then(|| {
+                    let set_param_variant = format_ident!("Update{field_name_pascal}");
 
-                        impl From<Set> for SetParam {
-                            fn from(Set(create): Set) -> Self {
-                                 SetParam::#set_variant(create)
-                            }
+                    quote! {
+                        pub fn update(params: Vec<#comp_type_snake::SetParam>) -> SetParam {
+                            SetParam::#set_param_variant(params)
                         }
+                    }
+                });
+                let upsert_fn = arity.is_optional().then(|| {
+                    let set_param_variant = format_ident!("Upsert{field_name_pascal}");
 
-                        impl From<Set> for UncheckedSetParam {
-                            fn from(Set(create): Set) -> Self {
-                                 UncheckedSetParam::#field_name_pascal(create)
-                            }
+                    quote! {
+                        pub fn upsert(
+                            create: #comp_type_snake::Create,
+                            update: Vec<#comp_type_snake::SetParam>
+                        ) -> SetParam {
+                            SetParam::#set_param_variant(create, update)
+                        }
+                    }
+                });
+                let push_fn = arity.is_list().then(|| {
+                    let set_param_variant = format_ident!("Push{field_name_pascal}");
+
+                    quote! {
+                        pub fn push(creates: Vec<#comp_type_snake::Create>) -> SetParam {
+                            SetParam::#set_param_variant(creates)
+                        }
+                    }
+                });
+                let update_many_fn = arity.is_list().then(|| {
+                    let set_param_variant = format_ident!("UpdateMany{field_name_pascal}");
+
+                    quote! {
+                        pub fn update_many(
+                            _where: Vec<#comp_type_snake::WhereParam>,
+                            update: Vec<#comp_type_snake::SetParam>
+                        ) -> SetParam {
+                            SetParam::#set_param_variant(_where, update)
+                        }
+                    }
+                });
+                let delete_many_fn = arity.is_list().then(|| {
+                    let set_param_variant = format_ident!("DeleteMany{field_name_pascal}");
+
+                    quote! {
+                        pub fn delete_many(
+                            _where: Vec<#comp_type_snake::WhereParam>,
+                        ) -> SetParam {
+                            SetParam::#set_param_variant(_where)
                         }
                     }
                 });
 
-            let unset_fn = cf.arity.is_optional().then(|| {
-                let set_param_variant = format_ident!("Unset{field_name_pascal}");
-
-                quote! {
-                    pub fn unset() -> SetParam {
-                        SetParam::#set_param_variant
+                let order_by_fn = (!arity.is_list()).then(|| {
+                    quote! {
+                        pub fn order(params: Vec<#comp_type_snake::OrderByParam>) -> OrderByParam {
+                              OrderByParam::#field_name_pascal(params)
+                          }
                     }
-                }
-            });
-            let update_fn = (!cf.arity.is_list()).then(|| {
-                let set_param_variant = format_ident!("Update{field_name_pascal}");
+                });
 
                 quote! {
-                    pub fn update(params: Vec<#comp_type_snake::SetParam>) -> SetParam {
-                        SetParam::#set_param_variant(params)
+                    #(#optional_filters)*
+                    #(#many_filters)*
+
+                    #set_fn
+                    #unset_fn
+                    #update_fn
+                    #upsert_fn
+                    #push_fn
+                    #update_many_fn
+                    #delete_many_fn
+
+                    #order_by_fn
+                }
+            } else {
+                let read_fns = args.read_filter(scalar_field).map(|read_filter| {
+                let filter_enum = format_ident!("{}Filter", &read_filter.name);
+
+                let model = field.model();
+
+                // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
+                let equals = match (
+                    scalar_field.is_single_pk(),
+                    model.indexes().any(|idx| {
+                        let mut fields = idx.fields();
+                        idx.is_unique() && fields.len() == 1 && fields.next().map(|f| f.field_id()) == Some(scalar_field.field_id())
+                    }), 
+                    arity.is_required()
+                ) {
+                    (true, _, _) | (_, true, true) => quote! {
+                        pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
+                            UniqueWhereParam::#equals_variant(value).into()
+                        }
+                    },
+                    (_, true, false) => quote! {
+                        pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+                            T::from_arg(value)
+                        }
+                    },
+                    (_, _, _) => quote! {
+                        pub fn equals(value: #field_type) -> WhereParam {
+                            WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+                        }
                     }
-                }
-            });
-            let upsert_fn = cf.arity.is_optional().then(|| {
-                let set_param_variant = format_ident!("Upsert{field_name_pascal}");
+                };
+
+                where_param_entries.push(Variant::BaseVariant {
+                    definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
+                    match_arm: quote! {
+                        Self::#field_name_pascal(value) => (
+                            #field_name_snake::NAME,
+                            value.into()
+                        )
+                    },
+                });
+
+                let read_methods = read_filter.methods.iter().filter_map(|method| {
+                    if method.name == "Equals" { return None }
+
+                    let method_name_snake = snake_ident(&method.name);
+                    let method_name_pascal = pascal_ident(&method.name);
+
+                    let typ = method.type_tokens(&quote!(super::super), &args.schema.db);
+
+                    Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
+                });
 
                 quote! {
-                    pub fn upsert(
-                        create: #comp_type_snake::Create,
-                        update: Vec<#comp_type_snake::SetParam>
-                    ) -> SetParam {
-                        SetParam::#set_param_variant(create, update)
+                    #equals
+
+                    #pcr::scalar_where_param_fns!(
+                        _prisma::read_filters::#filter_enum,
+                        #field_name_pascal,
+                        { #(#read_methods)* }
+                    );
+                }
+            });
+
+                let write_fns = args.write_filter(scalar_field).map(|write_type| {
+                    write_type
+                        .methods
+                        .iter()
+                        .map(|method| {
+                            let method_name_snake = snake_ident(&method.name);
+
+                            let typ = method.type_tokens(module_path, &args.schema.db);
+
+                            let variant_name = format_ident!(
+                                "{}{}",
+                                pascal_ident(&method.name),
+                                field_name_pascal
+                            );
+
+                            quote! {
+                                pub fn #method_name_snake(value: #typ) -> SetParam {
+                                    SetParam::#variant_name(value)
+                                }
+                            }
+                        })
+                        .collect::<TokenStream>()
+                });
+
+                quote! {
+                    pub struct Set(pub #field_type);
+
+                    impl From<Set> for SetParam {
+                        fn from(Set(v): Set) -> Self {
+                            Self::#set_variant(v)
+                        }
                     }
-                }
-            });
-            let push_fn = cf.arity.is_list().then(|| {
-                let set_param_variant = format_ident!("Push{field_name_pascal}");
 
-                quote! {
-                    pub fn push(creates: Vec<#comp_type_snake::Create>) -> SetParam {
-                        SetParam::#set_param_variant(creates)
+                    impl From<Set> for UncheckedSetParam {
+                        fn from(Set(v): Set) -> Self {
+                            Self::#field_name_pascal(v)
+                        }
                     }
-                }
-            });
-            let update_many_fn = cf.arity.is_list().then(|| {
-                let set_param_variant = format_ident!("UpdateMany{field_name_pascal}");
 
-                quote! {
-                    pub fn update_many(
-                        _where: Vec<#comp_type_snake::WhereParam>,
-                        update: Vec<#comp_type_snake::SetParam>
-                    ) -> SetParam {
-                        SetParam::#set_param_variant(_where, update)
+                    pub fn set<T: From<Set>>(value: #field_type) -> T {
+                        Set(value).into()
                     }
-                }
-            });
-            let delete_many_fn = cf.arity.is_list().then(|| {
-                let set_param_variant = format_ident!("DeleteMany{field_name_pascal}");
 
-                quote! {
-                    pub fn delete_many(
-                        _where: Vec<#comp_type_snake::WhereParam>,
-                    ) -> SetParam {
-                        SetParam::#set_param_variant(_where)
+                    pub fn order(direction: #pcr::Direction) -> OrderByParam {
+                        OrderByParam::#field_name_pascal(direction)
                     }
+
+                    #read_fns
+
+                    #write_fns
                 }
-            });
-
-            let order_by_fn = (!cf.arity.is_list()).then(|| {
-                quote! {
-                    pub fn order(params: Vec<#comp_type_snake::OrderByParam>) -> OrderByParam {
-                          OrderByParam::#field_name_pascal(params)
-                      }
-                }
-            });
-
-            quote! {
-                #(#single_filters)*
-                #(#optional_filters)*
-                #(#many_filters)*
-
-                #set_fn
-                #unset_fn
-                #update_fn
-                #upsert_fn
-                #push_fn
-                #update_many_fn
-                #delete_many_fn
-
-                #order_by_fn
             }
         }
     };
 
-    let include_enum = include::field_module_enum(&root_field, &pcr);
-    let select_enum = select::field_module_enum(&root_field, &pcr);
+    let include_enum = include::field_module_enum(field, &pcr);
+    let select_enum = select::field_module_enum(field, &pcr);
 
     (
         quote! {

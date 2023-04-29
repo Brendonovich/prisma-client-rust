@@ -17,13 +17,10 @@ use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
-pub use dml;
-pub use dmmf;
 pub use prisma_models::{self, PrismaValue};
 pub use psl;
 pub use query_core;
-pub use query_core::Selection;
-pub use schema;
+pub use query_core::{schema, Selection};
 pub use serde_json;
 use thiserror::Error;
 #[cfg(feature = "migrations")]

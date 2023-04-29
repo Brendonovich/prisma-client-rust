@@ -1,4 +1,4 @@
-use dml::PrismaValue;
+use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionArgument};
 use serde::de::DeserializeOwned;
 
