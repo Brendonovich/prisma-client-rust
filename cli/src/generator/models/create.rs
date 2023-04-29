@@ -34,7 +34,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
 
     Some(quote! {
         pub fn create_unchecked(#(#names: #types,)* _params: Vec<UncheckedSetParam>)
-            -> (#(#types,)* Vec<SetParam>) {
+            -> (#(#types,)* Vec<UncheckedSetParam>) {
             (#(#names,)* _params)
         }
     })
