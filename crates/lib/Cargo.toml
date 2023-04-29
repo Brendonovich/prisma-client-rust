@@ -1,0 +1,61 @@
+[package]
+name = "prisma-client-rust"
+version = "0.6.8"
+authors = ["Brendan Allan <brendonovich@outlook.com>"]
+edition = "2021"
+description = "A prisma client for Rust"
+rust-version = "1.62"
+
+[features]
+rspc = ["dep:rspc", "specta"]
+specta = ["dep:specta", "prisma-client-rust-macros/specta"]
+sqlite-create-many = ["psl/sqlite-create-many"]
+migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:tracing"]
+mocking = ["tokio"]
+# mutation-callbacks = []
+
+mysql = ["schema-core/mysql", "request-handlers/mysql"]
+sqlite = ["schema-core/sqlite", "request-handlers/sqlite"]
+mssql = ["schema-core/mssql", "request-handlers/mssql"]
+postgresql = ["schema-core/postgresql", "request-handlers/postgresql"]
+
+mongodb = ["schema-core/mongodb", "request-handlers/mongodb"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono = { version = "0.4.19", features = ["serde"] }
+thiserror = "1.0.30"
+bigdecimal = { version = "0.3", features = ["serde"] }
+uuid = { version = "1", features = ["serde"] }
+indexmap = "1.8.2"
+serde-value = "0.7.0"
+base64 = "0.13.0"
+tokio = { version = "1.21.0", optional = true }
+futures = "0.3"
+paste = "1.0.11"
+prisma-client-rust-macros = { path = "../macros" }
+
+prisma-models = { workspace = true }
+user-facing-errors = { workspace = true }
+psl = { workspace = true }
+diagnostics = { workspace = true }
+request-handlers = { workspace = true }
+query-core = { workspace = true }
+
+# features = "migrations"
+schema-core = { workspace = true, optional = true }
+include_dir = { version = "0.7.2", optional = true }
+tempdir = { version = "0.3.7", optional = true }
+tracing = { version = "0.1.36", optional = true }
+
+# features = "specta"
+specta = { optional = true, workspace = true, features = [
+  "indexmap",
+  "chrono",
+  "uuid",
+] }
+
+# features = "rspc"
+rspc = { optional = true, workspace = true }
+dotenv = "0.15.0"

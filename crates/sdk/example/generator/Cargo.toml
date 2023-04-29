@@ -1,0 +1,11 @@
+[package]
+name = "sdk-example-generator"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at htps://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prisma-client-rust-sdk = { path = "../.." }
+serde = { version = "1.0.145", features = ["derive"] }
+thiserror = "1.0.40"
