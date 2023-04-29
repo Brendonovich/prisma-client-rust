@@ -74,7 +74,7 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
 pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
     model
         .scalar_fields()
-        .all(|scalar_field| !scalar_field.is_unsupported())
+        .all(|scalar_field| !scalar_field.required_on_create() || !scalar_field.is_unsupported())
         .then(|| {
             quote! {
                 pub fn create_many(self, data: Vec<CreateUnchecked>) -> CreateManyQuery<'a> {
