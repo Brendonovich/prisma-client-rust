@@ -1,9 +1,6 @@
 use crate::generator::prelude::{prisma::psl::datamodel_connector, *};
 use prisma_client_rust_sdk::{
-    prisma::{
-        prisma_models::walkers::{ModelWalker, RefinedFieldWalker},
-        psl::parser_database::ScalarFieldType,
-    },
+    prisma::{prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType},
     GenerateArgs,
 };
 
@@ -36,7 +33,7 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
 
 pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
-        .fields()
+        .scalar_fields()
         .filter_map(|field| {
             let name_snake = snake_ident(field.name());
 
@@ -46,20 +43,15 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
 
             Some((
                 name_snake,
-                match field.refine() {
-                    RefinedFieldWalker::Relation(_) => return None,
-                    RefinedFieldWalker::Scalar(scalar_field) => {
-                        match scalar_field.scalar_field_type() {
-                            ScalarFieldType::CompositeType(id) => {
-                                let comp_type = model.db.walk(id);
+                match field.scalar_field_type() {
+                    ScalarFieldType::CompositeType(id) => {
+                        let comp_type = model.db.walk(id);
 
-                                let comp_type_snake = snake_ident(comp_type.name());
+                        let comp_type_snake = snake_ident(comp_type.name());
 
-                                quote!(super::#comp_type_snake::Create)
-                            }
-                            _ => field.type_tokens(&quote!(super))?,
-                        }
+                        quote!(super::#comp_type_snake::Create)
                     }
+                    _ => field.type_tokens(&quote!(super))?,
                 },
             ))
         })
@@ -81,37 +73,32 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
 
 pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
-        .fields()
-        .filter_map(|field| {
-            let name_snake = snake_ident(field.name());
+        .scalar_fields()
+        .filter_map(|scalar_field| {
+            let name_snake = snake_ident(scalar_field.name());
 
-            if !field.required_on_create() {
+            if !scalar_field.required_on_create() {
                 return None;
             }
 
             Some((
                 name_snake,
-                match field.refine() {
-                    RefinedFieldWalker::Relation(_) => return None,
-                    RefinedFieldWalker::Scalar(scalar_field) => {
-                        match scalar_field.scalar_field_type() {
-                            ScalarFieldType::CompositeType(id) => {
-                                let comp_type = model.db.walk(id);
+                match scalar_field.scalar_field_type() {
+                    ScalarFieldType::CompositeType(id) => {
+                        let comp_type = model.db.walk(id);
 
-                                let comp_type_snake = snake_ident(comp_type.name());
+                        let comp_type_snake = snake_ident(comp_type.name());
 
-                                quote!(super::#comp_type_snake::Create)
-                            }
-                            _ => field.type_tokens(&quote!(super))?,
-                        }
+                        quote!(super::#comp_type_snake::Create)
                     }
+                    _ => scalar_field.type_tokens(&quote!(super))?,
                 },
             ))
         })
         .unzip();
 
     Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#types,)* Vec<SetParam>)>) -> CreateMany<'a> {
+        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
             let data = data.into_iter().map(|(#(#names,)* mut _params)| {
                 _params.extend([
                     #(#names::set(#names)),*

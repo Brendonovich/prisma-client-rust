@@ -1,6 +1,5 @@
 use prisma_client_rust_sdk::prisma::{
-    prisma_models::walkers::{ModelWalker, RefinedFieldWalker},
-    psl::parser_database::ScalarFieldType,
+    prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType,
 };
 
 use crate::generator::prelude::*;
@@ -9,7 +8,7 @@ use super::required_fields;
 
 fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
     let (names, types): (Vec<_>, Vec<_>) = model
-        .fields()
+        .scalar_fields()
         .filter_map(|field| {
             let name_snake = snake_ident(field.name());
 
@@ -19,28 +18,23 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
 
             Some((
                 name_snake,
-                match field.refine() {
-                    RefinedFieldWalker::Relation(_) => return None,
-                    RefinedFieldWalker::Scalar(scalar_field) => {
-                        match scalar_field.scalar_field_type() {
-                            ScalarFieldType::CompositeType(id) => {
-                                let comp_type = model.db.walk(id);
+                match field.scalar_field_type() {
+                    ScalarFieldType::CompositeType(id) => {
+                        let comp_type = model.db.walk(id);
 
-                                let comp_type_snake = snake_ident(comp_type.name());
+                        let comp_type_snake = snake_ident(comp_type.name());
 
-                                quote!(super::#comp_type_snake::Create)
-                            }
-                            _ => field.type_tokens(&quote!(super))?,
-                        }
+                        quote!(super::#comp_type_snake::Create)
                     }
+                    _ => field.type_tokens(&quote!(super))?,
                 },
             ))
         })
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(#(#names: #types,)* _params: Vec<SetParam>)
-            -> (#(#types,)* Vec<SetParam>) {
+        pub fn create_unchecked(#(#names: #types,)* _params: Vec<UncheckedSetParam>)
+            -> (#(#types,)* Vec<UncheckedSetParam>) {
             (#(#names,)* _params)
         }
     })
