@@ -408,8 +408,6 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
                 let field_name_pascal = pascal_ident(field.name());
                 let field_name_snake = snake_ident(field.name());
 
-                let set_variant = format_ident!("Set{}", field_name_pascal);
-
                 let field_type = match field.scalar_field_type() {
                     ScalarFieldType::CompositeType(id) => {
                         let comp_type = model.db.walk(id);

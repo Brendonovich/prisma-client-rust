@@ -102,6 +102,7 @@ async fn unchecked() -> TestResult {
     cleanup(client).await
 }
 
+#[tokio::test]
 async fn from_struct() -> TestResult {
     let client = client().await;
 

@@ -7,6 +7,8 @@ use crate::generator::prelude::*;
 use super::required_fields;
 
 fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
+    let model_name_snake = snake_ident(model.name());
+
     let (names, types): (Vec<_>, Vec<_>) = model
         .scalar_fields()
         .filter_map(|field| {
@@ -33,9 +35,44 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
+        #[derive(Clone)]
+        pub struct CreateUnchecked {
+            #(pub #names: #types,)*
+            pub _params: Vec<UncheckedSetParam>
+        }
+
+        impl CreateUnchecked {
+             pub fn to_query<'a>(self, client: &'a PrismaClient) -> CreateQuery<'a> {
+                client.#model_name_snake()
+                    .create_unchecked(
+                        #(self.#names,)*
+                        self._params
+                    )
+            }
+
+            pub fn to_params(mut self) -> Vec<SetParam> {
+                self._params.extend([
+                    #(#names::set(self.#names)),*
+                ]);
+
+                self._params.into_iter().map(Into::into).collect()
+            }
+
+            pub fn to_unchecked_params(mut self) -> Vec<UncheckedSetParam> {
+                self._params.extend([
+                    #(#names::set(self.#names)),*
+                ]);
+
+                self._params
+            }
+        }
+
         pub fn create_unchecked(#(#names: #types,)* _params: Vec<UncheckedSetParam>)
-            -> (#(#types,)* Vec<UncheckedSetParam>) {
-            (#(#names,)* _params)
+            -> CreateUnchecked {
+            CreateUnchecked {
+                #(#names,)*
+                _params
+            }
         }
     })
 }
@@ -52,8 +89,9 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
             )
         })
         .unzip();
-    Some(quote! {
 
+    Some(quote! {
+       #[derive(Clone)]
         pub struct Create {
             #(pub #names: #types,)*
             pub _params: Vec<SetParam>
