@@ -268,7 +268,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         let where_params_enums = where_params::collate_entries(where_params_entries);
         let data_struct = data::struct_definition(model);
         let with_params_enum = with_params::enum_definition(model);
-        let set_params_enum = set_params::enum_definition(model, args, module_path);
+        let set_params_enum = set_params::enum_definition(model, args);
         let order_by_params_enum = order_by::enum_definition(model);
         let create_fn = create::model_fns(model);
         let select_macro = select::model_macro(model, &module_path);

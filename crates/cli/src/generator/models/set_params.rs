@@ -48,16 +48,10 @@ pub fn relation_field_set_params(field: RelationFieldWalker) -> Vec<RelationSetP
     }
 }
 
-struct SetParam {
-    variant: TokenStream,
-    into_pv_arm: TokenStream,
-}
-
 fn field_set_params(
     field: FieldWalker,
     args: &GenerateArgs,
-    module_path: &TokenStream,
-) -> Option<Vec<SetParam>> {
+) -> Option<(Vec<TokenStream>, Vec<TokenStream>)> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_snake = snake_ident(field.name());
 
@@ -65,153 +59,157 @@ fn field_set_params(
 
     let arity = field.ast_field().arity;
 
-    Some(match field.refine() {
-        RefinedFieldWalker::Scalar(scalar_field) => {
-            match scalar_field.scalar_field_type() {
-                ScalarFieldType::CompositeType(id) => {
-                    let comp_type = field.db.walk(id);
+    let mut variants = vec![];
+    let mut functions = vec![];
 
-                    let field_type_snake = snake_ident(comp_type.name());
+    match field.refine() {
+        RefinedFieldWalker::Scalar(scalar_field) => match scalar_field.scalar_field_type() {
+            ScalarFieldType::CompositeType(id) => {
+                let comp_type = field.db.walk(id);
 
-                    let set_variant = {
-                        let variant_name = format_ident!("Set{field_name_pascal}");
+                let field_type_snake = snake_ident(comp_type.name());
 
-                        let contents = arity.wrap_type(&quote!(super::#field_type_snake::Create));
-                        let value_ident = format_ident!("value");
-                        let value = arity.wrap_pv(&value_ident, quote! {
+                let set_variant = {
+                    let variant_name = format_ident!("Set{field_name_pascal}");
+
+                    let contents = arity.wrap_type(&quote!(super::#field_type_snake::Create));
+                    let value_ident = format_ident!("value");
+                    let value = arity.wrap_pv(
+                        &value_ident,
+                        quote! {
                             #pcr::PrismaValue::Object(value
                                 .to_params()
                                 .into_iter()
                                 .map(Into::into)
                                 .collect()
                             )
-                        });
+                        },
+                    );
 
-                        SetParam {
-                            variant: quote!(#variant_name(#contents)),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(#value_ident) =>
-                                    (#field_name_snake::NAME.to_string(), #value)
-                            },
-                        }
-                    };
+                    (
+                        quote!(#variant_name(#contents)),
+                        quote! {
+                            Self::#variant_name(#value_ident) =>
+                                (#field_name_snake::NAME.to_string(), #value)
+                        },
+                    )
+                };
 
-                    let unset_variant = arity.is_optional().then(|| {
-                        let variant_name = format_ident!("Unset{}", &field_name_pascal);
+                let unset_variant = arity.is_optional().then(|| {
+                    let variant_name = format_ident!("Unset{}", &field_name_pascal);
 
-                        SetParam {
-                            variant: quote!(#variant_name),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name => (
-                                    #field_name_snake::NAME.to_string(),
+                    (
+                        quote!(#variant_name),
+                        quote! {
+                            Self::#variant_name => (
+                                #field_name_snake::NAME.to_string(),
+                                #pcr::PrismaValue::Object(vec![(
+                                    "unset".to_string(),
+                                    #pcr::PrismaValue::Boolean(true)
+                                )])
+                            )
+                        },
+                    )
+                });
+
+                let update_variant = (!arity.is_list()).then(|| {
+                    let variant_name = format_ident!("Update{field_name_pascal}");
+
+                    (
+                        quote!(#variant_name(Vec<super::#field_type_snake::SetParam>)),
+                        quote! {
+                            Self::#variant_name(value) =>
+                                (#field_name_snake::NAME.to_string(),
                                     #pcr::PrismaValue::Object(vec![(
-                                        "unset".to_string(),
-                                        #pcr::PrismaValue::Boolean(true)
+                                        "update".to_string(),
+                                            #pcr::PrismaValue::Object(value
+                                            .into_iter()
+                                            .map(Into::into)
+                                            .collect()
+                                        )
                                     )])
                                 )
-                            },
-                        }
-                    });
+                        },
+                    )
+                });
 
-                    let update_variant = (!arity.is_list()).then(|| {
-                        let variant_name = format_ident!("Update{field_name_pascal}");
+                let upsert_variant = arity.is_optional().then(|| {
+                    let variant_name = format_ident!("Upsert{field_name_pascal}");
 
-                        SetParam {
-                            variant: quote!(#variant_name(Vec<super::#field_type_snake::SetParam>)),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(value) =>
-                                    (#field_name_snake::NAME.to_string(),
-                                        #pcr::PrismaValue::Object(vec![(
-                                            "update".to_string(),
-                                                #pcr::PrismaValue::Object(value
-                                                .into_iter()
-                                                .map(Into::into)
-                                                .collect()
-                                            )
-                                        )])
-                                    )
-                            },
-                        }
-                    });
-
-                    let upsert_variant = arity.is_optional().then(|| {
-                        let variant_name = format_ident!("Upsert{field_name_pascal}");
-
-                        SetParam {
-                            variant: quote!(#variant_name(
-                                super::#field_type_snake::Create,
-                                Vec<super::#field_type_snake::SetParam>
-                            )),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(create, update) =>
-                                    (#field_name_snake::NAME.to_string(),
-                                        #pcr::PrismaValue::Object(vec![(
-                                            "upsert".to_string(),
-                                            #pcr::PrismaValue::Object(vec![
-                                                (
-                                                    "set".to_string(),
-                                                    #pcr::PrismaValue::Object(
-                                                        create
-                                                            .to_params()
-                                                            .into_iter()
-                                                            .map(Into::into)
-                                                            .collect()
-                                                    )
-                                                ),
-                                                (
-                                                    "update".to_string(),
-                                                    #pcr::PrismaValue::Object(
-                                                        update
-                                                            .into_iter()
-                                                            .map(Into::into)
-                                                            .collect()
-                                                    )
-                                                )
-                                            ])
-                                        )])
-                                    )
-                            },
-                        }
-                    });
-
-                    let push_variant = arity.is_list().then(|| {
-                        let variant_name = format_ident!("Push{field_name_pascal}");
-
-                        SetParam {
-                            variant: quote!(#variant_name(Vec<super::#field_type_snake::Create>)),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(creates) => (
-                                    #field_name_snake::NAME.to_string(),
+                    (
+                        quote!(#variant_name(
+                            super::#field_type_snake::Create,
+                            Vec<super::#field_type_snake::SetParam>
+                        )),
+                        quote! {
+                            Self::#variant_name(create, update) =>
+                                (#field_name_snake::NAME.to_string(),
                                     #pcr::PrismaValue::Object(vec![(
-                                        "push".to_string(),
-                                        #pcr::PrismaValue::List(
-                                            creates
-                                                .into_iter()
-                                                .map(|create| #pcr::PrismaValue::Object(
+                                        "upsert".to_string(),
+                                        #pcr::PrismaValue::Object(vec![
+                                            (
+                                                "set".to_string(),
+                                                #pcr::PrismaValue::Object(
                                                     create
                                                         .to_params()
                                                         .into_iter()
                                                         .map(Into::into)
                                                         .collect()
-                                                ))
-                                                .collect()
-                                        )
+                                                )
+                                            ),
+                                            (
+                                                "update".to_string(),
+                                                #pcr::PrismaValue::Object(
+                                                    update
+                                                        .into_iter()
+                                                        .map(Into::into)
+                                                        .collect()
+                                                )
+                                            )
+                                        ])
                                     )])
                                 )
-                            }
-                        }
-                    });
+                        },
+                    )
+                });
 
-                    let update_many_variant = arity.is_list().then(|| {
+                let push_variant = arity.is_list().then(|| {
+                    let variant_name = format_ident!("Push{field_name_pascal}");
+
+                    (
+                        quote!(#variant_name(Vec<super::#field_type_snake::Create>)),
+                        quote! {
+                            Self::#variant_name(creates) => (
+                                #field_name_snake::NAME.to_string(),
+                                #pcr::PrismaValue::Object(vec![(
+                                    "push".to_string(),
+                                    #pcr::PrismaValue::List(
+                                        creates
+                                            .into_iter()
+                                            .map(|create| #pcr::PrismaValue::Object(
+                                                create
+                                                    .to_params()
+                                                    .into_iter()
+                                                    .map(Into::into)
+                                                    .collect()
+                                            ))
+                                            .collect()
+                                    )
+                                )])
+                            )
+                        },
+                    )
+                });
+
+                let update_many_variant = arity.is_list().then(|| {
                         let variant_name = format_ident!("UpdateMany{field_name_pascal}");
 
-                        SetParam {
-                            variant: quote!(#variant_name(
+                        (quote!(#variant_name(
                                 Vec<super::#field_type_snake::WhereParam>,
                                 Vec<super::#field_type_snake::SetParam>
                             )),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(_where, updates) => (
+                            quote! {
+                            	Self::#variant_name(_where, updates) => (
                                     #field_name_snake::NAME.to_string(),
                                     #pcr::PrismaValue::Object(vec![(
                                         "updateMany".to_string(),
@@ -239,18 +237,17 @@ fn field_set_params(
                                     )])
                                 )
                             }
-                        }
+                        )
                     });
 
-                    let delete_many_variant = arity.is_list().then(|| {
+                let delete_many_variant = arity.is_list().then(|| {
                         let variant_name = format_ident!("DeleteMany{field_name_pascal}");
 
-                        SetParam {
-                            variant: quote!(#variant_name(
+                            (quote!(#variant_name(
                                 Vec<super::#field_type_snake::WhereParam>
                             )),
-                            into_pv_arm: quote! {
-                                SetParam::#variant_name(_where) => (
+                            quote! {
+                                Self::#variant_name(_where) => (
                                     #field_name_snake::NAME.to_string(),
                                     #pcr::PrismaValue::Object(vec![(
                                         "deleteMany".to_string(),
@@ -268,165 +265,148 @@ fn field_set_params(
                                         ])
                                     )])
                                 )
-                            }
-                        }
+                            })
                     });
 
-                    let params = [
-                        Some(set_variant),
-                        unset_variant,
-                        update_variant,
-                        upsert_variant,
-                        push_variant,
-                        update_many_variant,
-                        delete_many_variant
-                    ];
+                let params = [
+                    Some(set_variant),
+                    unset_variant,
+                    update_variant,
+                    upsert_variant,
+                    push_variant,
+                    update_many_variant,
+                    delete_many_variant,
+                ];
 
-                    params.into_iter().flatten().collect()
-                },
-                _ => {
-                    let field_type = field.type_tokens(&quote!(super))?;
+                let (v, f): (Vec<_>, Vec<_>) = params.into_iter().flatten().unzip();
 
-                    let converter = field.type_prisma_value(&format_ident!("value"))?;
+                variants.extend(v);
+                functions.extend(f);
+            }
+            _ => {
+                if let Some(write_param) = args.write_param(scalar_field) {
+                    let param_enum = format_ident!("{}Param", &write_param.name);
 
-                    let set_variant_name = format_ident!("Set{}", &field_name_pascal);
+                    variants.push(quote!(#field_name_pascal(_prisma::write_params::#param_enum)));
+                    functions.push(quote! {
+                        Self::#field_name_pascal(value) => (
+                            #field_name_snake::NAME.to_string(),
+                            value.into()
+                        )
+                    });
 
-                    let set_variant = SetParam {
-                        variant: quote!(#set_variant_name(#field_type)),
-                        into_pv_arm: quote! {
-                            SetParam::#set_variant_name(value) => (
-                                #field_name_snake::NAME.to_string(),
-                                #converter
-                            )
-                        },
-                    };
+                    // for method in &write_param.methods {
+                    //     let typ = method.type_tokens(module_path, &field.db);
 
-                    let mut params = vec![set_variant];
+                    //     let prisma_value_converter = method
+                    //         .base_type
+                    //         .to_prisma_value(&format_ident!("value"), &method.arity())
+                    //         .unwrap();
 
-                    if let Some(write_type) = args.write_filter(scalar_field) {
-                        for method in &write_type.methods {
-                            let typ = method.type_tokens(module_path, &field.db);
+                    //     let variant_name =
+                    //         format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
 
-                            let prisma_value_converter = method.base_type.to_prisma_value(&format_ident!("value"), &method.arity()).unwrap();
+                    //     let action = &method.action;
+                    // }
+                }
+            }
+        },
+        RefinedFieldWalker::Relation(relation_field) => {
+            let (v, f): (Vec<_>, Vec<_>) = relation_field_set_params(relation_field).iter().map(|param| {
+                let action = param.action;
+                let relation_model_name_snake = snake_ident(relation_field.related_model().name());
+                let variant_name = format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
 
-                            let variant_name = format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
-
-                            let action = &method.action;
-                            params.push(SetParam {
-                                variant: quote!(#variant_name(#typ)),
-                                into_pv_arm: quote! {
-                                    SetParam::#variant_name(value) => (
-                                        #field_name_snake::NAME.to_string(),
-                                        #pcr::PrismaValue::Object(
-                                            vec![(
-                                                #action.to_string(),
-                                                #prisma_value_converter
-                                            )]
-                                        )
+                match param.typ {
+                    RelationSetParamType::Many => {
+                        (quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
+                            quote! {
+                                Self::#variant_name(where_params) => (
+                                    #field_name_snake::NAME.to_string(),
+                                    #pcr::PrismaValue::Object(
+                                        vec![(
+                                            #action.to_string(),
+                                            #pcr::PrismaValue::List(
+                                                where_params
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
+                                                    .map(#pcr::WhereInput::serialize)
+                                                    .map(#pcr::SerializedWhereInput::transform_equals)
+                                                    .map(|v| #pcr::PrismaValue::Object(vec![v]))
+                                                    .collect()
+                                            )
+                                        )]
                                     )
-                                }
-                            });
-                        }
+                                )
+                            }
+                        )
                     }
-
-                    params
+                    RelationSetParamType::Single => {
+                        (quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
+                            quote! {
+                                Self::#variant_name(where_param) => (
+                                    #field_name_snake::NAME.to_string(),
+                                    #pcr::PrismaValue::Object(
+                                        vec![(
+                                            #action.to_string(),
+                                            #pcr::PrismaValue::Object(
+                                                [where_param]
+                                                    .into_iter()
+                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
+                                                    .map(#pcr::WhereInput::serialize)
+                                                    .map(#pcr::SerializedWhereInput::transform_equals)
+                                                    .collect()
+                                            )
+                                        )]
+                                    )
+                                )
+                            }
+                        )
+                    }
+                    RelationSetParamType::True => {
+                        (quote!(#variant_name),
+                            quote! {
+                                Self::#variant_name => (
+                                    #field_name_snake::NAME.to_string(),
+                                    #pcr::PrismaValue::Object(
+                                        vec![(
+                                            #action.to_string(),
+                                            #pcr::PrismaValue::Boolean(true)
+                                        )]
+                                    )
+                                )
+                            }
+                        )
+                    }
                 }
-            }
+            }).unzip();
+
+            variants.extend(v);
+            functions.extend(f);
         }
-        RefinedFieldWalker::Relation(relation_field) => relation_field_set_params(relation_field).iter().map(|param| {
-            let action = param.action;
-            let relation_model_name_snake = snake_ident(relation_field.related_model().name());
-            let variant_name = format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
+    }
 
-            match param.typ {
-                RelationSetParamType::Many => {
-                    SetParam {
-                        variant: quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
-                        into_pv_arm: quote! {
-                            SetParam::#variant_name(where_params) => (
-                                #field_name_snake::NAME.to_string(),
-                                #pcr::PrismaValue::Object(
-                                    vec![(
-                                        #action.to_string(),
-                                        #pcr::PrismaValue::List(
-                                            where_params
-                                                .into_iter()
-                                                .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(#pcr::WhereInput::serialize)
-                                                .map(#pcr::SerializedWhereInput::transform_equals)
-                                                .map(|v| #pcr::PrismaValue::Object(vec![v]))
-                                                .collect()
-                                        )
-                                    )]
-                                )
-                            )
-                        }
-                    }
-                }
-                RelationSetParamType::Single => {
-                    SetParam {
-                        variant: quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
-                        into_pv_arm: quote! {
-                            SetParam::#variant_name(where_param) => (
-                                #field_name_snake::NAME.to_string(),
-                                #pcr::PrismaValue::Object(
-                                    vec![(
-                                        #action.to_string(),
-                                        #pcr::PrismaValue::Object(
-                                            [where_param]
-                                                .into_iter()
-                                                .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                .map(#pcr::WhereInput::serialize)
-                                                .map(#pcr::SerializedWhereInput::transform_equals)
-                                                .collect()
-                                        )
-                                    )]
-                                )
-                            )
-                        }
-                    }
-                }
-                RelationSetParamType::True => {
-                    SetParam {
-                        variant: quote!(#variant_name),
-                        into_pv_arm: quote! {
-                            SetParam::#variant_name => (
-                                #field_name_snake::NAME.to_string(),
-                                #pcr::PrismaValue::Object(
-                                    vec![(
-                                        #action.to_string(),
-                                        #pcr::PrismaValue::Boolean(true)
-                                    )]
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }).collect(),
-    })
+    Some((variants, functions))
 }
 
-pub fn enum_definition(
-    model: ModelWalker,
-    args: &GenerateArgs,
-    module_path: &TokenStream,
-) -> TokenStream {
+pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
     let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
         .fields()
-        .flat_map(|f| field_set_params(f, args, module_path))
-        .flatten()
-        .map(|p| (p.variant, p.into_pv_arm))
-        .unzip();
+        .flat_map(|f| field_set_params(f, args))
+        .fold((vec![], vec![]), |(mut a, mut b), (c, d)| {
+            a.extend(c);
+            b.extend(d);
+            (a, b)
+        });
 
     let pcr = quote!(::prisma_client_rust);
 
-    let unchecked_enum =
-        {
-            let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
+    let unchecked_enum = {
+        let (variants, into_pv_arms): (Vec<_>, Vec<_>) = model
             .scalar_fields()
             .flat_map(|field| {
                 let field_name_pascal = pascal_ident(field.name());
+                let field_name_snake = snake_ident(field.name());
 
                 let set_variant = format_ident!("Set{}", field_name_pascal);
 
@@ -444,27 +424,27 @@ pub fn enum_definition(
                 Some((
                     quote!(#field_name_pascal(#field_type)),
                     quote! {
-                        UncheckedSetParam::#field_name_pascal(value) => Self::#set_variant(value)
+                        UncheckedSetParam::#field_name_pascal(value) => #field_name_snake::Set(value).into()
                     },
                 ))
             })
             .unzip();
 
-            quote! {
-                #[derive(Clone)]
-                pub enum UncheckedSetParam {
-                      #(#variants),*
-                }
+        quote! {
+            #[derive(Clone)]
+            pub enum UncheckedSetParam {
+                  #(#variants),*
+            }
 
-                impl From<UncheckedSetParam> for SetParam {
-                    fn from(param: UncheckedSetParam) -> Self {
-                        match param {
-                             #(#into_pv_arms),*
-                         }
-                    }
+            impl From<UncheckedSetParam> for SetParam {
+                fn from(param: UncheckedSetParam) -> Self {
+                    match param {
+                         #(#into_pv_arms),*
+                     }
                 }
             }
-        };
+        }
+    };
 
     quote! {
         #[derive(Clone)]
@@ -472,9 +452,9 @@ pub fn enum_definition(
             #(#variants),*
         }
 
-        impl From<SetParam> for (String, #pcr::PrismaValue) {
-            fn from(param: SetParam) -> Self {
-                match param {
+        impl Into<(String, #pcr::PrismaValue)> for SetParam {
+            fn into(self) -> (String, #pcr::PrismaValue) {
+                match self {
                     #(#into_pv_arms),*
                 }
             }

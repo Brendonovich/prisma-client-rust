@@ -17,7 +17,7 @@ pub struct GenerateArgs {
     pub engine_dmmf: EngineDMMF,
     pub dmmf: DataModelMetaFormat,
     pub read_filters: Vec<Filter>,
-    pub write_filters: Vec<Filter>,
+    pub write_params: Vec<Filter>,
     pub connector: &'static dyn Connector,
 }
 
@@ -33,7 +33,10 @@ impl GenerateArgs {
                 for field in &scalar.fields {
                     for input in &field.input_types {
                         if let TypeLocation::Scalar = input.location {
-                            let name = &input.typ;
+                            let name = match input.typ.as_str() {
+                                "Boolean" => "Bool",
+                                n => n,
+                            };
 
                             if scalars.iter().any(|s| s == name) {
                                 continue;
@@ -51,11 +54,6 @@ impl GenerateArgs {
             let mut filters = vec![];
 
             for scalar in &scalars {
-                let scalar = match scalar.as_str() {
-                    "Boolean" => "Bool".to_string(),
-                    n => n.to_string(),
-                };
-
                 let combinations = [
                     scalar.to_string() + "ListFilter",
                     scalar.to_string() + "NullableListFilter",
@@ -182,10 +180,6 @@ impl GenerateArgs {
                     let mut fields = vec![];
 
                     for field in &p.fields {
-                        if field.name == "set" {
-                            continue;
-                        }
-
                         if let Some((type_name, is_list)) = {
                             let mut ret = None;
                             for input_type in &field.input_types {
@@ -213,8 +207,17 @@ impl GenerateArgs {
                             ));
                         }
                     }
+
+                    let mut s = scalar.clone();
+
+                    if p.name.contains("List") {
+                        s += "List";
+                    } else if p.name.contains("Nullable") {
+                        s += "Nullable";
+                    }
+
                     filters.push(Filter {
-                        name: scalar.clone(),
+                        name: s,
                         methods: fields,
                     });
                 }
@@ -311,7 +314,7 @@ impl GenerateArgs {
             dmmf,
             engine_dmmf,
             read_filters,
-            write_filters,
+            write_params: write_filters,
             connector,
         }
     }
@@ -325,9 +328,10 @@ impl GenerateArgs {
 
         let base = match field.scalar_field_type() {
             ScalarFieldType::BuiltInScalar(typ) => match typ.as_str() {
-                "Boolean" => "Bool".to_string(),
-                n => n.to_string(),
-            },
+                "Boolean" => "Bool",
+                s => s,
+            }
+            .to_string(),
             ScalarFieldType::Enum(e) => field.db.walk(e).name().to_string(),
             _ => return None,
         };
@@ -337,19 +341,26 @@ impl GenerateArgs {
             .find(|f| f.name == format!("{base}{postfix}"))
     }
 
-    pub fn write_filter(&self, field: ScalarFieldWalker) -> Option<&Filter> {
-        match &field.scalar_field_type() {
-            ScalarFieldType::BuiltInScalar(typ) => {
-                let mut typ = typ.as_str().to_string();
+    pub fn write_param(&self, field: ScalarFieldWalker) -> Option<&Filter> {
+        let postfix = match field.ast_field().arity {
+            FieldArity::List => "List",
+            FieldArity::Optional => "Nullable",
+            _ => "",
+        };
 
-                if field.ast_field().arity.is_list() {
-                    typ += "List";
-                }
-
-                self.write_filters.iter().find(|f| f.name == typ)
+        let base = match field.scalar_field_type() {
+            ScalarFieldType::BuiltInScalar(typ) => match typ.as_str() {
+                "Boolean" => "Bool",
+                s => s,
             }
-            _ => None,
-        }
+            .to_string(),
+            ScalarFieldType::Enum(e) => field.db.walk(e).name().to_string(),
+            _ => return None,
+        };
+
+        self.write_params
+            .iter()
+            .find(|f| f.name == format!("{base}{postfix}"))
     }
 }
 
@@ -419,10 +430,6 @@ fn input_field_as_method(field: &DmmfInputField, db: &ParserDatabase) -> Option<
     ).map(|input_type| {
         let type_name = input_type.typ.clone();
         let is_list = input_type.is_list;
-
-        // if let None = db.find_enum(&type_name) {
-        //     panic!("bruh: {type_name}");
-        // }
 
         Method::new(
             // 'in' is a reserved keyword in Rust
