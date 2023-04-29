@@ -52,16 +52,16 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
             )
         })
         .unzip();
-
     Some(quote! {
-        pub struct CreateData {
+
+        pub struct Create {
             #(pub #names: #types,)*
             pub _params: Vec<SetParam>
         }
 
-        impl CreateData {
-            pub fn to_query<'a>(self, db: &'a PrismaClient) -> Create<'a> {
-                db.#model_name_snake()
+        impl Create {
+            pub fn to_query<'a>(self, client: &'a PrismaClient) -> CreateQuery<'a> {
+                client.#model_name_snake()
                     .create(
                         #(self.#names,)*
                         self._params
@@ -78,8 +78,8 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
         }
 
         pub fn create(#(#names: #types,)* _params: Vec<SetParam>)
-            -> CreateData {
-            CreateData {
+            -> Create {
+            Create {
                 #(#names,)*
                 _params
             }

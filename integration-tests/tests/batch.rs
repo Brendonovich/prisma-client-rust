@@ -366,9 +366,9 @@ async fn async_trait() -> TestResult {
 async fn allows_empty() -> TestResult {
     let client = client().await;
 
-    client._batch(vec![] as Vec<user::Create>).await?;
+    client._batch(vec![] as Vec<user::CreateQuery>).await?;
     client
-        ._batch(vec![vec![]] as Vec<Vec<user::Create>>)
+        ._batch(vec![vec![]] as Vec<Vec<user::CreateQuery>>)
         .await?;
 
     cleanup(client).await

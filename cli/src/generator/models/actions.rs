@@ -18,12 +18,12 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
+        pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
             _params.extend([
                 #(#names::#push_wrapper(#names)),*
             ]);
 
-            Create::new(
+            CreateQuery::new(
                 self.client,
                 _params
             )
@@ -58,12 +58,12 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> Create<'a> {
+        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> CreateQuery<'a> {
             _params.extend([
                 #(#names::set(#names)),*
             ]);
 
-            Create::new(
+            CreateQuery::new(
                 self.client,
                 _params.into_iter().map(Into::into).collect()
             )
@@ -98,7 +98,7 @@ pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateMany<'a> {
+        pub fn create_many(self, data: Vec<(#(#types,)* Vec<UncheckedSetParam>)>) -> CreateManyQuery<'a> {
             let data = data.into_iter().map(|(#(#names,)* mut _params)| {
                 _params.extend([
                     #(#names::set(#names)),*
@@ -107,7 +107,7 @@ pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
                 _params
             }).collect();
 
-            CreateMany::new(
+            CreateManyQuery::new(
                 self.client,
                 data
             )
@@ -123,10 +123,10 @@ pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
         pub fn upsert(
             self,
              _where: UniqueWhereParam,
-             _create: CreateData,
+             _create: Create,
              _update: Vec<SetParam>
-        ) -> Upsert<'a> {
-            Upsert::new(
+        ) -> UpsertQuery<'a> {
+            UpsertQuery::new(
                 self.client,
                 _where.into(),
                 _create.to_params(),
@@ -171,22 +171,22 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
         }
 
         impl<'a> Actions<'a> {
-            pub fn find_unique(self, _where: UniqueWhereParam) -> FindUnique<'a> {
-                FindUnique::new(
+            pub fn find_unique(self, _where: UniqueWhereParam) -> FindUniqueQuery<'a> {
+                FindUniqueQuery::new(
                     self.client,
                     _where.into()
                 )
             }
 
-            pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirst<'a> {
-                FindFirst::new(
+            pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirstQuery<'a> {
+                FindFirstQuery::new(
                     self.client,
                     _where
                 )
             }
 
-            pub fn find_many(self, _where: Vec<WhereParam>) -> FindMany<'a> {
-                FindMany::new(
+            pub fn find_many(self, _where: Vec<WhereParam>) -> FindManyQuery<'a> {
+                FindManyQuery::new(
                     self.client,
                     _where
                 )
@@ -197,8 +197,8 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
 
             #create_many_fn
 
-            pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
-                Update::new(
+            pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> UpdateQuery<'a> {
+                UpdateQuery::new(
                     self.client,
                     _where.into(),
                     _params,
@@ -206,8 +206,8 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> Update<'a> {
-                Update::new(
+            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> UpdateQuery<'a> {
+                UpdateQuery::new(
                     self.client,
                     _where.into(),
                     _params.into_iter().map(Into::into).collect(),
@@ -215,8 +215,8 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateMany<'a> {
-                UpdateMany::new(
+            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateManyQuery<'a> {
+                UpdateManyQuery::new(
                     self.client,
                     _where,
                     _params,
@@ -225,23 +225,23 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
 
             #upsert_fn
 
-            pub fn delete(self, _where: UniqueWhereParam) -> Delete<'a> {
-                Delete::new(
+            pub fn delete(self, _where: UniqueWhereParam) -> DeleteQuery<'a> {
+                DeleteQuery::new(
                     self.client,
                     _where.into(),
                     vec![]
                 )
             }
 
-            pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteMany<'a> {
-                DeleteMany::new(
+            pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteManyQuery<'a> {
+                DeleteManyQuery::new(
                     self.client,
                     _where
                 )
             }
 
-            pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
-                Count::new(
+            pub fn count(self, _where: Vec<WhereParam>) -> CountQuery<'a> {
+                CountQuery::new(
                     self.client,
                     _where
                 )

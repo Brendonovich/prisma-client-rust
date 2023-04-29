@@ -280,8 +280,8 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         let partial_macro = partial_unchecked::model_macro(model, &module_path);
 
         let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
-            pub type FindRaw<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
-            pub type AggregateRaw<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
+            pub type FindRawQuery<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
+            pub type AggregateRawQuery<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
         });
 
         quote! {
@@ -322,17 +322,17 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
                 pub type UniqueArgs = #pcr::UniqueArgs<Types>;
                 pub type ManyArgs = #pcr::ManyArgs<Types>;
 
-                pub type Count<'a> = #pcr::Count<'a, Types>;
-                pub type Create<'a> = #pcr::Create<'a, Types>;
-                pub type CreateMany<'a> = #pcr::CreateMany<'a, Types>;
-                pub type FindUnique<'a> = #pcr::FindUnique<'a, Types>;
-                pub type FindMany<'a> = #pcr::FindMany<'a, Types>;
-                pub type FindFirst<'a> = #pcr::FindFirst<'a, Types>;
-                pub type Update<'a> = #pcr::Update<'a, Types>;
-                pub type UpdateMany<'a> = #pcr::UpdateMany<'a, Types>;
-                pub type Upsert<'a> = #pcr::Upsert<'a, Types>;
-                pub type Delete<'a> = #pcr::Delete<'a, Types>;
-                pub type DeleteMany<'a> = #pcr::DeleteMany<'a, Types>;
+                pub type CountQuery<'a> = #pcr::Count<'a, Types>;
+                pub type CreateQuery<'a> = #pcr::Create<'a, Types>;
+                pub type CreateManyQuery<'a> = #pcr::CreateMany<'a, Types>;
+                pub type FindUniqueQuery<'a> = #pcr::FindUnique<'a, Types>;
+                pub type FindManyQuery<'a> = #pcr::FindMany<'a, Types>;
+                pub type FindFirstQuery<'a> = #pcr::FindFirst<'a, Types>;
+                pub type UpdateQuery<'a> = #pcr::Update<'a, Types>;
+                pub type UpdateManyQuery<'a> = #pcr::UpdateMany<'a, Types>;
+                pub type UpsertQuery<'a> = #pcr::Upsert<'a, Types>;
+                pub type DeleteQuery<'a> = #pcr::Delete<'a, Types>;
+                pub type DeleteManyQuery<'a> = #pcr::DeleteMany<'a, Types>;
 
                 #mongo_raw_types
 
