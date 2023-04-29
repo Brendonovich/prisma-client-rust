@@ -7,12 +7,12 @@ use prisma_client_rust_sdk::{
 use super::required_fields;
 
 pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
-    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+    let (names, (types, push_wrapper)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
         .into_iter()
         .map(|field| {
             (
                 snake_ident(field.inner.name()),
-                (field.typ, field.wrapped_param),
+                (field.typ, field.push_wrapper),
             )
         })
         .unzip();
@@ -20,7 +20,7 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
     Some(quote! {
         pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> Create<'a> {
             _params.extend([
-                #(#wrapped_params),*
+                #(#names::#push_wrapper(#names)),*
             ]);
 
             Create::new(
@@ -116,31 +116,20 @@ pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
 }
 
 pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
-    let (names, (types, wrapped_params)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
-        .into_iter()
-        .map(|field| {
-            (
-                snake_ident(field.inner.name()),
-                (field.typ, field.wrapped_param),
-            )
-        })
-        .unzip();
+    // necessary to check whether CreateData is even available
+    let _ = required_fields(model)?;
 
     Some(quote! {
         pub fn upsert(
             self,
              _where: UniqueWhereParam,
-              (#(#names,)* mut _params): (#(#types,)* Vec<SetParam>),
-               _update: Vec<SetParam>
+             _create: CreateData,
+             _update: Vec<SetParam>
         ) -> Upsert<'a> {
-            _params.extend([
-                #(#wrapped_params),*
-            ]);
-
             Upsert::new(
                 self.client,
                 _where.into(),
-                _params,
+                _create.to_params(),
                 _update
             )
         }
@@ -148,19 +137,15 @@ pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
 }
 
 pub fn mongo_raw_fns() -> Option<TokenStream> {
-    let pcr = quote!(::prisma_client_rust);
+    cfg!(feature = "mongodb").then(|| {
+        quote! {
+            pub fn find_raw<T: ::prisma_client_rust::Data>(self) -> FindRaw<'a, T> {
+                FindRaw::new(self.client)
+            }
 
-    if cfg!(not(feature = "mongodb")) {
-        return None;
-    };
-
-    Some(quote! {
-        pub fn find_raw<T: #pcr::Data>(self) -> #pcr::FindRaw<'a, Types, T> {
-            #pcr::FindRaw::new(self.client)
-        }
-
-        pub fn aggregate_raw<T: #pcr::Data>(self) -> #pcr::AggregateRaw<'a, Types, T> {
-            #pcr::AggregateRaw::new(self.client)
+            pub fn aggregate_raw<T: ::prisma_client_rust::Data>(self) -> AggregateRaw<'a, T> {
+                AggregateRaw::new(self.client)
+            }
         }
     })
 }

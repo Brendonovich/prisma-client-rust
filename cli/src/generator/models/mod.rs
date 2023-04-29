@@ -50,7 +50,7 @@ static OPERATORS: &'static [Operator] = &[
 ];
 
 pub struct RequiredField<'a> {
-    pub wrapped_param: TokenStream,
+    pub push_wrapper: TokenStream,
     pub typ: TokenStream,
     pub inner: FieldWalker<'a>,
 }
@@ -67,8 +67,6 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
         })
         .map(|field| {
             Some({
-                let field_name_snake = snake_ident(&field.name());
-
                 let typ = match field.refine() {
                     RefinedFieldWalker::Scalar(scalar_field) => {
                         match scalar_field.scalar_field_type() {
@@ -97,7 +95,7 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
 
                 RequiredField {
                     inner: field,
-                    wrapped_param: quote!(#field_name_snake::#push_wrapper(#field_name_snake)),
+                    push_wrapper,
                     typ,
                 }
             })
@@ -281,6 +279,11 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         let types_struct = types::struct_definition(model, module_path);
         let partial_macro = partial_unchecked::model_macro(model, &module_path);
 
+        let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
+            pub type FindRaw<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
+            pub type AggregateRaw<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
+        });
+
         quote! {
             pub mod #model_name_snake {
                 use super::*;
@@ -316,20 +319,22 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
                 // 'static since the actions struct is only used for types
 
-                pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<Types>;
-                pub type ManyArgs = ::prisma_client_rust::ManyArgs<Types>;
+                pub type UniqueArgs = #pcr::UniqueArgs<Types>;
+                pub type ManyArgs = #pcr::ManyArgs<Types>;
 
-                pub type Count<'a> = ::prisma_client_rust::Count<'a, Types>;
-                pub type Create<'a> = ::prisma_client_rust::Create<'a, Types>;
-                pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, Types>;
-                pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, Types>;
-                pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, Types>;
-                pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, Types>;
-                pub type Update<'a> = ::prisma_client_rust::Update<'a, Types>;
-                pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, Types>;
-                pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, Types>;
-                pub type Delete<'a> = ::prisma_client_rust::Delete<'a, Types>;
-                pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, Types>;
+                pub type Count<'a> = #pcr::Count<'a, Types>;
+                pub type Create<'a> = #pcr::Create<'a, Types>;
+                pub type CreateMany<'a> = #pcr::CreateMany<'a, Types>;
+                pub type FindUnique<'a> = #pcr::FindUnique<'a, Types>;
+                pub type FindMany<'a> = #pcr::FindMany<'a, Types>;
+                pub type FindFirst<'a> = #pcr::FindFirst<'a, Types>;
+                pub type Update<'a> = #pcr::Update<'a, Types>;
+                pub type UpdateMany<'a> = #pcr::UpdateMany<'a, Types>;
+                pub type Upsert<'a> = #pcr::Upsert<'a, Types>;
+                pub type Delete<'a> = #pcr::Delete<'a, Types>;
+                pub type DeleteMany<'a> = #pcr::DeleteMany<'a, Types>;
+
+                #mongo_raw_types
 
                 #actions_struct
             }
