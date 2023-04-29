@@ -9,7 +9,5 @@ edition = "2021"
 prisma-client-rust-cli = { path = "../../../cli", features = [
   "sqlite",
   "migrations",
-], default-features = false }
-sdk-example-generator = { path = "../generator", features = [
-  "sqlite",
-], default-features = false }
+] }
+sdk-example-generator = { path = "../generator" }

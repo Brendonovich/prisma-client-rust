@@ -17,4 +17,4 @@ export function createPost(data: CreatePostData) {
 }
 
 export type CreatePostData = { title: string; content: string }
-export type Post = { id: number; title: string; content: string; lmao: string | null }
+export type Post = { id: number; title: string; content: string }

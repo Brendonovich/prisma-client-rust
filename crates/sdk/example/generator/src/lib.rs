@@ -18,19 +18,19 @@ impl PrismaGenerator for ExampleGenerator {
     fn generate(self, args: GenerateArgs) -> Result<String, Error> {
         let client_path = ident(&self.client_path);
 
-        let model_impls = args.dml.models().map(|model| {
-            let model_name_snake = snake_ident(&model.name);
+        let model_impls = args.schema.db.walk_models().map(|model| {
+            let model_name_snake = snake_ident(model.name());
 
             let scalar_fields = model
                 .scalar_fields()
-                .map(|sf| snake_ident(&sf.name).to_string());
+                .map(|sf| snake_ident(sf.name()).to_string());
             let relation_fields = model
                 .relation_fields()
-                .map(|rf| snake_ident(&rf.name).to_string());
+                .map(|rf| snake_ident(rf.name()).to_string());
             let id_fields = model
-                .scalar_fields()
-                .filter(|sf| model.field_is_primary(&sf.name))
-                .map(|sf| snake_ident(&sf.name).to_string());
+                .primary_key()
+                .map(|pk| pk.fields().map(|f| snake_ident(f.name()).to_string()))
+                .unwrap();
 
             quote! {
                 impl sdk_example_lib::ExampleTrait for prisma::#model_name_snake::Data {

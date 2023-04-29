@@ -16,7 +16,7 @@ tauri-build = { version = "1.2", features = [] }
 tauri = { version = "1.2", features = ["shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-prisma-client-rust = { path = "../../..", default-features = false, features = ["sqlite", "migrations", "mocking", "specta"] }
+prisma-client-rust = { workspace = true, features = ["sqlite", "migrations", "mocking", "specta"] }
 specta = "1.0.0"
 tauri-specta = { version = "1.0.0", features = ["typescript"] }
 tokio = { version = "1.26.0", features = ["macros"] }

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-prisma-client-rust = { path = "../../../", features = ["migrations"] }
+prisma-client-rust = { workspace = true, features = ["migrations"] }
 sdk-example-lib = { path = "../lib" }
 serde = { version = "1.0.145", features = ["derive"] }
 tokio = { version = "1.21.2", features = ["macros"] }

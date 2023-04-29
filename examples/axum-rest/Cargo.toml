@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-prisma-client-rust = { path = "../..", default-features = false, features = ["migrations", "sqlite"] }
+prisma-client-rust = { workspace = true, features = ["migrations", "sqlite"] }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 axum = "0.6"

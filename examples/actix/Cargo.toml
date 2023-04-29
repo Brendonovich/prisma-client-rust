@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-prisma-client-rust = { path = "../../", default-features = false, features = ["migrations", "sqlite"] }
+prisma-client-rust = { workspace = true, features = ["migrations", "sqlite"] }
 serde = { version = "1.0", features = ["derive"] }
 actix-web = "4"
