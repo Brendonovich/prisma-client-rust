@@ -101,3 +101,37 @@ async fn unchecked() -> TestResult {
 
     cleanup(client).await
 }
+
+async fn from_struct() -> TestResult {
+    let client = client().await;
+
+    let post = post::Create {
+        title: "Hi from Prisma!".to_string(),
+        published: true,
+        _params: vec![post::desc::set(Some(
+            "Prisma is a database toolkit that makes databases easy.".to_string(),
+        ))],
+    }
+    .to_query(&client)
+    .exec()
+    .await?;
+
+    assert_eq!(post.title, "Hi from Prisma!");
+    assert_eq!(
+        post.desc,
+        Some("Prisma is a database toolkit that makes databases easy.".to_string())
+    );
+    assert_eq!(post.published, true);
+
+    let user = user::Create {
+        name: "Brendan".to_string(),
+        _params: vec![],
+    }
+    .to_query(&client)
+    .exec()
+    .await?;
+
+    assert_eq!(user.name, "Brendan");
+
+    cleanup(client).await
+}

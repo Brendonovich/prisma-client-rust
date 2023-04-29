@@ -41,15 +41,48 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
 }
 
 fn create(model: ModelWalker) -> Option<TokenStream> {
-    let (required_field_names, required_field_types): (Vec<_>, Vec<_>) = required_fields(model)?
-        .iter()
-        .map(|field| (snake_ident(field.inner.name()), field.typ.clone()))
-        .unzip();
+    let model_name_snake = snake_ident(model.name());
 
+    let (names, (types, push_wrappers)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
+        .into_iter()
+        .map(|field| {
+            (
+                snake_ident(field.inner.name()),
+                (field.typ, field.push_wrapper),
+            )
+        })
+        .unzip();
     Some(quote! {
-        pub fn create(#(#required_field_names: #required_field_types,)* _params: Vec<SetParam>)
-            -> (#(#required_field_types,)* Vec<SetParam>) {
-            (#(#required_field_names,)* _params)
+
+        pub struct Create {
+            #(pub #names: #types,)*
+            pub _params: Vec<SetParam>
+        }
+
+        impl Create {
+            pub fn to_query<'a>(self, client: &'a PrismaClient) -> CreateQuery<'a> {
+                client.#model_name_snake()
+                    .create(
+                        #(self.#names,)*
+                        self._params
+                    )
+            }
+
+            pub fn to_params(mut self) -> Vec<SetParam> {
+                self._params.extend([
+                    #(#names::#push_wrappers(self.#names)),*
+                ]);
+
+                self._params
+            }
+        }
+
+        pub fn create(#(#names: #types,)* _params: Vec<SetParam>)
+            -> Create {
+            Create {
+                #(#names,)*
+                _params
+            }
         }
     })
 }
