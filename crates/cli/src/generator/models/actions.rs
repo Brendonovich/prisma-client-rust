@@ -32,6 +32,8 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
 }
 
 pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
+    required_fields(model)?;
+
     let (names, types): (Vec<_>, Vec<_>) = model
         .scalar_fields()
         .filter_map(|field| {

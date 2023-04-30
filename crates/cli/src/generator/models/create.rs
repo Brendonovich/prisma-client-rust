@@ -7,6 +7,8 @@ use crate::generator::prelude::*;
 use super::required_fields;
 
 fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
+    required_fields(model)?;
+
     let model_name_snake = snake_ident(model.name());
 
     let (names, types): (Vec<_>, Vec<_>) = model
