@@ -564,14 +564,20 @@ pub fn module(
                         })
                         .collect::<TokenStream>();
 
+                    let impl_from_for_set_param = (!scalar_field.is_in_required_relation()).then(|| {
+		                quote! {
+				            impl From<Set> for SetParam {
+				                fn from(Set(v): Set) -> Self {
+				                    Self::#field_name_pascal(_prisma::write_params::#param_enum::Set(v))
+				                }
+				            }
+		                }
+                    });
+
                     quote! {
 	                    pub struct Set(pub #field_type);
 
-	                    impl From<Set> for SetParam {
-		                    fn from(Set(v): Set) -> Self {
-			                    Self::#field_name_pascal(_prisma::write_params::#param_enum::Set(v))
-		                    }
-	                    }
+						#impl_from_for_set_param
 
 	                    impl From<Set> for UncheckedSetParam {
 		                    fn from(Set(v): Set) -> Self {

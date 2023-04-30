@@ -17,7 +17,7 @@ async fn test() -> TestResult {
         .create(
             "Hi from Prisma!".to_string(),
             false,
-            vec![post::author_id::set(Some(author.id.clone()))],
+            vec![post::author::connect(user::id::equals(author.id.clone()))],
         )
         .with(post::author::fetch())
         .exec()

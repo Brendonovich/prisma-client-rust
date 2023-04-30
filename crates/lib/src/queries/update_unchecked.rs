@@ -2,31 +2,30 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
+    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
+    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
+    UncheckedSetQuery, WhereInput, WithQuery,
 };
 
-pub struct Upsert<'a, Actions: ModelTypes> {
+pub struct UpdateUnchecked<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::Where,
-    pub create_params: Vec<Actions::Set>,
-    pub update_params: Vec<Actions::Set>,
+    pub set_params: Vec<Actions::UncheckedSet>,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> UpdateUnchecked<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::Where,
-        create_params: Vec<Actions::Set>,
-        update_params: Vec<Actions::Set>,
+        set_params: Vec<Actions::UncheckedSet>,
+        with_params: Vec<Actions::With>,
     ) -> Self {
         Self {
             client,
             where_param,
-            create_params,
-            update_params,
-            with_params: vec![],
+            set_params,
+            with_params,
         }
     }
 
@@ -37,8 +36,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
 
     fn to_selection(
         where_param: Actions::Where,
-        create_params: Vec<Actions::Set>,
-        update_params: Vec<Actions::Set>,
+        set_params: Vec<Actions::UncheckedSet>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Self::base_selection(
@@ -48,25 +46,10 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
                     PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
                 ),
                 (
-                    "create".to_string(),
-                    PrismaValue::Object(
-                        create_params
-                            .into_iter()
-                            .map(Into::into)
-                            .map(|(k, v)| (k.to_string(), v))
-                            .collect(),
-                    )
-                    .into(),
-                ),
-                (
-                    "update".to_string(),
-                    PrismaValue::Object(
-                        update_params
-                            .into_iter()
-                            .map(Into::into)
-                            .map(|(k, v)| (k.to_string(), v))
-                            .collect(),
-                    )
+                    "data".to_string(),
+                    PrismaValue::Object(merge_fields(
+                        set_params.into_iter().map(Into::into).collect(),
+                    ))
                     .into(),
                 ),
             ],
@@ -82,8 +65,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
             self.client,
             Operation::Write(Self::to_selection(
                 self.where_param,
-                self.create_params,
-                self.update_params,
+                self.set_params,
                 select.to_selections(),
             )),
         )
@@ -91,15 +73,14 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
 
     pub fn include<I: IncludeType<ModelData = Actions::Data>>(
         self,
-        select: I,
+        include: I,
     ) -> Include<'a, I::Data> {
         Include::new(
             self.client,
             Operation::Write(Self::to_selection(
                 self.where_param,
-                self.create_params,
-                self.update_params,
-                select.to_selections(),
+                self.set_params,
+                include.to_selections(),
             )),
         )
     }
@@ -109,7 +90,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> QueryConvert for UpdateUnchecked<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
@@ -118,7 +99,7 @@ impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> Query<'a> for UpdateUnchecked<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -127,8 +108,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
         (
             Operation::Write(Self::to_selection(
                 self.where_param,
-                self.create_params,
-                self.update_params,
+                self.set_params,
                 scalar_selections,
             )),
             self.client,
@@ -136,13 +116,19 @@ impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> ModelQuery<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> ModelQuery<'a> for UpdateUnchecked<'a, Actions> {
     type Types = Actions;
 
-    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Upsert);
+    const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Update);
 }
 
-impl<'a, Actions: ModelTypes> WithQuery<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: ModelTypes> UncheckedSetQuery<'a> for UpdateUnchecked<'a, Actions> {
+    fn add_unchecked_set(&mut self, param: Actions::UncheckedSet) {
+        self.set_params.push(param);
+    }
+}
+
+impl<'a, Actions: ModelTypes> WithQuery<'a> for UpdateUnchecked<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }

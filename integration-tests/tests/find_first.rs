@@ -214,7 +214,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
         .create(
             "My first post".to_string(),
             true,
-            vec![post::author_id::set(Some(user.id.clone()))],
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;
@@ -240,7 +240,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
         .create(
             "Hello, world!".to_string(),
             true,
-            vec![post::author_id::set(Some(user.id.clone()))],
+            vec![post::author::connect(user::id::equals(user.id.clone()))],
         )
         .exec()
         .await?;

@@ -54,22 +54,21 @@ impl GenerateArgs {
             let mut filters = vec![];
 
             for scalar in &scalars {
-                let combinations = [
+                let possible_filters = [
                     scalar.to_string() + "ListFilter",
                     scalar.to_string() + "NullableListFilter",
                     scalar.to_string() + "Filter",
                     scalar.to_string() + "NullableFilter",
                 ];
 
-                for c in combinations {
-                    let p = match dmmf.schema.find_input_type(&c) {
-                        Some(p) => p,
-                        None => continue,
+                for filter in possible_filters {
+                    let Some(filter_type) = dmmf.schema.find_input_type(&filter) else {
+                        continue;
                     };
 
                     let mut fields = vec![];
 
-                    for field in &p.fields {
+                    for field in &filter_type.fields {
                         if let Some(method) = input_field_as_method(field, &schema.db) {
                             fields.push(method);
                         }
@@ -79,9 +78,9 @@ impl GenerateArgs {
 
                     // checking for both is invalid - fields can be list or null but not both
                     // TODO: make this more typesafe to correspond with fields
-                    if p.name.contains("List") {
+                    if filter_type.name.contains("List") {
                         s += "List";
-                    } else if p.name.contains("Nullable") {
+                    } else if filter_type.name.contains("Nullable") {
                         s += "Nullable";
                     }
 
@@ -92,33 +91,32 @@ impl GenerateArgs {
                 }
             }
 
-            for e in schema.db.walk_enums() {
-                let combinations = [
-                    "Enum".to_string() + &e.ast_enum().name.name + "Filter",
-                    "Enum".to_string() + &e.ast_enum().name.name + "NullableFilter",
+            for enm in schema.db.walk_enums() {
+                let possible_filters = [
+                    "Enum".to_string() + &enm.ast_enum().name.name + "Filter",
+                    "Enum".to_string() + &enm.ast_enum().name.name + "NullableFilter",
                 ];
 
-                for c in combinations {
-                    let p = match dmmf.schema.find_input_type(&c) {
-                        Some(t) => t,
-                        None => continue,
+                for filter in possible_filters {
+                    let Some(filter_type) = dmmf.schema.find_input_type(&filter) else {
+                        continue;
                     };
 
                     let mut fields = vec![];
 
-                    for field in &p.fields {
+                    for field in &filter_type.fields {
                         if let Some(method) = input_field_as_method(field, &schema.db) {
                             fields.push(method);
                         }
                     }
 
-                    let mut name = e.ast_enum().name.name.clone();
+                    let mut name = enm.ast_enum().name.name.clone();
 
                     // checking for both is invalid - fields can be list or null but not both
                     // TODO: make this more typesafe to correspond with fields
-                    if p.name.contains("List") {
+                    if filter_type.name.contains("List") {
                         name += "List";
-                    } else if p.name.contains("Nullable") {
+                    } else if filter_type.name.contains("Nullable") {
                         name += "Nullable";
                     }
 
@@ -166,20 +164,19 @@ impl GenerateArgs {
             let mut filters = vec![];
 
             for scalar in &scalars {
-                let combinations = [
+                let possible_inputs = [
                     scalar.clone() + "FieldUpdateOperationsInput",
                     "Nullable".to_string() + scalar + "FieldUpdateOperationsInput",
                 ];
 
-                for c in combinations {
-                    let p = match dmmf.schema.find_input_type(&c) {
-                        Some(p) => p,
-                        None => continue,
+                for input in possible_inputs {
+                    let Some(input_type) = dmmf.schema.find_input_type(&input) else {
+                        continue;
                     };
 
                     let mut fields = vec![];
 
-                    for field in &p.fields {
+                    for field in &input_type.fields {
                         if let Some((type_name, is_list)) = {
                             let mut ret = None;
                             for input_type in &field.input_types {
@@ -210,9 +207,9 @@ impl GenerateArgs {
 
                     let mut s = scalar.clone();
 
-                    if p.name.contains("List") {
+                    if input_type.name.contains("List") {
                         s += "List";
-                    } else if p.name.contains("Nullable") {
+                    } else if input_type.name.contains("Nullable") {
                         s += "Nullable";
                     }
 
@@ -225,11 +222,10 @@ impl GenerateArgs {
 
             for model in schema.db.walk_models() {
                 for field in model.fields() {
-                    let p = match dmmf.schema.find_input_type(
+                    let Some(input_type) = dmmf.schema.find_input_type(
                         &(model.name().to_string() + "Update" + field.name() + "Input"),
-                    ) {
-                        Some(p) => p,
-                        None => continue,
+                    ) else {
+                        continue;
                     };
 
                     let mut fields = vec![];
@@ -237,7 +233,7 @@ impl GenerateArgs {
                     if let Some(scalar_name) = {
                         let mut scalar_name = None;
 
-                        for field in &p.fields {
+                        for field in &input_type.fields {
                             if field.name == "set" {
                                 for input_type in &field.input_types {
                                     match input_type.location {
@@ -364,7 +360,7 @@ impl GenerateArgs {
     }
 }
 
-trait DmmfSchemaExt {
+pub trait DmmfSchemaExt {
     fn find_input_type(&self, name: &str) -> Option<&DmmfInputType>;
 }
 

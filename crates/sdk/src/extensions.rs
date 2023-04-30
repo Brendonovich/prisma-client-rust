@@ -13,15 +13,11 @@ pub trait ModelExt<'a> {
 
 impl<'a> ModelExt<'a> for ModelWalker<'a> {
     fn scalar_field_has_relation(self, scalar: ScalarFieldWalker) -> bool {
-        self.fields().any(|field| match field.refine() {
-            RefinedFieldWalker::Relation(relation_field) => {
-                field.ast_field().arity.is_required()
-                    && relation_field
-                        .fields()
-                        .unwrap()
-                        .any(|f| f.field_id() == scalar.field_id())
-            }
-            _ => false,
+        self.relation_fields().any(|relation_field| {
+            relation_field
+                .fields()
+                .map(|mut fields| fields.any(|f| f.field_id() == scalar.field_id()))
+                .unwrap_or(false)
         })
     }
 
@@ -137,8 +133,18 @@ impl FieldArityExt for FieldArity {
 }
 
 pub trait ScalarFieldWalkerExt {
-    fn to_tokens(&self, prefix: &TokenStream, arity: &FieldArity) -> Option<TokenStream>;
-    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
+    fn is_in_required_relation(&self) -> bool;
+}
+
+impl<'a> ScalarFieldWalkerExt for ScalarFieldWalker<'a> {
+    fn is_in_required_relation(&self) -> bool {
+        self.model().relation_fields().any(|relation_field| {
+            relation_field
+                .fields()
+                .map(|mut fields| fields.any(|sf| sf.field_id() == self.field_id()))
+                .unwrap_or(false)
+        })
+    }
 }
 
 impl<'a> FieldExt<'a> for ScalarFieldWalker<'a> {

@@ -90,7 +90,7 @@ fn field_set_params(
                         quote!(#variant_name(#contents)),
                         quote! {
                             Self::#variant_name(#value_ident) =>
-                                (#field_name_snake::NAME.to_string(), #value)
+                                (#field_name_snake::NAME, #value)
                         },
                     )
                 };
@@ -102,7 +102,7 @@ fn field_set_params(
                         quote!(#variant_name),
                         quote! {
                             Self::#variant_name => (
-                                #field_name_snake::NAME.to_string(),
+                                #field_name_snake::NAME,
                                 #pcr::PrismaValue::Object(vec![(
                                     "unset".to_string(),
                                     #pcr::PrismaValue::Boolean(true)
@@ -119,7 +119,7 @@ fn field_set_params(
                         quote!(#variant_name(Vec<super::#field_type_snake::SetParam>)),
                         quote! {
                             Self::#variant_name(value) =>
-                                (#field_name_snake::NAME.to_string(),
+                                (#field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(vec![(
                                         "update".to_string(),
                                             #pcr::PrismaValue::Object(value
@@ -143,7 +143,7 @@ fn field_set_params(
                         )),
                         quote! {
                             Self::#variant_name(create, update) =>
-                                (#field_name_snake::NAME.to_string(),
+                                (#field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(vec![(
                                         "upsert".to_string(),
                                         #pcr::PrismaValue::Object(vec![
@@ -180,7 +180,7 @@ fn field_set_params(
                         quote!(#variant_name(Vec<super::#field_type_snake::Create>)),
                         quote! {
                             Self::#variant_name(creates) => (
-                                #field_name_snake::NAME.to_string(),
+                                #field_name_snake::NAME,
                                 #pcr::PrismaValue::Object(vec![(
                                     "push".to_string(),
                                     #pcr::PrismaValue::List(
@@ -210,7 +210,7 @@ fn field_set_params(
                             )),
                             quote! {
                             	Self::#variant_name(_where, updates) => (
-                                    #field_name_snake::NAME.to_string(),
+                                    #field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(vec![(
                                         "updateMany".to_string(),
                                         #pcr::PrismaValue::Object(vec![
@@ -248,7 +248,7 @@ fn field_set_params(
                             )),
                             quote! {
                                 Self::#variant_name(_where) => (
-                                    #field_name_snake::NAME.to_string(),
+                                    #field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(vec![(
                                         "deleteMany".to_string(),
                                         #pcr::PrismaValue::Object(vec![
@@ -284,30 +284,20 @@ fn field_set_params(
                 functions.extend(f);
             }
             _ => {
+                if scalar_field.is_in_required_relation() {
+                    return None;
+                }
+
                 if let Some(write_param) = args.write_param(scalar_field) {
                     let param_enum = format_ident!("{}Param", &write_param.name);
 
                     variants.push(quote!(#field_name_pascal(_prisma::write_params::#param_enum)));
                     functions.push(quote! {
                         Self::#field_name_pascal(value) => (
-                            #field_name_snake::NAME.to_string(),
+                            #field_name_snake::NAME,
                             value.into()
                         )
                     });
-
-                    // for method in &write_param.methods {
-                    //     let typ = method.type_tokens(module_path, &field.db);
-
-                    //     let prisma_value_converter = method
-                    //         .base_type
-                    //         .to_prisma_value(&format_ident!("value"), &method.arity())
-                    //         .unwrap();
-
-                    //     let variant_name =
-                    //         format_ident!("{}{}", pascal_ident(&method.name), field_name_pascal);
-
-                    //     let action = &method.action;
-                    // }
                 }
             }
         },
@@ -322,7 +312,7 @@ fn field_set_params(
                         (quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
                             quote! {
                                 Self::#variant_name(where_params) => (
-                                    #field_name_snake::NAME.to_string(),
+                                    #field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(
                                         vec![(
                                             #action.to_string(),
@@ -345,7 +335,7 @@ fn field_set_params(
                         (quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
                             quote! {
                                 Self::#variant_name(where_param) => (
-                                    #field_name_snake::NAME.to_string(),
+                                    #field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(
                                         vec![(
                                             #action.to_string(),
@@ -367,7 +357,7 @@ fn field_set_params(
                         (quote!(#variant_name),
                             quote! {
                                 Self::#variant_name => (
-                                    #field_name_snake::NAME.to_string(),
+                                    #field_name_snake::NAME,
                                     #pcr::PrismaValue::Object(
                                         vec![(
                                             #action.to_string(),
@@ -406,25 +396,38 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
             .scalar_fields()
             .flat_map(|field| {
                 let field_name_pascal = pascal_ident(field.name());
-                let field_name_snake = snake_ident(field.name());
+                let field_name_str = field.name();
 
-                let field_type = match field.scalar_field_type() {
+                match field.scalar_field_type() {
                     ScalarFieldType::CompositeType(id) => {
                         let comp_type = model.db.walk(id);
 
                         let comp_type_snake = snake_ident(comp_type.name());
 
-                        field.ast_field().arity.wrap_type(&quote!(super::#comp_type_snake::Create))
+                        Some((
+                            field
+                                .ast_field()
+                                .arity
+                                .wrap_type(&quote!(super::#comp_type_snake::Create)),
+                            quote!(),
+                        ))
                     }
-                    t => t.to_tokens(&quote!(super), &field.ast_field().arity, &field.db)?,
-                };
+                    ScalarFieldType::Unsupported(_) => None,
+                    _ => {
+                        let typ = field.type_tokens(&quote!(super))?;
 
-                Some((
-                    quote!(#field_name_pascal(#field_type)),
-                    quote! {
-                        UncheckedSetParam::#field_name_pascal(value) => #field_name_snake::Set(value).into()
-                    },
-                ))
+                        args.write_param(field).map(|write_param| {
+	                        let param_enum = format_ident!("{}Param", &write_param.name);
+
+							(
+								quote!(#field_name_pascal(#typ)),
+								quote! {
+									Self::#field_name_pascal(value) => (#field_name_str, _prisma::write_params::#param_enum::Set(value).into())
+								},
+							)
+                        })
+                    }
+                }
             })
             .unzip();
 
@@ -434,11 +437,11 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
                   #(#variants),*
             }
 
-            impl From<UncheckedSetParam> for SetParam {
-                fn from(param: UncheckedSetParam) -> Self {
-                    match param {
-                         #(#into_pv_arms),*
-                     }
+            impl Into<(&'static str, #pcr::PrismaValue)> for UncheckedSetParam {
+                fn into(self) -> (&'static str, #pcr::PrismaValue) {
+                    match self {
+                        #(#into_pv_arms),*
+                    }
                 }
             }
         }
@@ -450,8 +453,8 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(String, #pcr::PrismaValue)> for SetParam {
-            fn into(self) -> (String, #pcr::PrismaValue) {
+        impl Into<(&'static str, #pcr::PrismaValue)> for SetParam {
+            fn into(self) -> (&'static str, #pcr::PrismaValue) {
                 match self {
                     #(#into_pv_arms),*
                 }

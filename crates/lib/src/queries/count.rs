@@ -98,7 +98,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                                 self.order_by_params
                                     .into_iter()
                                     .map(Into::into)
-                                    .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
+                                    .map(|(k, v)| PrismaValue::Object(vec![(k.to_string(), v)]))
                                     .collect(),
                             )
                             .into(),

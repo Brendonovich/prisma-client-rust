@@ -58,12 +58,12 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> CreateQuery<'a> {
+        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> CreateUncheckedQuery<'a> {
             _params.extend([
                 #(#names::set(#names)),*
             ]);
 
-            CreateQuery::new(
+            CreateUncheckedQuery::new(
                 self.client,
                 _params.into_iter().map(Into::into).collect()
             )
@@ -78,7 +78,7 @@ pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
         .then(|| {
             quote! {
                 pub fn create_many(self, data: Vec<CreateUnchecked>) -> CreateManyQuery<'a> {
-                    let data = data.into_iter().map(CreateUnchecked::to_unchecked_params).collect();
+                    let data = data.into_iter().map(CreateUnchecked::to_params).collect();
 
                     CreateManyQuery::new(
                         self.client,
@@ -180,8 +180,8 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> UpdateQuery<'a> {
-                UpdateQuery::new(
+            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> UpdateUncheckedQuery<'a> {
+                UpdateUncheckedQuery::new(
                     self.client,
                     _where.into(),
                     _params.into_iter().map(Into::into).collect(),

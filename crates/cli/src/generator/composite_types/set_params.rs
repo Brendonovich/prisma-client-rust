@@ -59,7 +59,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, module_path: &TokenStream
                 quote!(#variant_name(#field_type)),
                 quote! {
                     SetParam::#variant_name(value) => (
-                        #field_name_snake::NAME.to_string(),
+                        #field_name_snake::NAME,
                         #converter
                     )
                 },
