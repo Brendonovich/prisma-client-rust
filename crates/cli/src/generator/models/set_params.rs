@@ -413,20 +413,19 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
                         ))
                     }
                     ScalarFieldType::Unsupported(_) => None,
-                    _ => {
-                        let typ = field.type_tokens(&quote!(super))?;
+                    _ => args.write_param(field).map(|write_param| {
+                        let param_enum = format_ident!("{}Param", &write_param.name);
 
-                        args.write_param(field).map(|write_param| {
-	                        let param_enum = format_ident!("{}Param", &write_param.name);
-
-							(
-								quote!(#field_name_pascal(#typ)),
-								quote! {
-									Self::#field_name_pascal(value) => (#field_name_str, _prisma::write_params::#param_enum::Set(value).into())
-								},
-							)
-                        })
-                    }
+                        (
+                            quote!(#field_name_pascal(_prisma::write_params::#param_enum)),
+                            quote! {
+                                Self::#field_name_pascal(value) => (
+                                    #field_name_str,
+                                    value.into()
+                                )
+                            },
+                        )
+                    }),
                 }
             })
             .unzip();
