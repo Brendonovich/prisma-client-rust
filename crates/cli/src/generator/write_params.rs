@@ -1,8 +1,12 @@
 use super::prelude::*;
 
+pub fn enum_name(filter: &Filter) -> Ident {
+    format_ident!("{}Param", &filter.name)
+}
+
 pub fn generate_module(args: &GenerateArgs) -> TokenStream {
     let write_params = args.write_params.iter().map(|write_param| {
-        let name = format_ident!("{}Param", &write_param.name);
+        let name = enum_name(write_param);
 
         let (method_variants, method_matches): (Vec<_>, Vec<_>) = write_param
             .methods

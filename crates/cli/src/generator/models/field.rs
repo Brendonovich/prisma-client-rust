@@ -6,7 +6,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::generator::{prelude::*, write_params};
 
 use super::{include, order_by, pagination, select, where_params::Variant, with_params};
 
@@ -543,7 +543,7 @@ pub fn module(
                 });
 
                 let write_fns = args.write_param(scalar_field).map(|write_param| {
-                    let param_enum = format_ident!("{}Param", &write_param.name);
+                    let param_enum = write_params::enum_name(write_param);
                     let param_enum_path = quote!(_prisma::write_params::#param_enum);
 
                     let other_fns = write_param

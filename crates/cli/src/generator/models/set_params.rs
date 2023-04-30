@@ -3,7 +3,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::generator::{prelude::*, write_params};
 
 pub struct RelationSetParamConfig {
     pub action: &'static str,
@@ -289,7 +289,7 @@ fn field_set_params(
                 }
 
                 if let Some(write_param) = args.write_param(scalar_field) {
-                    let param_enum = format_ident!("{}Param", &write_param.name);
+                    let param_enum = write_params::enum_name(write_param);
 
                     variants.push(quote!(#field_name_pascal(_prisma::write_params::#param_enum)));
                     functions.push(quote! {
@@ -414,7 +414,7 @@ pub fn enum_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
                     }
                     ScalarFieldType::Unsupported(_) => None,
                     _ => args.write_param(field).map(|write_param| {
-                        let param_enum = format_ident!("{}Param", &write_param.name);
+                        let param_enum = write_params::enum_name(write_param);
 
                         (
                             quote!(#field_name_pascal(_prisma::write_params::#param_enum)),
