@@ -87,7 +87,7 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                             order_by_params
                                 .into_iter()
                                 .map(Into::into)
-                                .map(|(k, v)| PrismaValue::Object(vec![(k, v)]))
+                                .map(|(k, v)| PrismaValue::Object(vec![(k.to_string(), v)]))
                                 .collect(),
                         )
                         .into(),

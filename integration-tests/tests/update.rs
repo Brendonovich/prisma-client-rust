@@ -28,7 +28,7 @@ async fn query() -> TestResult {
                 post::desc::set(Some(
                     "Prisma is a database toolkit that makes databases easy.".to_string(),
                 )),
-                post::author_id::set(Some(user_id.clone())),
+                post::author::connect(user::id::equals(user_id.clone())),
             ],
         )
         .exec()

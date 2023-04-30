@@ -20,10 +20,10 @@ pub trait Query<'a>: QueryConvert {
 pub trait ModelTypes {
     type Data: Data;
     type Where: WhereInput;
-    type UncheckedSet: Into<Self::Set>;
-    type Set: Into<(String, PrismaValue)>;
+    type UncheckedSet: Into<(&'static str, PrismaValue)>;
+    type Set: Into<(&'static str, PrismaValue)>;
     type With: Into<Selection>;
-    type OrderBy: Into<(String, PrismaValue)>;
+    type OrderBy: Into<(&'static str, PrismaValue)>;
     type Cursor: Into<Self::Where>;
 
     const MODEL: &'static str;

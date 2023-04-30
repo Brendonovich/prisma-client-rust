@@ -27,7 +27,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
                         quote!(#field_name_pascal(Vec<super::#composite_type_snake::OrderByParam>)),
                         quote! {
                             Self::#field_name_pascal(params) => (
-                                #field_name_snake::NAME.to_string(),
+                                #field_name_snake::NAME,
                                 #pcr::PrismaValue::Object(
                                     params
                                          .into_iter()
@@ -42,7 +42,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
                     quote!(#field_name_pascal(#pcr::Direction)),
                     quote! {
                         Self::#field_name_pascal(direction) => (
-                            #field_name_snake::NAME.to_string(),
+                            #field_name_snake::NAME,
                             #pcr::PrismaValue::String(direction.to_string())
                         )
                     },
@@ -57,8 +57,8 @@ pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(String, #pcr::PrismaValue)> for OrderByParam {
-            fn into(self) -> (String, #pcr::PrismaValue) {
+        impl Into<(&'static str, #pcr::PrismaValue)> for OrderByParam {
+            fn into(self) -> (&'static str, #pcr::PrismaValue) {
                 match self {
                     #(#into_pv_arms),*
                 }

@@ -7,6 +7,8 @@ use crate::generator::prelude::*;
 use super::required_fields;
 
 fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
+    required_fields(model)?;
+
     let model_name_snake = snake_ident(model.name());
 
     let (names, types): (Vec<_>, Vec<_>) = model
@@ -42,7 +44,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
         }
 
         impl CreateUnchecked {
-             pub fn to_query<'a>(self, client: &'a PrismaClient) -> CreateQuery<'a> {
+             pub fn to_query<'a>(self, client: &'a PrismaClient) -> CreateUncheckedQuery<'a> {
                 client.#model_name_snake()
                     .create_unchecked(
                         #(self.#names,)*
@@ -50,15 +52,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
                     )
             }
 
-            pub fn to_params(mut self) -> Vec<SetParam> {
-                self._params.extend([
-                    #(#names::set(self.#names)),*
-                ]);
-
-                self._params.into_iter().map(Into::into).collect()
-            }
-
-            pub fn to_unchecked_params(mut self) -> Vec<UncheckedSetParam> {
+            pub fn to_params(mut self) -> Vec<UncheckedSetParam> {
                 self._params.extend([
                     #(#names::set(self.#names)),*
                 ]);

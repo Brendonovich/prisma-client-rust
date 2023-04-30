@@ -2,6 +2,7 @@ mod batch;
 mod count;
 mod create;
 mod create_many;
+mod create_unchecked;
 mod delete;
 mod delete_many;
 mod error;
@@ -16,12 +17,14 @@ mod query_raw;
 mod select;
 mod update;
 mod update_many;
+mod update_unchecked;
 mod upsert;
 
 pub use batch::*;
 pub use count::*;
 pub use create::*;
 pub use create_many::*;
+pub use create_unchecked::*;
 pub use delete::*;
 pub use delete_many::*;
 pub use error::*;
@@ -36,6 +39,7 @@ pub use query_raw::*;
 pub use select::*;
 pub use update::*;
 pub use update_many::*;
+pub use update_unchecked::*;
 pub use upsert::*;
 
 use futures::FutureExt;
@@ -63,14 +67,14 @@ impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
 }
 
 pub struct SerializedWhereInput {
-    field: String,
+    field: &'static str,
     value: SerializedWhereValue,
 }
 
 impl SerializedWhereInput {
-    pub fn new(field: &str, value: SerializedWhereValue) -> Self {
+    pub fn new(field: &'static str, value: SerializedWhereValue) -> Self {
         Self {
-            field: field.into(),
+            field,
             value: value.into(),
         }
     }
@@ -82,7 +86,7 @@ impl SerializedWhereInput {
         let Self { field, value } = self;
 
         (
-            field,
+            field.to_string(),
             match value {
                 SerializedWhereValue::Object(mut params) => match params
                     .iter()
@@ -99,8 +103,8 @@ impl SerializedWhereInput {
     }
 }
 
-impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
-    fn into(self) -> (String, prisma_models::PrismaValue) {
+impl Into<(&'static str, prisma_models::PrismaValue)> for SerializedWhereInput {
+    fn into(self) -> (&'static str, prisma_models::PrismaValue) {
         let SerializedWhereInput { field, value } = self;
         (field, value.into())
     }

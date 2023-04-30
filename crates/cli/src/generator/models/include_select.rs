@@ -178,7 +178,7 @@ fn model_macro<'a>(
         let specta_rename = cfg!(feature = "specta").then(|| {
             quote!(#[specta(rename_from_path = #module_path::#model_name_snake::#field_name_snake::NAME)])
         });
-        
+
         quote! {
             #specta_rename
             pub #field_name_snake: #field_type

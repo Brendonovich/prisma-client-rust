@@ -6,7 +6,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::generator::{prelude::*, write_params};
 
 use super::{include, order_by, pagination, select, where_params::Variant, with_params};
 
@@ -543,7 +543,8 @@ pub fn module(
                 });
 
                 let write_fns = args.write_param(scalar_field).map(|write_param| {
-                    let param_enum = format_ident!("{}Param", &write_param.name);
+                    let param_enum = write_params::enum_name(write_param);
+                    let param_enum_path = quote!(_prisma::write_params::#param_enum);
 
                     let other_fns = write_param
                         .methods
@@ -557,31 +558,51 @@ pub fn module(
                             let typ = method.type_tokens(&quote!(), &args.schema.db);
 
                             Some(quote! {
-                                pub fn #method_name_snake(value: #typ) -> SetParam {
-                                    SetParam::#field_name_pascal(_prisma::write_params::#param_enum::#method_name_pascal(value))
+                                pub fn #method_name_snake<T: From<UpdateOperation>>(value: #typ) -> T {
+                                    UpdateOperation(#param_enum_path::#method_name_pascal(value)).into()
                                 }
                             })
                         })
                         .collect::<TokenStream>();
 
+                    let impl_from_for_set_param = (!scalar_field.is_in_required_relation()).then(|| {
+		                quote! {
+							impl From<UpdateOperation> for SetParam {
+								fn from(UpdateOperation(v): UpdateOperation) -> Self {
+									Self::#field_name_pascal(v)
+								}
+							}
+
+				            impl From<Set> for SetParam {
+				                fn from(Set(v): Set) -> Self {
+				                    Self::#field_name_pascal(#param_enum_path::Set(v))
+				                }
+				            }
+		                }
+                    });
+
                     quote! {
 	                    pub struct Set(pub #field_type);
 
-	                    impl From<Set> for SetParam {
-		                    fn from(Set(v): Set) -> Self {
-			                    Self::#field_name_pascal(_prisma::write_params::#param_enum::Set(v))
-		                    }
-	                    }
+						#impl_from_for_set_param
 
 	                    impl From<Set> for UncheckedSetParam {
 		                    fn from(Set(v): Set) -> Self {
-			                    Self::#field_name_pascal(v)
+			                    Self::#field_name_pascal(#param_enum_path::Set(v))
 		                    }
 	                    }
 
 	                    pub fn set<T: From<Set>>(value: #field_type) -> T {
 		                    Set(value).into()
 	                    }
+
+						pub struct UpdateOperation(pub #param_enum_path);
+
+						impl From<UpdateOperation> for UncheckedSetParam {
+							fn from(UpdateOperation(v): UpdateOperation) -> Self {
+								Self::#field_name_pascal(v)
+							}
+						}
 
                     	#other_fns
                     }

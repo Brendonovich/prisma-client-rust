@@ -167,7 +167,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
                             .into_iter()
                             .map(#pcr::WhereInput::serialize)
                             .map(Into::into)
-                            .map(|v| vec![v])
+                            .map(|(k, v)| vec![(k.to_string(), v)])
                             .map(#pcr::PrismaValue::Object)
                             .collect()
                     )
@@ -324,11 +324,13 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
                 pub type CountQuery<'a> = #pcr::Count<'a, Types>;
                 pub type CreateQuery<'a> = #pcr::Create<'a, Types>;
+                pub type CreateUncheckedQuery<'a> = #pcr::CreateUnchecked<'a, Types>;
                 pub type CreateManyQuery<'a> = #pcr::CreateMany<'a, Types>;
                 pub type FindUniqueQuery<'a> = #pcr::FindUnique<'a, Types>;
                 pub type FindManyQuery<'a> = #pcr::FindMany<'a, Types>;
                 pub type FindFirstQuery<'a> = #pcr::FindFirst<'a, Types>;
                 pub type UpdateQuery<'a> = #pcr::Update<'a, Types>;
+                pub type UpdateUncheckedQuery<'a> = #pcr::UpdateUnchecked<'a, Types>;
                 pub type UpdateManyQuery<'a> = #pcr::UpdateMany<'a, Types>;
                 pub type UpsertQuery<'a> = #pcr::Upsert<'a, Types>;
                 pub type DeleteQuery<'a> = #pcr::Delete<'a, Types>;

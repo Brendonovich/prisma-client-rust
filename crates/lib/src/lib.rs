@@ -121,11 +121,11 @@ macro_rules! or {
     };
 }
 
-pub type ObjectFields = Vec<(String, PrismaValue)>;
+pub type ObjectFields = Vec<(&'static str, PrismaValue)>;
 
 /// Creates a PrismaValue::Object from a list of key-value pairs.
 /// If a key has multiple values that are PrismaValue::Objects, they will be merged.
-pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
+pub fn merge_fields(fields: Vec<(&'static str, PrismaValue)>) -> Vec<(String, PrismaValue)> {
     let mut merged = HashMap::new();
 
     for el in fields {
@@ -142,7 +142,10 @@ pub fn merge_fields(fields: ObjectFields) -> ObjectFields {
         }
     }
 
-    merged.into_iter().collect()
+    merged
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect()
 }
 
 pub fn sel(name: &str) -> Selection {
