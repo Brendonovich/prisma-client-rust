@@ -117,8 +117,6 @@ pub fn exec<'a, Q: Query<'a> + 'a>(
     client.execute(op).map(|value| {
         let value = value?;
 
-        dbg!(&value);
-
         Ok(match client.engine {
             ExecutionEngine::Real { .. } => Q::RawType::deserialize(value.into_deserializer())
                 .map_err(|e| e.to_string())
