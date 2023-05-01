@@ -25,7 +25,7 @@ pub fn model_enum(entries: Vec<Variant>) -> TokenStream {
                     #(#match_arms),*
                 };
 
-                #pcr::SerializedWhereInput::new(name, #pcr::SerializedWhereValue::Value(value))
+                #pcr::SerializedWhereInput::new(name.to_string(), #pcr::SerializedWhereValue::Value(value))
             }
         }
     }

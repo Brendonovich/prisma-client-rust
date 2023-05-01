@@ -119,7 +119,7 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
     })
 }
 
-pub fn model_fns(model: ModelWalker) -> TokenStream {
+pub fn types(model: ModelWalker) -> TokenStream {
     let create_unchecked = create_unchecked(model);
     let create = create(model);
 

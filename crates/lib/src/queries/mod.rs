@@ -67,12 +67,12 @@ impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
 }
 
 pub struct SerializedWhereInput {
-    field: &'static str,
+    field: String,
     value: SerializedWhereValue,
 }
 
 impl SerializedWhereInput {
-    pub fn new(field: &'static str, value: SerializedWhereValue) -> Self {
+    pub fn new(field: String, value: SerializedWhereValue) -> Self {
         Self {
             field,
             value: value.into(),
@@ -103,8 +103,8 @@ impl SerializedWhereInput {
     }
 }
 
-impl Into<(&'static str, prisma_models::PrismaValue)> for SerializedWhereInput {
-    fn into(self) -> (&'static str, prisma_models::PrismaValue) {
+impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
+    fn into(self) -> (String, prisma_models::PrismaValue) {
         let SerializedWhereInput { field, value } = self;
         (field, value.into())
     }

@@ -39,7 +39,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
                     )
                 }
                 _ => (
-                    quote!(#field_name_pascal(#pcr::Direction)),
+                    quote!(#field_name_pascal(SortOrder)),
                     quote! {
                         Self::#field_name_pascal(direction) => (
                             #field_name_snake::NAME,
@@ -57,11 +57,13 @@ pub fn enum_definition(comp_type: CompositeTypeWalker) -> TokenStream {
             #(#variants),*
         }
 
-        impl Into<(&'static str, #pcr::PrismaValue)> for OrderByParam {
-            fn into(self) -> (&'static str, #pcr::PrismaValue) {
-                match self {
+        impl Into<(String, #pcr::PrismaValue)> for OrderByParam {
+            fn into(self) -> (String, #pcr::PrismaValue) {
+                let (k, v) = match self {
                     #(#into_pv_arms),*
-                }
+                };
+
+                (k.to_string(), v)
             }
         }
     }

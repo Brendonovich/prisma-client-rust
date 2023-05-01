@@ -223,7 +223,7 @@ impl GenerateArgs {
             for model in schema.db.walk_models() {
                 for field in model.fields() {
                     let Some(input_type) = dmmf.schema.find_input_type(
-                        &(model.name().to_string() + "Update" + field.name() + "Input"),
+                        &format!("{}Update{}Input", model.name(), field.name()),
                     ) else {
                         continue;
                     };

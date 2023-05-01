@@ -177,7 +177,7 @@ let orders = client
 	.order()
 	.find_many(vec![])
 	.order_by(order::shipping_address::order(
-		address::city::order(Direction::Asc)
+		address::city::order(SortOrder::Asc)
 	))
 	.exec()
 	.await?;

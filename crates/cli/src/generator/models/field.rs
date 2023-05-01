@@ -6,15 +6,15 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::{prelude::*, write_params};
+use crate::generator::prelude::*;
 
-use super::{include, order_by, pagination, select, where_params::Variant, with_params};
+use super::where_params::Variant;
 
 pub fn module(
     field: FieldWalker,
     args: &GenerateArgs,
     module_path: &TokenStream,
-) -> (TokenStream, Vec<Variant>) {
+) -> ((String, TokenStream), Vec<Variant>) {
     let pcr = quote!(::prisma_client_rust);
     let mut where_param_entries = vec![];
 
@@ -23,8 +23,6 @@ pub fn module(
     let field_name_snake = snake_ident(field_name);
     let field_type = field.type_tokens(&quote!(self));
 
-    let connect_variant = format_ident!("Connect{field_name_pascal}");
-    let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
     let set_variant = format_ident!("Set{field_name_pascal}");
     let is_null_variant = format_ident!("{field_name_pascal}IsNull");
     let equals_variant = format_ident!("{field_name_pascal}Equals");
@@ -35,110 +33,16 @@ pub fn module(
         RefinedFieldWalker::Relation(relation_field) => {
             let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
-            let with_fn = with_params::builder_fn(relation_field);
-
-            let base = match arity {
-                FieldArity::List => {
-                    let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
-                    let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
-
-                    quote! {
-                        pub struct Fetch(pub #relation_model_name_snake::ManyArgs);
-
-                        impl Fetch {
-                            #with_fn
-
-                            #order_by_fn
-
-                            #pagination_fns
-                        }
-
-                        impl From<Fetch> for WithParam {
-                            fn from(Fetch(v): Fetch) -> Self {
-                                WithParam::#field_name_pascal(v)
-                            }
-                        }
-
-                        pub fn fetch(params: Vec<#relation_model_name_snake::WhereParam>) -> Fetch {
-                            Fetch(#relation_model_name_snake::ManyArgs::new(params))
-                        }
-
-                        pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
-
-                        impl From<Connect> for SetParam {
-                            fn from(Connect(v): Connect) -> Self {
-                                Self::#connect_variant(v)
-                            }
-                        }
-
-                        pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
-                            Connect(params).into()
-                        }
-
-                        pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
-                            SetParam::#disconnect_variant(params)
-                        }
-
-                        pub fn set(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
-                            SetParam::#set_variant(params)
-                        }
-                    }
-                }
-                _ => {
-                    let optional_fns = arity.is_optional().then(|| {
-                        where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#is_null_variant),
-                            match_arm: quote! {
-                                Self::#is_null_variant => (
-                                    #field_name_snake::NAME,
-                                    #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
-                                )
-                            },
-                        });
-
-                        quote! {
-                            pub fn disconnect() -> SetParam {
-                                SetParam::#disconnect_variant
-                            }
-
-                            pub fn is_null() -> WhereParam {
-                                WhereParam::#is_null_variant
-                            }
-                        }
-                    });
-
-                    quote! {
-                        pub struct Fetch(pub #relation_model_name_snake::UniqueArgs);
-
-                        impl Fetch {
-                            #with_fn
-                        }
-
-                        impl From<Fetch> for WithParam {
-                            fn from(Fetch(v): Fetch) -> Self {
-                                WithParam::#field_name_pascal(v)
-                            }
-                        }
-
-                        pub fn fetch() -> Fetch {
-                            Fetch(#relation_model_name_snake::UniqueArgs::new())
-                        }
-
-                        pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
-
-                        impl From<Connect> for SetParam {
-                            fn from(Connect(v): Connect) -> Self {
-                                Self::#connect_variant(v)
-                            }
-                        }
-
-                        pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
-                            Connect(value).into()
-                        }
-
-                        #optional_fns
-                    }
-                }
+            if let FieldArity::Optional = arity {
+                where_param_entries.push(Variant::BaseVariant {
+                    definition: quote!(#is_null_variant),
+                    match_arm: quote! {
+                        Self::#is_null_variant => (
+                            #field_name_snake::NAME,
+                            #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
+                        )
+                    },
+                });
             };
 
             let relation_methods = field.relation_methods().iter().map(|method| {
@@ -173,8 +77,6 @@ pub fn module(
             }).collect::<TokenStream>();
 
             quote! {
-                #base
-
                 #relation_methods
             }
         }
@@ -224,30 +126,30 @@ pub fn module(
                                 quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
 
                             where_param_entries.push(Variant::BaseVariant {
-                            definition: quote!(#where_param_variant(Vec<#content_type>)),
-                            match_arm: quote! {
-                                Self::#where_param_variant(where_params) => (
-                                    #field_name_snake::NAME,
-                                    #pcr::SerializedWhereValue::Object(vec![(
-                                        "equals".to_string(),
-                                        #pcr::PrismaValue::List(
-                                        	where_params
-                                         		.into_iter()
-                                           		.map(|params|
-	                                         		#pcr::PrismaValue::Object(
-			                                            params
-			                                                .into_iter()
-			                                                .map(#pcr::WhereInput::serialize)
-			                                                .map(#pcr::SerializedWhereInput::transform_equals)
-			                                                .collect()
-	                                           		)
-	                                         	)
-												.collect()
-                                        )
-                                    )])
-                                )
-                            },
-                        });
+	                            definition: quote!(#where_param_variant(Vec<#content_type>)),
+	                            match_arm: quote! {
+	                                Self::#where_param_variant(where_params) => (
+	                                    #field_name_snake::NAME,
+	                                    #pcr::SerializedWhereValue::Object(vec![(
+	                                        "equals".to_string(),
+	                                        #pcr::PrismaValue::List(
+	                                        	where_params
+	                                         		.into_iter()
+	                                           		.map(|params|
+		                                         		#pcr::PrismaValue::Object(
+				                                            params
+				                                                .into_iter()
+				                                                .map(#pcr::WhereInput::serialize)
+				                                                .map(#pcr::SerializedWhereInput::transform_equals)
+				                                                .collect()
+		                                           		)
+		                                         	)
+													.collect()
+	                                        )
+	                                    )])
+	                                )
+	                            },
+                            });
 
                             quote! {
                                 pub fn equals(params: Vec<#content_type>) -> WhereParam {
@@ -459,8 +361,8 @@ pub fn module(
                 let order_by_fn = (!arity.is_list()).then(|| {
                     quote! {
                         pub fn order(params: Vec<#comp_type_snake::OrderByParam>) -> OrderByParam {
-                              OrderByParam::#field_name_pascal(params)
-                          }
+                            OrderByParam::#field_name_pascal(params)
+                        }
                     }
                 });
 
@@ -511,7 +413,7 @@ pub fn module(
                     };
 
                     where_param_entries.push(Variant::BaseVariant {
-                        definition: quote!(#field_name_pascal(_prisma::read_filters::#filter_enum)),
+                        definition: quote!(#field_name_pascal(super::_prisma::read_filters::#filter_enum)),
                         match_arm: quote! {
                             Self::#field_name_pascal(value) => (
                                 #field_name_snake::NAME,
@@ -542,103 +444,15 @@ pub fn module(
                     }
                 });
 
-                let write_fns = args.write_param(scalar_field).map(|write_param| {
-                    let param_enum = write_params::enum_name(write_param);
-                    let param_enum_path = quote!(_prisma::write_params::#param_enum);
-
-                    let other_fns = write_param
-                        .methods
-                        .iter()
-                        .flat_map(|method| {
-                            if method.name == "Set" { return None }
-
-                            let method_name_snake = snake_ident(&method.name);
-                            let method_name_pascal = pascal_ident(&method.name);
-
-                            let typ = method.type_tokens(&quote!(), &args.schema.db);
-
-                            Some(quote! {
-                                pub fn #method_name_snake<T: From<UpdateOperation>>(value: #typ) -> T {
-                                    UpdateOperation(#param_enum_path::#method_name_pascal(value)).into()
-                                }
-                            })
-                        })
-                        .collect::<TokenStream>();
-
-                    let impl_from_for_set_param = (!scalar_field.is_in_required_relation()).then(|| {
-		                quote! {
-							impl From<UpdateOperation> for SetParam {
-								fn from(UpdateOperation(v): UpdateOperation) -> Self {
-									Self::#field_name_pascal(v)
-								}
-							}
-
-				            impl From<Set> for SetParam {
-				                fn from(Set(v): Set) -> Self {
-				                    Self::#field_name_pascal(#param_enum_path::Set(v))
-				                }
-				            }
-		                }
-                    });
-
-                    quote! {
-	                    pub struct Set(pub #field_type);
-
-						#impl_from_for_set_param
-
-	                    impl From<Set> for UncheckedSetParam {
-		                    fn from(Set(v): Set) -> Self {
-			                    Self::#field_name_pascal(#param_enum_path::Set(v))
-		                    }
-	                    }
-
-	                    pub fn set<T: From<Set>>(value: #field_type) -> T {
-		                    Set(value).into()
-	                    }
-
-						pub struct UpdateOperation(pub #param_enum_path);
-
-						impl From<UpdateOperation> for UncheckedSetParam {
-							fn from(UpdateOperation(v): UpdateOperation) -> Self {
-								Self::#field_name_pascal(v)
-							}
-						}
-
-                    	#other_fns
-                    }
-                });
-
                 quote! {
                     #read_fns
-
-                    #write_fns
-
-                    pub fn order(direction: #pcr::Direction) -> OrderByParam {
-                        OrderByParam::#field_name_pascal(direction)
-                    }
                 }
             }
         }
     };
 
-    let include_enum = include::field_module_enum(field, &pcr);
-    let select_enum = select::field_module_enum(field, &pcr);
-
     (
-        quote! {
-            pub mod #field_name_snake {
-                use super::super::*;
-                use super::{WhereParam, UniqueWhereParam, OrderByParam, WithParam, SetParam, UncheckedSetParam};
-                use super::_prisma::*;
-
-                pub const NAME: &str = #field_name;
-
-                #field_module_contents
-
-                #include_enum
-                #select_enum
-            }
-        },
+        (field_name.to_string(), field_module_contents),
         where_param_entries,
     )
 }

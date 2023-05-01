@@ -1,3 +1,4 @@
+use dmmf::{DmmfTypeReference, TypeLocation};
 use prisma_models::walkers::{
     CompositeTypeFieldWalker, FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker,
 };
@@ -182,20 +183,20 @@ pub trait ScalarFieldTypeExt {
 impl ScalarFieldTypeExt for ScalarFieldType {
     fn to_tokens(
         &self,
-        module_path: &TokenStream,
+        prefix: &TokenStream,
         arity: &FieldArity,
         db: &ParserDatabase,
     ) -> Option<TokenStream> {
         let base = match *self {
             Self::Enum(id) => {
                 let name = snake_ident(db.walk(id).name());
-                quote!(#module_path::#name)
+                quote!(#prefix::#name)
             }
             Self::BuiltInScalar(typ) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
             Self::CompositeType(id) => {
                 let name = snake_ident(db.walk(id).name());
-                quote!(#module_path::#name::Data)
+                quote!(#prefix::#name::Data)
             }
         };
 
@@ -259,5 +260,54 @@ impl ScalarTypeExt for ScalarType {
             ScalarType::DateTime => quote!(#v::DateTime(#var)),
             ScalarType::Bytes => quote!(#v::Bytes(#var)),
         }
+    }
+}
+
+pub trait DmmfTypeReferenceExt {
+    fn to_tokens(
+        &self,
+        prefix: &TokenStream,
+        arity: &FieldArity,
+        db: &ParserDatabase,
+    ) -> Option<TokenStream>;
+}
+
+impl DmmfTypeReferenceExt for DmmfTypeReference {
+    fn to_tokens(
+        &self,
+        prefix: &TokenStream,
+        arity: &FieldArity,
+        db: &ParserDatabase,
+    ) -> Option<TokenStream> {
+        Some(match self.location {
+            TypeLocation::Scalar => {
+                ScalarFieldType::BuiltInScalar(ScalarType::try_from_str(&self.typ).unwrap())
+                    .to_tokens(prefix, arity, db)?
+            }
+            TypeLocation::EnumTypes => {
+                let enum_name_pascal = pascal_ident(&self.typ);
+                quote!(#prefix::#enum_name_pascal)
+            }
+            TypeLocation::InputObjectTypes => {
+                let typ = match &self.typ {
+                    t if t.ends_with("OrderByWithRelationInput") => {
+                        let model_name = t.replace("OrderByWithRelationInput", "");
+                        let model_name_snake = snake_ident(&model_name);
+
+                        quote!(#model_name_snake::OrderByWithRelationParam)
+                    }
+                    t if t.ends_with("OrderByRelationAggregateInput") => {
+                        let model_name = t.replace("OrderByRelationAggregateInput", "");
+                        let model_name_snake = snake_ident(&model_name);
+
+                        quote!(#model_name_snake::OrderByRelationAggregateParam)
+                    }
+                    _ => return None,
+                };
+
+                quote!(Vec<#prefix::#typ>)
+            }
+            _ => return None,
+        })
     }
 }
