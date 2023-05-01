@@ -30,7 +30,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
 
                         quote!(super::#comp_type_snake::Create)
                     }
-                    _ => field.type_tokens(&quote!(super))?,
+                    _ => field.type_tokens(&quote!(super::))?,
                 },
             ))
         })

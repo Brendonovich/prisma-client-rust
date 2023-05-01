@@ -190,13 +190,13 @@ impl ScalarFieldTypeExt for ScalarFieldType {
         let base = match *self {
             Self::Enum(id) => {
                 let name = snake_ident(db.walk(id).name());
-                quote!(#prefix::#name)
+                quote!(#prefix #name)
             }
             Self::BuiltInScalar(typ) => typ.to_tokens(),
             Self::Unsupported(_) => return None,
             Self::CompositeType(id) => {
                 let name = snake_ident(db.walk(id).name());
-                quote!(#prefix::#name::Data)
+                quote!(#prefix #name::Data)
             }
         };
 
@@ -286,7 +286,7 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
             }
             TypeLocation::EnumTypes => {
                 let enum_name_pascal = pascal_ident(&self.typ);
-                quote!(#prefix::#enum_name_pascal)
+                quote!(#prefix #enum_name_pascal)
             }
             TypeLocation::InputObjectTypes => {
                 let typ = match &self.typ {
@@ -305,7 +305,7 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                     _ => return None,
                 };
 
-                quote!(Vec<#prefix::#typ>)
+                quote!(Vec<#prefix #typ>)
             }
             _ => return None,
         })

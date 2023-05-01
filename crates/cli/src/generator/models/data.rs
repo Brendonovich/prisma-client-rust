@@ -56,7 +56,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
 
                             (typ, field)
                         }
-                        _ => (field.type_tokens(&quote!(super))?, field),
+                        _ => (field.type_tokens(&quote!(super::))?, field),
                     }
                 }
             })

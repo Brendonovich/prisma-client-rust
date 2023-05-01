@@ -50,7 +50,7 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
 
                                 quote!(super::#type_snake::Create)
                             }
-                            _ => field.type_tokens(&quote!(super))?,
+                            _ => field.type_tokens(&quote!(super::))?,
                         }
                     }
                     RefinedFieldWalker::Relation(relation_field) => {

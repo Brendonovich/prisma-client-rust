@@ -428,7 +428,7 @@ pub fn module(
                         let method_name_snake = snake_ident(&method.name);
                         let method_name_pascal = pascal_ident(&method.name);
 
-                        let typ = method.type_tokens(&quote!(super::super), &args.schema.db);
+                        let typ = method.type_tokens(&quote!(super::super::), &args.schema.db);
 
                         Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
                     });

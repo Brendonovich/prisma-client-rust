@@ -12,7 +12,7 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
             .methods
             .iter()
             .flat_map(|method| {
-                let typ = method.type_tokens(&quote!(super::super), &args.schema.db);
+                let typ = method.type_tokens(&quote!(super::super::), &args.schema.db);
 
                 let prisma_value_converter = method
                     .base_type
