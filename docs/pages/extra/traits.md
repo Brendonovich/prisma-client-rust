@@ -51,7 +51,7 @@ Implemented for `FindMany`, `FindFirst`, and `Count`
 ### `PaginatedQuery`
 
 - `add_cursor`: adds one `UniqueWhereParam` as a cursor
-- `set_skip`: sets the number of records to skip 
+- `set_skip`: sets the number of records to skip
 - `set_take`: sets the number of records to take
 
 Implemented for `Count`, `FindFirst` and `FindMany`.

@@ -2,6 +2,7 @@ use utils::{cleanup, TestResult};
 
 #[allow(warnings, unused)]
 mod db;
+mod order;
 mod transaction;
 mod utils;
 

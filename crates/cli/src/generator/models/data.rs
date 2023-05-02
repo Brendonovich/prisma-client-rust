@@ -8,7 +8,7 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::prelude::*;
 
-pub fn struct_definition(model: ModelWalker) -> TokenStream {
+pub fn r#struct(model: ModelWalker) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let fields = model
@@ -56,7 +56,7 @@ pub fn struct_definition(model: ModelWalker) -> TokenStream {
 
                             (typ, field)
                         }
-                        _ => (field.type_tokens(&quote!(super))?, field),
+                        _ => (field.type_tokens(&quote!(super::))?, field),
                     }
                 }
             })

@@ -4,7 +4,7 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::prelude::*;
 
-pub fn scalar_selections_fn(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
+fn scalar_selections_fn(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let selections = model.scalar_fields().flat_map(|field| {
@@ -34,7 +34,7 @@ pub fn scalar_selections_fn(model: ModelWalker, module_path: &TokenStream) -> To
     }
 }
 
-pub fn struct_definition(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
+pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
     let scalar_selections_fn = scalar_selections_fn(model, module_path);
@@ -49,7 +49,7 @@ pub fn struct_definition(model: ModelWalker, module_path: &TokenStream) -> Token
             type UncheckedSet = UncheckedSetParam;
             type Set = SetParam;
             type With = WithParam;
-            type OrderBy = OrderByParam;
+            type OrderBy = OrderByWithRelationParam;
             type Cursor = UniqueWhereParam;
 
             const MODEL: &'static str = NAME;

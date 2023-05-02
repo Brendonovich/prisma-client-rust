@@ -1,7 +1,6 @@
 mod actions;
 mod create;
 mod data;
-mod field;
 mod include_select;
 mod order_by;
 mod pagination;
@@ -11,43 +10,16 @@ mod types;
 mod where_params;
 mod with_params;
 
+use std::collections::BTreeMap;
+
 use include_select::*;
 use prisma_client_rust_sdk::{
     prelude::*,
     prisma::{
-        prisma_models::{
-            walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
-            FieldArity,
-        },
+        prisma_models::walkers::{FieldWalker, ModelWalker, RefinedFieldWalker},
         psl::parser_database::ScalarFieldType,
     },
 };
-
-use self::where_params::Variant;
-
-pub struct Operator {
-    pub name: &'static str,
-    pub action: &'static str,
-    pub list: bool,
-}
-
-static OPERATORS: &'static [Operator] = &[
-    Operator {
-        name: "Not",
-        action: "NOT",
-        list: false,
-    },
-    Operator {
-        name: "Or",
-        action: "OR",
-        list: true,
-    },
-    Operator {
-        name: "And",
-        action: "AND",
-        list: false,
-    },
-];
 
 pub struct RequiredField<'a> {
     pub push_wrapper: TokenStream,
@@ -77,7 +49,7 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
 
                                 quote!(super::#type_snake::Create)
                             }
-                            _ => field.type_tokens(&quote!(super))?,
+                            _ => field.type_tokens(&quote!(super::))?,
                         }
                     }
                     RefinedFieldWalker::Relation(relation_field) => {
@@ -103,243 +75,113 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
         .collect()
 }
 
-pub fn unique_field_combos(model: ModelWalker) -> Vec<Vec<ScalarFieldWalker>> {
-    let mut combos = model
-        .indexes()
-        .filter(|f| f.is_unique())
-        .map(|unique| {
-            unique
-                .fields()
-                .filter_map(|field| {
-                    model
-                        .scalar_fields()
-                        .find(|mf| mf.field_id() == field.field_id())
-                })
-                .collect()
-        })
-        .collect::<Vec<_>>();
-
-    if let Some(primary_key) = model.primary_key() {
-        let primary_key_is_also_unique = model.indexes().any(|i| {
-            primary_key.contains_exactly_fields(
-                i.fields()
-                    .map(|f| f.as_scalar_field())
-                    .flatten()
-                    .collect::<Vec<_>>()
-                    .into_iter(),
-            )
-        });
-
-        if !primary_key_is_also_unique {
-            combos.push(
-                primary_key
-                    .fields()
-                    .filter_map(|field| {
-                        model
-                            .scalar_fields()
-                            .find(|mf| mf.field_id() == field.field_id())
-                    })
-                    .collect(),
-            );
-        }
-    }
-
-    combos
-}
-
 pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
     let pcr = quote!(::prisma_client_rust);
 
-    args.schema.db.walk_models().map(|model| {
-        let mut where_params_entries = vec![];
+    args.schema
+        .db
+        .walk_models()
+        .map(|model| {
+            let model_name = model.name();
+            let model_name_snake = snake_ident(model_name);
 
-        let model_name = model.name();
-        let model_name_snake = snake_ident(model_name);
+            let actions_struct = actions::struct_definition(model, args);
 
-        where_params_entries.extend(OPERATORS.iter().map(|op| {
-            let variant_name = pascal_ident(&op.name);
-            let op_action = &op.action;
+            let field_module_stuff = ModelModulePart::combine(vec![
+                where_params::model_data(model, args, module_path),
+                order_by::model_data(model, args),
+                with_params::model_data(model),
+                set_params::model_data(model, args),
+                select::model_data(model, &module_path),
+                include::model_data(model, &module_path),
+            ]);
 
-            let value = match op.list {
-                true => quote! {
-                    #pcr::SerializedWhereValue::List(
-                        value
-                            .into_iter()
-                            .map(#pcr::WhereInput::serialize)
-                            .map(Into::into)
-                            .map(|(k, v)| vec![(k.to_string(), v)])
-                            .map(#pcr::PrismaValue::Object)
-                            .collect()
-                    )
-                },
-                false => quote! {
-                    #pcr::SerializedWhereValue::Object(
-                        ::prisma_client_rust::merge_fields(
-                            value
-                                .into_iter()
-                                .map(#pcr::WhereInput::serialize)
-                                .map(Into::into)
-                                .collect()
-                        )
-                    )
-                },
-            };
+            let create_types = create::types(model);
+            let types_struct = types::r#struct(model, module_path);
+            let data_struct = data::r#struct(model);
+            let partial_unchecked_macro = partial_unchecked::r#macro(model, &module_path);
 
-            Variant::BaseVariant {
-                definition: quote!(#variant_name(Vec<WhereParam>)),
-                match_arm: quote! {
-                    Self::#variant_name(value) => (
-                        #op_action,
-                        #value,
-                    )
-                },
+            let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
+	            pub type FindRawQuery<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
+	            pub type AggregateRawQuery<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
+	        });
+
+            quote! {
+                pub mod #model_name_snake {
+                    use super::_prisma::*;
+
+                    pub const NAME: &str = #model_name;
+
+                    #field_module_stuff
+                    #create_types
+                    #types_struct
+                    #data_struct
+                    #partial_unchecked_macro
+
+                    pub type UniqueArgs = #pcr::UniqueArgs<Types>;
+                    pub type ManyArgs = #pcr::ManyArgs<Types>;
+
+                    pub type CountQuery<'a> = #pcr::Count<'a, Types>;
+                    pub type CreateQuery<'a> = #pcr::Create<'a, Types>;
+                    pub type CreateUncheckedQuery<'a> = #pcr::CreateUnchecked<'a, Types>;
+                    pub type CreateManyQuery<'a> = #pcr::CreateMany<'a, Types>;
+                    pub type FindUniqueQuery<'a> = #pcr::FindUnique<'a, Types>;
+                    pub type FindManyQuery<'a> = #pcr::FindMany<'a, Types>;
+                    pub type FindFirstQuery<'a> = #pcr::FindFirst<'a, Types>;
+                    pub type UpdateQuery<'a> = #pcr::Update<'a, Types>;
+                    pub type UpdateUncheckedQuery<'a> = #pcr::UpdateUnchecked<'a, Types>;
+                    pub type UpdateManyQuery<'a> = #pcr::UpdateMany<'a, Types>;
+                    pub type UpsertQuery<'a> = #pcr::Upsert<'a, Types>;
+                    pub type DeleteQuery<'a> = #pcr::Delete<'a, Types>;
+                    pub type DeleteManyQuery<'a> = #pcr::DeleteMany<'a, Types>;
+
+                    #mongo_raw_types
+
+                    #actions_struct
+                }
             }
-        }));
+        })
+        .collect()
+}
 
-        let compound_field_accessors = unique_field_combos(model).iter().flat_map(|fields| {
-            if fields.len() == 1 {
-                let field = fields[0];
+pub struct ModelModulePart {
+    data: TokenStream,
+    fields: BTreeMap<String, TokenStream>,
+}
 
-                let read_filter = args.read_filter(
-                    field
-                ).unwrap();
+impl ModelModulePart {
+    pub fn combine(parts: Vec<Self>) -> TokenStream {
+        let (data, fields): (Vec<_>, Vec<_>) =
+            parts.into_iter().map(|p| (p.data, p.fields)).unzip();
 
-                where_params_entries.push(Variant::unique(field, read_filter, module_path));
+        let field_stuff = fields
+            .into_iter()
+            .flat_map(|p| p.into_iter())
+            .fold(BTreeMap::new(), |mut acc, (k, v)| {
+                let entry = acc.entry(k).or_insert_with(|| vec![]);
+                entry.push(v);
+                acc
+            })
+            .into_iter()
+            .map(|(field_name_str, data)| {
+            	let field_name_snake = snake_ident(&field_name_str);
 
-                None
-            } else {
-                let variant_name_string = fields.iter().map(|f| pascal_ident(f.name()).to_string()).collect::<String>();
-                let variant_name = format_ident!("{}Equals", &variant_name_string);
+                quote! {
+                    pub mod #field_name_snake {
+	                    use super::super::{_prisma::*, *};
+	                    use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
 
-                let variant_data_names = fields.iter().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
+						pub const NAME: &str = #field_name_str;
 
-                let ((field_defs, field_types), (prisma_values, field_names_snake)):
-                    ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
-                    let field_type = match field.ast_field().arity {
-                        FieldArity::List | FieldArity::Required => field.type_tokens(module_path),
-                        FieldArity::Optional => field.scalar_field_type().to_tokens(module_path, &FieldArity::Required, field.db)
-                    }.unwrap();
-
-                    let field_name_snake = snake_ident(field.name());
-
-                    (
-                        (quote!(#field_name_snake: #field_type), field_type),
-                        (field.scalar_field_type().to_prisma_value(&field_name_snake, &FieldArity::Required), field_name_snake)
-                    )
-                }).unzip();
-
-                let field_names_joined = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
-
-                where_params_entries.extend([
-                    Variant::BaseVariant {
-                        definition: quote!(#variant_name(#(#field_types),*)),
-                        match_arm: quote! {
-                            Self::#variant_name(#(#field_names_snake),*) => (
-                                #field_names_joined,
-                                #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
-                            )
-                        },
-                    },
-                    Variant::CompoundUniqueVariant {
-                        field_names_string: variant_name_string.clone(),
-                        variant_data_destructured: field_names_snake.clone(),
-                        variant_data_types: field_types
+                        #(#data)*
                     }
-                ]);
-
-                let accessor_name = snake_ident(&variant_name_string);
-
-                Some(quote! {
-                    pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#field_defs),*) -> T {
-                        UniqueWhereParam::#variant_name(#(#field_names_snake),*).into()
-                    }
-                })
-            }
-        }).collect::<TokenStream>();
-
-        let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = model
-            .fields()
-            .filter(|f| f.ast_field().field_type.as_unsupported().is_none())
-            .map(|f| field::module(f, args, module_path))
-            .unzip();
-
-        where_params_entries.extend(field_where_param_entries.into_iter().flatten());
-
-        let where_params_enums = where_params::collate_entries(where_params_entries);
-        let data_struct = data::struct_definition(model);
-        let with_params_enum = with_params::enum_definition(model);
-        let set_params_enum = set_params::enum_definition(model, args);
-        let order_by_params_enum = order_by::enum_definition(model);
-        let create_fn = create::model_fns(model);
-        let select_macro = select::model_macro(model, &module_path);
-        let select_params_enum = select::model_module_enum(model, &pcr);
-        let include_macro = include::model_macro(model, &module_path);
-        let include_params_enum = include::model_module_enum(model, &pcr);
-        let actions_struct = actions::struct_definition(model, args);
-        let types_struct = types::struct_definition(model, module_path);
-        let partial_macro = partial_unchecked::model_macro(model, &module_path);
-
-        let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
-            pub type FindRawQuery<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
-            pub type AggregateRawQuery<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
-        });
+                }
+            });
 
         quote! {
-            pub mod #model_name_snake {
-                use super::*;
-                use super::_prisma::*;
+            #(#data)*
 
-                pub const NAME: &str = #model_name;
-
-                #(#field_modules)*
-
-                #compound_field_accessors
-
-                #create_fn
-
-                #select_macro
-                #select_params_enum
-
-                #include_macro
-                #include_params_enum
-
-                #partial_macro
-
-                #data_struct
-
-                #with_params_enum
-
-                #set_params_enum
-
-                #order_by_params_enum
-
-                #where_params_enums
-
-                #types_struct
-
-                // 'static since the actions struct is only used for types
-
-                pub type UniqueArgs = #pcr::UniqueArgs<Types>;
-                pub type ManyArgs = #pcr::ManyArgs<Types>;
-
-                pub type CountQuery<'a> = #pcr::Count<'a, Types>;
-                pub type CreateQuery<'a> = #pcr::Create<'a, Types>;
-                pub type CreateUncheckedQuery<'a> = #pcr::CreateUnchecked<'a, Types>;
-                pub type CreateManyQuery<'a> = #pcr::CreateMany<'a, Types>;
-                pub type FindUniqueQuery<'a> = #pcr::FindUnique<'a, Types>;
-                pub type FindManyQuery<'a> = #pcr::FindMany<'a, Types>;
-                pub type FindFirstQuery<'a> = #pcr::FindFirst<'a, Types>;
-                pub type UpdateQuery<'a> = #pcr::Update<'a, Types>;
-                pub type UpdateUncheckedQuery<'a> = #pcr::UpdateUnchecked<'a, Types>;
-                pub type UpdateManyQuery<'a> = #pcr::UpdateMany<'a, Types>;
-                pub type UpsertQuery<'a> = #pcr::Upsert<'a, Types>;
-                pub type DeleteQuery<'a> = #pcr::Delete<'a, Types>;
-                pub type DeleteManyQuery<'a> = #pcr::DeleteMany<'a, Types>;
-
-                #mongo_raw_types
-
-                #actions_struct
-            }
+            #(#field_stuff)*
         }
-    }).collect()
+    }
 }

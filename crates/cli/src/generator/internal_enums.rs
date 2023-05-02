@@ -2,6 +2,20 @@ use prisma_client_rust_sdk::prelude::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+fn sort_order_impl() -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
+    quote! {
+        impl Into<#pcr::PrismaValue> for SortOrder {
+            fn into(self) -> #pcr::PrismaValue {
+                match self {
+                    SortOrder::Asc => #pcr::PrismaValue::String("asc".to_string()),
+                    SortOrder::Desc => #pcr::PrismaValue::String("desc".to_string()),
+                }
+            }
+        }
+    }
+}
 pub fn generate(args: &GenerateArgs) -> TokenStream {
     let internal_enums = args
         .dmmf
@@ -58,8 +72,11 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
             }
         });
 
+    let sort_order_impl = sort_order_impl();
+
     quote! {
         #(#internal_enums)*
 
+        #sort_order_impl
     }
 }

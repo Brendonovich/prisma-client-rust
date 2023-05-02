@@ -45,7 +45,7 @@ pub use specta;
 #[cfg(feature = "rspc")]
 pub use rspc;
 
-use ::serde::{Deserialize, Serialize};
+use ::serde::Deserialize;
 
 /// The return type of `findMany` queries.
 #[derive(Deserialize)]
@@ -80,26 +80,6 @@ impl std::fmt::Display for RelationNotFetchedError {
     }
 }
 
-/// Direction that a query's results should be ordered by.
-///
-/// Only needs to be used in the `order` function of fields.
-#[derive(Serialize, Deserialize, Clone)]
-pub enum Direction {
-    #[serde(rename = "asc")]
-    Asc,
-    #[serde(rename = "desc")]
-    Desc,
-}
-
-impl ToString for Direction {
-    fn to_string(&self) -> String {
-        match self {
-            Direction::Asc => "asc".to_string(),
-            Direction::Desc => "desc".to_string(),
-        }
-    }
-}
-
 #[macro_export]
 macro_rules! not {
     ($($x:expr),+ $(,)?) => {
@@ -121,11 +101,11 @@ macro_rules! or {
     };
 }
 
-pub type ObjectFields = Vec<(&'static str, PrismaValue)>;
+pub type ObjectFields = Vec<(String, PrismaValue)>;
 
 /// Creates a PrismaValue::Object from a list of key-value pairs.
 /// If a key has multiple values that are PrismaValue::Objects, they will be merged.
-pub fn merge_fields(fields: Vec<(&'static str, PrismaValue)>) -> Vec<(String, PrismaValue)> {
+pub fn merge_fields(fields: Vec<(String, PrismaValue)>) -> Vec<(String, PrismaValue)> {
     let mut merged = HashMap::new();
 
     for el in fields {
@@ -142,10 +122,7 @@ pub fn merge_fields(fields: Vec<(&'static str, PrismaValue)>) -> Vec<(String, Pr
         }
     }
 
-    merged
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect()
+    merged.into_iter().collect()
 }
 
 pub fn sel(name: &str) -> Selection {

@@ -1,4 +1,4 @@
-use prisma_client_rust::{or, Direction};
+use prisma_client_rust::or;
 
 use crate::{db::*, utils::*};
 
@@ -72,7 +72,7 @@ async fn query() -> TestResult {
     let posts = client
         .post()
         .find_many(vec![])
-        .order_by(post::title::order(Direction::Desc))
+        .order_by(post::title::order(SortOrder::Desc))
         .exec()
         .await?;
     assert_eq!(posts.len(), 2);
@@ -82,7 +82,7 @@ async fn query() -> TestResult {
     let posts = client
         .post()
         .find_many(vec![])
-        .order_by(post::title::order(Direction::Asc))
+        .order_by(post::title::order(SortOrder::Asc))
         .exec()
         .await?;
     assert_eq!(posts.len(), 2);
@@ -175,7 +175,7 @@ async fn cursor_order() -> TestResult {
         .file_path()
         .find_many(vec![file_path::user_id::equals(user.id.clone())])
         .cursor(file_path::user_id_local_id(user.id.clone(), 100))
-        .order_by(file_path::local_id::order(Direction::Asc))
+        .order_by(file_path::local_id::order(SortOrder::Asc))
         .take(200)
         .skip(1)
         .exec()
@@ -269,7 +269,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
         .find_many(vec![user::profile::is_null()])
         .exec()
         .await?;
-    dbg!(&users);
+
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].name, "Jamie");
 
@@ -343,7 +343,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::every(vec![post::title::contains(
             "post".to_string(),
         )])])
-        .order_by(user::name::order(Direction::Asc))
+        .order_by(user::name::order(SortOrder::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -355,7 +355,7 @@ async fn filtering_one_to_many_relation() -> TestResult {
         .find_many(vec![user::posts::some(vec![post::title::contains(
             "post".to_string(),
         )])])
-        .order_by(user::name::order(Direction::Asc))
+        .order_by(user::name::order(SortOrder::Asc))
         .exec()
         .await?;
     assert_eq!(users.len(), 2);
@@ -407,8 +407,8 @@ async fn ordering() -> TestResult {
     let found = client
         .post()
         .find_many(vec![post::title::contains("Test".to_string())])
-        .order_by(post::published::order(Direction::Asc))
-        .order_by(post::id::order(Direction::Asc))
+        .order_by(post::published::order(SortOrder::Asc))
+        .order_by(post::id::order(SortOrder::Asc))
         .exec()
         .await?;
     assert_eq!(found.len(), 3);
@@ -419,7 +419,7 @@ async fn ordering() -> TestResult {
     let found = client
         .post()
         .find_many(vec![post::title::contains("Test".to_string())])
-        .order_by(post::published::order(Direction::Desc))
+        .order_by(post::published::order(SortOrder::Desc))
         .exec()
         .await?;
     assert_eq!(found.len(), 3);

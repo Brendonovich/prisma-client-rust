@@ -86,8 +86,7 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                         PrismaValue::List(
                             order_by_params
                                 .into_iter()
-                                .map(Into::into)
-                                .map(|(k, v)| PrismaValue::Object(vec![(k.to_string(), v)]))
+                                .map(|p| PrismaValue::Object(vec![p.into()]))
                                 .collect(),
                         )
                         .into(),
@@ -279,7 +278,6 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
                             .into_iter()
                             .map(WhereInput::serialize)
                             .map(Into::into)
-                            .map(|(k, v)| (k.to_string(), v))
                             .collect(),
                     )
                     .into(),
@@ -291,8 +289,7 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
                     PrismaValue::List(
                         self.order_by_params
                             .into_iter()
-                            .map(Into::into)
-                            .map(|(k, v)| PrismaValue::Object(vec![(k.to_string(), v)]))
+                            .map(|p| PrismaValue::Object(vec![p.into()]))
                             .collect(),
                     )
                     .into(),

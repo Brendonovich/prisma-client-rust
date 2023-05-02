@@ -30,7 +30,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
 
                         quote!(super::#comp_type_snake::Create)
                     }
-                    _ => field.type_tokens(&quote!(super))?,
+                    _ => field.type_tokens(&quote!(super::))?,
                 },
             ))
         })
@@ -119,7 +119,7 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
     })
 }
 
-pub fn model_fns(model: ModelWalker) -> TokenStream {
+pub fn types(model: ModelWalker) -> TokenStream {
     let create_unchecked = create_unchecked(model);
     let create = create(model);
 

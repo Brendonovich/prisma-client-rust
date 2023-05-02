@@ -279,7 +279,7 @@ async fn delete_many() -> TestResult {
 async fn run_command_raw() -> TestResult {
     let client = client().await;
 
-    let res: Vec<serde_json::Value> = client
+    let res: serde_json::Value = client
         ._run_command_raw(serde_json::json!({
             "insert": "Post",
             "documents": [{

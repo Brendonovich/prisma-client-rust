@@ -507,11 +507,9 @@ fn model_macro<'a>(
     }
 }
 
-fn field_module_enum(
-    field: FieldWalker,
-    pcr: &TokenStream,
-    variant: Variant,
-) -> Option<TokenStream> {
+fn field_module_enum(field: FieldWalker, variant: Variant) -> Option<TokenStream> {
+    let pcr = quote!(::prisma_client_rust);
+
     let field_name_pascal = pascal_ident(field.name());
     let field_name_str = field.name();
 
@@ -637,7 +635,9 @@ fn field_module_enum(
     })
 }
 
-fn model_module_enum(model: ModelWalker, pcr: &TokenStream, variant: Variant) -> TokenStream {
+fn model_module_enum(model: ModelWalker, variant: Variant) -> TokenStream {
+    let pcr = quote!(::prisma_client_rust);
+
     let variant_pascal = pascal_ident(&variant.to_string());
 
     let variants = model
@@ -673,14 +673,14 @@ fn model_module_enum(model: ModelWalker, pcr: &TokenStream, variant: Variant) ->
 }
 
 pub mod include {
-    use prisma_client_rust_sdk::prisma::prisma_models::walkers::{
-        FieldWalker, ModelWalker, RefinedFieldWalker,
-    };
+    use prisma_client_rust_sdk::prisma::prisma_models::walkers::{ModelWalker, RefinedFieldWalker};
+
+    use crate::generator::models::ModelModulePart;
 
     use super::*;
 
-    pub fn model_macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
-        super::model_macro(
+    pub fn model_data(model: ModelWalker, module_path: &TokenStream) -> ModelModulePart {
+        let r#macro = super::model_macro(
             model,
             module_path,
             Variant::Include,
@@ -692,25 +692,36 @@ pub mod include {
             model
                 .fields()
                 .filter(|f| matches!(f.refine(), RefinedFieldWalker::Relation(_))),
-        )
-    }
+        );
 
-    pub fn field_module_enum(field: FieldWalker, pcr: &TokenStream) -> Option<TokenStream> {
-        super::field_module_enum(field, pcr, Variant::Include)
-    }
+        let r#enum = super::model_module_enum(model, Variant::Include);
 
-    pub fn model_module_enum(model: ModelWalker, pcr: &TokenStream) -> TokenStream {
-        super::model_module_enum(model, pcr, Variant::Include)
+        ModelModulePart {
+            data: quote! {
+                #r#macro
+                 #r#enum
+            },
+            fields: model
+                .fields()
+                .filter(|f| f.ast_field().field_type.as_unsupported().is_none())
+                .flat_map(|field| {
+                    super::field_module_enum(field, Variant::Include)
+                        .map(|e| (field.name().to_string(), e))
+                })
+                .collect(),
+        }
     }
 }
 
 pub mod select {
-    use prisma_client_rust_sdk::prisma::prisma_models::walkers::{FieldWalker, ModelWalker};
+    use prisma_client_rust_sdk::prisma::prisma_models::walkers::ModelWalker;
+
+    use crate::generator::models::ModelModulePart;
 
     use super::*;
 
-    pub fn model_macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
-        super::model_macro(
+    pub fn model_data(model: ModelWalker, module_path: &TokenStream) -> ModelModulePart {
+        let r#macro = super::model_macro(
             model,
             module_path,
             Variant::Select,
@@ -718,14 +729,23 @@ pub mod select {
             model
                 .fields()
                 .filter(|f| f.ast_field().field_type.as_unsupported().is_none()),
-        )
-    }
+        );
 
-    pub fn field_module_enum(field: FieldWalker, pcr: &TokenStream) -> Option<TokenStream> {
-        super::field_module_enum(field, pcr, Variant::Select)
-    }
+        let r#enum = super::model_module_enum(model, Variant::Select);
 
-    pub fn model_module_enum(model: ModelWalker, pcr: &TokenStream) -> TokenStream {
-        super::model_module_enum(model, pcr, Variant::Select)
+        ModelModulePart {
+            data: quote! {
+                #r#macro
+                #r#enum
+            },
+            fields: model
+                .fields()
+                .filter(|f| f.ast_field().field_type.as_unsupported().is_none())
+                .flat_map(|field| {
+                    super::field_module_enum(field, Variant::Select)
+                        .map(|e| (field.name().to_string(), e))
+                })
+                .collect(),
+        }
     }
 }

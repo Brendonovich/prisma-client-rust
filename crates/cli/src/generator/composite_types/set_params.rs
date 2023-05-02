@@ -1,10 +1,17 @@
 use prisma_client_rust_sdk::{prelude::*, prisma::prisma_models::walkers::CompositeTypeWalker};
 
-pub fn create_fn(comp_type: CompositeTypeWalker, module_path: &TokenStream) -> Option<TokenStream> {
+use super::CompositeTypeModulePart;
+
+pub fn create_fn(comp_type: CompositeTypeWalker) -> Option<TokenStream> {
     comp_type
         .fields()
         .filter(|f| f.required_on_create())
-        .map(|field| Some((snake_ident(field.name()), field.type_tokens(module_path)?)))
+        .map(|field| {
+            Some((
+                snake_ident(field.name()),
+                field.type_tokens(&quote!(super::))?,
+            ))
+        })
         .collect::<Option<Vec<_>>>()
         .map(|v| {
             let (required_field_names, required_field_types): (Vec<_>, Vec<_>) =
@@ -44,41 +51,56 @@ pub fn create_fn(comp_type: CompositeTypeWalker, module_path: &TokenStream) -> O
         })
 }
 
-pub fn enum_definition(comp_type: CompositeTypeWalker, module_path: &TokenStream) -> TokenStream {
-    let (variants, into_pv_arms): (Vec<_>, Vec<_>) = comp_type
+pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
+    let ((variants, into_pv_arms), fields): ((Vec<_>, Vec<_>), _) = comp_type
         .fields()
         .flat_map(|field| {
             let field_name_snake = snake_ident(field.name());
             let field_name_pascal = pascal_ident(field.name());
-            let field_type = field.type_tokens(module_path)?;
+            let field_type = field.type_tokens(&quote!(super::))?;
 
             let variant_name = format_ident!("Set{field_name_pascal}");
             let converter = field.type_prisma_value(&format_ident!("value"))?;
 
             Some((
-                quote!(#variant_name(#field_type)),
-                quote! {
-                    SetParam::#variant_name(value) => (
-                        #field_name_snake::NAME,
-                        #converter
-                    )
-                },
+                (
+                    quote!(#variant_name(#field_type)),
+                    quote! {
+                        SetParam::#variant_name(value) => (
+                            #field_name_snake::NAME,
+                            #converter
+                        )
+                    },
+                ),
+                (
+                    field.name().to_string(),
+                    quote! {
+                        pub fn set(val: #field_type) -> SetParam {
+                            SetParam::#variant_name(val)
+                        }
+                    },
+                ),
             ))
         })
         .unzip();
 
-    quote! {
-        #[derive(Clone)]
-        pub enum SetParam {
-            #(#variants),*
-        }
+    CompositeTypeModulePart {
+        data: quote! {
+           #[derive(Clone)]
+           pub enum SetParam {
+               #(#variants),*
+           }
 
-        impl From<SetParam> for (String, ::prisma_client_rust::PrismaValue) {
-            fn from(v: SetParam) -> Self {
-                match v {
-                    #(#into_pv_arms),*
-                }
-            }
-        }
+           impl From<SetParam> for (String, ::prisma_client_rust::PrismaValue) {
+               fn from(v: SetParam) -> Self {
+                   let (k, v) = match v {
+                       #(#into_pv_arms),*
+                   };
+
+                   (k.to_string(), v)
+               }
+           }
+        },
+        fields,
     }
 }

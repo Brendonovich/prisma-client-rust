@@ -1,9 +1,6 @@
-use prisma_client_rust::{and, not, or, Direction};
+use prisma_client_rust::{and, not, or};
 
-use crate::{
-    db::{post, profile, user},
-    utils::*,
-};
+use crate::{db::*, utils::*};
 
 #[tokio::test]
 async fn test() -> TestResult {
@@ -297,7 +294,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
         .find_first(vec![user::posts::some(vec![post::title::contains(
             "post".to_string(),
         )])])
-        .order_by(user::name::order(Direction::Asc))
+        .order_by(user::name::order(SortOrder::Asc))
         .exec()
         .await?
         .unwrap();
@@ -308,7 +305,7 @@ async fn filtering_and_ordering_one_to_many_relation() -> TestResult {
         .find_first(vec![user::posts::some(vec![post::title::contains(
             "post".to_string(),
         )])])
-        .order_by(user::name::order(Direction::Desc))
+        .order_by(user::name::order(SortOrder::Desc))
         .exec()
         .await?
         .unwrap();
@@ -350,7 +347,7 @@ async fn list_wrapper_query_transformation() -> TestResult {
             user::name::contains("40".to_string()),
             user::name::contains("house".to_string())
         ]])
-        .order_by(user::created_at::order(Direction::Asc))
+        .order_by(user::created_at::order(SortOrder::Asc))
         .skip(1)
         .exec()
         .await?

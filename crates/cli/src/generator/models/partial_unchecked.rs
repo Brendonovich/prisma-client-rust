@@ -2,7 +2,7 @@ use prisma_client_rust_sdk::prisma::prisma_models::walkers::ModelWalker;
 
 use crate::generator::prelude::*;
 
-pub fn model_macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
+pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let model_name_snake = snake_ident(model.name());
     let model_name_snake_raw = snake_ident_raw(model.name());
     let macro_name = format_ident!("_partial_unchecked_{model_name_snake_raw}");
