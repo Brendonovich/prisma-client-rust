@@ -2,79 +2,65 @@ use prisma_models::{walkers::ScalarFieldWalker, FieldArity};
 use psl::{
     builtin_connectors,
     datamodel_connector::Connector,
-    parser_database::{ParserDatabase, ScalarFieldType, ScalarType},
+    parser_database::{ScalarFieldType, ScalarType},
     ValidatedSchema,
 };
-use std::sync::Arc;
+use std::collections::HashSet;
 
 use dmmf::{DataModelMetaFormat, DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
 use proc_macro2::TokenStream;
 
 use crate::{dmmf::EngineDMMF, prelude::*};
 
-pub struct GenerateArgs {
-    pub schema: Arc<ValidatedSchema>,
+pub struct GenerateArgs<'a> {
+    pub schema: &'a ValidatedSchema,
     pub engine_dmmf: EngineDMMF,
-    pub dmmf: DataModelMetaFormat,
-    pub read_filters: Vec<Filter>,
-    pub write_params: Vec<Filter>,
+    pub dmmf: &'a DataModelMetaFormat,
+    pub read_filters: Vec<Filter<'a>>,
+    pub write_params: Vec<Filter<'a>>,
     pub connector: &'static dyn Connector,
 }
 
-impl GenerateArgs {
+impl<'a> GenerateArgs<'a> {
     pub fn new(
-        schema: Arc<ValidatedSchema>,
-        dmmf: DataModelMetaFormat,
+        schema: &'a ValidatedSchema,
+        dmmf: &'a DataModelMetaFormat,
         engine_dmmf: EngineDMMF,
     ) -> Self {
-        let scalars = {
-            let mut scalars = Vec::new();
-            for scalar in dmmf.schema.input_object_types.get("prisma").unwrap() {
-                for field in &scalar.fields {
-                    for input in &field.input_types {
-                        if let TypeLocation::Scalar = input.location {
-                            let name = match input.typ.as_str() {
-                                "Boolean" => "Bool",
-                                n => n,
-                            };
+        std::fs::write("./bruh.json", serde_json::to_string(dmmf).unwrap());
 
-                            if scalars.iter().any(|s| s == name) {
-                                continue;
-                            }
-
-                            scalars.push(name.to_string());
-                        }
-                    }
-                }
-            }
-            scalars
-        };
+        let scalars = dmmf
+            .schema
+            .input_object_types
+            .get("prisma")
+            .unwrap()
+            .iter()
+            .flat_map(|scalar| {
+                scalar.fields.iter().flat_map(|field| {
+                    field.input_types.iter().flat_map(|input| {
+                        matches!(input.location, TypeLocation::Scalar)
+                            .then(|| ScalarType::try_from_str(&input.typ))
+                            .flatten()
+                    })
+                })
+            })
+            .collect::<HashSet<_>>();
 
         let read_filters = {
             let mut filters = vec![];
 
             for scalar in &scalars {
                 let possible_filters = [
-                    scalar.to_string() + "ListFilter",
-                    scalar.to_string() + "NullableListFilter",
-                    scalar.to_string() + "Filter",
-                    scalar.to_string() + "NullableFilter",
+                    scalar.to_dmmf_string() + "ListFilter",
+                    scalar.to_dmmf_string() + "NullableListFilter",
+                    scalar.to_dmmf_string() + "Filter",
+                    scalar.to_dmmf_string() + "NullableFilter",
                 ];
 
-                for filter in possible_filters {
-                    let Some(filter_type) = dmmf.schema.find_input_type(&filter) else {
-                        continue;
-                    };
+                filters.extend(possible_filters.iter().filter_map(|filter| {
+                    let filter_type = dmmf.schema.find_input_type(&filter)?;
 
-                    let mut fields = vec![];
-
-                    for field in &filter_type.fields {
-                        if let Some(method) = input_field_as_method(field, &schema.db) {
-                            fields.push(method);
-                        }
-                    }
-
-                    let mut s = scalar.clone();
+                    let mut s = scalar.as_str().to_string();
 
                     // checking for both is invalid - fields can be list or null but not both
                     // TODO: make this more typesafe to correspond with fields
@@ -84,11 +70,11 @@ impl GenerateArgs {
                         s += "Nullable";
                     }
 
-                    filters.push(Filter {
+                    Some(Filter {
                         name: s,
-                        methods: fields,
+                        fields: filter_type.fields.iter().collect(),
                     })
-                }
+                }));
             }
 
             for enm in schema.db.walk_enums() {
@@ -97,18 +83,8 @@ impl GenerateArgs {
                     "Enum".to_string() + &enm.ast_enum().name.name + "NullableFilter",
                 ];
 
-                for filter in possible_filters {
-                    let Some(filter_type) = dmmf.schema.find_input_type(&filter) else {
-                        continue;
-                    };
-
-                    let mut fields = vec![];
-
-                    for field in &filter_type.fields {
-                        if let Some(method) = input_field_as_method(field, &schema.db) {
-                            fields.push(method);
-                        }
-                    }
+                filters.extend(possible_filters.iter().filter_map(|filter| {
+                    let filter_type = dmmf.schema.find_input_type(&filter)?;
 
                     let mut name = enm.ast_enum().name.name.clone();
 
@@ -120,11 +96,11 @@ impl GenerateArgs {
                         name += "Nullable";
                     }
 
-                    filters.push(Filter {
+                    Some(Filter {
                         name,
-                        methods: fields,
-                    });
-                }
+                        fields: filter_type.fields.iter().collect(),
+                    })
+                }));
             }
 
             // for i in 0..dml.models.len() {
@@ -163,49 +139,18 @@ impl GenerateArgs {
         let write_filters = {
             let mut filters = vec![];
 
-            for scalar in &scalars {
+            filters.extend(scalars.iter().flat_map(|scalar| {
                 let possible_inputs = [
-                    scalar.clone() + "FieldUpdateOperationsInput",
-                    "Nullable".to_string() + scalar + "FieldUpdateOperationsInput",
+                    scalar.to_dmmf_string() + "FieldUpdateOperationsInput",
+                    "Nullable".to_string()
+                        + &scalar.to_dmmf_string()
+                        + "FieldUpdateOperationsInput",
                 ];
 
-                for input in possible_inputs {
-                    let Some(input_type) = dmmf.schema.find_input_type(&input) else {
-                        continue;
-                    };
+                possible_inputs.into_iter().filter_map(|input| {
+                    let input_type = dmmf.schema.find_input_type(&input)?;
 
-                    let mut fields = vec![];
-
-                    for field in &input_type.fields {
-                        if let Some((type_name, is_list)) = {
-                            let mut ret = None;
-                            for input_type in &field.input_types {
-                                match input_type.location {
-                                    TypeLocation::Scalar if input_type.typ != "Null" => {
-                                        ret = Some((input_type.typ.clone(), input_type.is_list))
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            ret
-                        } {
-                            fields.push(Method::new(
-                                pascal_ident(&field.name).to_string(),
-                                field.name.clone(),
-                                ScalarType::try_from_str(&type_name)
-                                    .map(ScalarFieldType::BuiltInScalar)
-                                    .unwrap_or_else(|| {
-                                        ScalarFieldType::Enum(
-                                            schema.db.find_enum(&type_name).unwrap().id,
-                                        )
-                                    }),
-                                is_list,
-                                field.is_nullable,
-                            ));
-                        }
-                    }
-
-                    let mut s = scalar.clone();
+                    let mut s = scalar.as_str().to_string();
 
                     if input_type.name.contains("List") {
                         s += "List";
@@ -213,75 +158,75 @@ impl GenerateArgs {
                         s += "Nullable";
                     }
 
-                    filters.push(Filter {
+                    Some(Filter {
                         name: s,
-                        methods: fields,
-                    });
-                }
-            }
-
-            for model in schema.db.walk_models() {
-                for field in model.fields() {
-                    let Some(input_type) = dmmf.schema.find_input_type(
-                        &format!("{}Update{}Input", model.name(), field.name()),
-                    ) else {
-                        continue;
-                    };
-
-                    let mut fields = vec![];
-
-                    if let Some(scalar_name) = {
-                        let mut scalar_name = None;
-
-                        for field in &input_type.fields {
-                            if field.name == "set" {
-                                for input_type in &field.input_types {
+                        fields: input_type
+                            .fields
+                            .iter()
+                            .filter_map(|field| {
+                                field.input_types.iter().find(|input_type| {
                                     match input_type.location {
-                                        TypeLocation::Scalar if input_type.typ != "null" => {
-                                            scalar_name = Some(input_type.typ.clone() + "List");
-                                        }
-                                        _ => {}
+                                        TypeLocation::Scalar if input_type.typ != "Null" => true,
+                                        _ => false,
                                     }
+                                })?;
+
+                                Some(field)
+                            })
+                            .collect(),
+                    })
+                })
+            }));
+
+            filters.extend(schema.db.walk_models().flat_map(|model| {
+                model
+                    .fields()
+                    .filter_map(|field| {
+                        let input_type = dmmf.schema.find_input_type(&format!(
+                            "{}Update{}Input",
+                            model.name(),
+                            field.name()
+                        ))?;
+
+                        let mut fields = vec![];
+
+                        let scalar_name = {
+                            let mut scalar_name = None;
+
+                            fields.extend(input_type.fields.iter().filter_map(|field| {
+                                if field.name == "set" {
+                                    for input_type in &field.input_types {
+                                        match input_type.location {
+                                            TypeLocation::Scalar if input_type.typ != "null" => {
+                                                scalar_name = Some(input_type.typ.clone() + "List");
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+
+                                    return None;
                                 }
 
-                                continue;
-                            }
+                                field
+                                    .input_types
+                                    .iter()
+                                    .find(|input_type| match input_type.location {
+                                        TypeLocation::Scalar if input_type.typ != "null" => true,
+                                        _ => false,
+                                    })
+                                    .map(|_| field)
+                            }));
 
-                            if let Some((type_name, is_list)) = {
-                                let mut ret = None;
+                            scalar_name
+                        }?;
 
-                                for input_type in &field.input_types {
-                                    match input_type.location {
-                                        TypeLocation::Scalar if input_type.typ != "null" => {
-                                            ret = Some((input_type.typ.clone(), input_type.is_list))
-                                        }
-                                        _ => {}
-                                    }
-                                }
-
-                                ret
-                            } {
-                                fields.push(Method::new(
-                                    pascal_ident(&field.name).to_string(),
-                                    field.name.clone(),
-                                    ScalarFieldType::BuiltInScalar(
-                                        ScalarType::try_from_str(&type_name).unwrap(),
-                                    ),
-                                    is_list,
-                                    field.is_nullable,
-                                ));
-                            };
-                        }
-
-                        scalar_name
-                    } {
-                        filters.push(Filter {
+                        Some(Filter {
                             name: scalar_name,
-                            methods: fields,
+                            fields,
                         })
-                    }
-                }
-            }
+                    })
+                    .collect::<Vec<_>>()
+            }));
 
             filters
         };
@@ -323,12 +268,8 @@ impl GenerateArgs {
         };
 
         let base = match field.scalar_field_type() {
-            ScalarFieldType::BuiltInScalar(typ) => match typ.as_str() {
-                "Boolean" => "Bool",
-                s => s,
-            }
-            .to_string(),
-            ScalarFieldType::Enum(e) => field.db.walk(e).name().to_string(),
+            ScalarFieldType::BuiltInScalar(typ) => typ.as_str(),
+            ScalarFieldType::Enum(e) => field.db.walk(e).name(),
             _ => return None,
         };
 
@@ -345,12 +286,8 @@ impl GenerateArgs {
         };
 
         let base = match field.scalar_field_type() {
-            ScalarFieldType::BuiltInScalar(typ) => match typ.as_str() {
-                "Boolean" => "Bool",
-                s => s,
-            }
-            .to_string(),
-            ScalarFieldType::Enum(e) => field.db.walk(e).name().to_string(),
+            ScalarFieldType::BuiltInScalar(typ) => typ.as_str(),
+            ScalarFieldType::Enum(e) => field.db.walk(e).name(),
             _ => return None,
         };
 
@@ -372,38 +309,21 @@ impl DmmfSchemaExt for DmmfSchema {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Method {
-    pub name: String,
-    pub action: String,
-    pub is_list: bool,
-    pub is_nullable: bool,
-    pub base_type: ScalarFieldType,
+pub trait DmmfInputFieldExt {
+    fn arity(&self) -> FieldArity;
+    fn type_tokens(&self, prefix: &TokenStream) -> TokenStream;
+    fn to_prisma_value(&self, var: &Ident) -> TokenStream;
 }
 
-impl Method {
-    fn new(
-        name: String,
-        action: String,
-        base_type: ScalarFieldType,
-        is_list: bool,
-        is_nullable: bool,
-    ) -> Self {
-        Method {
-            name,
-            action,
-            is_list,
-            is_nullable,
-            base_type,
-        }
-    }
+impl DmmfInputFieldExt for DmmfInputField {
+    fn arity(&self) -> FieldArity {
+        let input_type = self
+            .input_types
+            .iter()
+            .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
+            .expect(&format!("No type found for field {}", self.name));
 
-    pub fn type_tokens(&self, prefix: &TokenStream, db: &ParserDatabase) -> Option<TokenStream> {
-        self.base_type.to_tokens(prefix, &self.arity(), db)
-    }
-
-    pub fn arity(&self) -> FieldArity {
-        if self.is_list {
+        if input_type.is_list {
             FieldArity::List
         } else if self.is_nullable {
             FieldArity::Optional
@@ -411,35 +331,63 @@ impl Method {
             FieldArity::Required
         }
     }
+
+    fn type_tokens(&self, prefix: &TokenStream) -> TokenStream {
+        let input_type = self
+            .input_types
+            .iter()
+            .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
+            .expect(&format!("No type found for field {}", self.name));
+
+        let arity = self.arity();
+
+        match input_type.location {
+            TypeLocation::Scalar => arity.wrap_type(
+                &ScalarType::try_from_str(&input_type.typ)
+                    .unwrap()
+                    .to_tokens(),
+            ),
+            TypeLocation::EnumTypes => {
+                let typ: TokenStream = input_type.typ.parse().unwrap();
+                quote!(#prefix #typ)
+            }
+            TypeLocation::InputObjectTypes => {
+                let typ: TokenStream = input_type.typ.parse().unwrap();
+                quote!(Vec<#prefix #typ>)
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn to_prisma_value(&self, var: &Ident) -> TokenStream {
+        let pv = quote!(::prisma_client_rust::PrismaValue);
+
+        let input_type = self
+            .input_types
+            .iter()
+            .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
+            .expect(&format!("No type found for field {}", self.name));
+
+        let arity = self.arity();
+
+        match input_type.location {
+            TypeLocation::Scalar => arity.wrap_pv(
+                var,
+                ScalarType::try_from_str(&input_type.typ)
+                    .unwrap()
+                    .to_prisma_value(var),
+            ),
+            TypeLocation::EnumTypes => quote!(#pv::Enum(#var.to_string())),
+            TypeLocation::InputObjectTypes => {
+                quote!(#pv::Object(#var.into_iter().map(Into::into).collect()))
+            }
+            _ => todo!(),
+        }
+    }
 }
 
 #[derive(Debug)]
-pub struct Filter {
+pub struct Filter<'a> {
     pub name: String,
-    pub methods: Vec<Method>,
-}
-
-/// Gets a method definition from an input field.
-fn input_field_as_method(field: &DmmfInputField, db: &ParserDatabase) -> Option<Method> {
-    field.input_types.iter().find(|input_type|
-        matches!(input_type.location, TypeLocation::Scalar | TypeLocation::EnumTypes if input_type.typ != "Null")
-    ).map(|input_type| {
-        let type_name = input_type.typ.clone();
-        let is_list = input_type.is_list;
-
-        Method::new(
-            // 'in' is a reserved keyword in Rust
-            match field.name.as_str() {
-                "in" => "InVec".to_string(),
-                "notIn" => "NotInVec".to_string(),
-                name => pascal_ident(name).to_string(),
-            },
-            field.name.clone(),
-            ScalarType::try_from_str(&type_name)
-                .map(ScalarFieldType::BuiltInScalar)
-                .unwrap_or_else(|| ScalarFieldType::Enum(db.find_enum(&type_name).unwrap().id)),
-            is_list,
-            field.is_nullable,
-        )
-    })
+    pub fields: Vec<&'a DmmfInputField>,
 }

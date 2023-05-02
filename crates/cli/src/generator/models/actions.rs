@@ -116,11 +116,11 @@ pub fn mongo_raw_fns() -> Option<TokenStream> {
     cfg!(feature = "mongodb").then(|| {
         quote! {
             pub fn find_raw<T: ::prisma_client_rust::Data>(self) -> FindRawQuery<'a, T> {
-                FindRaw::new(self.client)
+                FindRawQuery::new(self.client)
             }
 
             pub fn aggregate_raw<T: ::prisma_client_rust::Data>(self) -> AggregateRawQuery<'a, T> {
-                AggregateRaw::new(self.client)
+                AggregateRawQuery::new(self.client)
             }
         }
     })

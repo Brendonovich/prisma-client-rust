@@ -3,15 +3,12 @@ use prisma_client_rust_sdk::{
     prelude::*, prisma::prisma_models::walkers::CompositeTypeFieldWalker,
 };
 
-pub fn module(
-    field: CompositeTypeFieldWalker,
-    module_path: &TokenStream,
-) -> (TokenStream, Variant) {
+pub fn module(field: CompositeTypeFieldWalker) -> (TokenStream, Variant) {
     let field_name_str = field.name();
     let field_name_snake = snake_ident(field.name());
     let field_name_pascal = pascal_ident(field.name());
 
-    let field_type = field.type_tokens(module_path);
+    let field_type = field.type_tokens(&quote!());
     let value_ident = format_ident!("value");
     let value_to_pv = field.type_prisma_value(&value_ident);
 

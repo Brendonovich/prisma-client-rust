@@ -2,11 +2,11 @@ use prisma_client_rust_sdk::prisma::prisma_models::walkers::CompositeTypeWalker;
 
 use crate::generator::prelude::*;
 
-pub fn struct_definition(ty: CompositeTypeWalker, module_path: &TokenStream) -> TokenStream {
+pub fn struct_definition(ty: CompositeTypeWalker) -> TokenStream {
     let fields = ty.fields().flat_map(|field| {
         let field_name_str = field.name();
         let field_name_snake = snake_ident(field.name());
-        let field_ty = field.type_tokens(module_path)?;
+        let field_ty = field.type_tokens(&quote!())?;
 
         Some(quote! {
             #[serde(rename = #field_name_str)]

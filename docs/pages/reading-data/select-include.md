@@ -96,7 +96,7 @@ struct Data {
 }
 
 // Module + data struct generated for nested selection
-mod comments { 
+mod comments {
     pub struct Data {
         post: post::Data
     }
@@ -161,7 +161,7 @@ let posts: Vec<_> = client
     .exec()
     .await?;
 
-// Generated type is equivalent to 
+// Generated type is equivalent to
 struct Data {
     id: String,
     title: String,

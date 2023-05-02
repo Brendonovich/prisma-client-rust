@@ -57,15 +57,13 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
             let scalar_selections_fn = scalar_selections_fn(comp_type, module_path);
 
-            let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) = comp_type
-                .fields()
-                .map(|f| field::module(f, module_path))
-                .unzip();
+            let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) =
+                comp_type.fields().map(field::module).unzip();
 
-            let data_struct = data::struct_definition(comp_type, module_path);
-            let set_param_enum = set_params::enum_definition(comp_type, module_path);
-            let order_by_enum = order_by::enum_definition(comp_type);
-            let create_fn = set_params::create_fn(comp_type, module_path);
+            let data_struct = data::struct_definition(comp_type);
+            let set_param_enum = set_params::enum_definition(comp_type);
+            let order_by_enum = order_by::enum_definition(comp_type, args);
+            let create_fn = set_params::create_fn(comp_type);
             let where_param = where_params::model_enum(field_where_param_entries);
 
             quote! {

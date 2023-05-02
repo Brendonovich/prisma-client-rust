@@ -7,10 +7,10 @@ and allows structs to be defined that have a `to_params` function which converts
 Each field of the generated structs has the same type as the equivalent field in the module's `Data` struct,
 just wrapped inside `Option`.
 
-This can be useful for thing like web APIs built with 
-[`axum`](https://github.com/tokio-rs/axum) or 
+This can be useful for thing like web APIs built with
+[`axum`](https://github.com/tokio-rs/axum) or
 [`rspc`](https://www.rspc.dev/),
-where receiving updates is more ergonomic as structs rather than a list of changes. 
+where receiving updates is more ergonomic as structs rather than a list of changes.
 
 A more general `partial!` does not yet exist,
 as supporting relations is not possible until [nested writes](https://github.com/Brendonovich/prisma-client-rust/issues/44)

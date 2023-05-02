@@ -189,7 +189,7 @@ impl ScalarFieldTypeExt for ScalarFieldType {
     ) -> Option<TokenStream> {
         let base = match *self {
             Self::Enum(id) => {
-                let name = snake_ident(db.walk(id).name());
+                let name = pascal_ident(db.walk(id).name());
                 quote!(#prefix #name)
             }
             Self::BuiltInScalar(typ) => typ.to_tokens(),
@@ -220,6 +220,7 @@ impl ScalarFieldTypeExt for ScalarFieldType {
 pub trait ScalarTypeExt {
     fn to_tokens(&self) -> TokenStream;
     fn to_prisma_value(&self, var: &Ident) -> TokenStream;
+    fn to_dmmf_string(&self) -> String;
 }
 
 impl ScalarTypeExt for ScalarType {
@@ -259,6 +260,13 @@ impl ScalarTypeExt for ScalarType {
             ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_string(&#var).unwrap())),
             ScalarType::DateTime => quote!(#v::DateTime(#var)),
             ScalarType::Bytes => quote!(#v::Bytes(#var)),
+        }
+    }
+
+    fn to_dmmf_string(&self) -> String {
+        match self {
+            Self::Boolean => "Bool".to_string(),
+            _ => self.as_str().to_string(),
         }
     }
 }
@@ -301,6 +309,12 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                         let model_name_snake = snake_ident(&model_name);
 
                         quote!(#model_name_snake::OrderByRelationAggregateParam)
+                    }
+                    t if t.ends_with("OrderByInput") => {
+                        let model_name = t.replace("OrderByInput", "");
+                        let model_name_snake = snake_ident(&model_name);
+
+                        quote!(#model_name_snake::OrderByParam)
                     }
                     _ => return None,
                 };

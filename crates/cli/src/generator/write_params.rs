@@ -9,21 +9,18 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
         let name = enum_name(write_param);
 
         let (method_variants, method_matches): (Vec<_>, Vec<_>) = write_param
-            .methods
+            .fields
             .iter()
-            .flat_map(|method| {
-                let typ = method.type_tokens(&quote!(super::super::), &args.schema.db);
+            .flat_map(|field| {
+                let typ = field.type_tokens(&quote!(super::super::));
+                let action = &field.name;
 
-                let prisma_value_converter = method
-                    .base_type
-                    .to_prisma_value(&format_ident!("value"), &method.arity())?;
+                let prisma_value_converter = field.to_prisma_value(&format_ident!("value"));
 
-                let method_name_pascal = pascal_ident(&method.name);
-
-                let action = &method.action;
+                let method_name_pascal = pascal_ident(&field.name);
 
                 // Set doesn't use 'set' as the action name.
-                let prisma_value = if method.name == "Set" {
+                let prisma_value = if action == "set" {
                     prisma_value_converter
                 } else {
                     quote! {

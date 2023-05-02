@@ -5,34 +5,46 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
         let name = format_ident!("{}Filter", &filter.name);
 
         let (method_variants, method_matches): (Vec<_>, Vec<_>) = filter
-            .methods
+            .fields
             .iter()
-            .map(|method| {
-                let variant_name = pascal_ident(&method.name);
-                let method_action_string = &method.action;
+            .flat_map(|field| {
+                let action_str = &field.name;
+                let action_sanitised_str = match field.name.as_str() {
+                    "in" => "inVec",
+                    "notIn" => "notInVec",
+                    n => n,
+                };
+
+                let variant_name = pascal_ident(&action_sanitised_str);
 
                 let value_ident = format_ident!("value");
 
-                let value_as_prisma_value = method
-                    .base_type
-                    .to_prisma_value(&value_ident, &method.arity());
+                let value_as_prisma_value = field.to_prisma_value(&value_ident);
 
-                let typ = method
-                    .type_tokens(&quote!(super::super::), &args.schema.db)
-                    .unwrap();
+                let typ = field.type_tokens(&quote!(super::super::));
 
-                (
+                let pv = match action_str {
+                    // "equals" => quote! {
+                    //     ::prisma_client_rust::SerializedWhereValue::Value(
+                    //          #value_as_prisma_value
+                    //     )
+                    // },
+                    _ => quote! {
+                        ::prisma_client_rust::SerializedWhereValue::Object(
+                            vec![(
+                                #action_str.to_string(),
+                                #value_as_prisma_value
+                            )]
+                        )
+                    },
+                };
+
+                Some((
                     quote!(#variant_name(#typ)),
                     quote! {
-                        Self::#variant_name(#value_ident) =>
-                            ::prisma_client_rust::SerializedWhereValue::Object(
-                            vec![(
-                                #method_action_string.to_string(),
-                                #value_as_prisma_value
-                            )
-                        ])
+                        Self::#variant_name(#value_ident) => #pv
                     },
-                )
+                ))
             })
             .unzip();
 
