@@ -23,28 +23,35 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
 
                 let typ = field.type_tokens(&quote!(super::super::));
 
-                let pv = match action_str {
-                    // "equals" => quote! {
-                    //     ::prisma_client_rust::SerializedWhereValue::Value(
-                    //          #value_as_prisma_value
-                    //     )
-                    // },
-                    _ => quote! {
-                        ::prisma_client_rust::SerializedWhereValue::Object(
-                            vec![(
-                                #action_str.to_string(),
-                                #value_as_prisma_value
-                            )]
-                        )
-                    },
-                };
-
-                Some((
-                    quote!(#variant_name(#typ)),
-                    quote! {
-                        Self::#variant_name(#value_ident) => #pv
-                    },
-                ))
+                // https://github.com/Brendonovich/prisma-client-rust/issues/297
+                if filter.name == "JsonNullable" && field.name == "equals" {
+                    Some((
+                        quote!(#variant_name(Option<#typ>)),
+                        quote! {
+                            Self::#variant_name(#value_ident) =>
+                                ::prisma_client_rust::SerializedWhereValue::Object(
+                                    vec![(
+                                        #action_str.to_string(),
+                                        #value_ident.map(|#value_ident| #value_as_prisma_value)
+                                            .unwrap_or(::prisma_client_rust::PrismaValue::Null)
+                                    )]
+                                )
+                        },
+                    ))
+                } else {
+                    Some((
+                        quote!(#variant_name(#typ)),
+                        quote! {
+                            Self::#variant_name(#value_ident) =>
+                                ::prisma_client_rust::SerializedWhereValue::Object(
+                                    vec![(
+                                        #action_str.to_string(),
+                                        #value_as_prisma_value
+                                    )]
+                                )
+                        },
+                    ))
+                }
             })
             .unzip();
 

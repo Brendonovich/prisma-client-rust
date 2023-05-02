@@ -371,7 +371,7 @@ pub fn field_module(
     let field_name = field.name();
     let field_name_pascal = pascal_ident(field_name);
     let field_name_snake = snake_ident(field_name);
-    let field_type = field.type_tokens(&quote!(self));
+    let field_type = field.type_tokens(&quote!());
 
     let is_null_variant = format_ident!("{field_name_pascal}IsNull");
     let equals_variant = format_ident!("{field_name_pascal}Equals");

@@ -141,10 +141,11 @@ impl<'a> GenerateArgs<'a> {
 
             filters.extend(scalars.iter().flat_map(|scalar| {
                 let possible_inputs = [
-                    scalar.to_dmmf_string() + "FieldUpdateOperationsInput",
-                    "Nullable".to_string()
-                        + &scalar.to_dmmf_string()
-                        + "FieldUpdateOperationsInput",
+                    format!("{}FieldUpdateOperationsInput", scalar.to_dmmf_string()),
+                    format!(
+                        "Nullable{}FieldUpdateOperationsInput",
+                        scalar.to_dmmf_string()
+                    ),
                 ];
 
                 possible_inputs.into_iter().filter_map(|input| {
@@ -168,6 +169,43 @@ impl<'a> GenerateArgs<'a> {
                                     match input_type.location {
                                         TypeLocation::Scalar if input_type.typ != "Null" => true,
                                         _ => false,
+                                    }
+                                })?;
+
+                                Some(field)
+                            })
+                            .collect(),
+                    })
+                })
+            }));
+
+            filters.extend(schema.db.walk_enums().flat_map(|enm| {
+                let possible_inputs = [
+                    format!("Enum{}FieldUpdateOperationsInput", enm.name()),
+                    format!("NullableEnum{}FieldUpdateOperationsInput", enm.name()),
+                ];
+
+                possible_inputs.into_iter().filter_map(move |input| {
+                    let input_type = dmmf.schema.find_input_type(&input)?;
+
+                    let mut name = enm.name().to_string();
+
+                    if input_type.name.contains("List") {
+                        name += "List";
+                    } else if input_type.name.contains("Nullable") {
+                        name += "Nullable";
+                    }
+
+                    Some(Filter {
+                        name,
+                        fields: input_type
+                            .fields
+                            .iter()
+                            .filter_map(|field| {
+                                field.input_types.iter().find(|input_type| {
+                                    match input_type.location {
+                                        TypeLocation::Scalar if input_type.typ != "Null" => true,
+                                        _ => true,
                                     }
                                 })?;
 
@@ -349,7 +387,7 @@ impl DmmfInputFieldExt for DmmfInputField {
             ),
             TypeLocation::EnumTypes => {
                 let typ: TokenStream = input_type.typ.parse().unwrap();
-                quote!(#prefix #typ)
+                arity.wrap_type(&quote!(#prefix #typ))
             }
             TypeLocation::InputObjectTypes => {
                 let typ: TokenStream = input_type.typ.parse().unwrap();
@@ -377,7 +415,7 @@ impl DmmfInputFieldExt for DmmfInputField {
                     .unwrap()
                     .to_prisma_value(var),
             ),
-            TypeLocation::EnumTypes => quote!(#pv::Enum(#var.to_string())),
+            TypeLocation::EnumTypes => arity.wrap_pv(var, quote!(#pv::Enum(#var.to_string()))),
             TypeLocation::InputObjectTypes => {
                 quote!(#pv::Object(#var.into_iter().map(Into::into).collect()))
             }

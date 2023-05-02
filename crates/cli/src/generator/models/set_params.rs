@@ -61,7 +61,7 @@ fn field_set_params(
 ) -> Option<(Vec<TokenStream>, Vec<TokenStream>, (String, TokenStream))> {
     let field_name_pascal = pascal_ident(field.name());
     let field_name_snake = snake_ident(field.name());
-    let field_type = field.type_tokens(&quote!(self));
+    let field_type = field.type_tokens(&quote!());
 
     let pcr = quote!(::prisma_client_rust);
 
