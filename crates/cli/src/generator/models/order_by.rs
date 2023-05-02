@@ -2,15 +2,12 @@ use std::collections::BTreeMap;
 
 use prisma_client_rust_sdk::prisma::{
     dmmf::TypeLocation,
-    prisma_models::{
-        walkers::ModelWalker,
-        FieldArity,
-    },
+    prisma_models::{walkers::ModelWalker, FieldArity},
 };
 
 use crate::generator::prelude::*;
 
-use super::SomethingThatNeedsFieldModules;
+use super::ModelModulePart;
 
 pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
     quote! {
@@ -21,7 +18,7 @@ pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
     }
 }
 
-pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> SomethingThatNeedsFieldModules {
+pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
     let pcr = quote!(::prisma_client_rust);
 
     let (order_by_relation_aggregate_param, aggregate_field_stuff) = args
@@ -171,7 +168,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> SomethingThatNeeds
         })
         .unwrap_or_default();
 
-    SomethingThatNeedsFieldModules {
+    ModelModulePart {
         data: quote! {
             #order_by_with_relation_param
             #order_by_relation_aggregate_param

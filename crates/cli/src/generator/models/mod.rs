@@ -87,7 +87,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
             let actions_struct = actions::struct_definition(model, args);
 
-            let field_module_stuff = SomethingThatNeedsFieldModules::combine(vec![
+            let field_module_stuff = ModelModulePart::combine(vec![
                 where_params::model_data(model, args, module_path),
                 order_by::model_data(model, args),
                 with_params::model_data(model),
@@ -144,12 +144,12 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
         .collect()
 }
 
-pub struct SomethingThatNeedsFieldModules {
+pub struct ModelModulePart {
     data: TokenStream,
     fields: BTreeMap<String, TokenStream>,
 }
 
-impl SomethingThatNeedsFieldModules {
+impl ModelModulePart {
     pub fn combine(parts: Vec<Self>) -> TokenStream {
         let (data, fields): (Vec<_>, Vec<_>) =
             parts.into_iter().map(|p| (p.data, p.fields)).unzip();

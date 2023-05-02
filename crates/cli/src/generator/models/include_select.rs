@@ -675,14 +675,11 @@ fn model_module_enum(model: ModelWalker, variant: Variant) -> TokenStream {
 pub mod include {
     use prisma_client_rust_sdk::prisma::prisma_models::walkers::{ModelWalker, RefinedFieldWalker};
 
-    use crate::generator::models::SomethingThatNeedsFieldModules;
+    use crate::generator::models::ModelModulePart;
 
     use super::*;
 
-    pub fn model_data(
-        model: ModelWalker,
-        module_path: &TokenStream,
-    ) -> SomethingThatNeedsFieldModules {
+    pub fn model_data(model: ModelWalker, module_path: &TokenStream) -> ModelModulePart {
         let r#macro = super::model_macro(
             model,
             module_path,
@@ -699,7 +696,7 @@ pub mod include {
 
         let r#enum = super::model_module_enum(model, Variant::Include);
 
-        SomethingThatNeedsFieldModules {
+        ModelModulePart {
             data: quote! {
                 #r#macro
                  #r#enum
@@ -719,14 +716,11 @@ pub mod include {
 pub mod select {
     use prisma_client_rust_sdk::prisma::prisma_models::walkers::ModelWalker;
 
-    use crate::generator::models::SomethingThatNeedsFieldModules;
+    use crate::generator::models::ModelModulePart;
 
     use super::*;
 
-    pub fn model_data(
-        model: ModelWalker,
-        module_path: &TokenStream,
-    ) -> SomethingThatNeedsFieldModules {
+    pub fn model_data(model: ModelWalker, module_path: &TokenStream) -> ModelModulePart {
         let r#macro = super::model_macro(
             model,
             module_path,
@@ -739,7 +733,7 @@ pub mod select {
 
         let r#enum = super::model_module_enum(model, Variant::Select);
 
-        SomethingThatNeedsFieldModules {
+        ModelModulePart {
             data: quote! {
                 #r#macro
                 #r#enum

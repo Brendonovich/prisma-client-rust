@@ -10,7 +10,7 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::{prelude::*, write_params};
 
-use super::SomethingThatNeedsFieldModules;
+use super::ModelModulePart;
 
 pub struct RelationSetParamConfig {
     pub action: &'static str,
@@ -591,7 +591,7 @@ fn field_set_params(
     Some((variants, functions, field_module_contents))
 }
 
-pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> SomethingThatNeedsFieldModules {
+pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
     let (variants, into_pv_arms, field_stuff) =
         model.fields().flat_map(|f| field_set_params(f, args)).fold(
             (vec![], vec![], BTreeMap::new()),
@@ -714,7 +714,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> SomethingThatNeeds
         )
     };
 
-    SomethingThatNeedsFieldModules {
+    ModelModulePart {
         data: quote! {
             #[derive(Clone)]
             pub enum SetParam {

@@ -8,7 +8,7 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::prelude::*;
 
-use super::SomethingThatNeedsFieldModules;
+use super::ModelModulePart;
 
 pub struct Operator {
     pub name: &'static str,
@@ -193,7 +193,7 @@ pub fn model_data(
     model: ModelWalker,
     args: &GenerateArgs,
     module_path: &TokenStream,
-) -> SomethingThatNeedsFieldModules {
+) -> ModelModulePart {
     let pcr = quote!(::prisma_client_rust);
 
     let mut entries = vec![];
@@ -307,7 +307,7 @@ pub fn model_data(
 
     let collated_entries = collate_entries(entries);
 
-    SomethingThatNeedsFieldModules {
+    ModelModulePart {
         data: quote! {
             #compound_field_accessors
             #collated_entries

@@ -5,7 +5,7 @@ use prisma_client_rust_sdk::prisma::prisma_models::{
 
 use crate::generator::prelude::*;
 
-use super::{order_by, pagination, SomethingThatNeedsFieldModules};
+use super::{order_by, pagination, ModelModulePart};
 
 pub fn builder_fn(field: RelationFieldWalker) -> TokenStream {
     let relation_model_name_snake = snake_ident(field.related_model().name());
@@ -69,7 +69,7 @@ fn into_selection_arm(field: RelationFieldWalker) -> TokenStream {
     }
 }
 
-pub fn model_data(model: ModelWalker) -> SomethingThatNeedsFieldModules {
+pub fn model_data(model: ModelWalker) -> ModelModulePart {
     let variants = model.relation_fields().map(enum_variant);
     let into_selection_arms = model.relation_fields().map(into_selection_arm);
 
@@ -133,7 +133,7 @@ pub fn model_data(model: ModelWalker) -> SomethingThatNeedsFieldModules {
         })
         .collect();
 
-    SomethingThatNeedsFieldModules {
+    ModelModulePart {
         data: quote! {
             #[derive(Clone)]
             pub enum WithParam {

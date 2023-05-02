@@ -1,8 +1,9 @@
 mod data;
-mod field;
 mod order_by;
 mod set_params;
 mod where_params;
+
+use std::collections::BTreeMap;
 
 use prisma_client_rust_sdk::{
     prelude::*,
@@ -57,14 +58,14 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
             let scalar_selections_fn = scalar_selections_fn(comp_type, module_path);
 
-            let (field_modules, field_where_param_entries): (Vec<_>, Vec<_>) =
-                comp_type.fields().map(field::module).unzip();
-
             let data_struct = data::struct_definition(comp_type);
-            let set_param_enum = set_params::enum_definition(comp_type);
             let order_by_enum = order_by::enum_definition(comp_type, args);
             let create_fn = set_params::create_fn(comp_type);
-            let where_param = where_params::model_enum(field_where_param_entries);
+
+            let parts = CompositeTypeModulePart::combine(vec![
+                set_params::module_part(comp_type),
+                where_params::module_part(comp_type),
+            ]);
 
             quote! {
                 pub mod #comp_type_name_snake {
@@ -73,13 +74,10 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
                     #scalar_selections_fn
 
-                    #(#field_modules)*
+                    #parts
 
                     #data_struct
 
-                    #where_param
-
-                    #set_param_enum
                     #create_fn
 
                     #order_by_enum
@@ -87,4 +85,46 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
             }
         })
         .collect()
+}
+
+pub struct CompositeTypeModulePart {
+    data: TokenStream,
+    fields: BTreeMap<String, TokenStream>,
+}
+
+impl CompositeTypeModulePart {
+    pub fn combine(parts: Vec<Self>) -> TokenStream {
+        let (data, fields): (Vec<_>, Vec<_>) =
+            parts.into_iter().map(|p| (p.data, p.fields)).unzip();
+
+        let field_stuff = fields
+            .into_iter()
+            .flat_map(|p| p.into_iter())
+            .fold(BTreeMap::new(), |mut acc, (k, v)| {
+                let entry = acc.entry(k).or_insert_with(|| vec![]);
+                entry.push(v);
+                acc
+            })
+            .into_iter()
+            .map(|(field_name_str, data)| {
+                let field_name_snake = snake_ident(&field_name_str);
+
+                quote! {
+                    pub mod #field_name_snake {
+                        use super::super::*;
+                        use super::{SetParam, WhereParam};
+
+                        pub const NAME: &str = #field_name_str;
+
+                        #(#data)*
+                    }
+                }
+            });
+
+        quote! {
+            #(#data)*
+
+            #(#field_stuff)*
+        }
+    }
 }

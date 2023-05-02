@@ -114,7 +114,7 @@ pub fn exec<'a, Q: Query<'a> + 'a>(
     query: Q,
 ) -> impl Future<Output = Result<<Q as QueryConvert>::ReturnValue>> + 'a {
     let (op, client) = query.graphql();
-    dbg!(&op);
+
     client.execute(op).map(|value| {
         let value = value?;
 
