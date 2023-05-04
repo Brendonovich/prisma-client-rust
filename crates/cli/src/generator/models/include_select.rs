@@ -216,7 +216,7 @@ fn model_macro<'a>(
             }
 
             impl<'de> ::serde::Deserialize<'de> for Field {
-                fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+                fn deserialize<D>(deserializer: D) -> std::result::Result<Field, D::Error>
                 where
                     D: ::serde::Deserializer<'de>,
                 {
@@ -232,7 +232,7 @@ fn model_macro<'a>(
                             ].into_iter().collect::<Vec<_>>().join(", "))
                         }
 
-                        fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                        fn visit_str<E>(self, value: &str) -> std::result::Result<Field, E>
                         where
                             E: ::serde::de::Error,
                         {
@@ -257,7 +257,7 @@ fn model_macro<'a>(
                     formatter.write_str("struct Data")
                 }
 
-                fn visit_map<V>(self, mut map: V) -> Result<Data, V::Error>
+                fn visit_map<V>(self, mut map: V) -> std::result::Result<Data, V::Error>
                 where
                     V: ::serde::de::MapAccess<'de>,
                 {
