@@ -93,7 +93,7 @@ The following example gets all comments whose post has the title "My Title":
 use prisma::{comment, post};
 
 let comments: Vec<comment:Data> = client
-    .post()
+    .comment()
     .find_many(vec![
         comment::post::is(vec![
             post::title::equals("My Title".to_string())
