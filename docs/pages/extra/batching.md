@@ -122,9 +122,9 @@ let data: Vec<(
 	(Vec<user::Data>, Vec<post::Data>),
 )> = client._batch(vec![(
 	vec![
-		(client.user().create(..), client.post.create(..)),
-		(client.user().create(..), client.post.create(..)),
+		(client.user().create(..), client.post().create(..)),
+		(client.user().create(..), client.post().create(..)),
 	],
-	(vec![client.user().create(..)], vec![client.post.create(..)]),
+	(vec![client.user().create(..)], vec![client.post().create(..)]),
 )]);
 ```
