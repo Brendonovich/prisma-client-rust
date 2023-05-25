@@ -42,7 +42,7 @@ let deleted_post: post::Data = client
 
 ## Delete Many
 
-`delete_many` will delete the records referenced by a `Vec` of any filters and return the number of deleted records.
+`delete_many` will delete the records referenced by all of the filters in a `Vec` and return the number of deleted records.
 
 The following example finds a group of comments and deletes them, returning the number of deleted comments.
 
