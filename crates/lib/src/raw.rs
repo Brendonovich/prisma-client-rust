@@ -40,7 +40,7 @@ impl Raw {
     pub fn convert(self, database: &'static str) -> (String, Vec<Value>) {
         let Self { mut query, values } = self;
 
-        for i in 0..values.len() {
+        for i in 1..=values.len() {
             let variable_indicator = match database {
                 "postgresql" | "cockroachdb" => format!("${i}"),
                 "sqlite" | "mysql" => "?".to_string(),
