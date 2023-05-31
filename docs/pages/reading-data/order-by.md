@@ -46,7 +46,7 @@ use prisma_client_rust::Direction;
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![])
-    .order_by(post::id::order(SortOrder::Asc))
+    .order_by(post::id::order(Direction::Asc))
     .exec()
     .await
     .unwrap();
@@ -63,7 +63,7 @@ use prisma_client_rust::Direction;
 let posts: Vec<post::Data> = client
     .post()
     .find_many(vec![])
-    .order_by(post::created_at::order(SortOrder::Asc))
+    .order_by(post::created_at::order(Direction::Asc))
     .exec()
     .await
     .unwrap();
@@ -80,7 +80,7 @@ use prisma_client_rust::Direction;
 let posts: Vec<post::Data> = client
     .post()
     .find_many()
-    .order_by(post::created_at::order(SortOrder::Desc))
+    .order_by(post::created_at::order(Direction::Desc))
     .cursor(post::id::equals("abc".to_string()))
     .take(5)
     .exec()
