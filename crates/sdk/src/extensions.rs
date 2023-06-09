@@ -1,4 +1,5 @@
 use dmmf::{DmmfTypeReference, TypeLocation};
+use nom::{branch::alt, bytes::complete::*, combinator::map, sequence::tuple, IResult};
 use prisma_models::walkers::{
     CompositeTypeFieldWalker, FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker,
 };
@@ -264,6 +265,8 @@ pub trait DmmfTypeReferenceExt {
         arity: &FieldArity,
         db: &ParserDatabase,
     ) -> Option<TokenStream>;
+
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream>;
 }
 
 impl DmmfTypeReferenceExt for DmmfTypeReference {
@@ -283,31 +286,115 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                 quote!(#prefix #enum_name_pascal)
             }
             TypeLocation::InputObjectTypes => {
-                let typ = match &self.typ {
-                    t if t.ends_with("OrderByWithRelationInput") => {
-                        let model_name = t.replace("OrderByWithRelationInput", "");
-                        let model_name_snake = snake_ident(&model_name);
+                const INPUT: &'static str = "Input";
 
-                        quote!(#model_name_snake::OrderByWithRelationParam)
-                    }
-                    t if t.ends_with("OrderByRelationAggregateInput") => {
-                        let model_name = t.replace("OrderByRelationAggregateInput", "");
-                        let model_name_snake = snake_ident(&model_name);
+                let parse = |typ: _| -> IResult<_, TokenStream> {
+                    alt((
+                        map(take_until1("OrderByInput"), |model| {
+                            let model_name_snake = snake_ident(model);
 
-                        quote!(#model_name_snake::OrderByRelationAggregateParam)
-                    }
-                    t if t.ends_with("OrderByInput") => {
-                        let model_name = t.replace("OrderByInput", "");
-                        let model_name_snake = snake_ident(&model_name);
+                            quote!(Vec<#prefix #model_name_snake::OrderByParam>)
+                        }),
+                        map(take_until1("OrderByWithRelationInput"), |model| {
+                            let model_name_snake = snake_ident(model);
 
-                        quote!(#model_name_snake::OrderByParam)
-                    }
-                    _ => return None,
+                            quote!(Vec<#prefix #model_name_snake::OrderByWithRelationParam>)
+                        }),
+                        map(take_until1("OrderByRelationAggregateInput"), |model| {
+                            let model_name_snake = snake_ident(model);
+
+                            quote!(Vec<#prefix #model_name_snake::OrderByRelationAggregateParam>)
+                        }),
+                        map(
+                            tuple((
+                                take_until1("UncheckedCreateNestedOneWithout"),
+                                tag("UncheckedCreateNestedOneWithout"),
+                                take_until1(INPUT),
+                                tag(INPUT),
+                            )),
+                            |(model, _, field, _)| {
+                                let model_name_snake = snake_ident(model);
+                                let field_name_snake = snake_ident(field);
+
+                                quote!(#prefix #model_name_snake::#field_name_snake::UncheckedCreateNestedOneWithout)
+                            },
+                        ),
+                        map(
+                            tuple((
+                                take_until1("CreateNestedOneWithout"),
+                                tag("CreateNestedOneWithout"),
+                                take_until1(INPUT),
+                                tag(INPUT),
+                            )),
+                            |(model, _, field, _)| {
+                                let model_name_snake = snake_ident(model);
+                                let field_name_snake = snake_ident(field);
+
+                                quote!(#prefix #model_name_snake::#field_name_snake::CreateNestedOneWithout)
+                            },
+                        ),
+                        map(
+                            tuple((
+                                take_until1("UncheckedCreateNestedManyWithout"),
+                                tag("UncheckedCreateNestedManyWithout"),
+                                take_until1(INPUT),
+                                tag(INPUT),
+                            )),
+                            |(model, _, field, _)| {
+                                let model_name_snake = snake_ident(model);
+                                let field_name_snake = snake_ident(field);
+
+                                quote!(#prefix #model_name_snake::#field_name_snake::UncheckedCreateNestedManyWithout)
+                            },
+                        ),
+                        map(
+                            tuple((
+                                take_until1("CreateNestedManyWithout"),
+                                tag("CreateNestedManyWithout"),
+                                take_until1(INPUT),
+                                tag(INPUT),
+                            )),
+                            |(model, _, field, _)| {
+                                let model_name_snake = snake_ident(model);
+                                let field_name_snake = snake_ident(field);
+
+                                quote!(#prefix #model_name_snake::#field_name_snake::CreateNestedManyWithout)
+                            },
+                        ),
+                    ))(typ)
                 };
 
-                quote!(Vec<#prefix #typ>)
+                let (_, typ) = parse(&self.typ).ok()?;
+
+                typ
             }
             _ => return None,
         })
+    }
+
+    fn to_prisma_value(&self, var: &Ident, arity: &FieldArity) -> Option<TokenStream> {
+        let pv = quote!(::prisma_client_rust::PrismaValue);
+
+        let converter = match self.location {
+            TypeLocation::Scalar => ScalarType::try_from_str(&self.typ)
+                .unwrap()
+                .to_prisma_value(var),
+            TypeLocation::EnumTypes => quote!(#pv::Enum(#var.to_string())),
+            TypeLocation::InputObjectTypes => {
+                quote!(#var.into())
+            }
+            _ => return None,
+        };
+
+        Some(arity.wrap_pv(&var, converter))
+
+        // let scalar_converter = match self {
+        //     Self::BuiltInScalar(typ) => typ.to_prisma_value(&var),
+        //     Self::Enum(_) => quote!(#pv::Enum(#var.to_string())),
+        //     Self::Unsupported(_) => return None,
+        //     Self::CompositeType(_) => quote!(#pv::Object(vec![])),
+        // };
+
+        // Some(arity.wrap_pv(&var, scalar_converter))
     }
 }

@@ -93,11 +93,11 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
                 order_by::model_data(model, args),
                 with_params::model_data(model),
                 set_params::model_data(model, args),
+                create::types(model, args),
                 select::model_data(model, &module_path),
                 include::model_data(model, &module_path),
             ]);
 
-            let create_types = create::types(model);
             let types_struct = types::r#struct(model, module_path);
             let data_struct = data::r#struct(model);
             let partial_unchecked_macro = partial_unchecked::r#macro(model, &module_path);
@@ -116,7 +116,6 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
                     pub const NAME: &str = #model_name;
 
                     #field_stuff
-                    #create_types
                     #types_struct
                     #data_struct
                     #partial_unchecked_macro

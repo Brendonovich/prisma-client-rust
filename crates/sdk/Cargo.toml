@@ -30,3 +30,4 @@ request-handlers = { workspace = true }
 query-core = { workspace = true }
 dmmf = { workspace = true }
 psl = { workspace = true }
+nom = "7.1.3"

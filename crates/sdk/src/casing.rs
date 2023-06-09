@@ -32,3 +32,11 @@ where
         }
     }
 }
+
+pub fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+
+    c.next()
+        .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+        .unwrap_or_default()
+}

@@ -32,6 +32,11 @@ pub trait ModelTypes {
     fn scalar_selections() -> Vec<Selection>;
 }
 
+pub trait CreateModelTypes: ModelTypes {
+    type Create: Into<(String, PrismaValue)>;
+    type CreateUnchecked: Into<(String, PrismaValue)>;
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModelReadOperation {
     FindUnique,

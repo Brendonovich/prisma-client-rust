@@ -4865,6 +4865,7 @@ version = "0.6.8"
 dependencies = [
  "convert_case 0.5.0",
  "dmmf",
+ "nom",
  "prisma-models",
  "proc-macro2",
  "psl",

@@ -18,7 +18,7 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
+        pub fn create(self, #(#names: #types,)* mut _params: Vec<CreateParam>) -> CreateQuery<'a> {
             _params.extend([
                 #(#names::#push_wrapper(#names)),*
             ]);
@@ -60,7 +60,7 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> CreateUncheckedQuery<'a> {
+        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<CreateUncheckedParam>) -> CreateUncheckedQuery<'a> {
             _params.extend([
                 #(#names::set(#names)),*
             ]);

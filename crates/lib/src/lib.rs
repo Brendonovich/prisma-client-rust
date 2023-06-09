@@ -138,3 +138,8 @@ pub fn merge_fields(fields: Vec<(String, PrismaValue)>) -> Vec<(String, PrismaVa
 pub fn sel(name: &str) -> Selection {
     Selection::new(name, None, [], [])
 }
+
+pub enum Either<Left, Right> {
+    Left(Left),
+    Right(Right),
+}
