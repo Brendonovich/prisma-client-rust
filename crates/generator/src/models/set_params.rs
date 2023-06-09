@@ -520,18 +520,6 @@ fn field_set_params(
             let base = match arity {
                 FieldArity::List => {
                     quote! {
-                        pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
-
-                        impl From<Connect> for SetParam {
-                            fn from(Connect(v): Connect) -> Self {
-                                Self::#connect_variant(v)
-                            }
-                        }
-
-                        pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
-                            Connect(params).into()
-                        }
-
                         pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
                             SetParam::#disconnect_variant(params)
                         }
@@ -555,18 +543,6 @@ fn field_set_params(
                     });
 
                     quote! {
-                        pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
-
-                        impl From<Connect> for SetParam {
-                            fn from(Connect(v): Connect) -> Self {
-                                Self::#connect_variant(v)
-                            }
-                        }
-
-                        pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
-                            Connect(value).into()
-                        }
-
                         #optional_fns
                     }
                 }

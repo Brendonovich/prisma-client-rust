@@ -12,7 +12,7 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
         .map(|field| {
             (
                 snake_ident(field.inner.name()),
-                (field.typ, field.push_wrapper),
+                (field.typ, pascal_ident(field.inner.name())),
             )
         })
         .unzip();
@@ -20,7 +20,7 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
     Some(quote! {
         pub fn create(self, #(#names: #types,)* mut _params: Vec<CreateParam>) -> CreateQuery<'a> {
             _params.extend([
-                #(#names::#push_wrapper(#names)),*
+                #(CreateParam::#push_wrapper(#names)),*
             ]);
 
             CreateQuery::new(

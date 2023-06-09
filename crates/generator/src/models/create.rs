@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::prisma::{
     dmmf::TypeLocation,
-    prisma_models::walkers::{FieldWalker, ModelWalker},
+    prisma_models::walkers::{FieldWalker, ModelWalker, RefinedFieldWalker},
 };
 
 use crate::prelude::*;
@@ -154,7 +154,7 @@ fn create(model: ModelWalker, args: &GenerateArgs) -> Option<TokenStream> {
                         ),
                         field
                             .is_required
-                            .then(|| ((field_name_snake, push_wrapper), typ)),
+                            .then(|| ((field_name_snake, field_name_pascal), typ)),
                     ))
                 })
                 .unzip();
@@ -202,7 +202,7 @@ fn create(model: ModelWalker, args: &GenerateArgs) -> Option<TokenStream> {
 
                         pub fn to_params(mut self) -> Vec<CreateParam> {
                             self._params.extend([
-                                #(#names::#push_wrappers(self.#names)),*
+                                #(CreateParam::#push_wrappers(self.#names)),*
                             ]);
 
                             self._params
@@ -234,152 +234,293 @@ fn create(model: ModelWalker, args: &GenerateArgs) -> Option<TokenStream> {
 
 fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
+    let field_name_pascal = pascal_ident(field.name());
     let model_name_snake = snake_ident(field.model().name());
+    let model_name_pascal = pascal_ident(field.model().name());
 
-    let create_nested_one_without = args
-        .dmmf
-        .schema
-        .find_input_type(&format!(
-            "{}CreateNestedOneWithout{}Input",
-            field.model().name(),
-            capitalize(field.name())
-        ))
-        .map(|_| {
+    match field.refine() {
+        RefinedFieldWalker::Relation(relation_field) => {
+            let relation_model = relation_field.related_model();
+            let relation_model_name_snake = snake_ident(relation_model.name());
+
+            let create_type = quote!(#pcr::Either<CreateWithout, CreateUncheckedWithout>);
+
+            let connect = {
+                quote! {
+                    pub struct Connect(#typ);
+
+
+                }
+            };
+
+            let create_or_connect_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}CreateOrConnectWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    quote! {
+                        pub struct CreateOrConnectWithout {
+                            r#where: #relation_model_name_snake::UniqueWhereParam,
+                            create: #pcr::Either<CreateWithout, CreateUncheckedWithout>
+                        }
+
+                        pub fn connect_or_create<T: From<CreateOrConnectWithout>>(
+                            r#where: #model_name_snake::UniqueWhereParam,
+                            create: #create_type
+                        ) -> T {
+                            CreateOrConnectWithout {
+                                r#where,
+                                create: create.into()
+                            }.into()
+                        }
+                    }
+                });
+
+            let create_nested_one_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}CreateNestedOneWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    let enum_name = quote!(CreateNestedOneWithout);
+
+                    quote! {
+                        pub enum #enum_name {
+                            Create(#create_type),
+                            CreateOrConnect(CreateOrConnectWithout),
+                            Connect(#model_name_snake::UniqueWhereParam)
+                        }
+
+                        impl Into<(String, #pcr::PrismaValue)> for #enum_name {
+                            fn into(self) -> (String, #pcr::PrismaValue) {
+                                let (k, v) = match self {
+                                    Self::Create(value) => ("create", value.into()),
+                                    Self::CreateOrConnect(value) => ("connectOrCreate", value.into()),
+                                    Self::Connect(value) => ("connect", value.into())
+                                };
+
+                                (k.to_string(), v)
+                            }
+                        }
+
+                        impl Into<#enum_name> for CreateWithout {
+                            fn into(self) -> CreateNestedOneWithout {
+                                CreateNestedOneWithout::Create(#pcr::Either::Left(self))
+                            }
+                        }
+
+                        impl Into<#enum_name> for CreateUncheckedWithout {
+                            fn into(self) -> CreateNestedOneWithout {
+                                CreateNestedOneWithout::Create(#pcr::Either::Right(self))
+                            }
+                        }
+
+                        pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
+
+                        pub fn connect<T: From<Connect>>(r#where: #relation_model_name_snake::UniqueWhereParam) -> T {
+                            Connect(r#where).into()
+                        }
+
+                        impl From<Connect> for super::CreateParam {
+                            fn from(Connect(value): Connect) -> Self {
+                                Self::#field_name_pascal(
+                                    #relation_model_name_snake::#enum_name::Connect(value)
+                                )
+                            }
+                        }
+                    }
+                });
+
+            let create_nested_many_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}CreateNestedManyWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    let enum_name = quote!(CreateNestedManyWithout);
+
+                    quote! {
+                        #[derive(Clone)]
+                        pub enum #enum_name {
+                            Create(#pcr::Either<Vec<CreateWithout>, Vec<CreateUncheckedWithout>>),
+                            CreateOrConnect(Vec<CreateOrConnectWithout>),
+                            Connect(Vec<#model_name_snake::UniqueWhereParam>)
+                        }
+
+                        impl Into<(String, #pcr::PrismaValue)> for #enum_name {
+                            fn into(self) -> (String, #pcr::PrismaValue) {
+                                let (k, v) = match self {
+                                    Self::Create(value) => ("create", value.into()),
+                                    Self::CreateOrConnect(value) => ("connectOrCreate", value.into()),
+                                    Self::Connect(value) => ("connect", value.into())
+                                };
+
+                                (k.to_string(), v)
+                            }
+                        }
+
+                        pub struct Connect(Vec<#relation_model_name_snake::UniqueWhereParam>);
+
+                        pub fn connect<T: From<Connect>>(r#where: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
+                            Connect(r#where).into()
+                        }
+
+                        impl From<Connect> for super::CreateParam {
+                            fn from(Connect(value): Connect) -> Self {
+                                Self::#field_name_pascal(
+                                    #relation_model_name_snake::#enum_name::Connect(value)
+                                )
+                            }
+                        }
+                    }
+                });
+
+            let create_unchecked_nested_many_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}UncheckedCreateNestedManyWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    quote! {
+                        #[derive(Clone)]
+                        pub enum CreateUncheckedNestedManyWithout {
+                            Create(#pcr::Either<Vec<CreateWithout>, Vec<CreateUncheckedWithout>>),
+                            CreateOrConnect(Vec<CreateOrConnectWithout>),
+                            Connect(Vec<#model_name_snake::UniqueWhereParam>)
+                        }
+
+                        impl Into<(String, #pcr::PrismaValue)> for CreateUncheckedNestedManyWithout {
+                            fn into(self) -> (String, #pcr::PrismaValue) {
+                                let (k, v) = match self {
+                                    Self::Create(value) => ("create", value.into()),
+                                    Self::CreateOrConnect(value) => ("connectOrCreate", value.into()),
+                                    Self::Connect(value) => ("connect", value.into())
+                                };
+
+                                (k.to_string(), v)
+                            }
+                        }
+                    }
+                });
+
+            let create_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}CreateWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    quote! {
+                        pub struct CreateWithout {
+                            pub _params: Vec<#model_name_snake::SetParam>
+                        }
+
+                        impl Into<#pcr::PrismaValue> for CreateWithout {
+                            fn into(self) -> #pcr::PrismaValue {
+                                #pcr::PrismaValue::Object(vec![])
+                            }
+                        }
+
+                        pub fn create<T: From<CreateWithout>>(_params: Vec<#model_name_snake::SetParam>) -> T {
+                            CreateWithout {
+                                _params
+                            }.into()
+                        }
+                    }
+                });
+
+            let create_unchecked_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}UncheckedCreateWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    quote! {
+                        pub struct CreateUncheckedWithout {
+                            pub _params: Vec<#model_name_snake::SetParam>
+                        }
+
+                        impl Into<#pcr::PrismaValue> for CreateUncheckedWithout {
+                            fn into(self) -> #pcr::PrismaValue {
+                                #pcr::PrismaValue::Object(vec![])
+                            }
+                        }
+
+                        pub fn create_unchecked<T: From<CreateUncheckedWithout>>
+                            (_params: Vec<#model_name_snake::SetParam>) -> T {
+                            CreateUncheckedWithout {
+                                _params
+                            }.into()
+                        }
+                    }
+                });
+
+            let create_unchecked_nested_one_without = args
+                .dmmf
+                .schema
+                .find_input_type(&format!(
+                    "{}UncheckedCreateNestedOneWithout{}Input",
+                    field.model().name(),
+                    capitalize(field.name())
+                ))
+                .map(|_| {
+                    quote! {
+                        #[derive(Clone)]
+                        pub enum CreateUncheckedNestedOneWithout {
+                            Create(#pcr::Either<CreateWithout, CreateUncheckedWithout>),
+                            CreateOrConnect(CreateOrConnectWithout),
+                            Connect(#model_name_snake::UniqueWhereParam)
+                        }
+
+                        impl Into<(String, #pcr::PrismaValue)> for CreateUncheckedNestedOneWithout {
+                            fn into(self) -> (String, #pcr::PrismaValue) {
+                                let (k, v) = match self {
+                                    Self::Create(value) => ("create", value.into()),
+                                    Self::CreateOrConnect(value) => ("connectOrCreate", value.into()),
+                                    Self::Connect(value) => ("connect", value.into())
+                                };
+
+                                (k.to_string(), v)
+                            }
+                        }
+                    }
+                });
+
             quote! {
-                pub enum CreateOption {
-                     Create(Create),
-                     CreateUnchecked(CreateUnchecked)
-                }
+                #create_or_connect_without
 
-                pub enum CreateNestedOneWithout {
-                    Create(CreateOption),
-                    ConnectOrCreate {
-                        r#where: #model_name_snake::UniqueWhereParam,
-                        create: CreateOption
-                    },
-                    Connect(#model_name_snake::UniqueWhereParam)
-                }
+                #create_without
 
-                impl Into<(String, #pcr::PrismaValue)> for CreateNestedOneWithout {
-                    fn into(self) -> (String, #pcr::PrismaValue) {
-                        let (k, v) = match self {
-                            CreateNestedOneWithout::Create(value) =>
-                                ("create", value.into()),
-                            CreateNestedOneWithout::ConnectOrCreate { r#where, create } =>
-                                ("connectOrCreate", #pcr::PrismaValue::Object(vec![
-                                    ("where".to_string(), r#where.into()),
-                                    ("create".to_string(), create.into().into()),
-                                ])),
-                            CreateNestedOneWithout::Connect(connect) =>
-                                ("connect", value.into())
-                        };
+                #create_unchecked_without
 
-                        (k.to_string(), v)
-                    }
-                }
+                #create_nested_one_without
 
-                pub fn connect_or_create<T: From<CreateNestedOneWithout>>(
-                    r#where: #model_name_snake::UniqueWhereParam,
-                    create: CreateOption
-                ) -> T {
-                    CreateNestedOneWithout::ConnectOrCreate {
-                        r#where,
-                        create: create.into()
-                    }.into()
-                }
+                #create_unchecked_nested_one_without
 
-                pub fn connect<T: From<CreateNestedOneWithout>>(r#where: #model_name_snake::UniqueWhereParam) -> T {
-					CreateNestedOneWithout::Connect(r#where).into()
-				}
+                #create_nested_many_without
+
+                #create_unchecked_nested_many_without
             }
-        });
-
-    let create_without = args
-        .dmmf
-        .schema
-        .find_input_type(&format!(
-            "{}CreateWithout{}Input",
-            field.model().name(),
-            capitalize(field.name())
-        ))
-        .map(|_| {
-            quote! {
-                pub struct Create {
-                    pub _params: Vec<#model_name_snake::SetParam>
-                }
-
-                impl Into<#pcr::PrismaValue> for Create {
-                    fn into(self) -> #pcr::PrismaValue {
-                        #pcr::PrismaValue::Object(vec![])
-                    }
-                }
-
-                impl Into<CreateNestedOneWithout> for Create {
-                    fn into(self) -> CreateNestedOneWithout {
-                        CreateNestedOneWithout::Create(self.into())
-                    }
-                }
-
-                impl Into<CreateOption> for Create {
-                    fn into(self) -> CreateNestedOneWithout {
-                        CreateOption::Create(self)
-                    }
-                }
-
-                pub fn create<T: From<Create>>(_params: Vec<#model_name_snake::SetParam>) -> T {
-                    Create {
-                        _params
-                    }.into()
-                }
-            }
-        });
-
-    let create_unchecked_without = args
-        .dmmf
-        .schema
-        .find_input_type(&format!(
-            "{}UncheckedCreateWithout{}Input",
-            field.model().name(),
-            capitalize(field.name())
-        ))
-        .map(|_| {
-            quote! {
-                pub struct CreateUnchecked {
-                    pub _params: Vec<#model_name_snake::SetParam>
-                }
-
-                impl Into<#pcr::PrismaValue> for CreateUnchecked {
-                    fn into(self) -> #pcr::PrismaValue {
-                        #pcr::PrismaValue::Object(vec![])
-                    }
-                }
-
-                impl Into<CreateNestedOneWithout> for CreateUnchecked {
-                    fn into(self) -> CreateNestedOneWithout {
-                        CreateNestedOneWithout::Create(self.into())
-                    }
-                }
-
-                impl Into<CreateOption> for CreateUnchecked {
-                    fn into(self) -> CreateNestedOneWithout {
-                        CreateOption::CreateUnchecked(self)
-                    }
-                }
-
-                pub fn create_unchecked<T: From<CreateUnchecked>>(_params: Vec<#model_name_snake::SetParam>) -> T {
-                    CreateUnchecked {
-                    	_params
-                    }.into()
-                }
-            }
-        });
-
-    quote! {
-        #create_nested_one_without
-
-        #create_without
-
-        #create_unchecked_without
+        }
+        _ => quote!(),
     }
 }
 

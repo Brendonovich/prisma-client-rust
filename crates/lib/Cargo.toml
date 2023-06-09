@@ -61,3 +61,4 @@ specta = { optional = true, workspace = true, features = [
 # features = "rspc"
 rspc = { optional = true, workspace = true }
 dotenvy = "0.15.7"
+either = "1.8.1"

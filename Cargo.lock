@@ -4774,6 +4774,7 @@ dependencies = [
  "chrono",
  "diagnostics",
  "dotenvy",
+ "either",
  "futures",
  "include_dir",
  "indexmap",

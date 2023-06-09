@@ -316,7 +316,7 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                                 let model_name_snake = snake_ident(model);
                                 let field_name_snake = snake_ident(field);
 
-                                quote!(#prefix #model_name_snake::#field_name_snake::UncheckedCreateNestedOneWithout)
+                                quote!(#prefix #model_name_snake::#field_name_snake::CreateUncheckedNestedOneWithout)
                             },
                         ),
                         map(
@@ -344,7 +344,7 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                                 let model_name_snake = snake_ident(model);
                                 let field_name_snake = snake_ident(field);
 
-                                quote!(#prefix #model_name_snake::#field_name_snake::UncheckedCreateNestedManyWithout)
+                                quote!(#prefix #model_name_snake::#field_name_snake::CreateUncheckedNestedManyWithout)
                             },
                         ),
                         map(
