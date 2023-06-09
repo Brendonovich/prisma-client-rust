@@ -106,7 +106,7 @@ impl<'a> FieldExt<'a> for CompositeTypeFieldWalker<'a> {
 pub trait FieldArityExt {
     fn wrap_type(&self, ty: &TokenStream) -> TokenStream;
 
-    fn wrap_pv(&self, var: &Ident, pv: TokenStream) -> TokenStream;
+    fn wrap_pv(&self, var: &Ident, value: TokenStream) -> TokenStream;
 }
 
 impl FieldArityExt for FieldArity {
@@ -278,6 +278,8 @@ pub trait DmmfTypeReferenceExt {
         arity: &FieldArity,
         db: &ParserDatabase,
     ) -> Option<TokenStream>;
+
+    fn wrap_pv(&self, var: &Ident, pv: TokenStream) -> TokenStream;
 }
 
 impl DmmfTypeReferenceExt for DmmfTypeReference {
@@ -297,31 +299,21 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
                 quote!(#prefix #enum_name_pascal)
             }
             TypeLocation::InputObjectTypes => {
-                let typ = match &self.typ {
-                    t if t.ends_with("OrderByWithRelationInput") => {
-                        let model_name = t.replace("OrderByWithRelationInput", "");
-                        let model_name_snake = snake_ident(&model_name);
-
-                        quote!(#model_name_snake::OrderByWithRelationParam)
-                    }
-                    t if t.ends_with("OrderByRelationAggregateInput") => {
-                        let model_name = t.replace("OrderByRelationAggregateInput", "");
-                        let model_name_snake = snake_ident(&model_name);
-
-                        quote!(#model_name_snake::OrderByRelationAggregateParam)
-                    }
-                    t if t.ends_with("OrderByInput") => {
-                        let model_name = t.replace("OrderByInput", "");
-                        let model_name_snake = snake_ident(&model_name);
-
-                        quote!(#model_name_snake::OrderByParam)
-                    }
-                    _ => return None,
-                };
-
+                let typ = format_ident!("{}", self.typ);
                 quote!(Vec<#prefix #typ>)
             }
             _ => return None,
         })
+    }
+
+    fn wrap_pv(&self, var: &Ident, value: TokenStream) -> TokenStream {
+        let pv = quote!(::prisma_client_rust::PrismaValue);
+
+        match self.location {
+            TypeLocation::InputObjectTypes => {
+                quote!(#pv::Object(#var.into_iter().map(|value| #value).collect()))
+            }
+            _ => value,
+        }
     }
 }

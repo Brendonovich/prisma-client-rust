@@ -78,9 +78,10 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
         .map(|field| {
             let field_name_pascal = pascal_ident(field.name());
 
-            let relation_model_name_snake = snake_ident(field.related_model().name());
+            let relation_model = field.related_model();
+            let relation_model_name_snake = snake_ident(relation_model.name());
 
-            let order_by_fn = order_by::fetch_builder_fn(&relation_model_name_snake);
+            let order_by_fn = order_by::fetch_builder_fn(relation_model);
             let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
             let with_fn = builder_fn(field);
 

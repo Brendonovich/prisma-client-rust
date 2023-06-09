@@ -39,6 +39,8 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
 
     let scalar_selections_fn = scalar_selections_fn(model, module_path);
 
+    let order_by = format_ident!("{}OrderByWithRelationInput", capitalize(model.name()));
+
     quote! {
         #[derive(Clone)]
         pub struct Types;
@@ -49,7 +51,7 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
             type UncheckedSet = UncheckedSetParam;
             type Set = SetParam;
             type With = WithParam;
-            type OrderBy = OrderByWithRelationParam;
+            type OrderBy = #order_by;
             type Cursor = UniqueWhereParam;
 
             const MODEL: &'static str = NAME;

@@ -101,11 +101,11 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> T
                                     &args.schema.db,
                                 )?,
                                 quote! {
-                                impl From<Order> for super::OrderByWithRelationParam {
-                                fn from(Order(v): Order) -> Self {
-                                Self::#field_name_pascal(v)
-                                }
-                                }
+                                    impl From<Order> for super::OrderByWithRelationParam {
+                                        fn from(Order(v): Order) -> Self {
+                                            Self::#field_name_pascal(v)
+                                        }
+                                    }
                                 },
                             ),
                         ),

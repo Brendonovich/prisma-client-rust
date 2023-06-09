@@ -9,9 +9,11 @@ use crate::generator::prelude::*;
 
 use super::ModelModulePart;
 
-pub fn fetch_builder_fn(model_name_snake: &Ident) -> TokenStream {
+pub fn fetch_builder_fn(model: ModelWalker) -> TokenStream {
+    let enum_name = format_ident!("{}OrderByWithRelationInput", capitalize(model.name()));
+
     quote! {
-        pub fn order_by(mut self, param: #model_name_snake::OrderByWithRelationParam) -> Self {
+        pub fn order_by(mut self, param: #enum_name) -> Self {
             self.0 = self.0.order_by(param);
             self
         }
@@ -26,6 +28,8 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
         .schema
         .find_input_type(&format!("{}OrderByRelationAggregateInput", model.name()))
         .map(|input_type| {
+            let name = format_ident!("{}", input_type.name);
+
             let ((variants, into_pv_arms), field_things): ((Vec<_>, Vec<_>), Vec<_>) = input_type
                 .fields
                 .iter()
@@ -52,7 +56,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                             (
                                 typ,
                                 quote! {
-                                    impl From<Order> for super::OrderByRelationAggregateParam {
+                                    impl From<Order> for #name {
                                         fn from(Order(v): Order) -> Self {
                                             Self::#field_name_pascal(v)
                                         }
@@ -64,25 +68,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                 })
                 .unzip();
 
-            (
-                quote! {
-                    #[derive(Clone)]
-                    pub enum OrderByRelationAggregateParam {
-                        #(#variants),*
-                    }
-
-                    impl Into<(String, #pcr::PrismaValue)> for OrderByRelationAggregateParam {
-                        fn into(self) -> (String, #pcr::PrismaValue) {
-                            let (k, v) = match self {
-                                #(#into_pv_arms),*
-                            };
-
-                            (k.to_string(), v)
-                        }
-                    }
-                },
-                field_things,
-            )
+            (quote! {}, field_things)
         })
         .unwrap_or_default();
 
@@ -91,6 +77,8 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
         .schema
         .find_input_type(&format!("{}OrderByWithRelationInput", model.name()))
         .map(|input_type| {
+            let name = format_ident!("{}", &input_type.name);
+
             let ((variants, into_pv_arms), field_stuff): ((Vec<_>, Vec<_>), Vec<_>) = input_type
                 .fields
                 .iter()
@@ -134,7 +122,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                                     &args.schema.db,
                                 )?,
                                 quote! {
-                                    impl From<Order> for super::OrderByWithRelationParam {
+                                    impl From<Order> for #name {
                                         fn from(Order(v): Order) -> Self {
                                             Self::#field_name_pascal(v)
                                         }
@@ -146,25 +134,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                 })
                 .unzip();
 
-            (
-                quote! {
-                    #[derive(Clone)]
-                    pub enum OrderByWithRelationParam {
-                       #(#variants),*
-                    }
-
-                    impl Into<(String, #pcr::PrismaValue)> for OrderByWithRelationParam {
-                        fn into(self) -> (String, #pcr::PrismaValue) {
-                            let (k, v) = match self {
-                                #(#into_pv_arms),*
-                            };
-
-                            (k.to_string(), v)
-                        }
-                    }
-                },
-                field_stuff,
-            )
+            (quote! {}, field_stuff)
         })
         .unwrap_or_default();
 
