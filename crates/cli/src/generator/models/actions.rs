@@ -4,7 +4,7 @@ use prisma_client_rust_sdk::{
     GenerateArgs,
 };
 
-use super::required_fields;
+use super::{required_fields, where_params};
 
 pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
     let (names, (types, push_wrapper)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
@@ -95,10 +95,12 @@ pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
     // necessary to check whether CreateData is even available
     let _ = required_fields(model)?;
 
+    let where_unique = where_params::where_unique_input_ident(model);
+
     Some(quote! {
         pub fn upsert(
             self,
-             _where: UniqueWhereParam,
+             _where: #where_unique,
              _create: Create,
              _update: Vec<SetParam>
         ) -> UpsertQuery<'a> {
@@ -147,21 +149,21 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
         }
 
         impl<'a> Actions<'a> {
-            pub fn find_unique(self, _where: UniqueWhereParam) -> FindUniqueQuery<'a> {
+            pub fn find_unique(self, _where: WhereUniqueInput) -> FindUniqueQuery<'a> {
                 FindUniqueQuery::new(
                     self.client,
                     _where.into()
                 )
             }
 
-            pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirstQuery<'a> {
+            pub fn find_first(self, _where: Vec<WhereInput>) -> FindFirstQuery<'a> {
                 FindFirstQuery::new(
                     self.client,
                     _where
                 )
             }
 
-            pub fn find_many(self, _where: Vec<WhereParam>) -> FindManyQuery<'a> {
+            pub fn find_many(self, _where: Vec<WhereInput>) -> FindManyQuery<'a> {
                 FindManyQuery::new(
                     self.client,
                     _where
@@ -173,7 +175,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
 
             #create_many_fn
 
-            pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> UpdateQuery<'a> {
+            pub fn update(self, _where: WhereUniqueInput, _params: Vec<SetParam>) -> UpdateQuery<'a> {
                 UpdateQuery::new(
                     self.client,
                     _where.into(),
@@ -182,7 +184,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> UpdateUncheckedQuery<'a> {
+            pub fn update_unchecked(self, _where: WhereUniqueInput, _params: Vec<UncheckedSetParam>) -> UpdateUncheckedQuery<'a> {
                 UpdateUncheckedQuery::new(
                     self.client,
                     _where.into(),
@@ -191,7 +193,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn update_many(self, _where: Vec<WhereParam>, _params: Vec<SetParam>) -> UpdateManyQuery<'a> {
+            pub fn update_many(self, _where: Vec<WhereInput>, _params: Vec<SetParam>) -> UpdateManyQuery<'a> {
                 UpdateManyQuery::new(
                     self.client,
                     _where,
@@ -201,7 +203,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
 
             #upsert_fn
 
-            pub fn delete(self, _where: UniqueWhereParam) -> DeleteQuery<'a> {
+            pub fn delete(self, _where: WhereUniqueInput) -> DeleteQuery<'a> {
                 DeleteQuery::new(
                     self.client,
                     _where.into(),
@@ -209,14 +211,14 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
                 )
             }
 
-            pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteManyQuery<'a> {
+            pub fn delete_many(self, _where: Vec<WhereInput>) -> DeleteManyQuery<'a> {
                 DeleteManyQuery::new(
                     self.client,
                     _where
                 )
             }
 
-            pub fn count(self, _where: Vec<WhereParam>) -> CountQuery<'a> {
+            pub fn count(self, _where: Vec<WhereInput>) -> CountQuery<'a> {
                 CountQuery::new(
                     self.client,
                     _where

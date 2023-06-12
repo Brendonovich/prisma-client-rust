@@ -4,6 +4,8 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::prelude::*;
 
+use super::where_params;
+
 fn scalar_selections_fn(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
@@ -40,6 +42,7 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let scalar_selections_fn = scalar_selections_fn(model, module_path);
 
     let order_by = format_ident!("{}OrderByWithRelationInput", capitalize(model.name()));
+    let where_unique = where_params::where_unique_input_ident(model);
 
     quote! {
         #[derive(Clone)]
@@ -47,12 +50,13 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
 
         impl #pcr::ModelTypes for Types {
             type Data = Data;
-            type Where = WhereParam;
+            type Where = WhereInput;
+            type WhereUnique = WhereUniqueInput;
             type UncheckedSet = UncheckedSetParam;
             type Set = SetParam;
             type With = WithParam;
             type OrderBy = #order_by;
-            type Cursor = UniqueWhereParam;
+            type Cursor = #where_unique;
 
             const MODEL: &'static str = NAME;
 

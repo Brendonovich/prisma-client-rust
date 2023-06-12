@@ -140,7 +140,7 @@ async fn external_selection() -> TestResult {
 async fn external_selection_arguments() -> TestResult {
     let client = client().await;
 
-    user::select!((skip: i64, take: i64, filters: Vec<post::WhereParam>) => user_posts {
+    user::select!((skip: i64, take: i64, filters: Vec<post::WhereInput>) => user_posts {
         posts(filters).skip(skip): select {
             id
             author

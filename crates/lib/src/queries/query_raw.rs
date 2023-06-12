@@ -5,10 +5,7 @@ use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::{
-    raw::{Raw, RawOperationData, RawPrismaValue},
-    PrismaClientInternals, Query, QueryConvert, QueryError,
-};
+use crate::*;
 
 pub struct QueryRaw<'a, Data>
 where
@@ -56,7 +53,7 @@ where
                     .map_err(|e| e.to_string())
                     .map_err(QueryError::Deserialize)
             })
-            .collect::<Result<_, _>>()
+            .collect::<Result<_>>()
             .map_err(Into::into)
     }
 

@@ -53,10 +53,10 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
                         }
                     }
                     RefinedFieldWalker::Relation(relation_field) => {
-                        let relation_model_name_snake =
-                            snake_ident(relation_field.related_model().name());
+                        let t =
+                            where_params::where_unique_input_ident(relation_field.related_model());
 
-                        quote!(super::#relation_model_name_snake::UniqueWhereParam)
+                        quote!(#t)
                     }
                 };
 
@@ -88,6 +88,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
             let actions_struct = actions::struct_definition(model, args);
 
             let field_module_stuff = ModelModulePart::combine(vec![
+                data::model_data(model),
                 where_params::model_data(model, args, module_path),
                 order_by::model_data(model, args),
                 with_params::model_data(model),
@@ -164,14 +165,14 @@ impl ModelModulePart {
             })
             .into_iter()
             .map(|(field_name_str, data)| {
-            	let field_name_snake = snake_ident(&field_name_str);
+                let field_name_snake = snake_ident(&field_name_str);
 
                 quote! {
                     pub mod #field_name_snake {
-	                    use super::super::{_prisma::*, *};
-	                    use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
+                        use super::super::{_prisma::*, *};
+                        use super::{WithParam, SetParam, UncheckedSetParam};
 
-						pub const NAME: &str = #field_name_str;
+                        pub const NAME: &str = #field_name_str;
 
                         #(#data)*
                     }

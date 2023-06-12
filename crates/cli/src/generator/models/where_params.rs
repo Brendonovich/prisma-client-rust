@@ -1,4 +1,7 @@
+use std::collections::BTreeMap;
+
 use prisma_client_rust_sdk::prisma::{
+    dmmf::TypeLocation,
     prisma_models::{
         walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
         FieldArity,
@@ -71,21 +74,13 @@ impl Variant {
     }
 }
 
-pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
+pub fn collate_entries(entries: Vec<Variant>, model: ModelWalker) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let (variants, to_serialized_where): (Vec<_>, Vec<_>) = entries
-        .iter()
-        .filter_map(|e| match e {
-            Variant::BaseVariant {
-                definition,
-                match_arm,
-            } => Some((definition.clone(), Some(match_arm))),
-            _ => None,
-        })
-        .unzip();
+    let where_ident = where_input_ident(model);
+    let where_unique_ident = where_unique_input_ident(model);
 
-    let (optional_unique_impls, (unique_variants, unique_to_where_arms)): (Vec<_>, (Vec<_>, Vec<_>)) = entries.iter().filter_map(|e| match e {
+    let optional_unique_impls: Vec<_> = entries.iter().filter_map(|e| match e {
         Variant::UniqueVariant {
             field_name,
             field_required_type,
@@ -95,89 +90,67 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
             let field_pascal = pascal_ident(field_name);
             let field_snake = snake_ident(field_name);
 
-            let variant_name = format_ident!("{}Equals", &field_pascal);
             let filter_enum = format_ident!("{}Filter", &read_filter_name);
 
             let optional_unique_impls = optional.then(|| {
                 quote!{
-                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
+                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for #where_ident {
                         type Arg = Option<#field_required_type>;
 
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
-                            Self::#field_pascal(super::_prisma::read_filters::#filter_enum::Equals(arg))
+                            Self::#field_pascal(super::_prisma::#filter_enum::Equals(arg))
                         }
                     }
 
-                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
+                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for #where_unique_ident {
                         type Arg = #field_required_type;
 
                         fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
-                            Self::#variant_name(arg)
+                            Self::#field_pascal(arg)
                         }
                     }
                 }
             });
 
-            let value = optional.then(|| quote!(Some(value))).unwrap_or_else(|| quote!(value));
-
-            Some((
-                optional_unique_impls,
-                (
-                    quote!(#variant_name(#field_required_type)),
-                    quote!(UniqueWhereParam::#variant_name(value) =>
-                        Self::#field_pascal(super::_prisma::read_filters::#filter_enum::Equals(#value))
-                    ),
-                )
-            ))
-        }
-        Variant::CompoundUniqueVariant { field_names_string, variant_data_destructured, variant_data_types } => {
-            let variant_name = format_ident!("{}Equals", field_names_string);
-
-            Some((
-                None,
-                (
-                    quote!(#variant_name(#(#variant_data_types),*)),
-                    quote!(UniqueWhereParam::#variant_name(#(#variant_data_destructured),*)
-                        => Self::#variant_name(#(#variant_data_destructured),*)
-                    )
-                )
-            ))
+            optional_unique_impls
         }
         _ => None,
-    }).unzip();
+    }).collect();
 
     quote! {
-        #[derive(Clone)]
-        pub enum WhereParam {
-            #(#variants),*
-        }
+        pub type WhereInput = #where_ident;
+        pub type WhereUniqueInput = #where_unique_ident;
+        // #[derive(Clone)]
+        // pub enum WhereParam {
+        //     #(#variants),*
+        // }
 
-        impl #pcr::WhereInput for WhereParam {
-            fn serialize(self) -> #pcr::SerializedWhereInput {
-                let (name, value) = match self {
-                    #(#to_serialized_where),*
-                };
+        // impl #pcr::WhereInput for WhereParam {
+        //     fn serialize(self) -> #pcr::SerializedWhereInput {
+        //         let (name, value) = match self {
+        //             #(#to_serialized_where),*
+        //         };
 
-                #pcr::SerializedWhereInput::new(name.to_string(), value.into())
-            }
-        }
+        //         #pcr::SerializedWhereInput::new(name.to_string(), value.into())
+        //     }
+        // }
 
-        #[derive(Clone)]
-        pub enum UniqueWhereParam {
-            #(#unique_variants),*
-        }
+        // #[derive(Clone)]
+        // pub enum UniqueWhereParam {
+        //     #(#unique_variants),*
+        // }
 
-        impl From<UniqueWhereParam> for WhereParam {
-            fn from(value: UniqueWhereParam) -> Self {
-                match value {
-                    #(#unique_to_where_arms),*
-                }
-            }
-        }
+        // impl From<UniqueWhereParam> for WhereParam {
+        //     fn from(value: UniqueWhereParam) -> Self {
+        //         match value {
+        //             #(#unique_to_where_arms),*
+        //         }
+        //     }
+        // }
 
         #(#optional_unique_impls)*
 
-        impl From<#pcr::Operator<Self>> for WhereParam {
+        impl From<#pcr::Operator<Self>> for WhereInput {
             fn from(op: #pcr::Operator<Self>) -> Self {
                 match op {
                     #pcr::Operator::Not(value) => Self::Not(value),
@@ -197,6 +170,8 @@ pub fn model_data(
     let pcr = quote!(::prisma_client_rust);
 
     let mut entries = vec![];
+
+    let where_unique = where_unique_input_ident(model);
 
     entries.extend(OPERATORS.iter().map(|op| {
         let variant_name = pascal_ident(&op.name);
@@ -236,7 +211,7 @@ pub fn model_data(
         }
     }));
 
-    let compound_field_accessors = unique_field_combos(model).iter().flat_map(|fields| {
+    unique_field_combos(model).iter().for_each(|fields| {
         if fields.len() == 1 {
             let field = fields[0];
 
@@ -245,15 +220,13 @@ pub fn model_data(
             ).unwrap();
 
             entries.push(Variant::unique(field, read_filter, module_path));
-
-            None
         } else {
             let variant_name_string = fields.iter().map(|f| pascal_ident(f.name()).to_string()).collect::<String>();
             let variant_name = format_ident!("{}Equals", &variant_name_string);
 
             let variant_data_names = fields.iter().map(|f| snake_ident(f.name())).collect::<Vec<_>>();
 
-            let ((field_defs, field_types), (prisma_values, field_names_snake)):
+            let ((_, field_types), (prisma_values, field_names_snake)):
                 ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)) = fields.into_iter().map(|field| {
                 let field_type = match field.ast_field().arity {
                     FieldArity::List | FieldArity::Required => field.type_tokens(module_path),
@@ -286,16 +259,56 @@ pub fn model_data(
                     variant_data_types: field_types
                 }
             ]);
-
-            let accessor_name = snake_ident(&variant_name_string);
-
-            Some(quote! {
-                pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#field_defs),*) -> T {
-                    UniqueWhereParam::#variant_name(#(#field_names_snake),*).into()
-                }
-            })
         }
-    }).collect::<TokenStream>();
+    });
+
+    let compound_field_accessors = args
+        .dmmf
+        .schema
+        .find_input_type(&where_unique_input_ident(model).to_string())
+        .map(|t| {
+            t.fields
+                .iter()
+                .map(|f| (&f.name, f))
+                // duplicate fields aren't uncommon
+                .collect::<BTreeMap<_, _>>()
+                .into_values()
+                .filter_map(|f| {
+                    let field_name_snake = snake_ident(&f.name);
+                    let field_name_pascal = pascal_ident(&f.name);
+
+                    let input_type = &f.input_types[0];
+
+                    if !matches!(input_type.location, TypeLocation::InputObjectTypes) {
+                        return None;
+                    }
+
+                    let input_type = args.dmmf.schema.find_input_type(&input_type.typ).unwrap();
+
+                    let type_name = format_ident!("{}", &input_type.name);
+
+                    let (field_names, field_types): (Vec<_>, Vec<_>) = input_type
+                        .fields
+                        .iter()
+                        .map(|f| (snake_ident(&f.name), f.type_tokens(&quote!(super::), input_type, args)))
+                        .unzip();
+
+                    Some(quote! {
+                        pub fn #field_name_snake<T: From<#type_name>>(#(#field_names: #field_types),*) -> T {
+                            #type_name {
+                                #(#field_names),*
+                            }.into()
+                        }
+
+                        impl From<#type_name> for #where_unique {
+                            fn from(v: #type_name) -> Self {
+                                Self::#field_name_pascal(v)
+                            }
+                        }
+                    })
+                })
+                .collect::<TokenStream>()
+        });
 
     let (field_stuff, field_where_param_entries): (_, Vec<_>) = model
         .fields()
@@ -305,7 +318,7 @@ pub fn model_data(
 
     entries.extend(field_where_param_entries.into_iter().flatten());
 
-    let collated_entries = collate_entries(entries);
+    let collated_entries = collate_entries(entries, model);
 
     ModelModulePart {
         data: quote! {
@@ -373,60 +386,57 @@ pub fn field_module(
     let field_name_snake = snake_ident(field_name);
     let field_type = field.type_tokens(&quote!());
 
-    let is_null_variant = format_ident!("{field_name_pascal}IsNull");
-    let equals_variant = format_ident!("{field_name_pascal}Equals");
-
     let arity = field.ast_field().arity;
 
     let field_module_contents = match field.refine() {
         RefinedFieldWalker::Relation(relation_field) => {
-            let relation_model_name_snake = snake_ident(relation_field.related_model().name());
+            // let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
-            if let FieldArity::Optional = arity {
-                where_param_entries.push(Variant::BaseVariant {
-                    definition: quote!(#is_null_variant),
-                    match_arm: quote! {
-                        Self::#is_null_variant => (
-                            #field_name_snake::NAME,
-                            #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
-                        )
-                    },
-                });
-            };
+            // if let FieldArity::Optional = arity {
+            //     where_param_entries.push(Variant::BaseVariant {
+            //         definition: quote!(#is_null_variant),
+            //         match_arm: quote! {
+            //             Self::#is_null_variant => (
+            //                 #field_name_snake::NAME,
+            //                 #pcr::SerializedWhereValue::Value(#pcr::PrismaValue::Null)
+            //             )
+            //         },
+            //     });
+            // };
 
-            let relation_methods = field.relation_methods().iter().map(|method| {
-				let method_action_string = method.to_case(Case::Camel, false);
-				let variant_name = format_ident!("{}{}", &field_name_pascal, pascal_ident(method));
-				let method_name_snake = snake_ident(method);
+            // let relation_methods = field.relation_methods().iter().map(|method| {
+            // 	let method_action_string = method.to_case(Case::Camel, false);
+            // 	let variant_name = format_ident!("{}{}", &field_name_pascal, pascal_ident(method));
+            // 	let method_name_snake = snake_ident(method);
 
-				where_param_entries.push(Variant::BaseVariant {
-					definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereParam>)),
-					match_arm: quote! {
-						Self::#variant_name(where_params) => (
-							#field_name_snake::NAME,
-							#pcr::SerializedWhereValue::Object(vec![(
-								#method_action_string.to_string(),
-								#pcr::PrismaValue::Object(
-									where_params
-										.into_iter()
-										.map(#pcr::WhereInput::serialize)
-										.map(#pcr::SerializedWhereInput::transform_equals)
-										.collect()
-								),
-							)])
-						)
-					},
-				});
+            // 	where_param_entries.push(Variant::BaseVariant {
+            // 		definition: quote!(#variant_name(Vec<super::#relation_model_name_snake::WhereInput>)),
+            // 		match_arm: quote! {
+            // 			Self::#variant_name(where_params) => (
+            // 				#field_name_snake::NAME,
+            // 				#pcr::SerializedWhereValue::Object(vec![(
+            // 					#method_action_string.to_string(),
+            // 					#pcr::PrismaValue::Object(
+            // 						where_params
+            // 							.into_iter()
+            // 							.map(#pcr::WhereInput::serialize)
+            // 							.map(#pcr::SerializedWhereInput::transform_equals)
+            // 							.collect()
+            // 					),
+            // 				)])
+            // 			)
+            // 		},
+            // 	});
 
-				quote! {
-					pub fn #method_name_snake(value: Vec<#relation_model_name_snake::WhereParam>) -> WhereParam {
-						WhereParam::#variant_name(value)
-					}
-				}
-			}).collect::<TokenStream>();
+            // 	quote! {
+            // 		pub fn #method_name_snake(value: Vec<#relation_model_name_snake::WhereInput>) -> WhereInput {
+            // 			WhereInput::#field_name_pascal(value)
+            // 		}
+            // 	}
+            // }).collect::<TokenStream>();
 
             quote! {
-                #relation_methods
+                // #relation_methods
             }
         }
         RefinedFieldWalker::Scalar(scalar_field) => match scalar_field.scalar_field_type() {
@@ -456,8 +466,8 @@ pub fn field_module(
                             });
 
                             quote! {
-                                pub fn is_set() -> WhereParam {
-                                    WhereParam::#where_param_variant
+                                pub fn is_set() -> WhereInput {
+                                    WhereInput::#where_param_variant
                                 }
                             }
                         };
@@ -472,7 +482,7 @@ pub fn field_module(
                         let equals_filter = {
                             let where_param_variant = format_ident!("{field_name_pascal}Equals");
                             let content_type =
-                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                quote!(Vec<#module_path::#comp_type_snake::WhereInput>);
 
                             where_param_entries.push(Variant::BaseVariant {
                                 definition: quote!(#where_param_variant(Vec<#content_type>)),
@@ -501,8 +511,8 @@ pub fn field_module(
                             });
 
                             quote! {
-                                pub fn equals(params: Vec<#content_type>) -> WhereParam {
-                                    WhereParam::#where_param_variant(params)
+                                pub fn equals(params: Vec<#content_type>) -> WhereInput {
+                                    WhereInput::#where_param_variant(params)
                                 }
                             }
                         };
@@ -524,8 +534,8 @@ pub fn field_module(
                             });
 
                             quote! {
-                                pub fn is_empty() -> WhereParam {
-                                    WhereParam::#where_param_variant
+                                pub fn is_empty() -> WhereInput {
+                                    WhereInput::#where_param_variant
                                 }
                             }
                         };
@@ -537,7 +547,7 @@ pub fn field_module(
                             let where_param_variant =
                                 format_ident!("{field_name_pascal}{method_pascal}");
                             let content_type =
-                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                quote!(Vec<#module_path::#comp_type_snake::WhereInput>);
 
                             where_param_entries.push(Variant::BaseVariant {
 								definition: quote!(#where_param_variant(#content_type)),
@@ -559,8 +569,8 @@ pub fn field_module(
 							});
 
                             quote! {
-                                pub fn #method_snake(params: #content_type) -> WhereParam {
-                                    WhereParam::#where_param_variant(params)
+                                pub fn #method_snake(params: #content_type) -> WhereInput {
+                                    WhereInput::#where_param_variant(params)
                                 }
                             }
                         });
@@ -579,7 +589,7 @@ pub fn field_module(
                                 let where_param_variant =
                                     format_ident!("{field_name_pascal}{method_pascal}");
                                 let content_type =
-                                    quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                    quote!(Vec<#module_path::#comp_type_snake::WhereInput>);
 
                                 where_param_entries.push(Variant::BaseVariant {
 									definition: quote!(#where_param_variant(#content_type)),
@@ -601,8 +611,8 @@ pub fn field_module(
 								});
 
                                 quote! {
-                                    pub fn #method_snake(params: #content_type) -> WhereParam {
-                                        WhereParam::#where_param_variant(params)
+                                    pub fn #method_snake(params: #content_type) -> WhereInput {
+                                        WhereInput::#where_param_variant(params)
                                     }
                                 }
                             })
@@ -616,9 +626,15 @@ pub fn field_module(
             }
             _ => {
                 let read_fns = args.read_filter(scalar_field).map(|read_filter| {
-					let filter_enum = format_ident!("{}Filter", &read_filter.name);
+					let filter_enum = format_ident!("{}Filter", match read_filter.name.as_str() {
+                        "Boolean" => "Bool",
+                        n => n
+                    });
 
 					let model = field.model();
+
+                    let where_ident = where_input_ident(model);
+                    let where_unique_ident = where_unique_input_ident(model);
 
 					// Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
 					let equals = match (
@@ -629,10 +645,26 @@ pub fn field_module(
 						}),
 						arity.is_required()
 					) {
-						(true, _, _) | (_, true, true) => quote! {
-							pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-								UniqueWhereParam::#equals_variant(value).into()
-							}
+						(true, _, _) | (_, true, true) => {
+                            quote! {
+                                struct Equals(#field_type);
+
+                                pub fn equals<T: From<Equals>>(value: #field_type) -> T {
+                                    Equals(value).into()
+                                }
+
+                                impl From<Equals> for #where_ident {
+                                    fn from(Equals(value): Equals) -> Self {
+                                        Self::#field_name_pascal(_prisma::#filter_enum::Equals(value))
+                                    }
+                                }
+
+                                impl From<Equals> for #where_unique_ident {
+                                    fn from(Equals(value): Equals) -> Self {
+                                        Self::#field_name_pascal(value)
+                                    }
+                                }
+                            }
 						},
 						(_, true, false) => quote! {
 							pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
@@ -640,14 +672,14 @@ pub fn field_module(
 							}
 						},
 						(_, _, _) => quote! {
-							pub fn equals(value: #field_type) -> WhereParam {
-								WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+							pub fn equals<T: From<WhereInput>>(value: #field_type) -> T {
+								WhereInput(#filter_enum::Equals(value)).into()
 							}
 						}
 					};
 
 					where_param_entries.push(Variant::BaseVariant {
-						definition: quote!(#field_name_pascal(super::_prisma::read_filters::#filter_enum)),
+						definition: quote!(#field_name_pascal(super::_prisma::#filter_enum)),
 						match_arm: quote! {
 							Self::#field_name_pascal(value) => (
 								#field_name_snake::NAME,
@@ -656,30 +688,8 @@ pub fn field_module(
 						},
 					});
 
-					let read_methods = read_filter.fields.iter().filter_map(|field| {
-						let name = match field.name.as_str() {
-							"equals" => return None,
-							"in" => "inVec",
-							"notIn" => "notInVec",
-							n => n
-						};
-
-						let method_name_snake = snake_ident(name);
-						let method_name_pascal = pascal_ident(name);
-
-						let typ = field.type_tokens(&quote!());
-
-						Some(quote!(fn #method_name_snake(_: #typ) -> #method_name_pascal;))
-					});
-
 					quote! {
 						#equals
-
-						#pcr::scalar_where_param_fns!(
-							_prisma::read_filters::#filter_enum,
-							#field_name_pascal,
-							{ #(#read_methods)* }
-						);
 					}
 				});
 
@@ -690,8 +700,125 @@ pub fn field_module(
         },
     };
 
+    let input_type = args
+        .dmmf
+        .schema
+        .find_input_type(&format!("{}WhereInput", capitalize(field.model().name())))
+        .unwrap();
+
+    let field_ref = input_type
+        .fields
+        .iter()
+        .find(|f| f.name.as_str() == field.name())
+        .unwrap();
+
+    let new_stuff = {
+        let field_type_ref = field_ref.primary_input_type();
+        let field_type_name_pascal = pascal_ident(&field_type_ref.typ);
+        let field_type = args
+            .dmmf
+            .schema
+            .find_input_type(&field_type_ref.typ)
+            .unwrap();
+
+        let fns = field_type
+            .fields
+            .iter()
+            .filter(|f| f.name != "equals")
+            .map(|field| {
+                let method_name_snake = snake_ident(match field.name.as_str() {
+                    "in" => "inVec",
+                    "notIn" => "notInVec",
+                    n => n,
+                });
+                let method_name_pascal = pascal_ident(&field.name);
+
+                match field.arity() {
+                    FieldArity::Optional => {
+                        let extra_data = field.extra_data(field_type, args);
+
+                        let typ = extra_data.meta_wrapper.wrap_type(field.raw_type_tokens(&quote!(), args));
+
+                        let method_null_snake = format_ident!("{}_null", method_name_snake);
+
+                        quote! {
+                            pub fn #method_null_snake<T: From<WhereInput>>() -> T {
+                                WhereInput(#field_type_name_pascal::#method_name_pascal(None)).into()
+                            }
+
+                            pub fn #method_name_snake<T: From<WhereInput>>(value: #typ) -> T {
+                                WhereInput(#field_type_name_pascal::#method_name_pascal(Some(value))).into()
+                            }
+                        }
+                    }
+                    _ => {
+                        let typ = field.type_tokens(&quote!(), &field_type, args);
+
+                        quote! {
+                            pub fn #method_name_snake<T: From<WhereInput>>(value: #typ) -> T {
+                                WhereInput(#field_type_name_pascal::#method_name_pascal(value)).into()
+                            }
+                        }
+                    }
+                }
+            });
+
+        let value_ident = format_ident!("value");
+        let value = match field_ref.arity() {
+            FieldArity::Optional if !field_type_ref.typ.ends_with("NullableFilter") => {
+                quote!(Some(#value_ident))
+            }
+            _ => quote!(#value_ident),
+        };
+
+        let nested_scalar_from_impl = args
+            .dmmf
+            .schema
+            .find_input_type(&format!("Nested{}", field_type_ref.typ))
+            .map(|typ| {
+                let name = format_ident!("{}", &typ.name);
+
+                quote! {
+                    impl From<WhereInput> for #name {
+                        fn from(WhereInput(v): WhereInput) -> Self {
+                            v.into()
+                        }
+                    }
+                }
+            });
+
+        quote! {
+            struct WhereInput(#field_type_name_pascal);
+
+            impl From<WhereInput> for super::WhereInput {
+                fn from(WhereInput(#value_ident): WhereInput) -> Self {
+                    Self::#field_name_pascal(#value)
+                }
+            }
+
+            #nested_scalar_from_impl
+
+            #(#fns)*
+        }
+    };
+
     (
-        (field_name.to_string(), field_module_contents),
+        (
+            field_name.to_string(),
+            quote! {
+                #field_module_contents
+
+                #new_stuff
+            },
+        ),
         where_param_entries,
     )
+}
+
+pub fn where_input_ident(model: ModelWalker) -> Ident {
+    format_ident!("{}WhereInput", capitalize(model.name()))
+}
+
+pub fn where_unique_input_ident(model: ModelWalker) -> Ident {
+    format_ident!("{}WhereUniqueInput", capitalize(model.name()))
 }

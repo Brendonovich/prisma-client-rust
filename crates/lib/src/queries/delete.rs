@@ -1,21 +1,18 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
-use crate::{
-    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
-};
+use crate::*;
 
 pub struct Delete<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
-    pub where_param: Actions::Where,
+    pub where_param: Actions::WhereUnique,
     pub with_params: Vec<Actions::With>,
 }
 
 impl<'a, Actions: ModelTypes> Delete<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         with_params: Vec<Actions::With>,
     ) -> Self {
         Self {
@@ -31,13 +28,13 @@ impl<'a, Actions: ModelTypes> Delete<'a, Actions> {
     }
 
     fn to_selection(
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Self::base_selection(
             [(
                 "where".to_string(),
-                PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                PrismaValue::Object(vec![where_param.into()]).into(),
             )],
             nested_selections,
         )

@@ -12,10 +12,11 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
             .fields
             .iter()
             .flat_map(|field| {
-                let typ = field.type_tokens(&quote!(super::super::));
+                let typ = field.type_tokens(&quote!(super::super::), write_param.root, args);
                 let action = &field.name;
 
-                let prisma_value_converter = field.to_prisma_value(&format_ident!("value"));
+                let prisma_value_converter =
+                    field.to_prisma_value(&format_ident!("value"), write_param.root, args);
 
                 let method_name_pascal = pascal_ident(&field.name);
 

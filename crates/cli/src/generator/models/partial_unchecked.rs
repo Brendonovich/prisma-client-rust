@@ -21,7 +21,7 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
 
         let double_option_attrs = arity.is_optional().then(|| {
             quote! {
-                #[serde(default, with = "::prisma_client_rust::serde::double_option")]
+                #[serde(default, with = "::prisma_client_rust::serde_impls::double_option")]
             }
         });
 

@@ -9,7 +9,7 @@ pub mod operator;
 mod prisma_value;
 pub mod queries;
 pub mod raw;
-pub mod serde;
+pub mod serde_impls;
 mod traits;
 mod transaction;
 

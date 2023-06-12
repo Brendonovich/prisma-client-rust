@@ -10,7 +10,7 @@ use prisma_client_rust_sdk::prisma::{
 
 use crate::generator::{prelude::*, write_params};
 
-use super::ModelModulePart;
+use super::{where_params, ModelModulePart};
 
 pub struct RelationSetParamConfig {
     pub action: &'static str,
@@ -390,7 +390,7 @@ fn field_set_params(
 		                    let method_name_snake = snake_ident(&field.name);
 		                    let method_name_pascal = pascal_ident(&field.name);
 
-		                    let typ = field.type_tokens(&quote!());
+		                    let typ = field.type_tokens(&quote!(), write_param.root, args);
 
 		                    Some(quote! {
 			                    pub fn #method_name_snake<T: From<UpdateOperation>>(value: #typ) -> T {
@@ -449,15 +449,19 @@ fn field_set_params(
             }
         },
         RefinedFieldWalker::Relation(relation_field) => {
-            let (v, f): (Vec<_>, Vec<_>) = relation_field_set_params(relation_field).iter().map(|param| {
-                let action = param.action;
-                let relation_model_name_snake = snake_ident(relation_field.related_model().name());
-                let variant_name = format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
+            let related_model = relation_field.related_model();
+            let where_unique_input = where_params::where_unique_input_ident(related_model);
 
-                match param.typ {
-                    RelationSetParamType::Many => {
-                        (
-                        	quote!(#variant_name(Vec<super::#relation_model_name_snake::UniqueWhereParam>)),
+            let (v, f): (Vec<_>, Vec<_>) = relation_field_set_params(relation_field)
+                .iter()
+                .map(|param| {
+                    let action = param.action;
+                    let variant_name =
+                        format_ident!("{}{}", pascal_ident(action), &field_name_pascal);
+
+                    match param.typ {
+                        RelationSetParamType::Many => (
+                            quote!(#variant_name(Vec<#where_unique_input>)),
                             quote! {
                                 Self::#variant_name(where_params) => (
                                     #field_name_snake::NAME,
@@ -467,20 +471,17 @@ fn field_set_params(
                                             #pcr::PrismaValue::List(
                                                 where_params
                                                     .into_iter()
-                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                    .map(#pcr::WhereInput::serialize)
-                                                    .map(#pcr::SerializedWhereInput::transform_equals)
+                                                    .map(Into::into)
                                                     .map(|v| #pcr::PrismaValue::Object(vec![v]))
                                                     .collect()
                                             )
                                         )]
                                     )
                                 )
-                            }
-                        )
-                    }
-                    RelationSetParamType::Single => {
-                        (quote!(#variant_name(super::#relation_model_name_snake::UniqueWhereParam)),
+                            },
+                        ),
+                        RelationSetParamType::Single => (
+                            quote!(#variant_name(#where_unique_input)),
                             quote! {
                                 Self::#variant_name(where_param) => (
                                     #field_name_snake::NAME,
@@ -490,19 +491,16 @@ fn field_set_params(
                                             #pcr::PrismaValue::Object(
                                                 [where_param]
                                                     .into_iter()
-                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
-                                                    .map(#pcr::WhereInput::serialize)
-                                                    .map(#pcr::SerializedWhereInput::transform_equals)
+                                                    .map(Into::into)
                                                     .collect()
                                             )
                                         )]
                                     )
                                 )
-                            }
-                        )
-                    }
-                    RelationSetParamType::True => {
-                        (quote!(#variant_name),
+                            },
+                        ),
+                        RelationSetParamType::True => (
+                            quote!(#variant_name),
                             quote! {
                                 Self::#variant_name => (
                                     #field_name_snake::NAME,
@@ -513,23 +511,20 @@ fn field_set_params(
                                         )]
                                     )
                                 )
-                            }
-                        )
+                            },
+                        ),
                     }
-                }
-            }).unzip();
-
-            let relation_model_name_snake = snake_ident(relation_field.related_model().name());
+                })
+                .unzip();
 
             let connect_variant = format_ident!("Connect{field_name_pascal}");
             let disconnect_variant = format_ident!("Disconnect{field_name_pascal}");
             let set_variant = format_ident!("Set{field_name_pascal}");
-            let is_null_variant = format_ident!("{field_name_pascal}IsNull");
 
             let base = match arity {
                 FieldArity::List => {
                     quote! {
-                        pub struct Connect(pub Vec<#relation_model_name_snake::UniqueWhereParam>);
+                        pub struct Connect(pub Vec<#where_unique_input>);
 
                         impl From<Connect> for SetParam {
                             fn from(Connect(v): Connect) -> Self {
@@ -537,15 +532,15 @@ fn field_set_params(
                             }
                         }
 
-                        pub fn connect<T: From<Connect>>(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> T {
+                        pub fn connect<T: From<Connect>>(params: Vec<#where_unique_input>) -> T {
                             Connect(params).into()
                         }
 
-                        pub fn disconnect(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
+                        pub fn disconnect(params: Vec<#where_unique_input>) -> SetParam {
                             SetParam::#disconnect_variant(params)
                         }
 
-                        pub fn set(params: Vec<#relation_model_name_snake::UniqueWhereParam>) -> SetParam {
+                        pub fn set(params: Vec<#where_unique_input>) -> SetParam {
                             SetParam::#set_variant(params)
                         }
                     }
@@ -556,15 +551,11 @@ fn field_set_params(
                             pub fn disconnect() -> SetParam {
                                 SetParam::#disconnect_variant
                             }
-
-                            pub fn is_null() -> WhereParam {
-                                WhereParam::#is_null_variant
-                            }
                         }
                     });
 
                     quote! {
-                        pub struct Connect(#relation_model_name_snake::UniqueWhereParam);
+                        pub struct Connect(#where_unique_input);
 
                         impl From<Connect> for SetParam {
                             fn from(Connect(v): Connect) -> Self {
@@ -572,7 +563,7 @@ fn field_set_params(
                             }
                         }
 
-                        pub fn connect<T: From<Connect>>(value: #relation_model_name_snake::UniqueWhereParam) -> T {
+                        pub fn connect<T: From<Connect>>(value: #where_unique_input) -> T {
                             Connect(value).into()
                         }
 

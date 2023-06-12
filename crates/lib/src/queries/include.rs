@@ -1,7 +1,7 @@
 use query_core::{Operation, Selection};
 use std::marker::PhantomData;
 
-use crate::{PrismaClientInternals, Query, QueryConvert};
+use crate::*;
 
 use super::query;
 

@@ -1,11 +1,7 @@
 use prisma_models::PrismaValue;
 use query_core::{ArgumentValue, Operation, Selection};
 
-use crate::{
-    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
-    OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
-    WhereInput, WhereQuery, WithQuery,
-};
+use crate::*;
 
 use super::SerializedWhereInput;
 
@@ -71,11 +67,7 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                     (
                         "where".to_string(),
                         PrismaValue::Object(merge_fields(
-                            where_params
-                                .into_iter()
-                                .map(WhereInput::serialize)
-                                .map(|s| (s.field, s.value.into()))
-                                .collect(),
+                            where_params.into_iter().map(Into::into).collect(),
                         ))
                         .into(),
                     )
@@ -95,15 +87,8 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                 (!cursor_params.is_empty()).then(|| {
                     (
                         "cursor".to_string(),
-                        PrismaValue::Object(
-                            cursor_params
-                                .into_iter()
-                                .map(Into::into)
-                                .map(WhereInput::serialize)
-                                .map(SerializedWhereInput::transform_equals)
-                                .collect(),
-                        )
-                        .into(),
+                        PrismaValue::Object(cursor_params.into_iter().map(Into::into).collect())
+                            .into(),
                     )
                 }),
                 skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
@@ -273,14 +258,8 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
             (!self.where_params.is_empty()).then(|| {
                 (
                     "where".to_string(),
-                    PrismaValue::Object(
-                        self.where_params
-                            .into_iter()
-                            .map(WhereInput::serialize)
-                            .map(Into::into)
-                            .collect(),
-                    )
-                    .into(),
+                    PrismaValue::Object(self.where_params.into_iter().map(Into::into).collect())
+                        .into(),
                 )
             }),
             (!self.order_by_params.is_empty()).then(|| {
@@ -298,15 +277,8 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
             (!self.cursor_params.is_empty()).then(|| {
                 (
                     "cursor".to_string(),
-                    PrismaValue::Object(
-                        self.cursor_params
-                            .into_iter()
-                            .map(Into::into)
-                            .map(WhereInput::serialize)
-                            .map(SerializedWhereInput::transform_equals)
-                            .collect(),
-                    )
-                    .into(),
+                    PrismaValue::Object(self.cursor_params.into_iter().map(Into::into).collect())
+                        .into(),
                 )
             }),
             self.skip

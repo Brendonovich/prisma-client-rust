@@ -69,7 +69,6 @@ fn model_macro<'a>(
 
     let field_type_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
-        let field_type = field.type_tokens(module_path);
 
         let selection_type_impl = matches!(field.refine(), RefinedFieldWalker::Relation(_)).then(|| {
             let field_type = field
@@ -80,10 +79,7 @@ fn model_macro<'a>(
             quote!((@field_type; #field_name_snake #selections_pattern_produce) => { #field_type };)
         });
 
-        quote! {
-            #selection_type_impl
-            (@field_type; #field_name_snake) => { #field_type };
-        }
+        quote!(#selection_type_impl)
     });
 
     let field_module_impls = model.relation_fields().map(|field| {
@@ -480,6 +476,7 @@ fn model_macro<'a>(
             };
 
             #(#field_type_impls)*
+            (@field_type; $field:ident) => { #model_module::$field::Data };
             (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot include nonexistent relation $field on model #model_name_pascal_str, available relations are #all_fields_str)) };
 
             #(#field_module_impls)*

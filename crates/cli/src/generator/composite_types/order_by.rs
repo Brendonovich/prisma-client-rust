@@ -66,11 +66,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> T
                     let field_name_pascal = pascal_ident(&field.name);
 
                     let typ_ref = &field.input_types[0];
-                    let typ = typ_ref.to_tokens(
-                        &quote!(super::),
-                        &FieldArity::Required,
-                        &args.schema.db,
-                    )?;
+                    let typ = typ_ref.to_tokens(&quote!(super::), &FieldArity::Required, &args)?;
 
                     let pv = match &typ_ref.location {
                         TypeLocation::EnumTypes | TypeLocation::Scalar => quote!(param.into()),
@@ -86,20 +82,16 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> T
                         (
                             quote!(#field_name_pascal(#typ)),
                             quote! {
-                            Self::#field_name_pascal(param) => (
-                            #field_name_str,
-                            #pv
-                            )
+                                Self::#field_name_pascal(param) => (
+                                    #field_name_str,
+                                    #pv
+                                )
                             },
                         ),
                         (
                             field_name_str,
                             (
-                                typ_ref.to_tokens(
-                                    &quote!(),
-                                    &FieldArity::Required,
-                                    &args.schema.db,
-                                )?,
+                                typ_ref.to_tokens(&quote!(), &FieldArity::Required, &args)?,
                                 quote! {
                                     impl From<Order> for super::OrderByWithRelationParam {
                                         fn from(Order(v): Order) -> Self {

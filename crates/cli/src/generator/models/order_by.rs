@@ -30,7 +30,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
         .map(|input_type| {
             let name = format_ident!("{}", input_type.name);
 
-            let ((variants, into_pv_arms), field_things): ((Vec<_>, Vec<_>), Vec<_>) = input_type
+            let (_, field_things): ((Vec<_>, Vec<_>), Vec<_>) = input_type
                 .fields
                 .iter()
                 .flat_map(|field| {
@@ -38,8 +38,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                     let field_name_pascal = pascal_ident(&field.name);
 
                     let typ = &field.input_types[0];
-                    let typ =
-                        typ.to_tokens(&quote!(super::), &FieldArity::Required, &args.schema.db)?;
+                    let typ = typ.to_tokens(&quote!(super::), &FieldArity::Required, &args)?;
 
                     Some((
                         (
@@ -79,7 +78,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
         .map(|input_type| {
             let name = format_ident!("{}", &input_type.name);
 
-            let ((variants, into_pv_arms), field_stuff): ((Vec<_>, Vec<_>), Vec<_>) = input_type
+            let (_, field_stuff): ((Vec<_>, Vec<_>), Vec<_>) = input_type
                 .fields
                 .iter()
                 .flat_map(|field| {
@@ -87,11 +86,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                     let field_name_pascal = pascal_ident(&field.name);
 
                     let typ_ref = &field.input_types[0];
-                    let typ = typ_ref.to_tokens(
-                        &quote!(super::),
-                        &FieldArity::Required,
-                        &args.schema.db,
-                    )?;
+                    let typ = typ_ref.to_tokens(&quote!(super::), &FieldArity::Required, &args)?;
 
                     let pv = match &typ_ref.location {
                         TypeLocation::EnumTypes | TypeLocation::Scalar => quote!(param.into()),
@@ -116,11 +111,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
                         (
                             field_name_str,
                             (
-                                typ_ref.to_tokens(
-                                    &quote!(),
-                                    &FieldArity::Required,
-                                    &args.schema.db,
-                                )?,
+                                typ_ref.to_tokens(&quote!(), &FieldArity::Required, &args)?,
                                 quote! {
                                     impl From<Order> for #name {
                                         fn from(Order(v): Order) -> Self {

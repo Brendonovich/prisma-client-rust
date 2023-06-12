@@ -115,7 +115,7 @@ async fn external_selection() -> TestResult {
 async fn external_selection_args() -> TestResult {
     let client = client().await;
 
-    user::include!((skip: i64, take: i64, filters: Vec<post::WhereParam>) => user_and_posts {
+    user::include!((skip: i64, take: i64, filters: Vec<post::WhereInput>) => user_and_posts {
         posts(filters).skip(skip): select {
             id
             author

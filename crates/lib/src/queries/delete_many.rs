@@ -1,10 +1,7 @@
+use prisma_models::PrismaValue;
 use query_core::Operation;
 
-use crate::{
-    merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, WhereInput, WhereQuery,
-};
-use prisma_models::PrismaValue;
+use crate::*;
 
 pub struct DeleteMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
@@ -45,11 +42,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for DeleteMany<'a, Actions> {
                     (
                         "where".to_string(),
                         PrismaValue::Object(merge_fields(
-                            self.where_params
-                                .into_iter()
-                                .map(WhereInput::serialize)
-                                .map(|s| (s.field, s.value.into()))
-                                .collect(),
+                            self.where_params.into_iter().map(Into::into).collect(),
                         ))
                         .into(),
                     )

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{Data, PrismaClientInternals, Query, QueryConvert};
+use crate::*;
 
 pub trait SelectType {
     // TODO: ModelActions

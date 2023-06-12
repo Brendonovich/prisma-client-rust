@@ -2,11 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
-use crate::{
-    merge_fields, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes, OrderByQuery,
-    PaginatedQuery, PrismaClientInternals, Query, QueryConvert, SerializedWhereInput, WhereInput,
-    WhereQuery,
-};
+use crate::*;
 
 pub struct Count<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
@@ -82,11 +78,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                         (
                             "where".to_string(),
                             PrismaValue::Object(merge_fields(
-                                self.where_params
-                                    .into_iter()
-                                    .map(WhereInput::serialize)
-                                    .map(|s| (s.field, s.value.into()))
-                                    .collect(),
+                                self.where_params.into_iter().map(Into::into).collect(),
                             ))
                             .into(),
                         )
@@ -107,12 +99,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                         (
                             "cursor".to_string(),
                             PrismaValue::Object(
-                                self.cursor_params
-                                    .into_iter()
-                                    .map(Into::into)
-                                    .map(WhereInput::serialize)
-                                    .map(SerializedWhereInput::transform_equals)
-                                    .collect(),
+                                self.cursor_params.into_iter().map(Into::into).collect(),
                             )
                             .into(),
                         )

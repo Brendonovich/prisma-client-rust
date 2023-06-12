@@ -2,7 +2,7 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection, SelectionArgument};
 use serde::de::DeserializeOwned;
 
-use crate::{PrismaClientInternals, WhereInput};
+use crate::*;
 
 pub trait QueryConvert {
     type RawType: Data;
@@ -19,12 +19,13 @@ pub trait Query<'a>: QueryConvert {
 
 pub trait ModelTypes {
     type Data: Data;
-    type Where: WhereInput;
+    type Where: Into<(String, PrismaValue)>;
+    type WhereUnique: Into<(String, PrismaValue)>;
     type UncheckedSet: Into<(String, PrismaValue)>;
     type Set: Into<(String, PrismaValue)>;
     type With: Into<Selection>;
     type OrderBy: Into<(String, PrismaValue)>;
-    type Cursor: Into<Self::Where>;
+    type Cursor: Into<(String, PrismaValue)>;
 
     const MODEL: &'static str;
 

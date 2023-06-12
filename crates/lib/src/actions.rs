@@ -1,9 +1,5 @@
 use crate::{ModelWriteOperation, SerializedWhereInput};
 
-pub trait WhereInput {
-    fn serialize(self) -> SerializedWhereInput;
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ModelMutationCallbackData {
     pub action: ModelWriteOperation,

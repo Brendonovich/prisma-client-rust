@@ -2,7 +2,7 @@ use std::{collections::VecDeque, num::NonZeroUsize};
 
 use query_core::Operation;
 
-use crate::{PrismaClientInternals, Query, QueryConvert};
+use crate::*;
 
 pub enum VecMeta {
     Empty,

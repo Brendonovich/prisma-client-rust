@@ -32,8 +32,8 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
                 (
                     field.name().to_string(),
                     quote! {
-                        pub fn equals(val: #field_type) -> WhereParam {
-                            WhereParam::#where_variant_name(val)
+                        pub fn equals(val: #field_type) -> WhereInput {
+                            WhereInput::#where_variant_name(val)
                         }
                     },
                 ),
@@ -43,20 +43,20 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
 
     CompositeTypeModulePart {
         data: quote! {
-            #[derive(Clone)]
-            pub enum WhereParam {
-                #(#variants),*
-            }
+            // #[derive(Clone)]
+            // pub enum WhereParam {
+            //     #(#variants),*
+            // }
 
-            impl #pcr::WhereInput for WhereParam {
-                fn serialize(self) -> #pcr::SerializedWhereInput {
-                    let (name, value) = match self {
-                        #(#match_arms),*
-                    };
+            // impl #pcr::WhereInput for WhereParam {
+            //     fn serialize(self) -> #pcr::SerializedWhereInput {
+            //         let (name, value) = match self {
+            //             #(#match_arms),*
+            //         };
 
-                    #pcr::SerializedWhereInput::new(name.to_string(), #pcr::SerializedWhereValue::Value(value))
-                }
-            }
+            //         #pcr::SerializedWhereInput::new(name.to_string(), #pcr::SerializedWhereValue::Value(value))
+            //     }
+            // }
         },
         fields,
     }

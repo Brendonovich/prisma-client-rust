@@ -276,7 +276,7 @@ pub trait DmmfTypeReferenceExt {
         &self,
         prefix: &TokenStream,
         arity: &FieldArity,
-        db: &ParserDatabase,
+        db: &GenerateArgs,
     ) -> Option<TokenStream>;
 
     fn wrap_pv(&self, var: &Ident, pv: TokenStream) -> TokenStream;
@@ -287,12 +287,12 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
         &self,
         prefix: &TokenStream,
         arity: &FieldArity,
-        db: &ParserDatabase,
+        args: &GenerateArgs,
     ) -> Option<TokenStream> {
         Some(match self.location {
             TypeLocation::Scalar => {
                 ScalarFieldType::BuiltInScalar(ScalarType::try_from_str(&self.typ).unwrap())
-                    .to_tokens(prefix, arity, db)?
+                    .to_tokens(prefix, arity, &args.schema.db)?
             }
             TypeLocation::EnumTypes => {
                 let enum_name_pascal = pascal_ident(&self.typ);
@@ -300,7 +300,23 @@ impl DmmfTypeReferenceExt for DmmfTypeReference {
             }
             TypeLocation::InputObjectTypes => {
                 let typ = format_ident!("{}", self.typ);
-                quote!(Vec<#prefix #typ>)
+
+                let t = args
+                    .dmmf
+                    .schema
+                    .input_object_types
+                    .get("prisma")
+                    .unwrap()
+                    .iter()
+                    .find(|t| t.name == self.typ)
+                    .unwrap();
+
+                let is_enum = t.fields.iter().all(|f| !f.is_required);
+
+                match is_enum {
+                    true => quote!(Vec<#prefix #typ>),
+                    false => quote!(#prefix #typ),
+                }
             }
             _ => return None,
         })

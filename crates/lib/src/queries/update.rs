@@ -1,15 +1,11 @@
 use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
-use crate::{
-    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
-    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
-    WhereInput, WithQuery,
-};
+use crate::*;
 
 pub struct Update<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
-    pub where_param: Actions::Where,
+    pub where_param: Actions::WhereUnique,
     pub set_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
@@ -17,7 +13,7 @@ pub struct Update<'a, Actions: ModelTypes> {
 impl<'a, Actions: ModelTypes> Update<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         set_params: Vec<Actions::Set>,
         with_params: Vec<Actions::With>,
     ) -> Self {
@@ -35,7 +31,7 @@ impl<'a, Actions: ModelTypes> Update<'a, Actions> {
     }
 
     fn to_selection(
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         set_params: Vec<Actions::Set>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
@@ -43,7 +39,7 @@ impl<'a, Actions: ModelTypes> Update<'a, Actions> {
             [
                 (
                     "where".to_string(),
-                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                    PrismaValue::Object(vec![where_param.into()]).into(),
                 ),
                 (
                     "data".to_string(),

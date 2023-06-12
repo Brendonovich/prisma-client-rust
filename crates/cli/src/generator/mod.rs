@@ -4,7 +4,6 @@ mod enums;
 mod header;
 mod internal_enums;
 mod models;
-mod read_filters;
 mod types;
 mod write_params;
 
@@ -46,7 +45,6 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
         let client = client::generate(&args);
         let internal_enums = internal_enums::generate(&args);
-        let read_filters_module = read_filters::generate_module(&args);
         let write_params_module = write_params::generate_module(&args);
         let types = types::types(&args);
 
@@ -61,7 +59,6 @@ impl PrismaGenerator for PrismaClientRustGenerator {
             pub mod _prisma {
                 #client
                 #internal_enums
-                #read_filters_module
                 #write_params_module
                 pub mod types {
                     use super::*;

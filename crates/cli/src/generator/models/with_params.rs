@@ -82,7 +82,7 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
             let relation_model_name_snake = snake_ident(relation_model.name());
 
             let order_by_fn = order_by::fetch_builder_fn(relation_model);
-            let pagination_fns = pagination::fetch_builder_fns(&relation_model_name_snake);
+            let pagination_fns = pagination::fetch_builder_fns(relation_model);
             let with_fn = builder_fn(field);
 
             let body = match field.referential_arity() {
@@ -104,7 +104,7 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
                             }
                         }
 
-                        pub fn fetch(params: Vec<#relation_model_name_snake::WhereParam>) -> Fetch {
+                        pub fn fetch(params: Vec<#relation_model_name_snake::WhereInput>) -> Fetch {
                             Fetch(#relation_model_name_snake::ManyArgs::new(params))
                         }
                     }
