@@ -116,7 +116,8 @@ pub fn merge_fields(fields: Vec<(String, PrismaValue)>) -> Vec<(String, PrismaVa
             (None, v) => {
                 merged.insert(el.0, v);
             }
-            (Some(_), _) => {
+            (Some(existing), new) => {
+                dbg!((existing, new));
                 unreachable!("Cannot merge values if both are not objects")
             }
         }

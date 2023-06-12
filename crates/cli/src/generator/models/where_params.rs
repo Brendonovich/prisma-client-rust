@@ -389,7 +389,7 @@ pub fn field_module(
     let arity = field.ast_field().arity;
 
     let field_module_contents = match field.refine() {
-        RefinedFieldWalker::Relation(relation_field) => {
+        RefinedFieldWalker::Relation(_) => {
             // let relation_model_name_snake = snake_ident(relation_field.related_model().name());
 
             // if let FieldArity::Optional = arity {
@@ -655,7 +655,7 @@ pub fn field_module(
 
                                 impl From<Equals> for #where_ident {
                                     fn from(Equals(value): Equals) -> Self {
-                                        Self::#field_name_pascal(_prisma::#filter_enum::Equals(value))
+                                        Self::#field_name_pascal(#filter_enum::Equals(value))
                                     }
                                 }
 
