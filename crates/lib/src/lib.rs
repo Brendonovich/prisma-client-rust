@@ -118,7 +118,7 @@ pub fn merge_fields(fields: Vec<(String, PrismaValue)>) -> Vec<(String, PrismaVa
             }
             (Some(existing), new) => {
                 dbg!((existing, new));
-                unreachable!("Cannot merge values if both are not objects")
+                unreachable!("Cannot merge values if both are not objects: {}", el.0)
             }
         }
     }
