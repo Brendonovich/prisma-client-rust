@@ -72,7 +72,7 @@ impl<'a> Future for DbPush<'a> {
                 }
 
                 let input = SchemaPushInput {
-                    force: force_reset,
+                    force: accept_data_loss,
                     schema: datamodel,
                 };
 
