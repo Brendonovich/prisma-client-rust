@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 
-use prisma_client_rust_sdk::prisma::{dmmf::TypeLocation, prisma_models::FieldArity};
-
 use crate::generator::prelude::*;
 
 pub fn types(args: &GenerateArgs) -> TokenStream {
@@ -15,14 +13,14 @@ pub fn types(args: &GenerateArgs) -> TokenStream {
             (t.name.contains("OrderBy")
                 || t.name.ends_with("UniqueInput")
                 || t.name.ends_with("WhereInput")
+                || t.name.contains("Create")
                 || t.name.ends_with("Filter"))
                 && !(t.name.ends_with("AggregatesFilter") || t.name.ends_with("AggregationFilter"))
         })
         .map(|t| {
-            let is_struct = t.fields.iter().any(|f| f.is_required);
             let type_name = format_ident!("{}", &t.name);
 
-            if is_struct {
+            if !t.is_enum() {
                 let ((field_names, field_types), pv_fields): ((Vec<_>, Vec<_>), Vec<_>) = t
                     .fields
                     .iter()
@@ -34,10 +32,7 @@ pub fn types(args: &GenerateArgs) -> TokenStream {
                         let pv = f.to_prisma_value(&value_ident, t, args);
 
                         (
-                            (
-                                field_name_snake.clone(),
-                                f.type_tokens(&quote!(super::), t, args),
-                            ),
+                            (field_name_snake.clone(), f.type_tokens(&quote!(), t, args)),
                             (quote! {
                                 (#field_name_str.to_string(), {
                                     let #value_ident = self.#field_name_snake;

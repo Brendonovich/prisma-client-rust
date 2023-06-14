@@ -488,60 +488,49 @@ impl DmmfInputFieldExt for DmmfInputField {
                 .meta_wrapper
                 .wrap_pv(var, self.raw_prisma_value(var)),
         )
-
-        // let inner = if input_type.is_list
-        //     || input_type.typ.ends_with("RelationInput")
-        //     || input_type.typ.ends_with("AggregateInput")
-        //     || (input_type.typ.starts_with("Nested") && input_type.typ.ends_with("Filter"))
-        //     || input_type.typ.ends_with("WhereInput")
-        // {
-        //     quote!(#var.into_iter().map(|value| value.into()).collect())
-        // } else if input_type.typ.ends_with("UniqueInput") {
-        //     return;
-        // } else {
-        //     quote!(vec![#var.into()])
-        // };
-
-        // let object = quote!(::prisma_client_rust::PrismaValue::Object(#inner));
-
-        // if self.is_nullable {
-        //     arity.wrap_pv(var, object)
-        // } else {
-        //     object
-        // }
     }
 
     fn extra_data(&self, parent: &DmmfInputType, args: &GenerateArgs) -> FieldExtraData {
         let arity = self.arity();
-        let input_type = self.primary_input_type();
+        let input_type_ref = self.primary_input_type();
 
-        match input_type.location {
+        match input_type_ref.location {
             TypeLocation::Scalar | TypeLocation::EnumTypes => FieldExtraData {
                 arity,
                 meta_wrapper: MetaWrapper::None,
             },
             TypeLocation::InputObjectTypes => {
+                let input_type = args
+                    .dmmf
+                    .schema
+                    .find_input_type(&input_type_ref.typ)
+                    .unwrap();
+
                 return FieldExtraData {
                     meta_wrapper: {
-                        if parent.name.ends_with("RelationFilter")
+                        if !input_type.is_enum() && !parent.name.ends_with("UniqueInput") {
+                            MetaWrapper::Box
+                        } else if parent.name.ends_with("RelationFilter")
                             || parent.name.ends_with("NullableFilter")
                             || (parent.name.ends_with("Filter"))
                             || (parent.name.ends_with("Input")
-                                && (input_type.typ.ends_with("RelationInput")
-                                    || input_type.typ.ends_with("AggregateInput")))
+                                && (input_type_ref.typ.ends_with("RelationInput")
+                                    || input_type_ref.typ.ends_with("AggregateInput")))
                         {
                             MetaWrapper::Vec
-                        } else if (input_type.typ.ends_with("Input")
-                            && !input_type.typ.ends_with("CompoundUniqueInput"))
-                            || input_type.typ.ends_with("Filter")
+                        } else if (input_type_ref.typ.ends_with("Input")
+                            && !input_type_ref.typ.ends_with("CompoundUniqueInput"))
+                            || input_type_ref.typ.ends_with("Filter")
                         {
-                            MetaWrapper::Object
+                            MetaWrapper::Object {
+                                needs_box: !input_type.is_enum(),
+                            }
                         } else {
                             MetaWrapper::None
                         }
                     },
                     arity: {
-                        if input_type.typ.ends_with("NullableFilter")
+                        if input_type_ref.typ.ends_with("NullableFilter")
                             && parent.name.ends_with("Input")
                         {
                             FieldArity::Required
@@ -557,19 +546,19 @@ impl DmmfInputFieldExt for DmmfInputField {
 }
 
 pub enum MetaWrapper {
-    Box,
     Vec,
-    Object,
+    Object { needs_box: bool },
+    Box,
     None,
 }
 
 impl MetaWrapper {
     pub fn wrap_type(&self, typ: TokenStream) -> TokenStream {
         match self {
-            Self::Box => quote!(Box<#typ>),
             Self::Vec => quote!(Vec<#typ>),
-            Self::Object => typ,
-            Self::None => typ,
+            Self::Box => quote!(Box<#typ>),
+            Self::Object { needs_box } if *needs_box => quote!(Box<#typ>),
+            _ => typ,
         }
     }
 
@@ -577,9 +566,13 @@ impl MetaWrapper {
         let pv = quote!(::prisma_client_rust::PrismaValue);
 
         match self {
-            Self::Box => value,
             Self::Vec => quote!(#pv::Object(#var.into_iter().map(|#var| #value).collect())),
-            Self::Object => quote!(#pv::Object(vec![#value])),
+            Self::Object { needs_box } => {
+                let base = if *needs_box { quote!(*#value) } else { value };
+
+                quote!(#pv::Object(vec![#base]))
+            }
+            Self::Box => quote!(#value),
             Self::None => value,
         }
     }
