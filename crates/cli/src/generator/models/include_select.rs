@@ -80,10 +80,7 @@ fn model_macro<'a>(
             quote!((@field_type; #field_name_snake #selections_pattern_produce) => { #field_type };)
         });
 
-        quote! {
-            #selection_type_impl
-            (@field_type; #field_name_snake) => { #field_type };
-        }
+        quote!(#selection_type_impl)
     });
 
     let field_module_impls = model.relation_fields().map(|field| {
@@ -480,6 +477,7 @@ fn model_macro<'a>(
             };
 
             #(#field_type_impls)*
+            (@field_type; $field:ident) => { #model_module::$field::Type };
             (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot include nonexistent relation $field on model #model_name_pascal_str, available relations are #all_fields_str)) };
 
             #(#field_module_impls)*
