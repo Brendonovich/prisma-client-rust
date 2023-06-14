@@ -88,6 +88,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
             let actions_struct = actions::struct_definition(model, args);
 
             let field_module_stuff = ModelModulePart::combine(vec![
+                data::model_data(model),
                 where_params::model_data(model, args, module_path),
                 order_by::model_data(model, args),
                 with_params::model_data(model),
