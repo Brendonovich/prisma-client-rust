@@ -477,7 +477,7 @@ fn model_macro<'a>(
             };
 
             #(#field_type_impls)*
-            (@field_type; $field:ident) => { #model_module::$field::Data };
+            (@field_type; $field:ident) => { #model_module::$field::Type };
             (@field_type; $field:ident $($tokens:tt)*) => { compile_error!(stringify!(Cannot include nonexistent relation $field on model #model_name_pascal_str, available relations are #all_fields_str)) };
 
             #(#field_module_impls)*

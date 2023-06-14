@@ -62,13 +62,13 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
                 }
             };
 
-            let recursive_safe_typ = recursive_safe_typ.unwrap_or_else(|| quote!(Data));
+            let recursive_safe_typ = recursive_safe_typ.unwrap_or_else(|| quote!(Type));
 
             Some((
                 name,
                 quote! {
-                    pub type Data = #typ;
-                    pub type RecursiveSafeData = #recursive_safe_typ;
+                    pub type Type = #typ;
+                    pub type RecursiveSafeType = #recursive_safe_typ;
                 },
             ))
         })
@@ -112,7 +112,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
                 quote! {
                     #attrs
                     #specta_attrs
-                    pub #field_name_snake: Option<#field_name_snake::RecursiveSafeData>
+                    pub #field_name_snake: Option<#field_name_snake::RecursiveSafeType>
                 }
             }
             RefinedFieldWalker::Scalar(field) => {
@@ -121,7 +121,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
 
                 quote! {
                     #[serde(rename = #field_name_str)]
-                    pub #field_name_snake: #field_name_snake::Data
+                    pub #field_name_snake: #field_name_snake::Type
                 }
             }
         });
@@ -135,7 +135,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
                 quote!(#pcr::RelationNotFetchedError::new(stringify!(#field_name_snake)));
 
             let (typ, map) = match field.ast_field().arity {
-                FieldArity::List => (quote!(&#field_name_snake::Data), None),
+                FieldArity::List => (quote!(&#field_name_snake::Type), None),
                 FieldArity::Required => (
                     quote!(&super::#relation_model_name_snake::Data),
                     Some(quote!(.map(|v| v.as_ref()))),
