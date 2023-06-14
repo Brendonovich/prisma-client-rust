@@ -17,7 +17,7 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
             let arity = field.ast_field().arity;
 
             let name = field.name().to_string();
-            let typ = match field.refine() {
+            let (typ, recursive_safe_typ) = match field.refine() {
                 RefinedFieldWalker::Relation(relation_field) => {
                     let relation_model_name_snake =
                         snake_ident(relation_field.related_model().name());
@@ -25,13 +25,12 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
                     let base_data = quote!(#relation_model_name_snake::Data);
 
                     let typ = match arity {
-                        FieldArity::List => quote!(Vec<#base_data>),
-                        FieldArity::Optional => {
-                            quote!(Option<Box<#base_data>>)
-                        }
-                        FieldArity::Required => {
-                            quote!(Box<#base_data>)
-                        }
+                        FieldArity::List => (quote!(Vec<#base_data>), None),
+                        FieldArity::Optional => (
+                            quote!(Option<#base_data>),
+                            Some(quote!(Option<Box<#base_data>>)),
+                        ),
+                        FieldArity::Required => (quote!(#base_data), Some(quote!(Box<#base_data>))),
                     };
 
                     typ
@@ -46,23 +45,32 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
                             let base_data = quote!(#comp_type::Data);
 
                             let typ = match arity {
-                                FieldArity::List => quote!(Vec<#base_data>),
-                                FieldArity::Optional => {
-                                    quote!(Option<Box<#base_data>>)
-                                }
+                                FieldArity::List => (quote!(Vec<#base_data>), None),
+                                FieldArity::Optional => (
+                                    quote!(Option<#base_data>),
+                                    Some(quote!(Option<Box<#base_data>>)),
+                                ),
                                 FieldArity::Required => {
-                                    quote!(Box<#base_data>)
+                                    (quote!(#base_data), Some(quote!(Box<#base_data>)))
                                 }
                             };
 
                             typ
                         }
-                        _ => field.type_tokens(&quote!(super::))?,
+                        _ => (field.type_tokens(&quote!(super::))?, None),
                     }
                 }
             };
 
-            Some((name, quote!(pub type Data = #typ;)))
+            let recursive_safe_typ = recursive_safe_typ.unwrap_or_else(|| quote!(Data));
+
+            Some((
+                name,
+                quote! {
+                    pub type Data = #typ;
+                    pub type RecursiveSafeData = #recursive_safe_typ;
+                },
+            ))
         })
         .collect();
 
@@ -104,7 +112,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
                 quote! {
                     #attrs
                     #specta_attrs
-                    pub #field_name_snake: Option<#field_name_snake::Data>
+                    pub #field_name_snake: Option<#field_name_snake::RecursiveSafeData>
                 }
             }
             RefinedFieldWalker::Scalar(field) => {
