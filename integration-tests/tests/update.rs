@@ -1,8 +1,10 @@
 use prisma_client_rust::{
-    prisma_errors::query_engine::RecordRequiredButNotFound, queries::QueryError,
+    bigdecimal::BigDecimal, prisma_errors::query_engine::RecordRequiredButNotFound,
+    queries::QueryError,
 };
 
 use crate::{db::*, utils::*};
+use std::str::FromStr;
 
 async fn create_user(client: &PrismaClient) -> Result<String, QueryError> {
     client
@@ -269,12 +271,33 @@ async fn id_field_atomic() -> TestResult {
     let updated = client
         .types()
         .update(
-            types::id_string(record.id, "".to_string()),
+            types::id_string_(record.id, "".to_string()),
             vec![types::id::increment(500)],
         )
         .exec()
         .await?;
     assert_eq!(updated.id, record.id + 500);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn decimal_field() -> TestResult {
+    let client = client().await;
+
+    let dec = BigDecimal::from_str("1.1").unwrap();
+
+    let record = client.types().create(vec![]).exec().await?;
+    let updated = client
+        .types()
+        .update(
+            types::id_string_(record.id, "".to_string()),
+            vec![types::decimal_::set(Some(dec.clone()))],
+        )
+        .exec()
+        .await?;
+
+    assert_eq!(updated.decimal_, Some(dec));
 
     cleanup(client).await
 }

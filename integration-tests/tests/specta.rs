@@ -18,4 +18,8 @@ fn ts_export() {
     let ts = specta::ts::export::<user_select::Data>(&Default::default()).unwrap();
 
     assert_eq!(ts, "export type UserSelect = { id: string; posts: Post[] }");
+
+    let ts = specta::ts::export::<types::Data>(&Default::default()).unwrap();
+
+    assert_eq!(ts, "export type Types = { id: number; bool_: boolean; string_: string; integer: number; datetime: string; float_: number; decimal_: string | null }");
 }

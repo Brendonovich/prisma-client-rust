@@ -74,18 +74,18 @@ model Profile {
 model Types {
     id       Int      @default(0)
     bool_    Boolean  @default(false)
-    string   String   @default("")
+    string_   String   @default("")
     integer  Int      @default(0)
     datetime DateTime @default(now())
     float_   Float    @default(0)
 
     // TODO: Figure out how to deserialize these
     // bigint   BigInt   @default(0)
-    // decimal  Decimal  @default(1)
+    decimal_  Decimal? 
 
     // #69
-    @@id([id, string])
-    @@unique([id, string])
+    @@id([id, string_])
+    @@unique([id, string_])
 }
 
 // https://discord.com/channels/1011665225809924136/1011666506083487775/1078948688728162384
