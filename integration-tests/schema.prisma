@@ -81,10 +81,10 @@ model Types {
 
     // TODO: Figure out how to deserialize these
     // bigint   BigInt   @default(0)
-    // decimal  Decimal  @default(1)
+    decimal Decimal?
 
-    // #69
     @@id([id, string])
+    // #69
     @@unique([id, string])
 }
 

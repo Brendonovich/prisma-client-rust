@@ -1,8 +1,10 @@
 use prisma_client_rust::{
-    prisma_errors::query_engine::RecordRequiredButNotFound, queries::QueryError,
+    bigdecimal::BigDecimal, prisma_errors::query_engine::RecordRequiredButNotFound,
+    queries::QueryError,
 };
 
 use crate::{db::*, utils::*};
+use std::str::FromStr;
 
 async fn create_user(client: &PrismaClient) -> Result<String, QueryError> {
     client

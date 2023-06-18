@@ -37,6 +37,7 @@ mod partial;
 mod raw;
 mod select;
 mod specta;
+mod types;
 mod update;
 mod upsert;
 mod with;

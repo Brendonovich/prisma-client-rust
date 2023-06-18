@@ -230,7 +230,8 @@ impl ScalarTypeExt for ScalarType {
         match self {
             ScalarType::Int => quote!(i32),
             ScalarType::BigInt => quote!(i64),
-            ScalarType::Float | ScalarType::Decimal => quote!(f64),
+            ScalarType::Float => quote!(f64),
+            ScalarType::Decimal => quote!(#pcr::bigdecimal::BigDecimal),
             ScalarType::Boolean => quote!(bool),
             ScalarType::String => quote!(String),
             ScalarType::Json => quote!(#pcr::serde_json::Value),
@@ -252,9 +253,10 @@ impl ScalarTypeExt for ScalarType {
         match self {
             ScalarType::Int => quote!(#v::Int(#var as i64)),
             ScalarType::BigInt => quote!(#v::BigInt(#var)),
-            ScalarType::Float | ScalarType::Decimal => {
+            ScalarType::Float => {
                 quote!(#v::Float(<#pcr::bigdecimal::BigDecimal as #pcr::bigdecimal::FromPrimitive>::from_f64(#var).unwrap().normalized()))
             }
+            ScalarType::Decimal => quote!(#v::String(#var.to_string())),
             ScalarType::Boolean => quote!(#v::Boolean(#var)),
             ScalarType::String => quote!(#v::String(#var)),
             ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_string(&#var).unwrap())),

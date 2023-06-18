@@ -1,6 +1,9 @@
 use crate::db::*;
 use crate::utils::*;
 
+use prisma_client_rust::bigdecimal::BigDecimal;
+use std::str::FromStr;
+
 #[tokio::test]
 async fn create() -> TestResult {
     let client = client().await;

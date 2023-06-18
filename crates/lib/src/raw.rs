@@ -4,6 +4,7 @@ use chrono::SecondsFormat;
 use prisma_models::PrismaValue;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Value};
+use std::str::FromStr;
 
 #[macro_export]
 macro_rules! raw {
@@ -83,9 +84,9 @@ impl From<RawTypedJson> for RawPrismaValue {
             ("bytes", String(b64)) => RawPrismaValue::Bytes(base64::decode(b64).unwrap()),
             ("bool", Bool(b)) => RawPrismaValue::Bool(b),
             ("char", String(s)) => RawPrismaValue::Char(s.chars().next().unwrap()),
-            ("decimal", Number(n)) => RawPrismaValue::Decimal(
-                bigdecimal::BigDecimal::try_from(n.as_f64().unwrap()).unwrap(),
-            ),
+            ("decimal", String(n)) => {
+                RawPrismaValue::Decimal(bigdecimal::BigDecimal::from_str(n.as_str()).unwrap())
+            }
             ("json", v) => RawPrismaValue::Json(v),
             ("xml", String(s)) => RawPrismaValue::Xml(s),
             ("uuid", String(s)) => {

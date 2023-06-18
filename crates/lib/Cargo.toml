@@ -54,6 +54,7 @@ specta = { optional = true, workspace = true, features = [
   "indexmap",
   "chrono",
   "uuid",
+  "bigdecimal",
 ] }
 
 # features = "rspc"
