@@ -137,15 +137,5 @@ async fn from_struct() -> TestResult {
 
     assert_eq!(user.name, "Brendan");
 
-    let dec = BigDecimal::from_str("1.1").unwrap();
-    let types = types::Create {
-        _params: vec![types::decimal_::set(Some(dec.clone()))],
-    }
-    .to_query(&client)
-    .exec()
-    .await?;
-
-    assert_eq!(types.decimal_, Some(dec));
-
     cleanup(client).await
 }

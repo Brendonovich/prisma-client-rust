@@ -21,5 +21,5 @@ fn ts_export() {
 
     let ts = specta::ts::export::<types::Data>(&Default::default()).unwrap();
 
-    assert_eq!(ts, "export type Types = { id: number; bool_: boolean; string_: string; integer: number; datetime: string; float_: number; decimal_: string | null }");
+    assert_eq!(ts, "export type Types = { id: number; bool_: boolean; string: string; integer: number; datetime: string; float_: number; decimal: string | null }");
 }
