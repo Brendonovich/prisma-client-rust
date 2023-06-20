@@ -8,7 +8,7 @@ Query errors resemble the following:
 pub enum Error {
     Execute(user_facing_errors::Error),
     Serialize(serde_json::Error),
-    Deseiralize(serde_json::Error)
+    Deserialize(serde_json::Error)
 }
 ```
 
