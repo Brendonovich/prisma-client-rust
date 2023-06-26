@@ -43,7 +43,7 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
 
     CompositeTypeModulePart {
         data: quote! {
-            #[derive(Clone)]
+            #[derive(Debug, Clone)]
             pub enum WhereParam {
                 #(#variants),*
             }

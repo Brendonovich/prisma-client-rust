@@ -66,7 +66,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
 
             (
                 quote! {
-                    #[derive(Clone)]
+                    #[derive(Debug, Clone)]
                     pub enum OrderByRelationAggregateParam {
                         #(#variants),*
                     }
@@ -148,7 +148,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
 
             (
                 quote! {
-                    #[derive(Clone)]
+                    #[derive(Debug, Clone)]
                     pub enum OrderByWithRelationParam {
                        #(#variants),*
                     }

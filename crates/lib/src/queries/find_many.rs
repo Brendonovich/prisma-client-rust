@@ -221,7 +221,7 @@ impl<'a, Actions: ModelTypes> PaginatedQuery<'a> for FindMany<'a, Actions> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ManyArgs<Actions: ModelTypes> {
     pub where_params: Vec<Actions::Where>,
     pub with_params: Vec<Actions::With>,

@@ -22,7 +22,7 @@ pub fn create_fn(comp_type: CompositeTypeWalker) -> Option<TokenStream> {
                 .map(|name_snake| quote!(#name_snake::set(self.#name_snake)));
 
             quote! {
-                #[derive(Clone)]
+                #[derive(Debug, Clone)]
                 pub struct Create {
                     #(pub #required_field_names: #required_field_types,)*
                     pub _params: Vec<SetParam>
@@ -86,7 +86,7 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
 
     CompositeTypeModulePart {
         data: quote! {
-           #[derive(Clone)]
+           #[derive(Debug, Clone)]
            pub enum SetParam {
                #(#variants),*
            }

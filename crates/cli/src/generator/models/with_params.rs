@@ -135,7 +135,7 @@ pub fn model_data(model: ModelWalker) -> ModelModulePart {
 
     ModelModulePart {
         data: quote! {
-            #[derive(Clone)]
+            #[derive(Debug, Clone)]
             pub enum WithParam {
                 #(#variants),*
             }

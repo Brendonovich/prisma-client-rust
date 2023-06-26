@@ -105,7 +105,7 @@ impl<'a, Actions: ModelTypes> WithQuery<'a> for FindUnique<'a, Actions> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct UniqueArgs<Actions>
 where
     Actions: ModelTypes,

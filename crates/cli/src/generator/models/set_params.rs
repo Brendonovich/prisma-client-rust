@@ -695,7 +695,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
 
         (
             quote! {
-                #[derive(Clone)]
+                #[derive(Debug, Clone)]
                 pub enum UncheckedSetParam {
                       #(#variants),*
                 }
@@ -716,7 +716,7 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
 
     ModelModulePart {
         data: quote! {
-            #[derive(Clone)]
+            #[derive(Debug, Clone)]
             pub enum SetParam {
                 #(#variants),*
             }

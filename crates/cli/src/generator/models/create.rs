@@ -37,7 +37,7 @@ fn create_unchecked(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        #[derive(Clone)]
+        #[derive(Debug, Clone)]
         pub struct CreateUnchecked {
             #(pub #names: #types,)*
             pub _params: Vec<UncheckedSetParam>
@@ -85,7 +85,7 @@ fn create(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-       #[derive(Clone)]
+       #[derive(Debug, Clone)]
         pub struct Create {
             #(pub #names: #types,)*
             pub _params: Vec<SetParam>
