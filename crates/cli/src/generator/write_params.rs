@@ -39,7 +39,7 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
             .unzip();
 
         quote! {
-            #[derive(Clone)]
+            #[derive(Debug, Clone)]
             pub enum #name {
                 #(#method_variants),*
             }

@@ -40,7 +40,7 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let scalar_selections_fn = scalar_selections_fn(model, module_path);
 
     quote! {
-        #[derive(Clone)]
+        #[derive(Debug, Clone)]
         pub struct Types;
 
         impl #pcr::ModelTypes for Types {

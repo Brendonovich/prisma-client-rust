@@ -115,7 +115,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> T
 
             (
                 quote! {
-                    #[derive(Clone)]
+                    #[derive(Debug, Clone)]
                     pub enum OrderByParam {
                         #(#variants),*
                     }
@@ -136,7 +136,7 @@ pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> T
         .unwrap_or_default();
 
     quote! {
-        #[derive(Clone)]
+        #[derive(Debug, Clone)]
         pub enum OrderByParam {
             #(#variants),*
         }

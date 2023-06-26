@@ -147,7 +147,7 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
     }).unzip();
 
     quote! {
-        #[derive(Clone)]
+        #[derive(Debug, Clone)]
         pub enum WhereParam {
             #(#variants),*
         }
@@ -162,7 +162,7 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
             }
         }
 
-        #[derive(Clone)]
+        #[derive(Debug, Clone)]
         pub enum UniqueWhereParam {
             #(#unique_variants),*
         }
