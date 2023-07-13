@@ -19,6 +19,13 @@ model SomeModel {
     enum_list          SomeEnum[]
 }
 
+model AnotherModel {
+	id        String @id
+    // https://discord.com/channels/1011665225809924136/1129034041363017848/1129038605294252103
+	string_array String[]
+	another_array String[]
+}
+
 enum SomeEnum {
     A
     B
