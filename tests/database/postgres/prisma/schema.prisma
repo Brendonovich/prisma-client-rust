@@ -24,6 +24,7 @@ model AnotherModel {
     // https://discord.com/channels/1011665225809924136/1129034041363017848/1129038605294252103
 	string_array String[]
 	another_array String[]
+    json Json
 }
 
 enum SomeEnum {

@@ -472,7 +472,7 @@ pub fn field_module(
                         let equals_filter = {
                             let where_param_variant = format_ident!("{field_name_pascal}Equals");
                             let content_type =
-                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                quote!(Vec<#module_path #comp_type_snake::WhereParam>);
 
                             where_param_entries.push(Variant::BaseVariant {
                                 definition: quote!(#where_param_variant(Vec<#content_type>)),
@@ -537,7 +537,7 @@ pub fn field_module(
                             let where_param_variant =
                                 format_ident!("{field_name_pascal}{method_pascal}");
                             let content_type =
-                                quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                quote!(Vec<#module_path #comp_type_snake::WhereParam>);
 
                             where_param_entries.push(Variant::BaseVariant {
 								definition: quote!(#where_param_variant(#content_type)),
@@ -579,7 +579,7 @@ pub fn field_module(
                                 let where_param_variant =
                                     format_ident!("{field_name_pascal}{method_pascal}");
                                 let content_type =
-                                    quote!(Vec<#module_path::#comp_type_snake::WhereParam>);
+                                    quote!(Vec<#module_path #comp_type_snake::WhereParam>);
 
                                 where_param_entries.push(Variant::BaseVariant {
 									definition: quote!(#where_param_variant(#content_type)),
