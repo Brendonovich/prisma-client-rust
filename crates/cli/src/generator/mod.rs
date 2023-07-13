@@ -35,10 +35,14 @@ impl PrismaGenerator for PrismaClientRustGenerator {
     fn generate(self, args: GenerateArgs) -> Result<String, Self::Error> {
         let header = header::generate(&args);
 
-        let module_path = self
-            .module_path
-            .parse()
-            .map_err(|_| Error::InvalidModulePath)?;
+        let module_path = {
+            let provided: TokenStream = self
+                .module_path
+                .parse()
+                .map_err(|_| Error::InvalidModulePath)?;
+
+            quote!(#provided::)
+        };
 
         let models = models::modules(&args, &module_path);
         let composite_types = composite_types::modules(&args, &module_path);

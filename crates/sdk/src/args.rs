@@ -138,6 +138,15 @@ impl<'a> GenerateArgs<'a> {
             let mut filters = vec![];
 
             filters.extend(scalars.iter().flat_map(|scalar| {
+                if matches!(scalar, ScalarType::Json) {
+                    let mut s = "Json".to_string();
+
+                    return vec![Filter {
+                        name: s,
+                        fields: vec![],
+                    }];
+                }
+
                 let possible_inputs = [
                     format!("{}FieldUpdateOperationsInput", scalar.to_dmmf_string()),
                     format!(
@@ -146,35 +155,38 @@ impl<'a> GenerateArgs<'a> {
                     ),
                 ];
 
-                possible_inputs.into_iter().filter_map(|input| {
-                    let input_type = dmmf.schema.find_input_type(&input)?;
+                possible_inputs
+                    .into_iter()
+                    .filter_map(|input| {
+                        let input_type = dmmf.schema.find_input_type(&input)?;
 
-                    let mut s = scalar.as_str().to_string();
+                        let mut s = scalar.as_str().to_string();
 
-                    if input_type.name.contains("List") {
-                        s += "List";
-                    } else if input_type.name.contains("Nullable") {
-                        s += "Nullable";
-                    }
+                        if input_type.name.contains("List") {
+                            s += "List";
+                        } else if input_type.name.contains("Nullable") {
+                            s += "Nullable";
+                        }
 
-                    Some(Filter {
-                        name: s,
-                        fields: input_type
-                            .fields
-                            .iter()
-                            .filter_map(|field| {
-                                field.input_types.iter().find(|input_type| {
-                                    match input_type.location {
+                        Some(Filter {
+                            name: s,
+                            fields: input_type
+                                .fields
+                                .iter()
+                                .filter_map(|field| {
+                                    field.input_types.iter().find(|input_type| match input_type
+                                        .location
+                                    {
                                         TypeLocation::Scalar if input_type.typ != "Null" => true,
                                         _ => false,
-                                    }
-                                })?;
+                                    })?;
 
-                                Some(field)
-                            })
-                            .collect(),
+                                    Some(field)
+                                })
+                                .collect(),
+                        })
                     })
-                })
+                    .collect()
             }));
 
             filters.extend(schema.db.walk_enums().flat_map(|enm| {
@@ -239,8 +251,6 @@ impl<'a> GenerateArgs<'a> {
                                             _ => {}
                                         }
                                     }
-
-                                    return None;
                                 }
 
                                 field
