@@ -15,10 +15,6 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
 
         let arity = scalar_field.ast_field().arity;
 
-        let field_type = scalar_field
-            .scalar_field_type()
-            .to_tokens(module_path, &arity, &model.db);
-
         let double_option_attrs = arity.is_optional().then(|| {
             quote! {
                 #[serde(default, with = "::prisma_client_rust::serde::double_option")]
@@ -28,7 +24,7 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
         quote! {
             #[serde(rename = #field_name_str)]
             #double_option_attrs
-            pub #field_name_snake: #field_type
+            pub #field_name_snake: #module_path::#model_name_snake::#field_name_snake::Type
         }
     });
 
