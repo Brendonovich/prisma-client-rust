@@ -4785,6 +4785,25 @@ dependencies = [
  "directories",
  "flate2",
  "http",
+ "prisma-client-rust-generator",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "syn 1.0.109",
+ "thiserror",
+]
+
+[[package]]
+name = "prisma-client-rust-generator"
+version = "0.6.8"
+dependencies = [
+ "directories",
+ "flate2",
+ "http",
  "prisma-client-rust-sdk",
  "proc-macro2",
  "quote",

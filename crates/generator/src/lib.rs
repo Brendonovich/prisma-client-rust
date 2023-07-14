@@ -22,7 +22,7 @@ enum ClientFormat {
 }
 
 #[derive(serde::Deserialize)]
-pub struct PrismaClientRustGenerator {
+pub struct Generator {
     #[serde(default = "default_module_path")]
     module_path: String,
     #[serde(default)]
@@ -35,7 +35,7 @@ pub enum Error {
     InvalidModulePath,
 }
 
-impl PrismaGenerator for PrismaClientRustGenerator {
+impl PrismaGenerator for Generator {
     const NAME: &'static str = "Prisma Client Rust";
     const DEFAULT_OUTPUT: &'static str = "../src/prisma.rs";
 
@@ -90,4 +90,8 @@ impl PrismaGenerator for PrismaClientRustGenerator {
 
         Ok(module)
     }
+}
+
+pub fn run() {
+    Generator::run();
 }

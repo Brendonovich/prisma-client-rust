@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::prisma::prisma_models::walkers::CompositeTypeWalker;
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 use super::CompositeTypeModulePart;
 

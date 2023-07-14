@@ -1,4 +1,4 @@
-use crate::generator::prelude::{prisma::psl::datamodel_connector, *};
+use crate::prelude::{prisma::psl::datamodel_connector, *};
 use prisma_client_rust_sdk::{
     prisma::{prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType},
     GenerateArgs,

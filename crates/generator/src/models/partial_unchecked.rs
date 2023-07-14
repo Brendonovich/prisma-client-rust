@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::prisma::prisma_models::walkers::ModelWalker;
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     let model_name_snake = snake_ident(model.name());
