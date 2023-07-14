@@ -14,6 +14,7 @@ generator client {
 
     // necessary since the generated file won't be at crate::prisma
     module_path = "crate::db"
+    client_format = "folder"
 }
 
 model Post {

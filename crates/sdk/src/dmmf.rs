@@ -14,10 +14,10 @@ pub struct EngineDMMF {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Generator {
+    pub provider: EnvValue,
     pub output: EnvValue,
     pub name: String,
     pub binary_targets: Vec<String>,
-    pub provider: EnvValue,
     #[serde(default)]
     pub is_custom_output: bool,
     pub preview_features: Vec<String>,

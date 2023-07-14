@@ -5,6 +5,7 @@ mod extensions;
 mod jsonrpc;
 mod keywords;
 mod runtime;
+mod shared_config;
 mod utils;
 
 use proc_macro2::TokenStream;
@@ -18,6 +19,8 @@ pub use args::GenerateArgs;
 pub use casing::*;
 pub use extensions::*;
 pub use quote::quote;
+
+use crate::prelude::snake_ident;
 
 pub mod prisma {
     pub use dmmf;
@@ -84,6 +87,31 @@ impl Module {
 
     pub fn add_submodule(&mut self, submodule: Module) {
         self.submodules.push(submodule);
+    }
+
+    pub fn flatten(self) -> TokenStream {
+        let contents = self.contents;
+
+        let submodule_contents = self
+            .submodules
+            .into_iter()
+            .map(|sm| {
+                let name = snake_ident(&sm.name);
+                let contents = sm.flatten();
+
+                quote! {
+                    pub mod #name {
+                        #contents
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+
+        quote! {
+            #contents
+
+            #(#submodule_contents)*
+        }
     }
 }
 

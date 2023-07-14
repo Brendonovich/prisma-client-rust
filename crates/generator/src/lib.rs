@@ -14,19 +14,10 @@ fn default_module_path() -> String {
     "crate::prisma".to_string()
 }
 
-#[derive(Default, serde::Deserialize)]
-enum ClientFormat {
-    #[default]
-    File,
-    Folder,
-}
-
 #[derive(serde::Deserialize)]
 pub struct Generator {
     #[serde(default = "default_module_path")]
     module_path: String,
-    #[serde(default)]
-    client_format: ClientFormat,
 }
 
 #[derive(Debug, Serialize, thiserror::Error)]
