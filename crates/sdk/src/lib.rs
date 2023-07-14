@@ -7,6 +7,7 @@ mod keywords;
 mod runtime;
 mod utils;
 
+use proc_macro2::TokenStream;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -50,7 +51,7 @@ pub mod prelude {
 }
 
 pub type GenerateFn = fn(GenerateArgs, Map<String, Value>) -> GenerateResult;
-pub type GenerateResult = Result<String, GeneratorError>;
+pub type GenerateResult = Result<Module, GeneratorError>;
 
 #[derive(Debug, Error)]
 pub enum GeneratorError {
@@ -66,13 +67,33 @@ pub enum GeneratorError {
     InternalError { name: &'static str, message: String },
 }
 
+pub struct Module {
+    pub name: String,
+    pub contents: TokenStream,
+    pub submodules: Vec<Module>,
+}
+
+impl Module {
+    pub fn new(name: &str, contents: TokenStream) -> Self {
+        Self {
+            name: name.to_string(),
+            contents,
+            submodules: vec![],
+        }
+    }
+
+    pub fn add_submodule(&mut self, submodule: Module) {
+        self.submodules.push(submodule);
+    }
+}
+
 pub trait PrismaGenerator: DeserializeOwned {
     const NAME: &'static str;
     const DEFAULT_OUTPUT: &'static str;
 
     type Error: Serialize + std::error::Error;
 
-    fn generate(self, args: GenerateArgs) -> Result<String, Self::Error>;
+    fn generate(self, args: GenerateArgs) -> Result<Module, Self::Error>;
 
     fn erased_generate(args: GenerateArgs, config: Map<String, Value>) -> GenerateResult
     where
