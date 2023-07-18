@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::prisma::prisma_models::walkers::CompositeTypeWalker;
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 pub fn struct_definition(ty: CompositeTypeWalker) -> TokenStream {
     let fields = ty.fields().flat_map(|field| {

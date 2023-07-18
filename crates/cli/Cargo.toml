@@ -6,18 +6,18 @@ edition = "2021"
 rust-version = "1.62"
 
 [features]
-specta = []
-rspc = ["specta"]
-migrations = []
-sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
+specta = ["prisma-client-rust-generator/specta"]
+rspc = ["prisma-client-rust-generator/rspc"]
+migrations = ["prisma-client-rust-generator/migrations"]
+sqlite-create-many = ["prisma-client-rust-generator/sqlite-create-many"]
 # mutation-callbacks = []
-mocking = []
+mocking = ["prisma-client-rust-generator/mocking"]
 
-mysql = ["prisma-client-rust-sdk/mysql"]
-sqlite = ["prisma-client-rust-sdk/sqlite"]
-mssql = ["prisma-client-rust-sdk/mssql"]
-postgresql = ["prisma-client-rust-sdk/postgresql"]
-mongodb = ["prisma-client-rust-sdk/mongodb"]
+mysql = ["prisma-client-rust-generator/mysql"]
+sqlite = ["prisma-client-rust-generator/sqlite"]
+mssql = ["prisma-client-rust-generator/mssql"]
+postgresql = ["prisma-client-rust-generator/postgresql"]
+mongodb = ["prisma-client-rust-generator/mongodb"]
 
 [dependencies]
 serde_json.workspace = true
@@ -33,4 +33,4 @@ reqwest = { version = "0.11.10", features = ["blocking"] }
 regex = "1.5.5"
 thiserror = "1.0.37"
 
-prisma-client-rust-sdk = { path = "../sdk", default_features = false }
+prisma-client-rust-generator = { path = "../generator", default_features = false }

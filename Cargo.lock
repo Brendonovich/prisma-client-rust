@@ -4785,6 +4785,25 @@ dependencies = [
  "directories",
  "flate2",
  "http",
+ "prisma-client-rust-generator",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "syn 1.0.109",
+ "thiserror",
+]
+
+[[package]]
+name = "prisma-client-rust-generator"
+version = "0.6.8"
+dependencies = [
+ "directories",
+ "flate2",
+ "http",
  "prisma-client-rust-sdk",
  "proc-macro2",
  "quote",
@@ -7500,7 +7519,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
- "rand 0.8.5",
+ "rand 0.4.6",
  "static_assertions",
 ]
 

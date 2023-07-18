@@ -1,4 +1,4 @@
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 pub fn fetch_builder_fns(model_name_snake: &Ident) -> TokenStream {
     quote! {

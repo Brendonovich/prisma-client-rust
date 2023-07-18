@@ -8,7 +8,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::{prelude::*, write_params};
+use crate::{prelude::*, write_params};
 
 use super::ModelModulePart;
 

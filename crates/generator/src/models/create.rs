@@ -2,7 +2,7 @@ use prisma_client_rust_sdk::prisma::{
     prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 use super::required_fields;
 

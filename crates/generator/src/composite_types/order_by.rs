@@ -4,7 +4,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 pub fn enum_definition(comp_type: CompositeTypeWalker, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);

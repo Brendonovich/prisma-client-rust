@@ -6,7 +6,7 @@ use prisma_client_rust_sdk::prisma::{
     psl::parser_database::ScalarFieldType,
 };
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 enum Variant {
     Select,
@@ -673,7 +673,7 @@ fn model_module_enum(model: ModelWalker, variant: Variant) -> TokenStream {
 pub mod include {
     use prisma_client_rust_sdk::prisma::prisma_models::walkers::{ModelWalker, RefinedFieldWalker};
 
-    use crate::generator::models::ModelModulePart;
+    use crate::models::ModelModulePart;
 
     use super::*;
 
@@ -714,7 +714,7 @@ pub mod include {
 pub mod select {
     use prisma_client_rust_sdk::prisma::prisma_models::walkers::ModelWalker;
 
-    use crate::generator::models::ModelModulePart;
+    use crate::models::ModelModulePart;
 
     use super::*;
 

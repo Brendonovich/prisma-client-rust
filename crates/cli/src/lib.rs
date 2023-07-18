@@ -1,11 +1,7 @@
 mod binaries;
-mod generator;
 mod prisma_cli;
 
-use prisma_client_rust_sdk::*;
 use std::env;
-
-use generator::PrismaClientRustGenerator;
 
 pub fn run() {
     let args = env::args();
@@ -17,5 +13,5 @@ pub fn run() {
         return;
     }
 
-    PrismaClientRustGenerator::run();
+    prisma_client_rust_generator::run();
 }

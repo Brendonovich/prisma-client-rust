@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use std::path::*;
 
-use crate::generator::GenerateArgs;
+use crate::GenerateArgs;
 
 fn find_migrations_path(schema_path: &PathBuf) -> PathBuf {
     schema_path

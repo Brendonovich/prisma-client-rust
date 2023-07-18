@@ -5,7 +5,7 @@ use prisma_client_rust_sdk::prisma::{
     prisma_models::{walkers::ModelWalker, FieldArity},
 };
 
-use crate::generator::prelude::*;
+use crate::prelude::*;
 
 use super::ModelModulePart;
 

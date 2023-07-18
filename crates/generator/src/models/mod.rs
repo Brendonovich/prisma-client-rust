@@ -75,7 +75,7 @@ pub fn required_fields<'a>(model: ModelWalker<'a>) -> Option<Vec<RequiredField<'
         .collect()
 }
 
-pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
+pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
     let pcr = quote!(::prisma_client_rust);
 
     args.schema
@@ -87,7 +87,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 
             let actions_struct = actions::struct_definition(model, args);
 
-            let field_module_stuff = ModelModulePart::combine(vec![
+            let (field_stuff, field_modules) = ModelModulePart::combine(vec![
                 data::model_data(model),
                 where_params::model_data(model, args, module_path),
                 order_by::model_data(model, args),
@@ -107,13 +107,14 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
 	            pub type AggregateRawQuery<'a, T: #pcr::Data> = #pcr::AggregateRaw<'a, Types, T>;
 	        });
 
-            quote! {
-                pub mod #model_name_snake {
+            let mut module = Module::new(
+                model.name(),
+                quote! {
                     use super::_prisma::*;
 
                     pub const NAME: &str = #model_name;
 
-                    #field_module_stuff
+                    #field_stuff
                     #create_types
                     #types_struct
                     #data_struct
@@ -139,8 +140,14 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
                     #mongo_raw_types
 
                     #actions_struct
-                }
-            }
+                },
+            );
+
+            field_modules
+                .into_iter()
+                .for_each(|field| module.add_submodule(field));
+
+            module
         })
         .collect()
 }
@@ -151,7 +158,7 @@ pub struct ModelModulePart {
 }
 
 impl ModelModulePart {
-    pub fn combine(parts: Vec<Self>) -> TokenStream {
+    pub fn combine(parts: Vec<Self>) -> (TokenStream, Vec<Module>) {
         let (data, fields): (Vec<_>, Vec<_>) =
             parts.into_iter().map(|p| (p.data, p.fields)).unzip();
 
@@ -165,24 +172,16 @@ impl ModelModulePart {
             })
             .into_iter()
             .map(|(field_name_str, data)| {
-            	let field_name_snake = snake_ident(&field_name_str);
+                Module::new(&field_name_str, quote! {
+                    use super::super::{_prisma::*, *};
+                    use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
 
-                quote! {
-                    pub mod #field_name_snake {
-	                    use super::super::{_prisma::*, *};
-	                    use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
+					pub const NAME: &str = #field_name_str;
 
-						pub const NAME: &str = #field_name_str;
+                    #(#data)*
+                })
+            }).collect();
 
-                        #(#data)*
-                    }
-                }
-            });
-
-        quote! {
-            #(#data)*
-
-            #(#field_stuff)*
-        }
+        (quote!(#(#data)*), field_stuff)
     }
 }

@@ -49,13 +49,11 @@ pub fn scalar_selections_fn(
     }
 }
 
-pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStream> {
+pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
     args.schema
         .db
         .walk_composite_types()
         .map(|comp_type| {
-            let comp_type_name_snake = snake_ident(comp_type.name());
-
             let scalar_selections_fn = scalar_selections_fn(comp_type, module_path);
 
             let data_struct = data::struct_definition(comp_type);
@@ -67,8 +65,9 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
                 where_params::module_part(comp_type),
             ]);
 
-            quote! {
-                pub mod #comp_type_name_snake {
+            Module::new(
+                comp_type.name(),
+                quote! {
                     use super::*;
                     use super::_prisma::*;
 
@@ -81,8 +80,8 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<TokenStrea
                     #create_fn
 
                     #order_by_enum
-                }
-            }
+                },
+            )
         })
         .collect()
 }

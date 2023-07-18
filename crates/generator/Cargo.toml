@@ -1,0 +1,36 @@
+[package]
+name = "prisma-client-rust-generator"
+version = "0.6.8"
+authors = ["Brendan Allan <brendonovich@outlook.com>"]
+edition = "2021"
+rust-version = "1.62"
+
+[features]
+specta = []
+rspc = ["specta"]
+migrations = []
+sqlite-create-many = ["prisma-client-rust-sdk/sqlite-create-many"]
+# mutation-callbacks = []
+mocking = []
+
+mysql = ["prisma-client-rust-sdk/mysql"]
+sqlite = ["prisma-client-rust-sdk/sqlite"]
+mssql = ["prisma-client-rust-sdk/mssql"]
+postgresql = ["prisma-client-rust-sdk/postgresql"]
+mongodb = ["prisma-client-rust-sdk/mongodb"]
+
+[dependencies]
+serde_json.workspace = true
+serde.workspace = true
+serde_path_to_error = "0.1.7"
+quote = "1.0.18"
+syn = "1.0.91"
+proc-macro2 = "1.0.39"
+http = "0.2.6"
+directories = "4.0.1"
+flate2 = "1.0.23"
+reqwest = { version = "0.11.10", features = ["blocking"] }
+regex = "1.5.5"
+thiserror = "1.0.37"
+
+prisma-client-rust-sdk = { path = "../sdk", default_features = false }
