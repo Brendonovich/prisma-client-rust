@@ -194,7 +194,7 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
                 ::prisma_client_rust::macros::filter!(
                     #rest,
                     { $($inner)+ }
-                );
+                )
             };
         }
         pub use #name as filter;
