@@ -15,7 +15,7 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
             RefinedFieldWalker::Relation(relation_field) => {
                 let related_model_name_snake = snake_ident(relation_field.related_model().name());
 
-                quote!(Relation(#related_model_name_snake))
+                quote!(Relation(#module_path #related_model_name_snake))
             }
         };
 
@@ -25,7 +25,7 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
     quote! {
         ::prisma_client_rust::macros::filter_factory!(
             #name,
-            #model_name_snake,
+            #module_path #model_name_snake,
             [#(#fields),*]
         );
     }

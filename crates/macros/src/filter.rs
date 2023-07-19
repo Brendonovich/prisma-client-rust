@@ -5,12 +5,12 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
-    Ident, Token,
+    Ident, Path, Token,
 };
 
 enum Arity {
     Scalar,
-    Relation(Ident),
+    Relation(Path),
 }
 
 impl Parse for Arity {
@@ -93,7 +93,7 @@ impl Parse for Filter {
 }
 
 struct Input {
-    model_name: Ident,
+    model_path: Path,
     fields: Punctuated<FieldTuple, Token![,]>,
     filter: Punctuated<Filter, Token![,]>,
 }
@@ -101,7 +101,7 @@ struct Input {
 impl Parse for Input {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            model_name: input.parse()?,
+            model_path: input.parse()?,
             fields: {
                 input.parse::<Token![,]>()?;
 
@@ -123,7 +123,7 @@ impl Parse for Input {
 
 pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let Input {
-        model_name,
+        model_path,
         fields,
         filter,
     } = parse_macro_input!(input as Input);
@@ -142,14 +142,14 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             match &field.arity {
                 Arity::Scalar => {
                     let methods = methods.into_iter().map(
-                        |Method { name, value }| quote!(#model_name::#field_name::#name(#value)),
+                        |Method { name, value }| quote!(#model_path::#field_name::#name(#value)),
                     );
 
                     quote!(#(#methods),*)
                 }
                 Arity::Relation(related_model) => {
                     let methods = methods.into_iter().map(
-						|Method { name, value }| quote!(#model_name::#field_name::#name(#related_model::filter! #value)),
+						|Method { name, value }| quote!(#model_path::#field_name::#name(#related_model::filter! #value)),
 					);
 
                     quote!(#(#methods),*)
