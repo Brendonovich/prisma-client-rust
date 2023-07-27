@@ -1,6 +1,7 @@
 mod actions;
 mod create;
 mod data;
+mod filter;
 mod include_select;
 mod order_by;
 mod pagination;
@@ -101,6 +102,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
             let types_struct = types::r#struct(model, module_path);
             let data_struct = data::r#struct(model);
             let partial_unchecked_macro = partial_unchecked::r#macro(model, &module_path);
+            let filter_macro = filter::r#macro(model, module_path);
 
             let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
 	            pub type FindRawQuery<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
@@ -114,6 +116,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
 
                     pub const NAME: &str = #model_name;
 
+                    #filter_macro
                     #field_stuff
                     #create_types
                     #types_struct
