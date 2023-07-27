@@ -2969,7 +2969,7 @@ dependencies = [
  "prisma-client-rust",
  "serde",
  "serde_json",
- "specta",
+ "specta 2.0.0-rc.1",
  "thiserror",
  "tokio",
 ]
@@ -4769,7 +4769,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
- "specta",
+ "specta 2.0.0-rc.1",
  "tempdir",
  "thiserror",
  "tokio",
@@ -4823,7 +4823,7 @@ dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
  "quote",
- "specta",
+ "specta 2.0.0-rc.1",
  "syn 1.0.109",
 ]
 
@@ -5651,7 +5651,7 @@ dependencies = [
  "futures",
  "serde",
  "serde_json",
- "specta",
+ "specta 1.0.3",
  "thiserror",
  "tokio",
 ]
@@ -6360,6 +6360,23 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95aa33f3135e656964f468db8369ac8e0b77ac957fe8cf335960202d68966d3b"
 dependencies = [
+ "document-features",
+ "indoc 1.0.9",
+ "once_cell",
+ "paste",
+ "serde",
+ "serde_json",
+ "specta-macros 1.0.3",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
+name = "specta"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "899e1de0122914c5573ca81ced566c5aaeebf2c363595ee3dfdaac58f33ea351"
+dependencies = [
  "bigdecimal",
  "chrono",
  "document-features",
@@ -6369,8 +6386,7 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
- "specta-macros",
- "tauri",
+ "specta-macros 2.0.0-rc.1",
  "thiserror",
  "uuid",
 ]
@@ -6380,6 +6396,20 @@ name = "specta-macros"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f66517b551b511fa78fa94bc553c7baf4a8d81c68a90e7458ea74f3de70acf6c"
+dependencies = [
+ "Inflector",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "termcolor",
+]
+
+[[package]]
+name = "specta-macros"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd0de71d47f9076754480433ca4fdcbde756312b56e7991ac17f2cb2435897ed"
 dependencies = [
  "Inflector",
  "itertools",
@@ -6849,7 +6879,7 @@ dependencies = [
  "prisma-client-rust",
  "serde",
  "serde_json",
- "specta",
+ "specta 2.0.0-rc.1",
  "tauri",
  "tauri-build",
  "tauri-specta",
@@ -6921,7 +6951,7 @@ dependencies = [
  "indoc 2.0.1",
  "serde",
  "serde_json",
- "specta",
+ "specta 1.0.3",
  "tauri",
  "thiserror",
 ]

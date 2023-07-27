@@ -116,12 +116,12 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
 
                     pub const NAME: &str = #model_name;
 
-                    #filter_macro
                     #field_stuff
                     #create_types
                     #types_struct
                     #data_struct
                     #partial_unchecked_macro
+                    #filter_macro
 
                     pub type UniqueArgs = #pcr::UniqueArgs<Types>;
                     pub type ManyArgs = #pcr::ManyArgs<Types>;
@@ -179,7 +179,7 @@ impl ModelModulePart {
                     use super::super::{_prisma::*, *};
                     use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
 
-					pub const NAME: &str = #field_name_str;
+					          pub const NAME: &str = #field_name_str;
 
                     #(#data)*
                 })
