@@ -256,9 +256,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
 
     let users = client
         .user()
-        .find_many(vec![user::profile::is_not(vec![profile::bio::contains(
-            "bio".to_string(),
-        )])])
+        .find_many(user::filter! { profile: { is_not: { bio: { contains: "bio".to_string() } } } })
         .exec()
         .await?;
     assert_eq!(users.len(), 1);
@@ -474,6 +472,43 @@ async fn select() -> TestResult {
     assert!(users[0].profile.is_none());
     assert!(users[1].profile.is_none());
     assert_eq!(users[0].posts.len(), 0);
+
+    cleanup(client).await
+}
+
+#[tokio::test]
+async fn filter() -> TestResult {
+    let client = client().await;
+
+    let (brendan, _, _) = client
+        ._batch((
+            client.user().create("Brendan".to_string(), vec![]),
+            client.user().create("Oscar".to_string(), vec![]),
+            client.user().create("Jamie".to_string(), vec![]),
+        ))
+        .await?;
+
+    client
+        .post()
+        .create(
+            "Test".to_string(),
+            true,
+            vec![post::author::connect(user::id::equals(brendan.id))],
+        )
+        .exec()
+        .await?;
+
+    let users = client
+        .user()
+        .find_many(user::filter! {
+            name: { equals: "Brendan".to_string() }
+        })
+        .include(user::include!({ posts }))
+        .exec()
+        .await?;
+
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].posts.len(), 1);
 
     cleanup(client).await
 }

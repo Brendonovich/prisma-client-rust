@@ -1,6 +1,7 @@
 mod actions;
 mod create;
 mod data;
+mod filter;
 mod include_select;
 mod order_by;
 mod pagination;
@@ -101,6 +102,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
             let types_struct = types::r#struct(model, module_path);
             let data_struct = data::r#struct(model);
             let partial_unchecked_macro = partial_unchecked::r#macro(model, &module_path);
+            let filter_macro = filter::r#macro(model, module_path);
 
             let mongo_raw_types = cfg!(feature = "mongodb").then(|| quote! {
 	            pub type FindRawQuery<'a, T: #pcr::Data> = #pcr::FindRaw<'a, Types, T>;
@@ -119,6 +121,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
                     #types_struct
                     #data_struct
                     #partial_unchecked_macro
+                    #filter_macro
 
                     pub type UniqueArgs = #pcr::UniqueArgs<Types>;
                     pub type ManyArgs = #pcr::ManyArgs<Types>;
@@ -176,7 +179,7 @@ impl ModelModulePart {
                     use super::super::{_prisma::*, *};
                     use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
 
-					pub const NAME: &str = #field_name_str;
+					          pub const NAME: &str = #field_name_str;
 
                     #(#data)*
                 })
