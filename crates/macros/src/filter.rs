@@ -93,7 +93,8 @@ impl Parse for Filter {
 }
 
 struct Input {
-    model_path: Path,
+    dollar_crate: Ident,
+    module_path: Path,
     fields: Punctuated<FieldTuple, Token![,]>,
     filter: Punctuated<Filter, Token![,]>,
 }
@@ -101,7 +102,11 @@ struct Input {
 impl Parse for Input {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            model_path: input.parse()?,
+            dollar_crate: input.parse()?,
+            module_path: {
+                input.parse::<Token![,]>()?;
+                input.parse()?
+            },
             fields: {
                 input.parse::<Token![,]>()?;
 
@@ -123,7 +128,8 @@ impl Parse for Input {
 
 pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let Input {
-        model_path,
+        dollar_crate,
+        module_path: model_path,
         fields,
         filter,
     } = parse_macro_input!(input as Input);
@@ -132,24 +138,26 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .into_iter()
         .map(|Filter { field, methods }| {
             let Some(field) = fields.iter().find(|schema_field| schema_field.name == field) else {
-            	return quote_spanned!(
-             		field.span() => compile_error!("expected field to be one of the model's fields")
-            	)
+            	let all_fields = fields.iter().map(|field| format!("'{}'", field.name.to_string())).collect::<Vec<_>>().join(", ");
+
+             	let error = format!("Field '{field}' not found. Available fields are {all_fields}.");
+
+            	return quote_spanned!(field.span() => compile_error!(#error))
             };
 
-            let field_name = &field.name;
+           	let field_name = &field.name;
 
             match &field.arity {
                 Arity::Scalar => {
                     let methods = methods.into_iter().map(
-                        |Method { name, value }| quote!(#model_path::#field_name::#name(#value)),
+                        |Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#value)),
                     );
 
                     quote!(#(#methods),*)
                 }
-                Arity::Relation(related_model) => {
+                Arity::Relation(related_model_path) => {
                     let methods = methods.into_iter().map(
-						|Method { name, value }| quote!(#model_path::#field_name::#name(#related_model::filter! #value)),
+						|Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#dollar_crate::#related_model_path::filter! #value)),
 					);
 
                     quote!(#(#methods),*)
@@ -170,6 +178,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     struct FactoryInput {
         name: Ident,
+        model_path: Path,
         rest: TokenStream,
     }
 
@@ -177,6 +186,10 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         fn parse(input: ParseStream) -> syn::Result<Self> {
             Ok(Self {
                 name: input.parse()?,
+                model_path: {
+                    input.parse::<Token![,]>()?;
+                    input.parse()?
+                },
                 rest: {
                     input.parse::<Token![,]>()?;
                     input.parse()?
@@ -185,13 +198,19 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         }
     }
 
-    let FactoryInput { name, rest } = parse_macro_input!(input as FactoryInput);
+    let FactoryInput {
+        name,
+        model_path,
+        rest,
+    } = parse_macro_input!(input as FactoryInput);
 
     quote! {
         #[macro_export]
         macro_rules! #name {
             ($($inner:tt)+) => {
                 ::prisma_client_rust::macros::filter!(
+                    $crate,
+                    #model_path,
                     #rest,
                     { $($inner)+ }
                 )
