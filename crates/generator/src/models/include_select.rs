@@ -386,7 +386,7 @@ fn model_macro<'a>(
 
         quote!(Selection(
             [
-                $crate::#module_path #model_name_snake::#variant_ident!(=
+                $crate::#module_path #model_name_snake::#variant_ident!(
                     @selections_to_params; : #variant_ident
                     { $(#selection_pattern_consume)+ }
                 )
