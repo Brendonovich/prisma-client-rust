@@ -30,3 +30,4 @@ convert_case = "0.6.0"
 rspc = { version = "=1.0.0-rc.5" }
 
 specta = { version = "=2.0.0-rc.1" }
+tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", branch = "v2" }

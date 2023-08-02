@@ -11,7 +11,7 @@ use prisma_client_rust_sdk::prelude::*;
 use serde::Serialize;
 
 fn default_module_path() -> String {
-    "crate::prisma".to_string()
+    "prisma".to_string()
 }
 
 #[derive(serde::Deserialize)]
