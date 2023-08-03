@@ -24,7 +24,6 @@ pub enum PrismaValue {
     Uuid(Uuid),
     List(Vec<PrismaValue>),
     Json(serde_json::Value),
-    Xml(String),
     Object(Vec<(String, PrismaValue)>),
     #[serde(serialize_with = "serialize_null")]
     Null,
@@ -82,7 +81,6 @@ impl From<prisma_models::PrismaValue> for PrismaValue {
             prisma_models::PrismaValue::Json(value) => {
                 Self::Json(serde_json::from_str(&value).unwrap())
             }
-            prisma_models::PrismaValue::Xml(value) => Self::Xml(value),
             prisma_models::PrismaValue::Object(value) => {
                 Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
@@ -105,7 +103,6 @@ impl From<PrismaValue> for prisma_models::PrismaValue {
             PrismaValue::Uuid(value) => Self::Uuid(value),
             PrismaValue::List(value) => Self::List(value.into_iter().map(Into::into).collect()),
             PrismaValue::Json(value) => Self::Json(serde_json::to_string(&value).unwrap()),
-            PrismaValue::Xml(value) => Self::Xml(value),
             PrismaValue::Object(value) => {
                 Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
             }

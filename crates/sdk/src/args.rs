@@ -139,7 +139,7 @@ impl<'a> GenerateArgs<'a> {
 
             filters.extend(scalars.iter().flat_map(|scalar| {
                 if matches!(scalar, ScalarType::Json) {
-                    let mut s = "Json".to_string();
+                    let s = "Json".to_string();
 
                     return vec![Filter {
                         name: s,

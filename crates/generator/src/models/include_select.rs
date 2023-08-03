@@ -69,7 +69,6 @@ fn model_macro<'a>(
 
     let field_type_impls = selection_fields.clone().map(|field| {
         let field_name_snake = snake_ident(field.name());
-        let field_type = field.type_tokens(module_path);
 
         let selection_type_impl = matches!(field.refine(), RefinedFieldWalker::Relation(_)).then(|| {
             let field_type = field
