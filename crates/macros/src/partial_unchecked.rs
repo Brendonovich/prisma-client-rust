@@ -1,21 +1,40 @@
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{
-    bracketed, parse::Parse, parse_macro_input, punctuated::Punctuated, ItemStruct, Path, Token,
+    bracketed,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+    ItemStruct, Path, Token,
 };
 
-struct PartialUncheckedInput {
+struct Input {
+    dollar_crate: Ident,
     model_module: Path,
-    data: ItemStruct,
+    data_struct: ItemStruct,
+    struct_name: Ident,
     selection: Punctuated<Ident, Token![,]>,
 }
 
-impl Parse for PartialUncheckedInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+impl Parse for Input {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            model_module: input.parse()?,
-            data: input.parse()?,
+            dollar_crate: input.parse()?,
+            model_module: {
+                input.parse::<Token![,]>()?;
+                input.parse()?
+            },
+            data_struct: {
+                input.parse::<Token![,]>()?;
+                input.parse()?
+            },
+            struct_name: {
+                input.parse::<Token![,]>()?;
+                input.parse()?
+            },
             selection: {
+                input.parse::<Token![,]>()?;
+
                 let content;
                 bracketed!(content in input);
                 Punctuated::<Ident, Token![,]>::parse_terminated(&content)?
@@ -25,13 +44,15 @@ impl Parse for PartialUncheckedInput {
 }
 
 pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let PartialUncheckedInput {
+    let Input {
+        dollar_crate,
         model_module,
-        data,
+        data_struct,
+        struct_name,
         selection,
-    } = parse_macro_input!(input as PartialUncheckedInput);
+    } = parse_macro_input!(input as Input);
 
-    let fields = data
+    let fields = data_struct
         .fields
         .iter()
         .filter(|f| selection.iter().any(|s| s == f.ident.as_ref().unwrap()))
@@ -45,7 +66,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             quote! {
                 #(#attrs)*
                 #specta_attrs
-                pub #ident: Option<#ty>
+                pub #ident: Option<#dollar_crate::#ty>
             }
         });
 
@@ -56,25 +77,72 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
     });
 
-    let ident = &data.ident;
-
     let selection = selection.iter().collect::<Vec<_>>();
 
     quote! {
         #[derive(serde::Deserialize)]
         #specta_attrs
         #[allow(unused)]
-        pub struct #ident {
+        pub struct #struct_name {
            #(#fields),*
         }
 
-        impl #ident {
-            pub fn to_params(self) -> Vec<#model_module::UncheckedSetParam> {
+        impl #struct_name {
+            pub fn to_params(self) -> Vec<#dollar_crate::#model_module::UncheckedSetParam> {
                 [
-                    #(self.#selection.map(#model_module::#selection::set)),*
+                    #(self.#selection.map(#dollar_crate::#model_module::#selection::set)),*
                 ].into_iter().flatten().collect()
             }
         }
+    }
+    .into()
+}
+
+pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    struct FactoryInput {
+        name: Ident,
+        model_path: Path,
+        data_struct: TokenStream,
+    }
+
+    impl Parse for FactoryInput {
+        fn parse(input: ParseStream) -> syn::Result<Self> {
+            Ok(Self {
+                name: input.parse()?,
+                model_path: {
+                    input.parse::<Token![,]>()?;
+                    input.parse()?
+                },
+                data_struct: {
+                    input.parse::<Token![,]>()?;
+                    input.parse()?
+                },
+            })
+        }
+    }
+
+    let FactoryInput {
+        name,
+        model_path,
+        data_struct,
+    } = parse_macro_input!(input as FactoryInput);
+
+    quote! {
+        #[macro_export]
+        macro_rules! #name {
+            ($struct_name:ident {
+                $($scalar_field:ident)+
+            }) => {
+                ::prisma_client_rust::macros::partial_unchecked!(
+                    $crate,
+                    #model_path,
+                    #data_struct,
+                    $struct_name,
+                    [$($scalar_field),+]
+                );
+            }
+        }
+        pub use #name as partial_unchecked;
     }
     .into()
 }
