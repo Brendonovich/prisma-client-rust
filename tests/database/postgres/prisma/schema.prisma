@@ -8,7 +8,7 @@ generator client {
     output   = "../tests/db"
 
     module_path = "crate::db"
-    clientFormat = "directory"
+    client_format = "folder"
 }
 
 model SomeModel {
