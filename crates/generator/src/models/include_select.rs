@@ -414,6 +414,8 @@ fn model_macro<'a>(
         }
     };
 
+    // let struct_fields = base_fields
+
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
@@ -502,6 +504,15 @@ fn model_macro<'a>(
             #specta_macro_arms
         }
         pub use #macro_name as #variant_ident;
+
+        ::prisma_client_rust::macros::select_include_factory!(
+            #macro_name,
+            #module_path,
+            struct Data {
+                #(#struct_fields),*
+            },
+            [#(#struct_arities),*]
+        );
     }
 }
 
