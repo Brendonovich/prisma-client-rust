@@ -400,23 +400,6 @@ fn field_set_params(
 	                    })
 	                    .collect::<TokenStream>();
 
-                    let impl_from_for_set_param =
-                        (!scalar_field.is_in_required_relation()).then(|| {
-                            quote! {
-                                impl From<UpdateOperation> for SetParam {
-                                    fn from(UpdateOperation(v): UpdateOperation) -> Self {
-                                        Self::#field_name_pascal(v)
-                                    }
-                                }
-
-                                impl From<Set> for SetParam {
-                                    fn from(Set(v): Set) -> Self {
-                                        Self::#field_name_pascal(#param_enum_path::Set(v))
-                                    }
-                                }
-                            }
-                        });
-
                     variants.push(
                         quote!(#field_name_pascal(super::_prisma::write_params::#param_enum)),
                     );
@@ -432,13 +415,23 @@ fn field_set_params(
                         quote! {
                             pub struct Set(pub #field_type);
 
-                            #impl_from_for_set_param
+                            impl From<Set> for SetParam {
+                                fn from(Set(v): Set) -> Self {
+                                    Self::#field_name_pascal(#param_enum_path::Set(v))
+                                }
+                            }
 
                             pub fn set<T: From<Set>>(value: #field_type) -> T {
                                 Set(value).into()
                             }
 
                             pub struct UpdateOperation(pub #param_enum_path);
+
+                            impl From<UpdateOperation> for SetParam {
+                                fn from(UpdateOperation(v): UpdateOperation) -> Self {
+                                    Self::#field_name_pascal(v)
+                                }
+                            }
 
                             #other_fns
                         },
