@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type DocsThemeConfig, useConfig } from "nextra-theme-docs";
+import { useConfig, type DocsThemeConfig } from "nextra-theme-docs";
 
 const NAME = "Prisma Client Rust";
 
@@ -96,5 +96,9 @@ export default {
       </>
     );
   },
+  i18n: [
+    { locale: "en", text: "English" },
+    { locale: "ru", text: "Русский" },
+  ],
   // ...
 } as DocsThemeConfig;
