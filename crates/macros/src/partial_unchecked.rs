@@ -101,19 +101,14 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     struct FactoryInput {
         name: Ident,
-        model_path: Path,
-        data_struct: TokenStream,
+        rest: TokenStream,
     }
 
     impl Parse for FactoryInput {
         fn parse(input: ParseStream) -> syn::Result<Self> {
             Ok(Self {
                 name: input.parse()?,
-                model_path: {
-                    input.parse::<Token![,]>()?;
-                    input.parse()?
-                },
-                data_struct: {
+                rest: {
                     input.parse::<Token![,]>()?;
                     input.parse()?
                 },
@@ -121,11 +116,7 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         }
     }
 
-    let FactoryInput {
-        name,
-        model_path,
-        data_struct,
-    } = parse_macro_input!(input as FactoryInput);
+    let FactoryInput { name, rest } = parse_macro_input!(input as FactoryInput);
 
     quote! {
         #[macro_export]
@@ -135,8 +126,7 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
             }) => {
                 ::prisma_client_rust::macros::partial_unchecked!(
                     $crate,
-                    #model_path,
-                    #data_struct,
+                    #rest,
                     $struct_name,
                     [$($scalar_field),+]
                 );

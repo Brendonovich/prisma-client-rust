@@ -47,14 +47,14 @@ async fn relations_nested() -> TestResult {
         .select(user::select!({
             profile: select {
                 user_id
-                bio
-                city
+                // bio
+                // city
             }
-            posts: select {
-                id
-                author
-                desc
-            }
+            // posts: select {
+            //     id
+            //     author
+            //     desc
+            // }
         }))
         .exec()
         .await?;

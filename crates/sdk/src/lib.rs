@@ -34,7 +34,10 @@ pub mod prelude {
     pub use super::{args::*, prisma::*, *};
     pub use proc_macro2::*;
     pub use quote::*;
-    pub use syn::Ident;
+    pub use syn::{
+        parse::{Parse, ParseStream},
+        Ident,
+    };
 
     pub fn ident(name: &str) -> Ident {
         format_ident!("{name}")

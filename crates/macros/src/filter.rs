@@ -8,22 +8,45 @@ use syn::{
     Ident, Path, Token,
 };
 
-enum Arity {
+#[derive(Debug)]
+pub enum RelationArity {
+    One,
+    Many,
+}
+
+impl Parse for RelationArity {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let ident = input.parse::<Ident>()?;
+
+        Ok(match ident.to_string().as_str() {
+            "One" => Self::One,
+            "Many" => Self::Many,
+            _ => return Err(syn::Error::new_spanned(ident, "expected `One` or `Many`")),
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum Arity {
     Scalar,
-    Relation(Path),
+    Relation(Path, RelationArity),
 }
 
 impl Parse for Arity {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let ident = input.parse::<Ident>()?;
 
         Ok(match ident.to_string().as_str() {
             "Scalar" => Self::Scalar,
-            "Relation" => Self::Relation({
+            "Relation" => {
                 let content;
                 parenthesized!(content in input);
-                content.parse()?
-            }),
+
+                Self::Relation(content.parse()?, {
+                    content.parse::<Token![,]>()?;
+                    content.parse()?
+                })
+            }
             _ => {
                 return Err(syn::Error::new_spanned(
                     ident,
@@ -34,13 +57,14 @@ impl Parse for Arity {
     }
 }
 
-struct FieldTuple {
-    name: Ident,
-    arity: Arity,
+#[derive(Debug)]
+pub struct FieldTuple {
+    pub name: Ident,
+    pub arity: Arity,
 }
 
 impl Parse for FieldTuple {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         parenthesized!(content in input);
 
@@ -77,7 +101,7 @@ struct Filter {
 }
 
 impl Parse for Filter {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             field: input.parse()?,
             methods: {
@@ -100,7 +124,7 @@ struct Input {
 }
 
 impl Parse for Input {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             dollar_crate: input.parse()?,
             module_path: {
@@ -155,7 +179,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
                     quote!(#(#methods),*)
                 }
-                Arity::Relation(related_model_path) => {
+                Arity::Relation(related_model_path, relation_arity) => {
                     let methods = methods.into_iter().map(
 						|Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#dollar_crate::#related_model_path::filter! #value)),
 					);
@@ -178,7 +202,6 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     struct FactoryInput {
         name: Ident,
-        model_path: Path,
         rest: TokenStream,
     }
 
@@ -186,10 +209,6 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         fn parse(input: ParseStream) -> syn::Result<Self> {
             Ok(Self {
                 name: input.parse()?,
-                model_path: {
-                    input.parse::<Token![,]>()?;
-                    input.parse()?
-                },
                 rest: {
                     input.parse::<Token![,]>()?;
                     input.parse()?
@@ -198,11 +217,7 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         }
     }
 
-    let FactoryInput {
-        name,
-        model_path,
-        rest,
-    } = parse_macro_input!(input as FactoryInput);
+    let FactoryInput { name, rest } = parse_macro_input!(input as FactoryInput);
 
     quote! {
         #[macro_export]
@@ -210,7 +225,6 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
             ($($inner:tt)+) => {
                 ::prisma_client_rust::macros::filter!(
                     $crate,
-                    #model_path,
                     #rest,
                     { $($inner)+ }
                 )

@@ -4804,6 +4804,7 @@ dependencies = [
  "directories",
  "flate2",
  "http",
+ "prisma-client-rust-generator-utils",
  "prisma-client-rust-sdk",
  "proc-macro2",
  "quote",
@@ -4817,10 +4818,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "prisma-client-rust-generator-utils"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.6.0",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "prisma-client-rust-macros"
 version = "0.6.8"
 dependencies = [
  "convert_case 0.6.0",
+ "prisma-client-rust-generator-utils",
  "proc-macro2",
  "quote",
  "specta",

@@ -1,4 +1,7 @@
-use prisma_client_rust_sdk::prisma::prisma_models::walkers::{ModelWalker, RefinedFieldWalker};
+use prisma_client_rust_sdk::prisma::prisma_models::{
+    walkers::{ModelWalker, RefinedFieldWalker},
+    FieldArity,
+};
 
 use crate::prelude::*;
 
@@ -15,7 +18,12 @@ pub fn r#macro(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
             RefinedFieldWalker::Relation(relation_field) => {
                 let related_model_name_snake = snake_ident(relation_field.related_model().name());
 
-                quote!(Relation(#module_path #related_model_name_snake))
+                let relation_arity = match &field.ast_field().arity {
+                    FieldArity::List => quote!(Many),
+                    _ => quote!(One),
+                };
+
+                quote!(Relation(#module_path #related_model_name_snake, #relation_arity))
             }
         };
 

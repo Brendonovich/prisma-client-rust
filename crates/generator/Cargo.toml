@@ -34,3 +34,4 @@ regex = "1.5.5"
 thiserror = "1.0.37"
 
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
+prisma-client-rust-generator-utils = { path = "../generator-utils" }
