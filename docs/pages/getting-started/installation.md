@@ -58,7 +58,7 @@ prisma = "run --bin <prisma binary name> --"
 
 Now you can run `cargo prisma <command>` anywhere in your project to access the CLI!
 
-This approach has some problems though: 
+This approach has some problems though:
 1. `prisma-client-rust-cli` is included as a dependency in your crate, which is likely not desirable.
 2. If your crate has errors during compilation then you aren't able to generate the client, since the CLI will also fail to compile!
 
@@ -126,7 +126,7 @@ The possible values are `postgresql`, `mysql`, `sqlite`, `mssql` and `mongodb`.
 In older versions of Prisma Client Rust,
 it was possible to `cargo install prisma-client-rust-cli` and have a global install of the CLI available to use at any time.
 This had a major problem though: Versioning. Managing multiple projects that used different versions of Prisma Client Rust got very annoying very quickly,
-plus it went against the recommmended installation instructions of Prisma Client 
+plus it went against the recommmended installation instructions of Prisma Client
 [JS](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases-typescript-postgres),
 [Go](https://github.com/prisma/prisma-client-go/blob/main/docs/quickstart.md),
 and [Python](https://prisma-client-py.readthedocs.io/en/stable/#installing-prisma-client-python).

@@ -4772,7 +4772,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.6.8"
+version = "0.6.9"
 dependencies = [
  "base64 0.13.1",
  "bigdecimal",
@@ -4807,7 +4807,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.6.8"
+version = "0.6.9"
 dependencies = [
  "directories",
  "flate2",
@@ -4826,7 +4826,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-macros"
-version = "0.6.8"
+version = "0.6.9"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -4837,7 +4837,7 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-sdk"
-version = "0.6.8"
+version = "0.6.9"
 dependencies = [
  "convert_case 0.5.0",
  "dml",
