@@ -1,82 +1,13 @@
+use prisma_client_rust_generator_utils::{Arity, FieldTuple};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
-    braced, bracketed, parenthesized,
+    braced, bracketed,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     Ident, Path, Token,
 };
-
-#[derive(Debug)]
-pub enum RelationArity {
-    One,
-    Many,
-}
-
-impl Parse for RelationArity {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let ident = input.parse::<Ident>()?;
-
-        Ok(match ident.to_string().as_str() {
-            "One" => Self::One,
-            "Many" => Self::Many,
-            _ => return Err(syn::Error::new_spanned(ident, "expected `One` or `Many`")),
-        })
-    }
-}
-
-#[derive(Debug)]
-pub enum Arity {
-    Scalar,
-    Relation(Path, RelationArity),
-}
-
-impl Parse for Arity {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let ident = input.parse::<Ident>()?;
-
-        Ok(match ident.to_string().as_str() {
-            "Scalar" => Self::Scalar,
-            "Relation" => {
-                let content;
-                parenthesized!(content in input);
-
-                Self::Relation(content.parse()?, {
-                    content.parse::<Token![,]>()?;
-                    content.parse()?
-                })
-            }
-            _ => {
-                return Err(syn::Error::new_spanned(
-                    ident,
-                    "expected `Scalar` or `Relation`",
-                ))
-            }
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct FieldTuple {
-    pub name: Ident,
-    pub arity: Arity,
-}
-
-impl Parse for FieldTuple {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        parenthesized!(content in input);
-
-        Ok(Self {
-            name: content.parse()?,
-            arity: {
-                content.parse::<Token![,]>()?;
-                content.parse()?
-            },
-        })
-    }
-}
 
 struct Method {
     name: Ident,
@@ -179,7 +110,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
                     quote!(#(#methods),*)
                 }
-                Arity::Relation(related_model_path, relation_arity) => {
+                Arity::Relation(related_model_path, _) => {
                     let methods = methods.into_iter().map(
 						|Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#dollar_crate::#related_model_path::filter! #value)),
 					);

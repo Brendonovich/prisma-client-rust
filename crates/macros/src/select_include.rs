@@ -1,8 +1,9 @@
 use convert_case::{Case, Casing};
+use prisma_client_rust_generator_utils::select_include::SelectableFields;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::{
-    braced, bracketed, parenthesized,
+    braced, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -10,8 +11,9 @@ use syn::{
     Field, FnArg, Ident, ItemStruct, Path, Token,
 };
 
-use crate::filter::{Arity, FieldTuple, RelationArity};
-pub use prisma_client_rust_generator_utils::select_include::Variant;
+pub use prisma_client_rust_generator_utils::{
+    select_include::Variant, Arity, FieldTuple, RelationArity,
+};
 
 #[derive(Debug)]
 struct SelectionArg {
@@ -231,7 +233,7 @@ struct Input {
     dollar: Ident,
     model_path: Path,
     schema_struct: ItemStruct,
-    selectable_fields: Vec<FieldTuple>,
+    selectable_fields: SelectableFields,
     macro_rules: MacroRulesInput,
 }
 
@@ -250,11 +252,7 @@ impl Parse for Input {
             selectable_fields: {
                 input.parse::<Token![,]>()?;
 
-                let contents;
-                bracketed!(contents in input);
-                Punctuated::<FieldTuple, Token![,]>::parse_terminated(&contents)?
-                    .into_iter()
-                    .collect()
+                input.parse()?
             },
             macro_rules: {
                 input.parse::<Token![,]>()?;
@@ -273,10 +271,13 @@ pub fn proc_macro(input: proc_macro::TokenStream, variant: Variant) -> proc_macr
     let Input { macro_rules, .. } = &input;
 
     match &macro_rules.section {
-        Some(Section::Definitions) => quote!(), // definitions(&input, variant),
-        Some(Section::SelectionToParams) => quote!(),
+        Some(Section::Definitions) => definitions(&input),
+        Some(Section::SelectionToParams) => {
+            let params = selection_to_params(&input, variant);
+            quote!([#(#params),*])
+        }
         None => {
-            let definitions = definitions(&input, variant);
+            let definitions = definitions(&input);
             let selection_struct = selection_struct(&input, variant);
             let selection = selection(&input, variant);
 
@@ -320,7 +321,7 @@ pub fn proc_macro(input: proc_macro::TokenStream, variant: Variant) -> proc_macr
     .into()
 }
 
-fn definitions(input: &Input, variant: Variant) -> TokenStream {
+fn definitions(input: &Input) -> TokenStream {
     let Input {
         dollar,
         model_path,
@@ -388,9 +389,9 @@ fn definitions(input: &Input, variant: Variant) -> TokenStream {
 
 	                    let value = quote! {
 	                        pub mod #ident {
-	                            #dollar::#relation_model_path::#variant!(
+	                            #dollar::#relation_model_path::#variant! {
 									definitions @ #sub_selection
-								);
+								}
 	                        }
 	                    };
 
@@ -439,6 +440,29 @@ fn selection_struct(input: &Input, variant: Variant) -> TokenStream {
 
 fn selection(input: &Input, variant: Variant) -> TokenStream {
     let Input {
+        dollar, model_path, ..
+    } = input;
+
+    let scalar_selections = matches!(variant, Variant::Include).then(|| {
+        quote! {
+            <#dollar::#model_path::Types as ::prisma_client_rust::ModelTypes>::scalar_selections()
+        }
+    }).unwrap_or_else(|| quote!(Vec::<::prisma_client_rust::Selection>::new()));
+
+    let selected_selections = selection_to_params(input, variant);
+
+    quote! {
+        Selection(
+            #scalar_selections
+                .into_iter()
+                .chain([#(#selected_selections),*].into_iter().map(Into::into))
+                .collect()
+        )
+    }
+}
+
+fn selection_to_params(input: &Input, variant: Variant) -> Vec<TokenStream> {
+    let Input {
         dollar,
         model_path,
         macro_rules,
@@ -449,88 +473,75 @@ fn selection(input: &Input, variant: Variant) -> TokenStream {
     let variant_param = variant.param();
     let variant_pascal = format_ident!("{}", variant.to_string().to_case(Case::Pascal));
 
-    // let scalar_selections = matches!(variant, Variant::Include).then(|| {
-    //     quote! {
-    //         <#dollar::#model_path::Types as ::prisma_client_rust::ModelTypes>::scalar_selections()
-    //     }
-    // }).unwrap_or_else(|| quote!(Vec::<::prisma_client_rust::Selection>::new()));
+    macro_rules
+        .selection
+        .iter()
+        .map(
+            |SelectionItem {
+                 name,
+                 filters,
+                 args,
+                 sub_selection,
+             }| {
+                let Some(selectable_item) = selectable_fields
+				.iter()
+				.find(|field| &field.name == name) else {
+					return quote_spanned!(name.span() => compile_error!("Field not found in selectable fields"))
+				};
 
-    // let selected_selections = {
-    //     macro_rules.selection.iter().map(
-    //         |SelectionItem {
-    //              name,
-    //              filters,
-    //              args,
-    //              sub_selection,
-    //          }| {
-    //             let Some(selectable_item) = selectable_fields
-    // 	.iter()
-    // 	.find(|field| &field.name == name) else {
-    // 		return quote_spanned!(name.span() => compile_error!("Field not found in selectable fields"))
-    // 	};
+                let into = quote!(Into::<#dollar::#model_path::#variant_param>::into);
+                let variant_type_path = quote!(#dollar::#model_path::#name::#variant_pascal);
 
-    //             let into = quote!(Into::<#dollar::#model_path::#variant_param>::into);
-    //             let variant_type_path = quote!(#dollar::#model_path::#variant_pascal);
+                let filters = filters
+                    .as_ref()
+                    .map(|s| quote!(#s))
+                    .unwrap_or_else(|| quote!(vec![]));
 
-    //             match &selectable_item.arity {
-    //                 Arity::Scalar => quote! {
-    //                     #into(#variant_type_path)
-    //                 },
-    //                 Arity::Relation(relation_model_path, relation_arity) => {
-    //                     match (relation_arity, sub_selection) {
-    //                         (RelationArity::One, None) => quote! {
-    //                             #into(#variant_type_path::Fetch)
-    //                         },
-    //                         (RelationArity::One, Some((selection_variant, selection))) => quote! {
-    //                             #into(
-    //                                 #variant_type_path::#selection_variant(
-    //                                     #dollar::#relation_model_path::#selection_variant!(
-    //                                         selection_to_params @ #selection
-    //                                     ).into_iter().collect()
-    //                                 )
-    //                             )
-    //                         },
-    //                         (RelationArity::Many, None) => quote! {
-    //                             #into(
-    //                                 #variant_type_path::Fetch(
-    //                                     #dollar::#relation_model_path::ManyArgs::new(
-    //                                         #dollar::#relation_model_path::#variant!(
-    //                                             filters_to_args @ #filters #(#args)*
-    //                                         )
-    //                                     )
-    //                                 )
-    //                             )
-    //                         },
-    //                         (RelationArity::Many, Some((selection_variant, selection))) => quote! {
-    //                             #into(
-    //                                 #variant_type_path::#selection_variant(
-    //                                     #dollar::#relation_model_path::ManyArgs::new(
-    //                                         #dollar::#relation_model_path::#selection_variant!(
-    //                                             filters_to_args @ #filters #(#args)*
-    //                                         )
-    //                                     ),
-    //                                     #dollar::#relation_model_path::#selection_variant!(
-    //                                         selection_to_params @ #selection
-    //                                     ).into_iter().collect()
-    //                                 )
-    //                             )
-    //                         },
-    //                     }
-    //                 }
-    //             }
-    //         },
-    //     )
-    // };
-
-    quote! {
-        Selection(
-            Vec::<::prisma_client_rust::Selection>::new()
-            // #scalar_selections
-                // .into_iter()
-                // .chain([#(#selected_selections),*].into_iter().map(Into::into))
-                // .collect()
+                match &selectable_item.arity {
+                    Arity::Scalar => quote! {
+                        #into(#variant_type_path)
+                    },
+                    Arity::Relation(relation_model_path, relation_arity) => {
+                        match (relation_arity, sub_selection) {
+                            (RelationArity::One, None) => quote! {
+                                #into(#variant_type_path::Fetch)
+                            },
+                            (RelationArity::One, Some((selection_variant, selection))) => quote! {
+                                #into(
+                                    #variant_type_path::#selection_variant(
+                                        #dollar::#relation_model_path::#selection_variant! {
+                                            selection_to_params @ #selection
+                                        }.into_iter().collect()
+                                    )
+                                )
+                            },
+                            (RelationArity::Many, None) => quote! {
+                                #into(
+                                    #variant_type_path::Fetch(
+                                        #dollar::#relation_model_path::ManyArgs::new(
+                                            #filters
+                                        ) #(#args)*
+                                    )
+                                )
+                            },
+                            (RelationArity::Many, Some((selection_variant, selection))) => quote! {
+                                #into(
+                                    #variant_type_path::#selection_variant(
+                                        #dollar::#relation_model_path::ManyArgs::new(
+                                            #filters
+                                        ) #(#args)*,
+                                        #dollar::#relation_model_path::#selection_variant! {
+                                            selection_to_params @ #selection
+                                        }.into_iter().collect()
+                                    )
+                                )
+                            },
+                        }
+                    }
+                }
+            },
         )
-    }
+        .collect()
 }
 
 struct FactoryInput {
@@ -571,11 +582,11 @@ pub fn proc_macro_factory(
         #[macro_export]
         macro_rules! #internal_name {
             ($($input:tt)+) => {
-                ::prisma_client_rust::macros::#variant!(
+                ::prisma_client_rust::macros::#variant! {
                     $crate,
                     #rest,
                     { $($input)+ }
-                )
+                }
             };
         }
         pub use #internal_name as #public_name;

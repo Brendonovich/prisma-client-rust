@@ -24,7 +24,7 @@ serde_json.workspace = true
 serde.workspace = true
 serde_path_to_error = "0.1.7"
 quote = "1.0.18"
-syn = "1.0.91"
+syn = { version = "1.0.91", features = ["full"] }
 proc-macro2 = "1.0.39"
 http = "0.2.6"
 directories = "4.0.1"

@@ -2,9 +2,13 @@ use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
+    bracketed,
     parse::{Parse, ParseStream},
-    Ident,
+    punctuated::Punctuated,
+    Ident, Token,
 };
+
+use crate::FieldTuple;
 
 mod kw {
     syn::custom_keyword!(select);
@@ -54,5 +58,35 @@ impl ToTokens for Variant {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ident = format_ident!("{self}");
         tokens.extend(quote!(#ident));
+    }
+}
+
+#[derive(Debug)]
+pub struct SelectableFields(pub Vec<FieldTuple>);
+
+impl Parse for SelectableFields {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let contents;
+        bracketed!(contents in input);
+
+        Ok(Self(
+            Punctuated::<FieldTuple, Token![,]>::parse_terminated(&contents)?
+                .into_iter()
+                .collect(),
+        ))
+    }
+}
+
+impl ToTokens for SelectableFields {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let Self(fields) = self;
+
+        tokens.extend(quote!([#(#fields),*]))
+    }
+}
+
+impl SelectableFields {
+    pub fn iter(&self) -> impl Iterator<Item = &FieldTuple> {
+        self.0.iter()
     }
 }

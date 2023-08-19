@@ -1,8 +1,12 @@
-use prisma_client_rust_generator_utils::select_include::Variant;
+use prisma_client_rust_generator_utils::{
+    select_include::{SelectableFields, Variant},
+    Arity, FieldTuple, RelationArity,
+};
 use prisma_client_rust_sdk::prisma::prisma_models::{
     walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
     FieldArity,
 };
+use syn::{parse_quote, ItemStruct};
 
 use crate::prelude::*;
 
@@ -15,17 +19,13 @@ fn model_macro<'a>(
     // Fields that can be picked from
     selection_fields: impl Iterator<Item = FieldWalker<'a>> + Clone,
 ) -> TokenStream {
-    let model_name_pascal_str = pascal_ident(model.name()).to_string();
     let model_name_snake = snake_ident(model.name());
     let model_name_snake_raw = snake_ident_raw(model.name());
     let macro_name = format_ident!("_{variant}_{model_name_snake_raw}");
 
-    let variant_ident = format_ident!("{variant}");
-    let variant_pascal = pascal_ident(&variant.to_string());
-
     let factory_name = format_ident!("{variant}_factory");
 
-    let data_struct = {
+    let data_struct: ItemStruct = {
         let fields = model.fields().map(|field| {
             let field_name_str = field.name();
             let field_name_snake = snake_ident(field_name_str);
@@ -36,42 +36,49 @@ fn model_macro<'a>(
             }
         });
 
-        quote! {
+        parse_quote! {
             struct Data {
                 #(#fields),*
             }
         }
     };
 
-    let selectable_fields = {
-        let fields = selection_fields.clone().map(|field| {
-            let field_name_snake = snake_ident(field.name());
+    let selectable_fields = SelectableFields(
+        selection_fields
+            .clone()
+            .map(|field| {
+                let field_name_snake = snake_ident(field.name());
 
-            let arity = match field.refine() {
-                RefinedFieldWalker::Scalar(_) => quote!(Scalar),
-                RefinedFieldWalker::Relation(relation_field) => {
-                    let related_model_name_snake =
-                        snake_ident(relation_field.related_model().name());
+                let arity = match field.refine() {
+                    RefinedFieldWalker::Scalar(_) => Arity::Scalar,
+                    RefinedFieldWalker::Relation(relation_field) => {
+                        let related_model_name_snake =
+                            snake_ident(relation_field.related_model().name());
 
-                    let relation_arity = match &field.ast_field().arity {
-                        FieldArity::List => quote!(Many),
-                        _ => quote!(One),
-                    };
+                        let relation_arity = match &field.ast_field().arity {
+                            FieldArity::List => RelationArity::Many,
+                            _ => RelationArity::One,
+                        };
 
-                    quote!(Relation(#module_path #related_model_name_snake, #relation_arity))
+                        Arity::Relation(
+                            parse_quote!(#module_path #related_model_name_snake),
+                            relation_arity,
+                        )
+                    }
+                };
+
+                FieldTuple {
+                    name: field_name_snake,
+                    arity,
                 }
-            };
-
-            quote!((#field_name_snake, #arity))
-        });
-
-        quote!([#(#fields),*])
-    };
+            })
+            .collect(),
+    );
 
     quote! {
         ::prisma_client_rust::macros::#factory_name!(
             #macro_name,
-            #variant_ident,
+            #variant,
             #module_path #model_name_snake,
             #data_struct,
             #selectable_fields
