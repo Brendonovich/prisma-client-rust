@@ -2,10 +2,10 @@ mod actions;
 mod create;
 mod data;
 mod filter;
-mod include_select;
 mod order_by;
 mod pagination;
 mod partial_unchecked;
+mod select_include;
 mod set_params;
 mod types;
 mod where_params;
@@ -13,7 +13,6 @@ mod with_params;
 
 use std::collections::BTreeMap;
 
-use include_select::*;
 use prisma_client_rust_sdk::{
     prelude::*,
     prisma::{
@@ -21,6 +20,7 @@ use prisma_client_rust_sdk::{
         psl::parser_database::ScalarFieldType,
     },
 };
+use select_include::*;
 
 pub struct RequiredField<'a> {
     pub push_wrapper: TokenStream,

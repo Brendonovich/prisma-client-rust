@@ -1,6 +1,6 @@
 use prisma_client_rust_generator_shared::select_include::{SelectableFields, Variant};
 use prisma_client_rust_sdk::prisma::prisma_models::{
-    walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
+    walkers::{FieldWalker, ModelWalker, RefinedFieldWalker},
     FieldArity,
 };
 use syn::{parse_quote, ItemStruct};
@@ -11,8 +11,6 @@ fn model_macro<'a>(
     model: ModelWalker<'a>,
     module_path: &TokenStream,
     variant: Variant,
-    // Fields that should always be included
-    base_fields: impl Iterator<Item = ScalarFieldWalker<'a>> + Clone,
     // Fields that can be picked from
     selection_fields: impl Iterator<Item = FieldWalker<'a>> + Clone,
 ) -> TokenStream {
@@ -235,11 +233,6 @@ pub mod include {
             module_path,
             Variant::Include,
             model
-                .scalar_fields()
-                .filter(|f| !f.scalar_field_type().is_unsupported())
-                .collect::<Vec<_>>()
-                .into_iter(),
-            model
                 .fields()
                 .filter(|f| matches!(f.refine(), RefinedFieldWalker::Relation(_))),
         );
@@ -275,7 +268,6 @@ pub mod select {
             model,
             module_path,
             Variant::Select,
-            vec![].into_iter(),
             model
                 .fields()
                 .filter(|f| f.ast_field().field_type.as_unsupported().is_none()),
