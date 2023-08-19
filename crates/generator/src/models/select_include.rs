@@ -12,7 +12,7 @@ fn model_macro<'a>(
     module_path: &TokenStream,
     variant: Variant,
     // Fields that can be picked from
-    selection_fields: impl Iterator<Item = FieldWalker<'a>> + Clone,
+    selection_fields: impl Iterator<Item = FieldWalker<'a>>,
 ) -> TokenStream {
     let model_name_snake = snake_ident(model.name());
     let model_name_snake_raw = snake_ident_raw(model.name());
@@ -38,7 +38,7 @@ fn model_macro<'a>(
         }
     };
 
-    let selectable_fields = SelectableFields::new(selection_fields.clone(), module_path);
+    let selectable_fields = SelectableFields::new(selection_fields, module_path);
 
     quote! {
         ::prisma_client_rust::macros::#factory_name!(

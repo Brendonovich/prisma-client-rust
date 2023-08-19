@@ -1,4 +1,4 @@
-use prisma_client_rust_generator_shared::{select_include::SelectableFields, Arity, FieldTuple};
+use prisma_client_rust_generator_shared::{select_include::SelectableFields, Arity};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
@@ -102,14 +102,20 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             match &field.arity {
                 Arity::Scalar => {
                     let methods = methods.into_iter().map(
-                        |Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#value)),
+                        |Method { name, value }| quote! {
+                        	#dollar_crate::#model_path::#field_name::#name(#value)
+                        },
                     );
 
                     quote!(#(#methods),*)
                 }
                 Arity::Relation(related_model_path, _) => {
                     let methods = methods.into_iter().map(
-						|Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#dollar_crate::#related_model_path::filter! #value)),
+						|Method { name, value }| quote! {
+							#dollar_crate::#model_path::#field_name::#name(
+								#dollar_crate::#related_model_path::filter! #value
+							)
+						},
 					);
 
                     quote!(#(#methods),*)
@@ -118,12 +124,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         })
         .collect::<Vec<_>>();
 
-    quote! {
-        vec![
-            #(#items),*
-        ]
-    }
-    .into()
+    quote!(vec![#(#items),*]).into()
 }
 
 // factory means rustfmt can work!
