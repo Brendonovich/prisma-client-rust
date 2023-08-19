@@ -2,10 +2,10 @@ mod arg;
 mod filters;
 mod item;
 
-use convert_case::{Case, Casing};
+use convert_case::*;
 use prisma_client_rust_generator_shared::{select_include::Variant, Arity, RelationArity};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, quote_spanned};
+use quote::*;
 use syn::{
     braced,
     parse::{Parse, ParseStream},

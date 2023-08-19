@@ -1,11 +1,10 @@
 use prisma_client_rust_generator_shared::select_include::Variant;
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::*;
 use syn::{
-    braced,
     parse::{Parse, ParseStream},
     token::Paren,
-    Ident, Token,
+    *,
 };
 
 use super::*;

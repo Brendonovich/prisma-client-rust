@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::*;
 use syn::{
     parse::{Parse, ParseStream},
     Ident,

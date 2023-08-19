@@ -1,6 +1,6 @@
 use prisma_client_rust_sdk::prisma::prisma_models::walkers::FieldWalker;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::*;
 use syn::{
     bracketed,
     parse::{Parse, ParseStream},

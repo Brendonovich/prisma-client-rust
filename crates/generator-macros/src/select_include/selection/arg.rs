@@ -1,9 +1,8 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::*;
 use syn::{
-    parenthesized,
     parse::{Parse, ParseStream},
-    Ident, Token,
+    *,
 };
 
 #[derive(Debug)]

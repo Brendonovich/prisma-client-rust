@@ -3,14 +3,12 @@ mod selection;
 
 use prisma_client_rust_generator_shared::select_include::SelectableFields;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::*;
 use syn::{
-    braced, parenthesized,
     parse::{Parse, ParseStream},
-    parse_macro_input,
     punctuated::Punctuated,
     token::Paren,
-    FnArg, Ident, ItemStruct, Path, Token,
+    *,
 };
 
 use definitions::*;
