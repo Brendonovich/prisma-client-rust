@@ -1,9 +1,16 @@
+use prisma_client_rust_sdk::{
+    prelude::*,
+    prisma::prisma_models::{
+        walkers::{FieldWalker, RefinedFieldWalker},
+        FieldArity,
+    },
+};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
-    Ident, Path, Token,
+    parse_quote, Ident, Path, Token,
 };
 
 pub mod select_include;
@@ -79,6 +86,34 @@ impl ToTokens for Arity {
 pub struct FieldTuple {
     pub name: Ident,
     pub arity: Arity,
+}
+
+impl FieldTuple {
+    pub fn new(field: FieldWalker, module_path: &TokenStream) -> Self {
+        let field_name_snake = snake_ident(field.name());
+
+        let arity = match field.refine() {
+            RefinedFieldWalker::Scalar(_) => Arity::Scalar,
+            RefinedFieldWalker::Relation(relation_field) => {
+                let related_model_name_snake = snake_ident(relation_field.related_model().name());
+
+                let relation_arity = match &field.ast_field().arity {
+                    FieldArity::List => RelationArity::Many,
+                    _ => RelationArity::One,
+                };
+
+                Arity::Relation(
+                    parse_quote!(#module_path #related_model_name_snake),
+                    relation_arity,
+                )
+            }
+        };
+
+        FieldTuple {
+            name: field_name_snake,
+            arity,
+        }
+    }
 }
 
 impl Parse for FieldTuple {

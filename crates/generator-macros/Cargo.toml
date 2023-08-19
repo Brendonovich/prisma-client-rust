@@ -1,5 +1,5 @@
 [package]
-name = "prisma-client-rust-macros"
+name = "prisma-client-rust-generator-macros"
 version = "0.6.8"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-prisma-client-rust-generator-utils = { path = "../generator-utils" }
+prisma-client-rust-generator-shared = { path = "../generator-shared" }
 convert_case.workspace = true
 proc-macro2 = "1.0.39"
 quote = "1.0.18"

@@ -8,7 +8,7 @@ rust-version = "1.62"
 
 [features]
 rspc = ["dep:rspc", "specta"]
-specta = ["dep:specta", "prisma-client-rust-macros/specta"]
+specta = ["dep:specta", "prisma-client-rust-generator-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
 migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:tracing"]
 mocking = ["tokio"]
@@ -34,7 +34,7 @@ base64 = "0.13.0"
 tokio = { version = "1.21.0", optional = true }
 futures = "0.3"
 paste = "1.0.11"
-prisma-client-rust-macros = { path = "../macros" }
+prisma-client-rust-generator-macros = { path = "../generator-macros" }
 
 prisma-models = { workspace = true }
 user-facing-errors = { workspace = true }

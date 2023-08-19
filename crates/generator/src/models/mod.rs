@@ -84,7 +84,6 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
         .walk_models()
         .map(|model| {
             let model_name = model.name();
-            let model_name_snake = snake_ident(model_name);
 
             let actions_struct = actions::struct_definition(model, args);
 

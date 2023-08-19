@@ -1,8 +1,8 @@
-use prisma_client_rust_generator_utils::{Arity, FieldTuple};
+use prisma_client_rust_generator_shared::{select_include::SelectableFields, Arity, FieldTuple};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
-    braced, bracketed,
+    braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -50,7 +50,7 @@ impl Parse for Filter {
 struct Input {
     dollar_crate: Ident,
     module_path: Path,
-    fields: Punctuated<FieldTuple, Token![,]>,
+    fields: SelectableFields,
     filter: Punctuated<Filter, Token![,]>,
 }
 
@@ -64,10 +64,7 @@ impl Parse for Input {
             },
             fields: {
                 input.parse::<Token![,]>()?;
-
-                let content;
-                bracketed!(content in input);
-                Punctuated::parse_terminated(&content)?
+                input.parse()?
             },
             filter: {
                 input.parse::<Token![,]>()?;

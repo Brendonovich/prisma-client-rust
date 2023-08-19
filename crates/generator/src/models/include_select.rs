@@ -1,7 +1,4 @@
-use prisma_client_rust_generator_utils::{
-    select_include::{SelectableFields, Variant},
-    Arity, FieldTuple, RelationArity,
-};
+use prisma_client_rust_generator_shared::select_include::{SelectableFields, Variant};
 use prisma_client_rust_sdk::prisma::prisma_models::{
     walkers::{FieldWalker, ModelWalker, RefinedFieldWalker, ScalarFieldWalker},
     FieldArity,
@@ -43,37 +40,7 @@ fn model_macro<'a>(
         }
     };
 
-    let selectable_fields = SelectableFields(
-        selection_fields
-            .clone()
-            .map(|field| {
-                let field_name_snake = snake_ident(field.name());
-
-                let arity = match field.refine() {
-                    RefinedFieldWalker::Scalar(_) => Arity::Scalar,
-                    RefinedFieldWalker::Relation(relation_field) => {
-                        let related_model_name_snake =
-                            snake_ident(relation_field.related_model().name());
-
-                        let relation_arity = match &field.ast_field().arity {
-                            FieldArity::List => RelationArity::Many,
-                            _ => RelationArity::One,
-                        };
-
-                        Arity::Relation(
-                            parse_quote!(#module_path #related_model_name_snake),
-                            relation_arity,
-                        )
-                    }
-                };
-
-                FieldTuple {
-                    name: field_name_snake,
-                    arity,
-                }
-            })
-            .collect(),
-    );
+    let selectable_fields = SelectableFields::new(selection_fields.clone(), module_path);
 
     quote! {
         ::prisma_client_rust::macros::#factory_name!(

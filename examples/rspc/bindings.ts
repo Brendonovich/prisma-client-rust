@@ -6,13 +6,13 @@ export type Procedures = {
         { key: "posts", input: never, result: Post[] } | 
         { key: "userNames", input: never, result: { displayName: string }[] } | 
         { key: "users", input: never, result: User[] } | 
-        { key: "usersWithPosts", input: never, result: { id: string; displayName: string; posts: { id: string; content: string; user: { id: string; displayName: string } }[] }[] },
+        { key: "usersWithPosts", input: never, result: { id: string; displayName: string; posts: Post[] }[] },
     mutations: never,
     subscriptions: never
 };
 
+export type NamedUserInclude = { id: string; displayName: string; posts: Post[] }
+
 export type Post = { id: string; content: string; userId: string }
 
 export type User = { id: string; displayName: string }
-
-export type NamedUserInclude = { id: string; displayName: string; posts: Post[] }

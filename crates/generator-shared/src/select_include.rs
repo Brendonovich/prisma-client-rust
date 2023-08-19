@@ -1,4 +1,5 @@
 use convert_case::{Case, Casing};
+use prisma_client_rust_sdk::prisma::prisma_models::walkers::FieldWalker;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
@@ -62,7 +63,20 @@ impl ToTokens for Variant {
 }
 
 #[derive(Debug)]
-pub struct SelectableFields(pub Vec<FieldTuple>);
+pub struct SelectableFields(Vec<FieldTuple>);
+
+impl SelectableFields {
+    pub fn new<'a>(
+        fields: impl Iterator<Item = FieldWalker<'a>>,
+        module_path: &TokenStream,
+    ) -> Self {
+        Self(
+            fields
+                .map(|field| FieldTuple::new(field, module_path))
+                .collect(),
+        )
+    }
+}
 
 impl Parse for SelectableFields {
     fn parse(input: ParseStream) -> syn::Result<Self> {

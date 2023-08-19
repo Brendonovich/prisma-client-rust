@@ -1,5 +1,5 @@
 use convert_case::{Case, Casing};
-use prisma_client_rust_generator_utils::select_include::SelectableFields;
+use prisma_client_rust_generator_shared::select_include::SelectableFields;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::{
@@ -11,7 +11,7 @@ use syn::{
     Field, FnArg, Ident, ItemStruct, Path, Token,
 };
 
-pub use prisma_client_rust_generator_utils::{
+pub use prisma_client_rust_generator_shared::{
     select_include::Variant, Arity, FieldTuple, RelationArity,
 };
 
