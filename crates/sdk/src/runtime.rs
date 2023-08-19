@@ -137,6 +137,8 @@ impl GeneratorMetadata {
             ClientFormat::File => write_to_file(&root_module.flatten(), root_output_path, &header),
         }
 
+        rustfmt(&root_module.get_all_paths(root_output_path));
+
         Ok(())
     }
 }
@@ -176,8 +178,6 @@ fn write_to_file(contents: &TokenStream, path: &Path, header: &str) {
 
     file.write((header.to_string() + &contents.to_string()).as_bytes())
         .unwrap();
-
-    rustfmt(path);
 }
 
 fn create_generated_file(path: &Path) -> Result<File, GeneratorError> {

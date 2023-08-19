@@ -8,6 +8,8 @@ mod runtime;
 mod shared_config;
 mod utils;
 
+use std::path::{Path, PathBuf};
+
 use proc_macro2::TokenStream;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map, Value};
@@ -89,12 +91,12 @@ impl Module {
         self.submodules.push(submodule);
     }
 
-    pub fn flatten(self) -> TokenStream {
-        let contents = self.contents;
+    pub fn flatten(&self) -> TokenStream {
+        let contents = &self.contents;
 
         let submodule_contents = self
             .submodules
-            .into_iter()
+            .iter()
             .map(|sm| {
                 let name = snake_ident(&sm.name);
                 let contents = sm.flatten();
@@ -111,6 +113,19 @@ impl Module {
             #contents
 
             #(#submodule_contents)*
+        }
+    }
+
+    pub fn get_all_paths(&self, parent_path: &Path) -> Vec<PathBuf> {
+        if self.submodules.len() > 0 {
+            self.submodules
+                .iter()
+                .flat_map(|sm| {
+                    sm.get_all_paths(&parent_path.join(&sm.name.to_case(Case::Snake, true)))
+                })
+                .collect()
+        } else {
+            vec![parent_path.with_extension("rs")]
         }
     }
 }
