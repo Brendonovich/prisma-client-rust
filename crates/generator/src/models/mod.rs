@@ -2,10 +2,10 @@ mod actions;
 mod create;
 mod data;
 mod filter;
-mod include_select;
 mod order_by;
 mod pagination;
 mod partial_unchecked;
+mod select_include;
 mod set_params;
 mod types;
 mod where_params;
@@ -13,7 +13,6 @@ mod with_params;
 
 use std::collections::BTreeMap;
 
-use include_select::*;
 use prisma_client_rust_sdk::{
     prelude::*,
     prisma::{
@@ -21,6 +20,7 @@ use prisma_client_rust_sdk::{
         psl::parser_database::ScalarFieldType,
     },
 };
+use select_include::*;
 
 pub struct RequiredField<'a> {
     pub push_wrapper: TokenStream,
@@ -84,7 +84,6 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
         .walk_models()
         .map(|model| {
             let model_name = model.name();
-            let model_name_snake = snake_ident(model_name);
 
             let actions_struct = actions::struct_definition(model, args);
 

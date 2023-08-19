@@ -1,0 +1,12 @@
+[package]
+name = "prisma-client-rust-generator-shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+convert_case.workspace = true
+proc-macro2 = "1.0.39"
+quote = "1.0.18"
+syn = { version = "1.0.91", features = ["extra-traits"] }
+
+prisma-client-rust-sdk = { path = "../sdk" }

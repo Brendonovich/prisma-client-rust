@@ -1,5 +1,3 @@
-use prisma_client_rust::or;
-
 use crate::{db::*, utils::*};
 
 #[tokio::test]
@@ -64,7 +62,7 @@ async fn relation() -> TestResult {
             .exec()
             .await?;
 
-        let post = client
+        client
             .post()
             .create(
                 format!("Some Post {index}"),

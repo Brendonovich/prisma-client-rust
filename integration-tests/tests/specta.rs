@@ -11,7 +11,7 @@ fn ts_export() {
 
     let ts = specta::ts::export::<user_include::Data>(&Default::default()).unwrap();
 
-    assert_eq!(ts, "export type UserInclude = { id: string; name: string; email: string | null; createdAt: string; underscored_: number | null; posts: Post[] }");
+    assert_eq!(ts, "export type UserInclude = { id: string; name: string; email: string | null; createdAt: string; posts: Post[]; underscored_: number | null }");
 
     user::select!(user_select { id posts });
 

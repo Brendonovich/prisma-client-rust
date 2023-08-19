@@ -1,58 +1,13 @@
+use prisma_client_rust_generator_shared::{select_include::SelectableFields, Arity};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
-    braced, bracketed, parenthesized,
+    braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     Ident, Path, Token,
 };
-
-enum Arity {
-    Scalar,
-    Relation(Path),
-}
-
-impl Parse for Arity {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let ident = input.parse::<Ident>()?;
-
-        Ok(match ident.to_string().as_str() {
-            "Scalar" => Self::Scalar,
-            "Relation" => Self::Relation({
-                let content;
-                parenthesized!(content in input);
-                content.parse()?
-            }),
-            _ => {
-                return Err(syn::Error::new_spanned(
-                    ident,
-                    "expected `Scalar` or `Relation`",
-                ))
-            }
-        })
-    }
-}
-
-struct FieldTuple {
-    name: Ident,
-    arity: Arity,
-}
-
-impl Parse for FieldTuple {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let content;
-        parenthesized!(content in input);
-
-        Ok(Self {
-            name: content.parse()?,
-            arity: {
-                content.parse::<Token![,]>()?;
-                content.parse()?
-            },
-        })
-    }
-}
 
 struct Method {
     name: Ident,
@@ -77,7 +32,7 @@ struct Filter {
 }
 
 impl Parse for Filter {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             field: input.parse()?,
             methods: {
@@ -95,12 +50,12 @@ impl Parse for Filter {
 struct Input {
     dollar_crate: Ident,
     module_path: Path,
-    fields: Punctuated<FieldTuple, Token![,]>,
+    fields: SelectableFields,
     filter: Punctuated<Filter, Token![,]>,
 }
 
 impl Parse for Input {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             dollar_crate: input.parse()?,
             module_path: {
@@ -109,10 +64,7 @@ impl Parse for Input {
             },
             fields: {
                 input.parse::<Token![,]>()?;
-
-                let content;
-                bracketed!(content in input);
-                Punctuated::parse_terminated(&content)?
+                input.parse()?
             },
             filter: {
                 input.parse::<Token![,]>()?;
@@ -150,14 +102,20 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             match &field.arity {
                 Arity::Scalar => {
                     let methods = methods.into_iter().map(
-                        |Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#value)),
+                        |Method { name, value }| quote! {
+                        	#dollar_crate::#model_path::#field_name::#name(#value)
+                        },
                     );
 
                     quote!(#(#methods),*)
                 }
-                Arity::Relation(related_model_path) => {
+                Arity::Relation(related_model_path, _) => {
                     let methods = methods.into_iter().map(
-						|Method { name, value }| quote!(#dollar_crate::#model_path::#field_name::#name(#dollar_crate::#related_model_path::filter! #value)),
+						|Method { name, value }| quote! {
+							#dollar_crate::#model_path::#field_name::#name(
+								#dollar_crate::#related_model_path::filter! #value
+							)
+						},
 					);
 
                     quote!(#(#methods),*)
@@ -166,19 +124,13 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         })
         .collect::<Vec<_>>();
 
-    quote! {
-        vec![
-            #(#items),*
-        ]
-    }
-    .into()
+    quote!(vec![#(#items),*]).into()
 }
 
 // factory means rustfmt can work!
 pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     struct FactoryInput {
         name: Ident,
-        model_path: Path,
         rest: TokenStream,
     }
 
@@ -186,10 +138,6 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         fn parse(input: ParseStream) -> syn::Result<Self> {
             Ok(Self {
                 name: input.parse()?,
-                model_path: {
-                    input.parse::<Token![,]>()?;
-                    input.parse()?
-                },
                 rest: {
                     input.parse::<Token![,]>()?;
                     input.parse()?
@@ -198,11 +146,7 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         }
     }
 
-    let FactoryInput {
-        name,
-        model_path,
-        rest,
-    } = parse_macro_input!(input as FactoryInput);
+    let FactoryInput { name, rest } = parse_macro_input!(input as FactoryInput);
 
     quote! {
         #[macro_export]
@@ -210,7 +154,6 @@ pub fn proc_macro_factory(input: proc_macro::TokenStream) -> proc_macro::TokenSt
             ($($inner:tt)+) => {
                 ::prisma_client_rust::macros::filter!(
                     $crate,
-                    #model_path,
                     #rest,
                     { $($inner)+ }
                 )
