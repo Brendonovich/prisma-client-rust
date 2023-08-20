@@ -109,9 +109,8 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                             PrismaValue::Object(
                                 self.cursor_params
                                     .into_iter()
-                                    .map(Into::into)
                                     .map(WhereInput::serialize)
-                                    .map(SerializedWhereInput::transform_equals)
+                                    .map(|s| (s.field, s.value.into()))
                                     .collect(),
                             )
                             .into(),

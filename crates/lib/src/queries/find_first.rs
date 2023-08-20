@@ -7,8 +7,6 @@ use crate::{
     WhereInput, WhereQuery, WithQuery,
 };
 
-use super::SerializedWhereInput;
-
 pub struct FindFirst<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_params: Vec<Actions::Where>,
@@ -98,9 +96,8 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                         PrismaValue::Object(
                             cursor_params
                                 .into_iter()
-                                .map(Into::into)
                                 .map(WhereInput::serialize)
-                                .map(SerializedWhereInput::transform_equals)
+                                .map(|s| (s.field, s.value.into()))
                                 .collect(),
                         )
                         .into(),

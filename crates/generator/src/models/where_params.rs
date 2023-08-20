@@ -45,11 +45,12 @@ pub enum Variant {
         field_required_type: TokenStream,
         read_filter_name: String,
         optional: bool,
+        value: TokenStream,
     },
     CompoundUniqueVariant {
         field_names_string: String,
-        variant_data_destructured: Vec<Ident>,
         variant_data_types: Vec<TokenStream>,
+        match_arm: TokenStream,
     },
 }
 
@@ -67,6 +68,20 @@ impl Variant {
                 .unwrap(),
             read_filter_name: read_filter.name.to_string(),
             optional: field.ast_field().arity.is_optional(),
+            value: {
+                let value = field
+                    .scalar_field_type()
+                    .to_prisma_value(
+                        &format_ident!("value"),
+                        &match field.ast_field().arity {
+                            FieldArity::Optional => FieldArity::Required,
+                            a => a,
+                        },
+                    )
+                    .unwrap();
+
+                quote!(::prisma_client_rust::SerializedWhereValue::Value(#value))
+            },
         }
     }
 }
@@ -85,66 +100,71 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
         })
         .unzip();
 
-    let (optional_unique_impls, (unique_variants, unique_to_where_arms)): (Vec<_>, (Vec<_>, Vec<_>)) = entries.iter().filter_map(|e| match e {
-        Variant::UniqueVariant {
-            field_name,
-            field_required_type,
-            read_filter_name,
-            optional,
-        } => {
-            let field_pascal = pascal_ident(field_name);
-            let field_snake = snake_ident(field_name);
+    let (optional_unique_impls, (unique_variants, unique_to_serialized_where)): (
+        Vec<_>,
+        (Vec<_>, Vec<_>),
+    ) = entries
+        .iter()
+        .filter_map(|e| match e {
+            Variant::UniqueVariant {
+                field_name,
+                field_required_type,
+                read_filter_name,
+                optional,
+                value,
+            } => {
+                let field_pascal = pascal_ident(field_name);
+                let field_snake = snake_ident(field_name);
 
-            let variant_name = format_ident!("{}Equals", &field_pascal);
-            let filter_enum = format_ident!("{}Filter", &read_filter_name);
+                let variant_name = format_ident!("{}Equals", &field_pascal);
+                let filter_enum = format_ident!("{}Filter", &read_filter_name);
 
-            let optional_unique_impls = optional.then(|| {
-                quote!{
-                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for WhereParam {
-                        type Arg = Option<#field_required_type>;
+                let optional_unique_impls = optional.then(|| {
+                    quote! {
+                        impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Equals> for WhereParam {
+                            type Arg = Option<#field_required_type>;
 
-                        fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
-                            Self::#field_pascal(super::_prisma::read_filters::#filter_enum::Equals(arg))
+                            fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
+                                Self::#field_pascal(super::_prisma::read_filters::#filter_enum::Equals(arg))
+                            }
+                        }
+
+                        impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Equals> for UniqueWhereParam {
+                            type Arg = #field_required_type;
+
+                            fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
+                                Self::#variant_name(arg)
+                            }
                         }
                     }
+                });
 
-                    impl ::prisma_client_rust::FromOptionalUniqueArg<#field_snake::Set> for UniqueWhereParam {
-                        type Arg = #field_required_type;
-
-                        fn from_arg(arg: Self::Arg) -> Self where Self: Sized {
-                            Self::#variant_name(arg)
-                        }
-                    }
-                }
-            });
-
-            let value = optional.then(|| quote!(Some(value))).unwrap_or_else(|| quote!(value));
-
-            Some((
-                optional_unique_impls,
-                (
-                    quote!(#variant_name(#field_required_type)),
-                    quote!(UniqueWhereParam::#variant_name(value) =>
-                        Self::#field_pascal(super::_prisma::read_filters::#filter_enum::Equals(#value))
+                Some((
+                    optional_unique_impls,
+                    (
+                        quote!(#variant_name(#field_required_type)),
+                        quote!(UniqueWhereParam::#variant_name(value) => (#field_name, #value)),
                     ),
-                )
-            ))
-        }
-        Variant::CompoundUniqueVariant { field_names_string, variant_data_destructured, variant_data_types } => {
-            let variant_name = format_ident!("{}Equals", field_names_string);
+                ))
+            }
+            Variant::CompoundUniqueVariant {
+                field_names_string,
+                variant_data_types,
+                match_arm,
+            } => {
+                let variant_name = format_ident!("{}Equals", field_names_string);
 
-            Some((
-                None,
-                (
-                    quote!(#variant_name(#(#variant_data_types),*)),
-                    quote!(UniqueWhereParam::#variant_name(#(#variant_data_destructured),*)
-                        => Self::#variant_name(#(#variant_data_destructured),*)
-                    )
-                )
-            ))
-        }
-        _ => None,
-    }).unzip();
+                Some((
+                    None,
+                    (
+                        quote!(#variant_name(#(#variant_data_types),*)),
+                        quote!(#match_arm),
+                    ),
+                ))
+            }
+            _ => None,
+        })
+        .unzip();
 
     quote! {
         #[derive(Debug, Clone)]
@@ -167,11 +187,13 @@ pub fn collate_entries(entries: Vec<Variant>) -> TokenStream {
             #(#unique_variants),*
         }
 
-        impl From<UniqueWhereParam> for WhereParam {
-            fn from(value: UniqueWhereParam) -> Self {
-                match value {
-                    #(#unique_to_where_arms),*
-                }
+        impl #pcr::WhereInput for UniqueWhereParam {
+            fn serialize(self) -> #pcr::SerializedWhereInput {
+                let (name, value) = match self {
+                    #(#unique_to_serialized_where),*
+                };
+
+                #pcr::SerializedWhereInput::new(name.to_string(), value.into())
             }
         }
 
@@ -271,20 +293,15 @@ pub fn model_data(
             let field_names_joined = fields.iter().map(|f| f.name()).collect::<Vec<_>>().join("_");
 
             entries.extend([
-                Variant::BaseVariant {
-                    definition: quote!(#variant_name(#(#field_types),*)),
-                    match_arm: quote! {
-                        Self::#variant_name(#(#field_names_snake),*) => (
-                            #field_names_joined,
-                            #pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
-                        )
-                    },
-                },
                 Variant::CompoundUniqueVariant {
                     field_names_string: variant_name_string.clone(),
-                    variant_data_destructured: field_names_snake.clone(),
-                    variant_data_types: field_types
-                }
+                    variant_data_types: field_types,
+                    match_arm: quote! {
+                    	Self::#variant_name(#(#field_names_snake),*) => (
+                    		#field_names_joined,
+                     		#pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
+                     	)
+                    },               }
             ]);
 
             let accessor_name = snake_ident(&variant_name_string);
@@ -630,18 +647,24 @@ pub fn field_module(
 						arity.is_required()
 					) {
 						(true, _, _) | (_, true, true) => quote! {
-							pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
-								UniqueWhereParam::#equals_variant(value).into()
+							pub fn equals<T: From<Equals>>(value: #field_type) -> T {
+								Equals(value).into()
+							}
+
+							impl From<Equals> for UniqueWhereParam {
+								fn from(Equals(v): Equals) -> Self {
+									UniqueWhereParam::#equals_variant(v)
+								}
 							}
 						},
 						(_, true, false) => quote! {
-							pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
+							pub fn equals<T: #pcr::FromOptionalUniqueArg<Equals>>(value: T::Arg) -> T {
 								T::from_arg(value)
 							}
 						},
 						(_, _, _) => quote! {
-							pub fn equals(value: #field_type) -> WhereParam {
-								WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
+							pub fn equals<T: From<Equals>>(value: #field_type) -> T {
+								Equals(value).into()
 							}
 						}
 					};
@@ -673,7 +696,15 @@ pub fn field_module(
 					});
 
 					quote! {
+						pub struct Equals(pub #field_type);
+
 						#equals
+
+						impl From<Equals> for WhereParam {
+							fn from(Equals(v): Equals) -> Self {
+								WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(v))
+							}
+						}
 
 						#pcr::scalar_where_param_fns!(
 							_prisma::read_filters::#filter_enum,

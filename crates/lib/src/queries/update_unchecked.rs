@@ -9,7 +9,7 @@ use crate::{
 
 pub struct UpdateUnchecked<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
-    pub where_param: Actions::Where,
+    pub where_param: Actions::WhereUnique,
     pub set_params: Vec<Actions::UncheckedSet>,
     pub with_params: Vec<Actions::With>,
 }
@@ -17,7 +17,7 @@ pub struct UpdateUnchecked<'a, Actions: ModelTypes> {
 impl<'a, Actions: ModelTypes> UpdateUnchecked<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         set_params: Vec<Actions::UncheckedSet>,
         with_params: Vec<Actions::With>,
     ) -> Self {
@@ -35,7 +35,7 @@ impl<'a, Actions: ModelTypes> UpdateUnchecked<'a, Actions> {
     }
 
     fn to_selection(
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         set_params: Vec<Actions::UncheckedSet>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
