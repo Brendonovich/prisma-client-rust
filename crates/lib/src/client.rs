@@ -46,7 +46,7 @@ impl ExecutionEngine {
                         op,
                         connector.query_schema.clone(),
                         None,
-                        EngineProtocol::Graphql,
+                        EngineProtocol::Json,
                     )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
@@ -78,7 +78,7 @@ impl ExecutionEngine {
                         Some(BatchDocumentTransaction::new(None)),
                         connector.query_schema.clone(),
                         None,
-                        EngineProtocol::Graphql,
+                        EngineProtocol::Json,
                     )
                     .await
                     .map_err(|e| QueryError::Execute(e.into()))?;
