@@ -10,9 +10,9 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "4.8.0";
+pub static PRISMA_CLI_VERSION: &str = "5.1.0";
 // commit hash of prisma/prisma-engines, not brendonovich/prisma-engines
-pub static ENGINE_VERSION: &str = "d6e67a83f971b175a593ccc12e15c4a757f93ffe";
+pub static ENGINE_VERSION: &str = "a9b7003df90aa623086e4d6f4e43c72468e6339b";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
 
 pub struct Engine<'a> {
@@ -20,22 +20,14 @@ pub struct Engine<'a> {
     pub env: &'a str,
 }
 
-pub const ENGINES: [Engine; 4] = [
+pub const ENGINES: [Engine; 2] = [
     Engine {
         name: "query-engine",
         env: "PRISMA_QUERY_ENGINE_BINARY",
     },
     Engine {
-        name: "migration-engine",
-        env: "PRISMA_MIGRATION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "introspection-engine",
-        env: "PRISMA_INTROSPECTION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "prisma-fmt",
-        env: "PRISMA_FMT_BINARY",
+        name: "schema-engine",
+        env: "PRISMA_SCHEMA_ENGINE_BINARY",
     },
 ];
 

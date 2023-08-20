@@ -7,6 +7,7 @@ description = "A prisma client for Rust"
 rust-version = "1.62"
 
 [features]
+default = []
 rspc = ["dep:rspc", "specta"]
 specta = ["dep:specta", "prisma-client-rust-generator-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
@@ -14,10 +15,10 @@ migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:
 mocking = ["tokio"]
 # mutation-callbacks = []
 
-mysql = ["schema-core/mysql", "request-handlers/mysql"]
-sqlite = ["schema-core/sqlite", "request-handlers/sqlite"]
 mssql = ["schema-core/mssql", "request-handlers/mssql"]
+mysql = ["schema-core/mysql", "request-handlers/mysql"]
 postgresql = ["schema-core/postgresql", "request-handlers/postgresql"]
+sqlite = ["schema-core/sqlite", "request-handlers/sqlite"]
 
 mongodb = ["schema-core/mongodb", "request-handlers/mongodb"]
 

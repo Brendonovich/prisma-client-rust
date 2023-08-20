@@ -17,7 +17,6 @@ pub struct Generator {
     pub provider: EnvValue,
     pub output: EnvValue,
     pub name: String,
-    pub binary_targets: Vec<String>,
     #[serde(default)]
     pub is_custom_output: bool,
     pub preview_features: Vec<String>,
