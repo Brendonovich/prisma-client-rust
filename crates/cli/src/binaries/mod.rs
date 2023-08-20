@@ -10,34 +10,8 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "4.8.0";
-// commit hash of prisma/prisma-engines, not brendonovich/prisma-engines
-pub static ENGINE_VERSION: &str = "d6e67a83f971b175a593ccc12e15c4a757f93ffe";
+pub static PRISMA_CLI_VERSION: &str = "5.1.0";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
-
-pub struct Engine<'a> {
-    pub name: &'a str,
-    pub env: &'a str,
-}
-
-pub const ENGINES: [Engine; 4] = [
-    Engine {
-        name: "query-engine",
-        env: "PRISMA_QUERY_ENGINE_BINARY",
-    },
-    Engine {
-        name: "migration-engine",
-        env: "PRISMA_MIGRATION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "introspection-engine",
-        env: "PRISMA_INTROSPECTION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "prisma-fmt",
-        env: "PRISMA_FMT_BINARY",
-    },
-];
 
 pub fn prisma_cli_name() -> String {
     let variation = platform::name();
@@ -62,10 +36,6 @@ pub fn fetch_native(to_dir: &PathBuf) -> Result<(), String> {
     }
 
     download_cli(to_dir)?;
-
-    for e in &ENGINES {
-        download_engine(&e.name, &to_dir)?;
-    }
 
     Ok(())
 }
@@ -95,40 +65,6 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
 
     println!("Downloading {} to {}", url, to);
 
-    download(url.clone(), to.clone()).expect(&format!("could not download {} to {}", url, to));
-
-    Ok(())
-}
-
-fn download_engine(engine_name: &str, to_dir: &PathBuf) -> Result<(), String> {
-    let os_name = platform::binary_platform_name();
-
-    let to = platform::check_for_extension(
-        &os_name.to_string(),
-        &to_dir
-            .join(ENGINE_VERSION)
-            .join(format!("prisma-{}-{}", engine_name, os_name))
-            .into_os_string()
-            .into_string()
-            .unwrap(),
-    );
-
-    let url = platform::check_for_extension(
-        &os_name.to_string(),
-        &format!(
-            "https://binaries.prisma.sh/all_commits/{}/{}/{}.gz",
-            ENGINE_VERSION, &os_name, engine_name
-        ),
-    );
-
-    match metadata(&to) {
-        Err(_) => {}
-        Ok(_) => {
-            return Ok(());
-        }
-    };
-
-    println!("Downloading {} to {}", url, to);
     download(url.clone(), to.clone()).expect(&format!("could not download {} to {}", url, to));
 
     Ok(())
