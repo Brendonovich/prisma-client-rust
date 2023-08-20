@@ -1,9 +1,12 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use chrono::{DateTime, FixedOffset};
 use indexmap::IndexMap;
-use query_core::response_ir::Item as PrismaItem;
+use query_core::{
+    constants::custom_types::{self},
+    response_ir::Item as PrismaItem,
+};
 use serde::{Serialize, Serializer};
 use uuid::Uuid;
 
@@ -14,7 +17,7 @@ use uuid::Uuid;
 /// (eg. float values are encoded as strings).
 ///
 /// This implementation only has an override for `PrismaValue::Null`, which is serialized as `None`
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum PrismaValue {
     String(String),
@@ -29,13 +32,15 @@ pub enum PrismaValue {
     Null,
     DateTime(DateTime<FixedOffset>),
     Float(f64),
+    // Special variant for distinguishing between Float and Decimal
+    Decimal(BigDecimal),
     BigInt(i64),
     Bytes(Vec<u8>),
 }
 
 /// A Rust-friendly version of Prisma's own Item.
 /// Exists solely for nicer conversion of query results to our PrismaValue.
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum Item {
     Map(IndexMap<String, Item>),
@@ -81,8 +86,40 @@ impl From<prisma_models::PrismaValue> for PrismaValue {
             prisma_models::PrismaValue::Json(value) => {
                 Self::Json(serde_json::from_str(&value).unwrap())
             }
-            prisma_models::PrismaValue::Object(value) => {
-                Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
+            prisma_models::PrismaValue::Object(mut value) => {
+                let type_position = value.iter().position(|(k, _)| k == custom_types::TYPE);
+
+                if let Some((_, prisma_models::PrismaValue::String(typ))) =
+                    type_position.map(|pos| value.swap_remove(pos))
+                {
+                    let (_, value) = value.swap_remove(
+                        value
+                            .iter()
+                            .position(|(k, _)| k == custom_types::VALUE)
+                            .unwrap(),
+                    );
+
+                    match (typ.as_str(), value) {
+                        (custom_types::DATETIME, prisma_models::PrismaValue::DateTime(dt)) => {
+                            PrismaValue::DateTime(dt)
+                        }
+                        (custom_types::BIGINT, prisma_models::PrismaValue::BigInt(i)) => {
+                            PrismaValue::BigInt(i)
+                        }
+                        (custom_types::DECIMAL, prisma_models::PrismaValue::String(s)) => {
+                            PrismaValue::Decimal(BigDecimal::from_str(&s).unwrap())
+                        }
+                        (custom_types::BYTES, prisma_models::PrismaValue::Bytes(b)) => {
+                            PrismaValue::Bytes(b)
+                        }
+                        (custom_types::JSON, prisma_models::PrismaValue::Json(j)) => {
+                            PrismaValue::Json(serde_json::from_str(&j).unwrap())
+                        }
+                        _ => unreachable!("Incorrect PrismaValue for {typ}"),
+                    }
+                } else {
+                    Self::Object(value.into_iter().map(|(k, v)| (k, v.into())).collect())
+                }
             }
             prisma_models::PrismaValue::Null => Self::Null,
             prisma_models::PrismaValue::DateTime(value) => Self::DateTime(value),
@@ -108,6 +145,7 @@ impl From<PrismaValue> for prisma_models::PrismaValue {
             }
             PrismaValue::Null => Self::Null,
             PrismaValue::DateTime(value) => Self::DateTime(value),
+            PrismaValue::Decimal(value) => Self::Float(value),
             PrismaValue::Float(value) => Self::Float(BigDecimal::from_f64(value).unwrap()),
             PrismaValue::BigInt(value) => Self::BigInt(value),
             PrismaValue::Bytes(value) => Self::Bytes(value),
