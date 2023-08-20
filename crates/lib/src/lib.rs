@@ -1,3 +1,12 @@
+#[cfg(not(any(
+    feature = "sqlite",
+    feature = "mssql",
+    feature = "mysql",
+    feature = "postgresql",
+    feature = "mongodb"
+)))]
+compile_error!("No connector feature enabled. Please enable a connector feature ('mssql', 'mysql', 'postgresql', 'sqlite', or 'mongodb')");
+
 pub mod actions;
 mod client;
 mod gen_macros;
