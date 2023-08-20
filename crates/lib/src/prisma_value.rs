@@ -32,6 +32,7 @@ pub enum PrismaValue {
     Null,
     DateTime(DateTime<FixedOffset>),
     Float(f64),
+    // Special variant for distinguishing between Float and Decimal
     Decimal(BigDecimal),
     BigInt(i64),
     Bytes(Vec<u8>),
