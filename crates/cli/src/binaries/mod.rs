@@ -10,9 +10,9 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub static PRISMA_CLI_VERSION: &str = "4.8.0";
+pub static PRISMA_CLI_VERSION: &str = "5.1.0";
 // commit hash of prisma/prisma-engines, not brendonovich/prisma-engines
-pub static ENGINE_VERSION: &str = "d6e67a83f971b175a593ccc12e15c4a757f93ffe";
+pub static ENGINE_VERSION: &str = "a9b7003df90aa623086e4d6f4e43c72468e6339b";
 pub static BASE_DIR_NAME: &str = "prisma/binaries";
 
 pub struct Engine<'a> {
