@@ -7,6 +7,7 @@ edition = "2021"
 sqlite = ["prisma-client-rust-cli/sqlite", "prisma-client-rust-cli/sqlite-create-many"]
 mongodb = ["prisma-client-rust-cli/mongodb"]
 postgresql = ["prisma-client-rust-cli/postgresql"]
+mssql = ["prisma-client-rust-cli/mssql"]
 specta = ["prisma-client-rust-cli/specta"]
 mocking = ["prisma-client-rust-cli/mocking"]
 

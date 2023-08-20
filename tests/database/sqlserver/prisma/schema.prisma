@@ -1,0 +1,16 @@
+datasource db {
+    provider = "sqlserver"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "cargo prisma"
+    output   = "../tests/db"
+
+    module_path = "crate::db"
+    client_format = "folder"
+}
+
+model TestTable {
+  id String @id @default(uuid()) @db.UniqueIdentifier
+}

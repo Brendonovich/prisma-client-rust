@@ -1,0 +1,25 @@
+[package]
+name = "sqlserver-tests"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[test]]
+name = "integration_tests"
+path = "tests/lib.rs"
+harness = true
+
+[dependencies]
+prisma-client-rust = { workspace = true, features = [
+	"mssql",
+	"migrations",
+] }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+tokio = { version = "1.17.0", features = ["rt", "macros"] }
+prisma-client-rust = { workspace = true, features = [
+	"mssql",
+	"migrations",
+] }
