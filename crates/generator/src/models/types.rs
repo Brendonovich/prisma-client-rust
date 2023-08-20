@@ -46,6 +46,7 @@ pub fn r#struct(model: ModelWalker, module_path: &TokenStream) -> TokenStream {
         impl #pcr::ModelTypes for Types {
             type Data = Data;
             type Where = WhereParam;
+            type WhereUnique = UniqueWhereParam;
             type UncheckedSet = UncheckedSetParam;
             type Set = SetParam;
             type With = WithParam;

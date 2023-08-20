@@ -20,11 +20,12 @@ pub trait Query<'a>: QueryConvert {
 pub trait ModelTypes {
     type Data: Data;
     type Where: WhereInput;
+    type WhereUnique: WhereInput;
     type UncheckedSet: Into<(String, PrismaValue)>;
     type Set: Into<(String, PrismaValue)>;
     type With: Into<Selection>;
     type OrderBy: Into<(String, PrismaValue)>;
-    type Cursor: Into<Self::Where>;
+    type Cursor: WhereInput;
 
     const MODEL: &'static str;
 

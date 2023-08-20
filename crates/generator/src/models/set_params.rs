@@ -460,7 +460,6 @@ fn field_set_params(
                                             #pcr::PrismaValue::List(
                                                 where_params
                                                     .into_iter()
-                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
                                                     .map(#pcr::WhereInput::serialize)
                                                     .map(#pcr::SerializedWhereInput::transform_equals)
                                                     .map(|v| #pcr::PrismaValue::Object(vec![v]))
@@ -483,7 +482,6 @@ fn field_set_params(
                                             #pcr::PrismaValue::Object(
                                                 [where_param]
                                                     .into_iter()
-                                                    .map(Into::<super::#relation_model_name_snake::WhereParam>::into)
                                                     .map(#pcr::WhereInput::serialize)
                                                     .map(#pcr::SerializedWhereInput::transform_equals)
                                                     .collect()

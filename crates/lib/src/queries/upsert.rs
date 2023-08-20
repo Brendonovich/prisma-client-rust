@@ -8,7 +8,7 @@ use crate::{
 
 pub struct Upsert<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
-    pub where_param: Actions::Where,
+    pub where_param: Actions::WhereUnique,
     pub create_params: Vec<Actions::Set>,
     pub update_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
@@ -17,7 +17,7 @@ pub struct Upsert<'a, Actions: ModelTypes> {
 impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         create_params: Vec<Actions::Set>,
         update_params: Vec<Actions::Set>,
     ) -> Self {
@@ -36,7 +36,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     }
 
     fn to_selection(
-        where_param: Actions::Where,
+        where_param: Actions::WhereUnique,
         create_params: Vec<Actions::Set>,
         update_params: Vec<Actions::Set>,
         nested_selections: impl IntoIterator<Item = Selection>,

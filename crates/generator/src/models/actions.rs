@@ -104,7 +104,7 @@ pub fn upsert_fn(model: ModelWalker) -> Option<TokenStream> {
         ) -> UpsertQuery<'a> {
             UpsertQuery::new(
                 self.client,
-                _where.into(),
+                _where,
                 _create.to_params(),
                 _update
             )
@@ -150,7 +150,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
             pub fn find_unique(self, _where: UniqueWhereParam) -> FindUniqueQuery<'a> {
                 FindUniqueQuery::new(
                     self.client,
-                    _where.into()
+                    _where
                 )
             }
 
@@ -176,7 +176,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
             pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> UpdateQuery<'a> {
                 UpdateQuery::new(
                     self.client,
-                    _where.into(),
+                    _where,
                     _params,
                     vec![]
                 )
@@ -185,7 +185,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
             pub fn update_unchecked(self, _where: UniqueWhereParam, _params: Vec<UncheckedSetParam>) -> UpdateUncheckedQuery<'a> {
                 UpdateUncheckedQuery::new(
                     self.client,
-                    _where.into(),
+                    _where,
                     _params.into_iter().map(Into::into).collect(),
                     vec![]
                 )
@@ -204,7 +204,7 @@ pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream
             pub fn delete(self, _where: UniqueWhereParam) -> DeleteQuery<'a> {
                 DeleteQuery::new(
                     self.client,
-                    _where.into(),
+                    _where,
                     vec![]
                 )
             }
