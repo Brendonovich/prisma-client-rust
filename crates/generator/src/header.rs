@@ -40,14 +40,5 @@ pub fn generate(args: &GenerateArgs) -> TokenStream {
         static DATABASE_STR: &'static str = #database_string;
 
         #migrations_include
-
-        pub async fn new_client() -> Result<PrismaClient, #pcr::NewClientError> {
-            PrismaClient::_builder().build().await
-        }
-
-        // adapted from https://github.com/polytope-labs/prisma-client-rs/blob/0dec2a67081e78b42700f6a62f414236438f84be/codegen/src/prisma.rs.template#L182
-        pub async fn new_client_with_url(url: &str) -> Result<PrismaClient, #pcr::NewClientError> {
-            PrismaClient::_builder().with_url(url.to_string()).build().await
-        }
     }
 }

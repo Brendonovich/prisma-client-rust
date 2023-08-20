@@ -89,9 +89,7 @@ impl From<RawTypedJson> for RawPrismaValue {
             }
             ("json", v) => RawPrismaValue::Json(v),
             ("xml", String(s)) => RawPrismaValue::Xml(s),
-            ("uuid", String(s)) => {
-                RawPrismaValue::Uuid(uuid::Uuid::from_slice(s.as_bytes()).unwrap())
-            }
+            ("uuid", String(s)) => RawPrismaValue::Uuid(uuid::Uuid::from_str(&s).unwrap()),
             ("datetime", String(s)) => {
                 RawPrismaValue::DateTime(chrono::DateTime::parse_from_rfc3339(&s).unwrap().into())
             }

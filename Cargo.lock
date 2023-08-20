@@ -6541,6 +6541,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sqlserver-tests"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "stable-pattern"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
