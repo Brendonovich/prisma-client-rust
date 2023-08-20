@@ -20,22 +20,14 @@ pub struct Engine<'a> {
     pub env: &'a str,
 }
 
-pub const ENGINES: [Engine; 4] = [
+pub const ENGINES: [Engine; 2] = [
     Engine {
         name: "query-engine",
         env: "PRISMA_QUERY_ENGINE_BINARY",
     },
     Engine {
-        name: "migration-engine",
-        env: "PRISMA_MIGRATION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "introspection-engine",
-        env: "PRISMA_INTROSPECTION_ENGINE_BINARY",
-    },
-    Engine {
-        name: "prisma-fmt",
-        env: "PRISMA_FMT_BINARY",
+        name: "schema-engine",
+        env: "PRISMA_SCHEMA_ENGINE_BINARY",
     },
 ];
 
