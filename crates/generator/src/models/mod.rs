@@ -145,9 +145,9 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
                 },
             );
 
-            field_modules
-                .into_iter()
-                .for_each(|field| module.add_submodule(field));
+            field_modules.into_iter().for_each(|field| {
+                module.add_submodule(field);
+            });
 
             module
         })

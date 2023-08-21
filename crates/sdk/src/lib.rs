@@ -8,7 +8,10 @@ mod runtime;
 mod shared_config;
 mod utils;
 
-use std::path::{Path, PathBuf};
+use std::{
+    collections::{btree_map, BTreeMap},
+    path::{Path, PathBuf},
+};
 
 use proc_macro2::TokenStream;
 use serde::{de::DeserializeOwned, Serialize};
@@ -78,20 +81,35 @@ pub enum GeneratorError {
 pub struct Module {
     pub name: String,
     pub contents: TokenStream,
-    pub submodules: Vec<Module>,
+    pub submodules: BTreeMap<String, Module>,
 }
 
 impl Module {
     pub fn new(name: &str, contents: TokenStream) -> Self {
         Self {
             name: name.to_string(),
+            submodules: Default::default(),
             contents,
-            submodules: vec![],
         }
     }
 
-    pub fn add_submodule(&mut self, submodule: Module) {
-        self.submodules.push(submodule);
+    pub fn merge(&mut self, other: Module) {
+        self.contents.extend(other.contents);
+
+        for (_, submodule) in other.submodules {
+            self.add_submodule(submodule);
+        }
+    }
+
+    pub fn add_submodule(&mut self, submodule: Module) -> &mut Module {
+        match self.submodules.entry(submodule.name.clone()) {
+            btree_map::Entry::Vacant(entry) => entry.insert(submodule),
+            btree_map::Entry::Occupied(entry) => {
+                let module = entry.into_mut();
+                module.merge(submodule);
+                module
+            }
+        }
     }
 
     pub fn flatten(&self) -> TokenStream {
@@ -100,9 +118,9 @@ impl Module {
         let submodule_contents = self
             .submodules
             .iter()
-            .map(|sm| {
-                let name = snake_ident(&sm.name);
-                let contents = sm.flatten();
+            .map(|(name, module)| {
+                let name = snake_ident(&name);
+                let contents = module.flatten();
 
                 quote! {
                     pub mod #name {
@@ -123,8 +141,8 @@ impl Module {
         if self.submodules.len() > 0 {
             [parent_path.join("mod.rs")]
                 .into_iter()
-                .chain(self.submodules.iter().flat_map(|sm| {
-                    sm.get_all_paths(&parent_path.join(&sm.name.to_case(Case::Snake, true)))
+                .chain(self.submodules.iter().flat_map(|(name, module)| {
+                    module.get_all_paths(&parent_path.join(&name.to_case(Case::Snake, true)))
                 }))
                 .collect()
         } else {

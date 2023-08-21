@@ -145,17 +145,17 @@ impl GeneratorMetadata {
 
 fn write_module_to_file(module: &Module, parent_path: &Path, header: &str) {
     if module.submodules.len() > 0 {
-        for child in &module.submodules {
+        for (name, child) in &module.submodules {
             write_module_to_file(
                 child,
-                &parent_path.join(&child.name.to_case(Case::Snake, true)),
+                &parent_path.join(&name.to_case(Case::Snake, true)),
                 header,
             );
         }
 
         let contents = &module.contents;
-        let submodule_decls = module.submodules.iter().map(|sm| {
-            let name = snake_ident(&sm.name);
+        let submodule_decls = module.submodules.iter().map(|(name, _)| {
+            let name = snake_ident(&name);
             quote!(pub mod #name;)
         });
 

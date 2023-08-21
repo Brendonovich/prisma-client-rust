@@ -1,5 +1,7 @@
 use utils::{cleanup, TestResult};
 
+use crate::db::PrismaClient;
+
 #[allow(warnings, unused)]
 mod db;
 mod order;
@@ -8,7 +10,7 @@ mod utils;
 
 #[tokio::test]
 async fn aaaa_run_migrations() -> TestResult {
-    let client = db::new_client().await.unwrap();
+    let client = PrismaClient::_builder().build().await.unwrap();
 
     client._db_push().accept_data_loss().await.unwrap();
 

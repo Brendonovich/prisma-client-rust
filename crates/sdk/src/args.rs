@@ -7,7 +7,9 @@ use psl::{
 };
 use std::collections::HashSet;
 
-use dmmf::{DataModelMetaFormat, DmmfInputField, DmmfInputType, DmmfSchema, TypeLocation};
+use dmmf::{
+    DataModelMetaFormat, DmmfInputField, DmmfInputType, DmmfSchema, DmmfTypeReference, TypeLocation,
+};
 use proc_macro2::TokenStream;
 
 use crate::{dmmf::EngineDMMF, prelude::*};
@@ -27,6 +29,8 @@ impl<'a> GenerateArgs<'a> {
         dmmf: &'a DataModelMetaFormat,
         engine_dmmf: EngineDMMF,
     ) -> Self {
+        // std::fs::write("bruh.json", &serde_json::to_string(&dmmf.schema).unwrap()).ok();
+
         let scalars = dmmf
             .schema
             .input_object_types
@@ -354,18 +358,22 @@ impl DmmfSchemaExt for DmmfSchema {
 }
 
 pub trait DmmfInputFieldExt {
+    fn input_type(&self) -> &DmmfTypeReference;
     fn arity(&self) -> FieldArity;
     fn type_tokens(&self, prefix: &TokenStream) -> TokenStream;
     fn to_prisma_value(&self, var: &Ident) -> TokenStream;
 }
 
 impl DmmfInputFieldExt for DmmfInputField {
-    fn arity(&self) -> FieldArity {
-        let input_type = self
-            .input_types
+    fn input_type(&self) -> &DmmfTypeReference {
+        self.input_types
             .iter()
             .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
-            .expect(&format!("No type found for field {}", self.name));
+            .expect(&format!("No type found for field {}", self.name))
+    }
+
+    fn arity(&self) -> FieldArity {
+        let input_type = self.input_type();
 
         if input_type.is_list {
             FieldArity::List
@@ -377,11 +385,7 @@ impl DmmfInputFieldExt for DmmfInputField {
     }
 
     fn type_tokens(&self, prefix: &TokenStream) -> TokenStream {
-        let input_type = self
-            .input_types
-            .iter()
-            .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
-            .expect(&format!("No type found for field {}", self.name));
+        let input_type = self.input_type();
 
         let arity = self.arity();
 
@@ -406,11 +410,7 @@ impl DmmfInputFieldExt for DmmfInputField {
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {
         let pv = quote!(::prisma_client_rust::PrismaValue);
 
-        let input_type = self
-            .input_types
-            .iter()
-            .find(|typ| !matches!(typ.location, TypeLocation::Scalar if typ.typ == "Null"))
-            .expect(&format!("No type found for field {}", self.name));
+        let input_type = self.input_type();
 
         let arity = self.arity();
 

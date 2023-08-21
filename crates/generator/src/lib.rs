@@ -5,6 +5,7 @@ mod header;
 mod internal_enums;
 mod models;
 mod read_filters;
+mod types;
 mod write_params;
 
 use prisma_client_rust_sdk::prelude::*;
@@ -74,10 +75,17 @@ impl PrismaGenerator for Generator {
 
         models::modules(&args, &module_path)
             .into_iter()
-            .for_each(|model| module.add_submodule(model));
+            .for_each(|model| {
+                module.add_submodule(model);
+            });
         composite_types::modules(&args, &module_path)
             .into_iter()
-            .for_each(|ct| module.add_submodule(ct));
+            .for_each(|ct| {
+                module.add_submodule(ct);
+            });
+        types::modules(&args).into_iter().for_each(|model| {
+            module.add_submodule(model);
+        });
 
         Ok(module)
     }
