@@ -8,7 +8,7 @@ mod utils;
 
 #[tokio::test]
 async fn aaaa_run_migrations() -> TestResult {
-    let client = db::new_client().await.unwrap();
+    let client = db::PrismaClient::_builder().build().await.unwrap();
 
     client._db_push().accept_data_loss().await.unwrap();
 

@@ -19,6 +19,7 @@ pub mod select_include;
 pub enum RelationArity {
     One,
     Many,
+    Optional,
 }
 
 impl Parse for RelationArity {
@@ -28,7 +29,13 @@ impl Parse for RelationArity {
         Ok(match ident.to_string().as_str() {
             "One" => Self::One,
             "Many" => Self::Many,
-            _ => return Err(syn::Error::new_spanned(ident, "expected `One` or `Many`")),
+            "Optional" => Self::Optional,
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    ident,
+                    "expected `One`, `Many`, or `Optional`",
+                ))
+            }
         })
     }
 }
@@ -38,6 +45,7 @@ impl ToTokens for RelationArity {
         tokens.extend(match self {
             Self::One => quote!(One),
             Self::Many => quote!(Many),
+            Self::Optional => quote!(Optional),
         })
     }
 }
@@ -99,7 +107,8 @@ impl FieldTuple {
 
                 let relation_arity = match &field.ast_field().arity {
                     FieldArity::List => RelationArity::Many,
-                    _ => RelationArity::One,
+                    FieldArity::Optional => RelationArity::Optional,
+                    FieldArity::Required => RelationArity::One,
                 };
 
                 Arity::Relation(
