@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust"
-version = "0.6.9"
+version = "0.6.10"
 authors = ["Brendan Allan <brendonovich@outlook.com>"]
 edition = "2021"
 description = "A prisma client for Rust"
@@ -42,17 +42,17 @@ mongodb = ["query-core/mongodb", "migration-core/mongodb"]
 [workspace.dependencies]
 prisma-client-rust = { path = "." }
 
-diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-dml = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-dmmf = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-migration-core = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-psl = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-query-connector = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-query-core = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-schema = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
-user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", branch = "pcr-0.6.x" }
+diagnostics = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+dml = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+dmmf = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+migration-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+prisma-models = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+psl = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+query-connector = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+query-core = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+request-handlers = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+schema = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
+user-facing-errors = { git = "https://github.com/Brendonovich/prisma-engines", tag = "pcr-0.6.10" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
