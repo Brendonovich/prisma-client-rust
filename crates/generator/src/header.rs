@@ -9,7 +9,7 @@ fn find_migrations_path(schema_path: &PathBuf) -> PathBuf {
         .parent()
         .map(|p| p.join("migrations"))
         .filter(|p| p.exists())
-        .expect("Migrations folder not found!")
+        .expect("Migrations folder not found! Please create one in the same folder as your schema.prisma file.")
 }
 
 pub fn generate(args: &GenerateArgs) -> TokenStream {
