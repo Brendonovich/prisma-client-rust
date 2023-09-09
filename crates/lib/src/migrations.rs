@@ -24,7 +24,7 @@ pub enum DbPushError {
     UnexecutableChanges(Vec<String>),
     #[error("Data loss may occur:\n {}", format_error_array(.0))]
     PossibleDataLoss(Vec<String>),
-    #[error("An error occured pushing schema to the database: ${0}")]
+    #[error("An error occurred pushing schema to the database: ${0}")]
     Other(#[from] CoreError),
 }
 
