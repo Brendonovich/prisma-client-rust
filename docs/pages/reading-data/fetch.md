@@ -84,7 +84,7 @@ let comments: Result<Vec<comment::Data>, String> = post.comments();
 In this example, a post is loaded with its comments, and each comment is loaded with the original post.
 
 ```rust
-use prisam::{comment, post};
+use prisma::{comment, post};
 
 let post: post::Data = client
     .post()
