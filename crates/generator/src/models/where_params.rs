@@ -285,7 +285,7 @@ pub fn model_data(
                 let field_name_snake = snake_ident(field.name());
 
                 (
-                    (quote!(#field_name_snake: #field_type), field_type),
+                    (quote!(#field_name_snake: Impl Into<#field_type>), field_type),
                     (field.scalar_field_type().to_prisma_value(&field_name_snake, &FieldArity::Required), field_name_snake)
                 )
             }).unzip();
@@ -301,14 +301,15 @@ pub fn model_data(
                     		#field_names_joined,
                      		#pcr::SerializedWhereValue::Object(vec![#((#variant_data_names::NAME.to_string(), #prisma_values)),*])
                      	)
-                    },               }
+                    },
+                }
             ]);
 
             let accessor_name = snake_ident(&variant_name_string);
 
             Some(quote! {
                 pub fn #accessor_name<T: From<UniqueWhereParam>>(#(#field_defs),*) -> T {
-                    UniqueWhereParam::#variant_name(#(#field_names_snake),*).into()
+                    UniqueWhereParam::#variant_name(#(#field_names_snake.into()),*).into()
                 }
             })
         }
