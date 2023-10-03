@@ -648,8 +648,8 @@ pub fn field_module(
 						arity.is_required()
 					) {
 						(true, _, _) | (_, true, true) => quote! {
-							pub fn equals<T: From<Equals>>(value: #field_type) -> T {
-								Equals(value).into()
+							pub fn equals<T: From<Equals>>(value: impl Into<#field_type>) -> T {
+								Equals(value.into()).into()
 							}
 
 							impl From<Equals> for UniqueWhereParam {
