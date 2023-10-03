@@ -664,8 +664,8 @@ pub fn field_module(
 							}
 						},
 						(_, _, _) => quote! {
-							pub fn equals<T: From<Equals>>(value: #field_type) -> T {
-								Equals(value).into()
+							pub fn equals<T: From<Equals>>(value: impl Into<#field_type>) -> T {
+								Equals(value.into()).into()
 							}
 						}
 					};
