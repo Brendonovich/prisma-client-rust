@@ -17,8 +17,16 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
         })
         .unzip();
 
+    let types_impl_into = types.iter().map(|t| {
+        if t.to_string().contains("Param") {
+            quote!(#t)
+        } else {
+            quote!(impl Into<#t>)
+        }
+    });
+
     Some(quote! {
-        pub fn create(self, #(#names: impl Into<#types>,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
+        pub fn create(self, #(#names: #types_impl_into,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
             #(let #names = #names.into();)*
 
             _params.extend([
