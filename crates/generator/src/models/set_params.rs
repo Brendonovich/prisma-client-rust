@@ -421,8 +421,8 @@ fn field_set_params(
                                 }
                             }
 
-                            pub fn set<T: From<Set>>(value: #field_type) -> T {
-                                Set(value).into()
+                            pub fn set<T: From<Set>>(value: impl Into<#field_type>) -> T {
+                                Set(value.into()).into()
                             }
 
                             pub struct UpdateOperation(pub #param_enum_path);
