@@ -332,7 +332,7 @@ fn model_macro<'a>(
             #[derive(::prisma_client_rust::specta::Type)]
             #[specta(
                 rename_from_path = SPECTA_TYPE_NAME,
-                crate = "prisma_client_rust::specta"
+                crate = prisma_client_rust::specta
             )]
         };
 
