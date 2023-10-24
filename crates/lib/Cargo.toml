@@ -7,10 +7,15 @@ description = "A prisma client for Rust"
 rust-version = "1.62"
 
 [features]
-rspc = ["dep:rspc", "specta"]
 specta = ["dep:specta", "prisma-client-rust-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
-migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:tracing"]
+migrations = [
+  "schema-core",
+  "dep:include_dir",
+  "dep:tempdir",
+  "tokio/fs",
+  "dep:tracing",
+]
 mocking = ["tokio"]
 # mutation-callbacks = []
 
@@ -58,5 +63,4 @@ specta = { optional = true, workspace = true, features = [
 ] }
 
 # features = "rspc"
-rspc = { optional = true, workspace = true }
 dotenv = "0.15.0"

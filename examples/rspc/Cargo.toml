@@ -5,7 +5,11 @@ edition = "2021"
 default-run = "rspc-example"
 
 [dependencies]
-prisma-client-rust = { features = ["rspc", "migrations", "sqlite", "mocking"], workspace = true }
+prisma-client-rust = { features = [
+    "migrations",
+    "sqlite",
+    "mocking",
+], workspace = true }
 serde = { version = "1.0", features = ["derive"] }
-rspc.workspace = true
+rspc = "0.1.3" # TODO: Update this
 tokio = "1.20.1"

@@ -27,14 +27,3 @@ impl QueryError {
 }
 
 pub type Result<T> = std::result::Result<T, QueryError>;
-
-#[cfg(feature = "rspc")]
-impl From<QueryError> for rspc::Error {
-    fn from(err: QueryError) -> Self {
-        rspc::Error::with_cause(
-            rspc::ErrorCode::InternalServerError,
-            "Internal server error occurred while completing database operation!".into(),
-            err,
-        )
-    }
-}

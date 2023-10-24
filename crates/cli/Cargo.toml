@@ -7,7 +7,6 @@ rust-version = "1.62"
 
 [features]
 specta = ["prisma-client-rust-generator/specta"]
-rspc = ["prisma-client-rust-generator/rspc"]
 migrations = ["prisma-client-rust-generator/migrations"]
 sqlite-create-many = ["prisma-client-rust-generator/sqlite-create-many"]
 # mutation-callbacks = []
