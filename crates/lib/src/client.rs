@@ -170,7 +170,7 @@ impl PrismaClientInternals {
         let url = match url {
             Some(url) => url,
             None => {
-                let url = match source.load_url(|key| dotenv::var(key).ok()) {
+                let url = match source.load_url(|key| dotenvy::var(key).ok()) {
                     Ok(url) => Some(url),
                     Err(_) => source.load_shadow_database_url()?,
                 }

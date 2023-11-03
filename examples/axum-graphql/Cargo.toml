@@ -8,6 +8,6 @@ prisma-client-rust = { workspace = true, features = ["migrations", "sqlite"] }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 axum = "0.5.1"
-dotenv = "0.15.0"
+dotenvy = "0.15.7"
 async-graphql = "3.0.12"
 async-graphql-axum = "3.0.31"
