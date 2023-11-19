@@ -11,7 +11,7 @@ default = []
 rspc = ["dep:rspc", "specta"]
 specta = ["dep:specta", "prisma-client-rust-generator-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
-migrations = ["schema-core", "dep:include_dir", "dep:tempdir", "tokio/fs", "dep:tracing"]
+migrations = ["schema-core", "dep:include_dir", "dep:tempfile", "tokio/fs", "dep:tracing"]
 mocking = ["tokio"]
 # mutation-callbacks = []
 
@@ -47,7 +47,7 @@ query-core = { workspace = true }
 # features = "migrations"
 schema-core = { workspace = true, optional = true }
 include_dir = { version = "0.7.2", optional = true }
-tempdir = { version = "0.3.7", optional = true }
+tempfile = { version = "3.5.0", optional = true }
 tracing = { version = "0.1.36", optional = true }
 
 # features = "specta"

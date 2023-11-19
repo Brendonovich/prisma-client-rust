@@ -168,7 +168,9 @@ impl<'a> Future for MigrateDeploy<'a> {
             self.fut = Some(Box::pin(async move {
                 let temp_dir = match temp_dir {
                     Some(d) => d.to_string(),
-                    None => tempdir::TempDir::new("prisma-client-rust-migrations")
+                    None => tempfile::Builder::new()
+                        .prefix("prisma-client-rust-migrations")
+                        .tempdir()
                         .map_err(MigrateDeployError::CreateDir)?
                         .into_path()
                         .to_str()
@@ -234,7 +236,9 @@ pub async fn migrate_resolve(
     migrations: &include_dir::Dir<'_>,
     url: &str,
 ) -> Result<(), MigrateResolveError> {
-    let temp_dir = tempdir::TempDir::new("prisma-client-rust-migrations")
+    let temp_dir = tempfile::Builder::new()
+        .prefix("prisma-client-rust-migrations")
+        .tempdir()
         .map_err(MigrateResolveError::CreateDir)?
         .into_path();
 
