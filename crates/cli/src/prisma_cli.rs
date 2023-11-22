@@ -5,13 +5,12 @@ use std::process::Command;
 pub fn main(args: &Vec<String>) {
     let dir = binaries::global_cache_dir();
 
-    binaries::fetch_native(&dir).unwrap();
-
+    binaries::download_cli(&dir).unwrap();
     let prisma = binaries::prisma_cli_name();
-
-    let mut cmd = Command::new(dir.join(prisma));
     let binary_name =
         platform::check_for_extension(&platform::name(), &platform::binary_platform_name());
+
+    let mut cmd = Command::new(dir.join(prisma));
 
     cmd.args(args);
 
@@ -25,6 +24,7 @@ pub fn main(args: &Vec<String>) {
                 cmd.env(e.env, path);
             }
             Err(_) => {
+                binaries::download_engine(&e.name, &dir).unwrap();
                 let path = dir
                     .join(binaries::ENGINE_VERSION)
                     .join(format!("prisma-{}-{}", e.name, binary_name));

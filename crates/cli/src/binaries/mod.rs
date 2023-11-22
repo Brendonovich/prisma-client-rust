@@ -48,20 +48,6 @@ pub fn global_cache_dir() -> PathBuf {
         .join(PRISMA_CLI_VERSION)
 }
 
-pub fn fetch_native(to_dir: &PathBuf) -> Result<(), String> {
-    if !to_dir.is_absolute() {
-        Err("to_dir must be absolute".to_string())?;
-    }
-
-    download_cli(to_dir)?;
-
-    for e in &ENGINES {
-        download_engine(&e.name, &to_dir)?;
-    }
-
-    Ok(())
-}
-
 pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
     let cli = prisma_cli_name();
 
@@ -92,7 +78,7 @@ pub fn download_cli(to_dir: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
-fn download_engine(engine_name: &str, to_dir: &PathBuf) -> Result<(), String> {
+pub fn download_engine(engine_name: &str, to_dir: &PathBuf) -> Result<(), String> {
     let os_name = platform::binary_platform_name();
 
     let to = platform::check_for_extension(
