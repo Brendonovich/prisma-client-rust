@@ -82,18 +82,6 @@ pub fn selection_to_params(input: &Input, variant: Variant) -> Vec<TokenStream> 
                     },
                     Arity::Relation(relation_model_path, relation_arity) => {
                         match (relation_arity, sub_selection) {
-                            (RelationArity::One, None) => quote! {
-                                #into(#variant_type_path::Fetch)
-                            },
-                            (RelationArity::One, Some((selection_variant, selection))) => quote! {
-                                #into(
-                                    #variant_type_path::#selection_variant(
-                                        #dollar::#relation_model_path::#selection_variant! {
-                                            selection_to_params @ #selection
-                                        }.into_iter().collect()
-                                    )
-                                )
-                            },
                             (RelationArity::Many, None) => quote! {
                                 #into(
                                     #variant_type_path::Fetch(
@@ -109,6 +97,21 @@ pub fn selection_to_params(input: &Input, variant: Variant) -> Vec<TokenStream> 
                                         #dollar::#relation_model_path::ManyArgs::new(
                                             #filters
                                         ) #(#args)*,
+                                        #dollar::#relation_model_path::#selection_variant! {
+                                            selection_to_params @ #selection
+                                        }.into_iter().collect()
+                                    )
+                                )
+                            },
+                            (RelationArity::One | RelationArity::Optional, None) => quote! {
+                                #into(#variant_type_path::Fetch)
+                            },
+                            (
+                                RelationArity::One | RelationArity::Optional,
+                                Some((selection_variant, selection)),
+                            ) => quote! {
+                                #into(
+                                    #variant_type_path::#selection_variant(
                                         #dollar::#relation_model_path::#selection_variant! {
                                             selection_to_params @ #selection
                                         }.into_iter().collect()
