@@ -174,18 +174,18 @@ pub fn module(
                 let filter_enum = format_ident!("{}Filter", &read_filter.name);
 
                 // Add equals query functions. Unique/Where enum variants are added in unique/primary key sections earlier on.
-                let equals = match (model.field_is_primary(field_name), model.field_is_unique(field_name), field.arity.is_required()) {
-                    (true, _, _) | (_, true, true) => quote! {
+                let equals = match (model.field_is_primary(field_name), model.field_is_unique(field_name), field.arity.is_optional()) {
+                    (true, _, _) | (_, true, false) => quote! {
                         pub fn equals<T: From<UniqueWhereParam>>(value: #field_type) -> T {
                             UniqueWhereParam::#equals_variant(value).into()
                         }
                     },
-                    (_, true, false) => quote! {
+                    (_, true, true) => quote! {
                         pub fn equals<A, T: #pcr::FromOptionalUniqueArg<Set, Arg = A>>(value: A) -> T {
                             T::from_arg(value)
                         }
                     },
-                    (_, _, _) => quote! {
+                    (false, false, _) => quote! {
                         pub fn equals(value: #field_type) -> WhereParam {
                             WhereParam::#field_name_pascal(_prisma::read_filters::#filter_enum::Equals(value))
                         }
