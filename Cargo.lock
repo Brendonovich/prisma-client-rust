@@ -3026,6 +3026,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "issue-417"
+version = "0.1.0"
+dependencies = [
+ "prisma-client-rust",
+ "serde",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

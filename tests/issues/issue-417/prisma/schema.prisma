@@ -1,0 +1,18 @@
+datasource db {
+    provider = "postgresql"
+    url      = "postgres://postgres:postgrespw@localhost:55000"
+}
+
+generator client {
+    provider = "cargo prisma"
+    output   = "../src/db"
+
+    // necessary since the generated file won't be at crate::prisma
+    module_path = "db"
+    client_format = "folder"
+}
+
+model Item {
+    numericId  BigInt   @unique @default(autoincrement())
+    path       BigInt[] @unique
+}
