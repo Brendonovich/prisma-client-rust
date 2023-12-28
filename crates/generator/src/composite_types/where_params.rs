@@ -32,8 +32,8 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
                 (
                     field.name().to_string(),
                     quote! {
-                        pub fn equals(val: #field_type) -> WhereParam {
-                            WhereParam::#where_variant_name(val)
+                        pub fn equals(val: impl Into<#field_type>) -> WhereParam {
+                            WhereParam::#where_variant_name(val.into())
                         }
                     },
                 ),

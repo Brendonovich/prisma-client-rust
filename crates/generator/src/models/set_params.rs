@@ -118,8 +118,8 @@ fn field_set_params(
                             quote! {
                                 pub struct Set(#field_type);
 
-                                pub fn set<T: From<Set>>(create: #field_type) -> T {
-                                    Set(create).into()
+                                pub fn set<T: From<Set>>(create: Impl Into<#field_type>) -> T {
+                                    Set(create.into()).into()
                                 }
 
                                 impl From<Set> for SetParam {
@@ -421,8 +421,8 @@ fn field_set_params(
                                 }
                             }
 
-                            pub fn set<T: From<Set>>(value: #field_type) -> T {
-                                Set(value).into()
+                            pub fn set<T: From<Set>>(value: impl Into<#field_type>) -> T {
+                                Set(value.into()).into()
                             }
 
                             pub struct UpdateOperation(pub #param_enum_path);
