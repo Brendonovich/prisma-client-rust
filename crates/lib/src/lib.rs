@@ -18,6 +18,7 @@ pub mod operator;
 mod prisma_value;
 pub mod queries;
 pub mod raw;
+pub mod scalar_types;
 pub mod serde;
 mod traits;
 mod transaction;

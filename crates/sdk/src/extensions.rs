@@ -225,25 +225,9 @@ pub trait ScalarTypeExt {
 
 impl ScalarTypeExt for ScalarType {
     fn to_tokens(&self) -> TokenStream {
-        let pcr = quote!(::prisma_client_rust);
+        let ident = format_ident!("{}", self.as_str());
 
-        match self {
-            ScalarType::Int => quote!(i32),
-            ScalarType::BigInt => quote!(i64),
-            ScalarType::Float => quote!(f64),
-            ScalarType::Decimal => quote!(#pcr::bigdecimal::BigDecimal),
-            ScalarType::Boolean => quote!(bool),
-            ScalarType::String => quote!(String),
-            ScalarType::Json => quote!(#pcr::serde_json::Value),
-            ScalarType::DateTime => {
-                quote!(
-                    #pcr::chrono::DateTime<
-                        #pcr::chrono::FixedOffset,
-                    >
-                )
-            }
-            ScalarType::Bytes => quote!(Vec<u8>),
-        }
+        quote!(#ident)
     }
 
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {

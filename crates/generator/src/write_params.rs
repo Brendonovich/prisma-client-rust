@@ -84,6 +84,8 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
 
     quote! {
         pub mod write_params {
+            use super::*;
+
             #(#write_params)*
         }
     }

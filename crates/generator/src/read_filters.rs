@@ -73,6 +73,8 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
 
     quote! {
         pub mod read_filters {
+            use super::*;
+
             #(#read_filters)*
         }
     }
