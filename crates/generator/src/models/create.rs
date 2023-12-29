@@ -237,6 +237,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
     let field_name_pascal = pascal_ident(field.name());
     let model_name_snake = snake_ident(field.model().name());
     let model_name_pascal = pascal_ident(field.model().name());
+    let schema = &args.dmmf.schema;
 
     match field.refine() {
         RefinedFieldWalker::Relation(relation_field) => {
@@ -247,15 +248,15 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
 
             let connect = {
                 quote! {
-                    pub struct Connect(#typ);
+                    pub struct Connect(#model_name_snake::UniqueWhereParam);
 
-
+                    pub fn connect<T: From<Connect>>(r#where: #model_name_snake::UniqueWhereParam) -> T {
+                        Connect(r#where).into()
+                    }
                 }
             };
 
-            let create_or_connect_without = args
-                .dmmf
-                .schema
+            let create_or_connect_without = schema
                 .find_input_type(&format!(
                     "{}CreateOrConnectWithout{}Input",
                     field.model().name(),
@@ -280,9 +281,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_nested_one_without = args
-                .dmmf
-                .schema
+            let create_nested_one_without = schema
                 .find_input_type(&format!(
                     "{}CreateNestedOneWithout{}Input",
                     field.model().name(),
@@ -338,9 +337,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_nested_many_without = args
-                .dmmf
-                .schema
+            let create_nested_many_without = schema
                 .find_input_type(&format!(
                     "{}CreateNestedManyWithout{}Input",
                     field.model().name(),
@@ -385,9 +382,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_unchecked_nested_many_without = args
-                .dmmf
-                .schema
+            let create_unchecked_nested_many_without = schema
                 .find_input_type(&format!(
                     "{}UncheckedCreateNestedManyWithout{}Input",
                     field.model().name(),
@@ -416,9 +411,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_without = args
-                .dmmf
-                .schema
+            let create_without = schema
                 .find_input_type(&format!(
                     "{}CreateWithout{}Input",
                     field.model().name(),
@@ -444,9 +437,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_unchecked_without = args
-                .dmmf
-                .schema
+            let create_unchecked_without = schema
                 .find_input_type(&format!(
                     "{}UncheckedCreateWithout{}Input",
                     field.model().name(),
@@ -473,9 +464,7 @@ fn field_stuff(field: FieldWalker, args: &GenerateArgs) -> TokenStream {
                     }
                 });
 
-            let create_unchecked_nested_one_without = args
-                .dmmf
-                .schema
+            let create_unchecked_nested_one_without = schema
                 .find_input_type(&format!(
                     "{}UncheckedCreateNestedOneWithout{}Input",
                     field.model().name(),
