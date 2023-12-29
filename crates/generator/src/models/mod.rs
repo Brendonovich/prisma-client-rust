@@ -111,7 +111,7 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
             let mut module = Module::new(
                 model.name(),
                 quote! {
-                    use super::_prisma::*;
+                    use super::{_prisma::*, *};
 
                     pub const NAME: &str = #model_name;
 

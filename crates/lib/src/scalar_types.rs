@@ -1,0 +1,9 @@
+pub type Int = i32;
+pub type BigInt = i64;
+pub type Decimal = bigdecimal::BigDecimal;
+pub type Boolean = bool;
+pub type DateTime = chrono::DateTime<chrono::FixedOffset>;
+pub type Float = f64;
+pub type String = std::string::String;
+pub type Json = serde_json::Value;
+pub type Bytes = Vec<u8>;
