@@ -60,8 +60,9 @@ use prisma::{comment, post};
 
 let comment: comment::Data = client
     .comment()
-    .update(
+    .update_unchecked(
         comment::id::equals("some comment id".to_string()),
+        // can't `connect` relations, but can set foreign keys directly
         vec![comment::post_id::set("some post id".to_string())]
     )
     .exec()
