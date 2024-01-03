@@ -183,8 +183,10 @@ pub fn model_data(model: ModelWalker, args: &GenerateArgs) -> ModelModulePart {
             })
             .into_iter()
             .map(|(name, data)| {
-                let Some(typ) = data.iter()
-                	.find_map(|(typ, _)| (typ.to_string() == data[0].0.to_string()).then_some(typ)) else {
+                let Some(typ) = data
+                    .iter()
+                    .find_map(|(typ, _)| (typ.to_string() == data[0].0.to_string()).then_some(typ))
+                else {
                     panic!();
                 };
 

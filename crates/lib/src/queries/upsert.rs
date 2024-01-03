@@ -2,23 +2,23 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
+    CreateModelTypes, Include, IncludeType, ModelOperation, ModelQuery, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
 };
 
-pub struct Upsert<'a, Actions: ModelTypes> {
+pub struct Upsert<'a, Actions: CreateModelTypes> {
     client: &'a PrismaClientInternals,
     pub where_param: Actions::WhereUnique,
-    pub create_params: Vec<Actions::Set>,
+    pub create_params: Vec<Actions::Create>,
     pub update_params: Vec<Actions::Set>,
     pub with_params: Vec<Actions::With>,
 }
 
-impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> Upsert<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
         where_param: Actions::WhereUnique,
-        create_params: Vec<Actions::Set>,
+        create_params: Vec<Actions::Create>,
         update_params: Vec<Actions::Set>,
     ) -> Self {
         Self {
@@ -37,7 +37,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
 
     fn to_selection(
         where_param: Actions::WhereUnique,
-        create_params: Vec<Actions::Set>,
+        create_params: Vec<Actions::Create>,
         update_params: Vec<Actions::Set>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
@@ -95,7 +95,7 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> QueryConvert for Upsert<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
@@ -104,7 +104,7 @@ impl<'a, Actions: ModelTypes> QueryConvert for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> Query<'a> for Upsert<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -122,13 +122,13 @@ impl<'a, Actions: ModelTypes> Query<'a> for Upsert<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> ModelQuery<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> ModelQuery<'a> for Upsert<'a, Actions> {
     type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Upsert);
 }
 
-impl<'a, Actions: ModelTypes> WithQuery<'a> for Upsert<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> WithQuery<'a> for Upsert<'a, Actions> {
     fn add_with(&mut self, param: impl Into<Actions::With>) {
         self.with_params.push(param.into());
     }

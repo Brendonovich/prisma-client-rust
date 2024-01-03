@@ -2,20 +2,20 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
+    merge_fields, BatchResult, CreateModelTypes, ModelOperation, ModelQuery, ModelWriteOperation,
     PrismaClientInternals, Query, QueryConvert,
 };
 
-pub struct CreateMany<'a, Actions: ModelTypes> {
+pub struct CreateMany<'a, Actions: CreateModelTypes> {
     client: &'a PrismaClientInternals,
-    pub set_params: Vec<Vec<Actions::UncheckedSet>>,
+    pub set_params: Vec<Vec<Actions::CreateUnchecked>>,
     pub skip_duplicates: bool,
 }
 
-impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> CreateMany<'a, Actions> {
     pub fn new(
         client: &'a PrismaClientInternals,
-        set_params: Vec<Vec<Actions::UncheckedSet>>,
+        set_params: Vec<Vec<Actions::CreateUnchecked>>,
     ) -> Self {
         Self {
             client,
@@ -31,7 +31,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
     }
 
     fn to_selection(
-        set_params: Vec<Vec<Actions::UncheckedSet>>,
+        set_params: Vec<Vec<Actions::CreateUnchecked>>,
         _skip_duplicates: bool,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
@@ -69,7 +69,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> QueryConvert for CreateMany<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> QueryConvert for CreateMany<'a, Actions> {
     type RawType = BatchResult;
     type ReturnValue = i64;
 
@@ -78,7 +78,7 @@ impl<'a, Actions: ModelTypes> QueryConvert for CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> Query<'a> for CreateMany<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> Query<'a> for CreateMany<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         (
             Operation::Write(Self::to_selection(
@@ -91,7 +91,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for CreateMany<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> ModelQuery<'a> for CreateMany<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> ModelQuery<'a> for CreateMany<'a, Actions> {
     type Types = Actions;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::CreateMany);

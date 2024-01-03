@@ -4824,6 +4824,7 @@ dependencies = [
  "directories",
  "flate2",
  "http",
+ "nom",
  "prisma-client-rust-generator-shared",
  "prisma-client-rust-sdk",
  "proc-macro2",

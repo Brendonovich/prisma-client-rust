@@ -89,34 +89,42 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let items = filter
         .into_iter()
         .map(|Filter { field, methods }| {
-            let Some(field) = fields.iter().find(|schema_field| schema_field.name == field) else {
-            	let all_fields = fields.iter().map(|field| format!("'{}'", field.name.to_string())).collect::<Vec<_>>().join(", ");
+            let Some(field) = fields
+                .iter()
+                .find(|schema_field| schema_field.name == field)
+            else {
+                let all_fields = fields
+                    .iter()
+                    .map(|field| format!("'{}'", field.name.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
-             	let error = format!("Field '{field}' not found. Available fields are {all_fields}.");
+                let error =
+                    format!("Field '{field}' not found. Available fields are {all_fields}.");
 
-            	return quote_spanned!(field.span() => compile_error!(#error))
+                return quote_spanned!(field.span() => compile_error!(#error));
             };
 
-           	let field_name = &field.name;
+            let field_name = &field.name;
 
             match &field.arity {
                 Arity::Scalar => {
-                    let methods = methods.into_iter().map(
-                        |Method { name, value }| quote! {
-                        	#dollar_crate::#model_path::#field_name::#name(#value)
-                        },
-                    );
+                    let methods = methods.into_iter().map(|Method { name, value }| {
+                        quote! {
+                            #dollar_crate::#model_path::#field_name::#name(#value)
+                        }
+                    });
 
                     quote!(#(#methods),*)
                 }
                 Arity::Relation(related_model_path, _) => {
-                    let methods = methods.into_iter().map(
-						|Method { name, value }| quote! {
-							#dollar_crate::#model_path::#field_name::#name(
-								#dollar_crate::#related_model_path::filter! #value
-							)
-						},
-					);
+                    let methods = methods.into_iter().map(|Method { name, value }| {
+                        quote! {
+                            #dollar_crate::#model_path::#field_name::#name(
+                                #dollar_crate::#related_model_path::filter! #value
+                            )
+                        }
+                    });
 
                     quote!(#(#methods),*)
                 }

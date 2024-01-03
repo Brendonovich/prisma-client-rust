@@ -1,76 +1,105 @@
-use crate::prelude::{prisma::psl::datamodel_connector, *};
+use crate::{
+    models::create::InputObjects,
+    prelude::{prisma::psl::datamodel_connector, *},
+};
 use prisma_client_rust_sdk::{
-    prisma::{prisma_models::walkers::ModelWalker, psl::parser_database::ScalarFieldType},
+    prisma::{dmmf::TypeLocation, prisma_models::walkers::ModelWalker},
     GenerateArgs,
 };
 
 use super::required_fields;
 
-pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
-    let (names, (types, push_wrapper)): (Vec<_>, (Vec<_>, Vec<_>)) = required_fields(model)?
-        .into_iter()
-        .map(|field| {
-            (
-                snake_ident(field.inner.name()),
-                (field.typ, pascal_ident(field.inner.name())),
-            )
+pub fn create_fn(model: ModelWalker, args: &GenerateArgs) -> Option<TokenStream> {
+    args.dmmf
+        .schema
+        .find_input_type(&format!("{}CreateInput", model.name()))
+        .map(|input_type| {
+	        let ((names_snake, names_pascal), types): ((Vec<_>, Vec<_>), Vec<_>) = model
+	            .fields()
+	            .filter_map(|field| {
+	                input_type
+	                    .fields
+	                    .iter()
+	                    .filter(|f| f.is_required)
+	                    .find(|f| f.name == field.name())
+	            })
+	            .filter_map(|field| {
+	                let field_name_pascal = pascal_ident(&field.name);
+	                let field_name_snake = snake_ident(&field.name);
+
+	                let type_ref = &field.input_types[0];
+	                let typ = match type_ref.location {
+	                    TypeLocation::InputObjectTypes => {
+	                        let obj = type_ref.typ.parse::<InputObjects>().unwrap();
+
+	                        quote!(super::#obj)
+	                    }
+	                    _ => type_ref.to_tokens(&quote!(super::), &field.arity(), &args.schema.db)?,
+	                };
+
+	                Some(((field_name_snake, field_name_pascal), typ))
+	            })
+	            .unzip();
+
+            quote! {
+	            pub fn create(self, #(#names_snake: #types,)* mut _params: Vec<CreateParam>) -> CreateQuery<'a> {
+	                _params.extend([
+	                    #(CreateParam::#names_pascal(#names_snake)),*
+	                ]);
+
+	                CreateQuery::new(
+	                    self.client,
+	                    _params
+	                )
+	            }
+            }
         })
-        .unzip();
-
-    Some(quote! {
-        pub fn create(self, #(#names: #types,)* mut _params: Vec<CreateParam>) -> CreateQuery<'a> {
-            _params.extend([
-                #(CreateParam::#push_wrapper(#names)),*
-            ]);
-
-            CreateQuery::new(
-                self.client,
-                _params
-            )
-        }
-    })
 }
 
-pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
-    required_fields(model)?;
+pub fn create_unchecked_fn(model: ModelWalker, args: &GenerateArgs) -> Option<TokenStream> {
+    args.dmmf
+        .schema
+        .find_input_type(&format!("{}UncheckedCreateInput", model.name()))
+        .map(|input_type| {
+	        let (names, types): (Vec<_>, Vec<_>) = input_type
+	            .fields
+	            .iter()
+	            .filter(|f| f.is_required)
+	            .filter_map(|field| {
+	                let field_name_snake = snake_ident(&field.name);
 
-    let (names, types): (Vec<_>, Vec<_>) = model
-        .scalar_fields()
-        .filter_map(|field| {
-            let name_snake = snake_ident(field.name());
+	                let type_ref = &field.input_types[0];
+	                let typ = match type_ref.location {
+	                    TypeLocation::InputObjectTypes => {
+	                        let ident = format_ident!(
+	                            "{}",
+	                            type_ref.typ.parse::<InputObjects>().unwrap().to_string()
+	                        );
 
-            if !field.required_on_create() {
-                return None;
-            }
+	                        quote!(#field_name_snake::#ident)
+	                    }
+	                    _ => {
+	                        type_ref.to_tokens(&quote!(super::), &field.arity(), &args.schema.db)?
+	                    }
+	                };
 
-            Some((
-                name_snake,
-                match field.scalar_field_type() {
-                    ScalarFieldType::CompositeType(id) => {
-                        let comp_type = model.db.walk(id);
+	                Some((field_name_snake, typ))
+	            })
+	            .unzip();
 
-                        let comp_type_snake = snake_ident(comp_type.name());
+        	quote! {
+	            pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<CreateUncheckedParam>) -> CreateUncheckedQuery<'a> {
+	                _params.extend([
+	                    #(#names::set(#names)),*
+	                ]);
 
-                        quote!(super::#comp_type_snake::Create)
-                    }
-                    _ => field.type_tokens(&quote!(super::))?,
-                },
-            ))
+	                CreateUncheckedQuery::new(
+	                    self.client,
+	                    _params
+	                )
+	            }
+         	}
         })
-        .unzip();
-
-    Some(quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<CreateUncheckedParam>) -> CreateUncheckedQuery<'a> {
-            _params.extend([
-                #(#names::set(#names)),*
-            ]);
-
-            CreateUncheckedQuery::new(
-                self.client,
-                _params.into_iter().map(Into::into).collect()
-            )
-        }
-    })
 }
 
 pub fn create_many_fn(model: ModelWalker) -> Option<TokenStream> {
@@ -129,8 +158,8 @@ pub fn mongo_raw_fns() -> Option<TokenStream> {
 pub fn struct_definition(model: ModelWalker, args: &GenerateArgs) -> TokenStream {
     let pcr = quote!(::prisma_client_rust);
 
-    let create_fn = create_fn(model);
-    let create_unchecked_fn = create_unchecked_fn(model);
+    let create_fn = create_fn(model, args);
+    let create_unchecked_fn = create_unchecked_fn(model, args);
     let upsert_fn = upsert_fn(model);
     let monogo_raw_fns = mongo_raw_fns();
 

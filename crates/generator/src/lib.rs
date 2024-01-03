@@ -53,6 +53,7 @@ impl PrismaGenerator for Generator {
 
                 pub use _prisma::*;
                 use prisma_client_rust::scalar_types::*;
+                use prisma_client_rust::WhereInput;
 
                 #enums
             },

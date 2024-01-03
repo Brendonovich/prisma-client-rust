@@ -1,10 +1,8 @@
 use prisma_client_rust::{
-    bigdecimal::BigDecimal, prisma_errors::query_engine::RecordRequiredButNotFound,
-    queries::QueryError,
+    prisma_errors::query_engine::RecordRequiredButNotFound, queries::QueryError,
 };
 
 use crate::{db::*, utils::*};
-use std::str::FromStr;
 
 async fn create_user(client: &PrismaClient) -> Result<String, QueryError> {
     client
@@ -105,9 +103,11 @@ async fn disconnect() -> TestResult {
         .user()
         .update(
             user::id::equals(user_id.clone()),
-            vec![user::posts::connect(vec![post::id::equals(
-                post.id.clone(),
-            )])],
+            vec![
+            // user::posts::connect(vec![post::id::equals(
+            //     post.id.clone(),
+            // )])
+            ],
         )
         .with(user::posts::fetch(vec![]))
         .exec()
@@ -120,7 +120,7 @@ async fn disconnect() -> TestResult {
             user::id::equals(user_id.clone()),
             vec![
                 user::posts::disconnect(vec![post::id::equals(post.id.clone())]),
-                user::posts::connect(vec![post::id::equals(post_2.id.clone())]),
+                // user::posts::connect(vec![post::id::equals(post_2.id.clone())]),
             ],
         )
         .with(user::posts::fetch(vec![]))

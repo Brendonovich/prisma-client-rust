@@ -2,19 +2,19 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
+    merge_fields, CreateModelTypes, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
     ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
     UncheckedSetQuery, WithQuery,
 };
 
-pub struct CreateUnchecked<'a, Actions: ModelTypes> {
+pub struct CreateUnchecked<'a, Types: CreateModelTypes> {
     client: &'a PrismaClientInternals,
-    pub set_params: Vec<Actions::UncheckedSet>,
-    pub with_params: Vec<Actions::With>,
+    pub set_params: Vec<Types::CreateUnchecked>,
+    pub with_params: Vec<Types::With>,
 }
 
-impl<'a, Actions: ModelTypes> CreateUnchecked<'a, Actions> {
-    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::UncheckedSet>) -> Self {
+impl<'a, Types: CreateModelTypes> CreateUnchecked<'a, Types> {
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Types::CreateUnchecked>) -> Self {
         Self {
             client,
             set_params,
@@ -22,13 +22,13 @@ impl<'a, Actions: ModelTypes> CreateUnchecked<'a, Actions> {
         }
     }
 
-    pub fn with(mut self, param: impl Into<Actions::With>) -> Self {
+    pub fn with(mut self, param: impl Into<Types::With>) -> Self {
         self.with_params.push(param.into());
         self
     }
 
     fn to_selection(
-        set_params: Vec<Actions::UncheckedSet>,
+        set_params: Vec<Types::CreateUnchecked>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Self::base_selection(
@@ -44,17 +44,14 @@ impl<'a, Actions: ModelTypes> CreateUnchecked<'a, Actions> {
         )
     }
 
-    pub fn select<S: SelectType<ModelData = Actions::Data>>(
-        self,
-        select: S,
-    ) -> Select<'a, S::Data> {
+    pub fn select<S: SelectType<ModelData = Types::Data>>(self, select: S) -> Select<'a, S::Data> {
         Select::new(
             self.client,
             Operation::Write(Self::to_selection(self.set_params, select.to_selections())),
         )
     }
 
-    pub fn include<I: IncludeType<ModelData = Actions::Data>>(
+    pub fn include<I: IncludeType<ModelData = Types::Data>>(
         self,
         include: I,
     ) -> Include<'a, I::Data> {
@@ -64,12 +61,12 @@ impl<'a, Actions: ModelTypes> CreateUnchecked<'a, Actions> {
         )
     }
 
-    pub async fn exec(self) -> super::Result<Actions::Data> {
+    pub async fn exec(self) -> super::Result<Types::Data> {
         super::exec(self).await
     }
 }
 
-impl<'a, Actions: ModelTypes> QueryConvert for CreateUnchecked<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> QueryConvert for CreateUnchecked<'a, Actions> {
     type RawType = Actions::Data;
     type ReturnValue = Self::RawType;
 
@@ -78,7 +75,7 @@ impl<'a, Actions: ModelTypes> QueryConvert for CreateUnchecked<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> Query<'a> for CreateUnchecked<'a, Actions> {
+impl<'a, Actions: CreateModelTypes> Query<'a> for CreateUnchecked<'a, Actions> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
         let mut scalar_selections = Actions::scalar_selections();
 
@@ -91,19 +88,19 @@ impl<'a, Actions: ModelTypes> Query<'a> for CreateUnchecked<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> ModelQuery<'a> for CreateUnchecked<'a, Actions> {
-    type Types = Actions;
+impl<'a, Types: CreateModelTypes> ModelQuery<'a> for CreateUnchecked<'a, Types> {
+    type Types = Types;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Create);
 }
 
-impl<'a, Actions: ModelTypes> UncheckedSetQuery<'a> for CreateUnchecked<'a, Actions> {
-    fn add_unchecked_set(&mut self, param: Actions::UncheckedSet) {
-        self.set_params.push(param);
-    }
-}
+// impl<'a, Types: CreateModelTypes> UncheckedSetQuery<'a> for CreateUnchecked<'a, Types> {
+//     fn add_unchecked_set(&mut self, param: Types::UncheckedSet) {
+//         self.set_params.push(param);
+//     }
+// }
 
-impl<'a, Actions: ModelTypes> WithQuery<'a> for CreateUnchecked<'a, Actions> {
+impl<'a, Types: CreateModelTypes> WithQuery<'a> for CreateUnchecked<'a, Types> {
     fn add_with(
         &mut self,
         param: impl Into<<<Self as ModelQuery<'a>>::Types as ModelTypes>::With>,

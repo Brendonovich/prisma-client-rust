@@ -153,12 +153,23 @@ pub fn modules(args: &GenerateArgs, module_path: &TokenStream) -> Vec<Module> {
         .collect()
 }
 
+#[derive(Default)]
 pub struct ModelModulePart {
     data: TokenStream,
     fields: BTreeMap<String, TokenStream>,
 }
 
 impl ModelModulePart {
+    pub fn merge(mut self, other: Self) -> Self {
+        self.data.extend(other.data);
+        other.fields.into_iter().for_each(|(k, v)| {
+            let entry = self.fields.entry(k).or_default();
+            entry.extend(v);
+        });
+
+        self
+    }
+
     pub fn combine(parts: Vec<Self>) -> (TokenStream, Vec<Module>) {
         let (data, fields): (Vec<_>, Vec<_>) =
             parts.into_iter().map(|p| (p.data, p.fields)).unzip();
@@ -177,7 +188,7 @@ impl ModelModulePart {
                     use super::super::{_prisma::*, *};
                     use super::{WhereParam, UniqueWhereParam, WithParam, SetParam, UncheckedSetParam};
 
-					          pub const NAME: &str = #field_name_str;
+					pub const NAME: &str = #field_name_str;
 
                     #(#data)*
                 })

@@ -193,14 +193,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            user::id::equals(
-                client
-                    .user()
-                    .create("Brendan".to_string(), vec![])
-                    .exec()
-                    .await?
-                    .id,
-            ),
+            profile::user::create("Brendan".to_string(), vec![]),
             "My very cool bio.".to_string(),
             "Australia".to_string(),
             vec![],
@@ -211,14 +204,7 @@ async fn filtering_one_to_one_relation() -> TestResult {
     client
         .profile()
         .create(
-            user::id::equals(
-                client
-                    .user()
-                    .create("Oscar".to_string(), vec![])
-                    .exec()
-                    .await?
-                    .id,
-            ),
+            profile::user::create("Oscar".to_string(), vec![]),
             "Hello world, this is my bio.".to_string(),
             "Australia".to_string(),
             vec![],
@@ -278,62 +264,24 @@ async fn filtering_one_to_one_relation() -> TestResult {
 async fn filtering_one_to_many_relation() -> TestResult {
     let client = client().await;
 
-    let user = client
-        .user()
-        .create("Brendan".to_string(), vec![])
-        .exec()
-        .await?;
-
     client
-        .post()
-        .create(
-            "My first post".to_string(),
-            true,
-            vec![post::author::connect(user::id::equals(user.id.clone()))],
-        )
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create(
-            "My second post".to_string(),
-            false,
-            vec![post::author::connect(user::id::equals(user.id.clone()))],
-        )
-        .exec()
-        .await?;
-
-    let user = client
-        .user()
-        .create("Oscar".to_string(), vec![])
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create(
-            "Hello, world!".to_string(),
-            true,
-            vec![post::author::connect(user::id::equals(user.id.clone()))],
-        )
-        .exec()
-        .await?;
-
-    client
-        .post()
-        .create(
-            "My test post".to_string(),
-            false,
-            vec![post::author::connect(user::id::equals(user.id.clone()))],
-        )
-        .exec()
-        .await?;
-
-    client
-        .user()
-        .create("Jamie".to_string(), vec![])
-        .exec()
+        ._batch(vec![
+            client.user().create(
+                "Brendan".to_string(),
+                vec![user::posts::create_multiple(vec![
+                    user::posts::create("My first post".to_string(), true, vec![]),
+                    user::posts::create("My second post".to_string(), false, vec![]),
+                ])],
+            ),
+            client.user().create(
+                "Oscar".to_string(),
+                vec![user::posts::create_multiple(vec![
+                    user::posts::create("Hello, world!".to_string(), true, vec![]),
+                    user::posts::create("My test post".to_string(), false, vec![]),
+                ])],
+            ),
+            client.user().create("Jamie".to_string(), vec![]),
+        ])
         .await?;
 
     let users = client
@@ -387,19 +335,17 @@ async fn ordering() -> TestResult {
     let client = client().await;
 
     client
-        .post()
-        .create("Test post 1".to_string(), false, vec![])
-        .exec()
-        .await?;
-    client
-        .post()
-        .create("Test post 2".to_string(), false, vec![])
-        .exec()
-        .await?;
-    client
-        .post()
-        .create("Test post 3".to_string(), true, vec![])
-        .exec()
+        ._batch(vec![
+            client
+                .post()
+                .create("Test post 1".to_string(), false, vec![]),
+            client
+                .post()
+                .create("Test post 2".to_string(), false, vec![]),
+            client
+                .post()
+                .create("Test post 3".to_string(), true, vec![]),
+        ])
         .await?;
 
     let found = client
@@ -433,15 +379,10 @@ async fn select() -> TestResult {
     let client = client().await;
 
     client
-        .user()
-        .create("Brendan".to_string(), vec![])
-        .exec()
-        .await?;
-
-    client
-        .user()
-        .create("Oscar".to_string(), vec![])
-        .exec()
+        ._batch(vec![
+            client.user().create("Brendan".to_string(), vec![]),
+            client.user().create("Oscar".to_string(), vec![]),
+        ])
         .await?;
 
     let users = client
@@ -482,20 +423,17 @@ async fn filter() -> TestResult {
 
     let (brendan, _, _) = client
         ._batch((
-            client.user().create("Brendan".to_string(), vec![]),
+            client.user().create(
+                "Brendan".to_string(),
+                vec![user::posts::create_multiple(vec![user::posts::create(
+                    "Test".to_string(),
+                    true,
+                    vec![],
+                )])],
+            ),
             client.user().create("Oscar".to_string(), vec![]),
             client.user().create("Jamie".to_string(), vec![]),
         ))
-        .await?;
-
-    client
-        .post()
-        .create(
-            "Test".to_string(),
-            true,
-            vec![post::author::connect(user::id::equals(brendan.id))],
-        )
-        .exec()
         .await?;
 
     let users = client

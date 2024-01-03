@@ -35,3 +35,4 @@ thiserror = "1.0.37"
 
 prisma-client-rust-sdk = { path = "../sdk", default_features = false }
 prisma-client-rust-generator-shared = { path = "../generator-shared" }
+nom = "7.1.3"

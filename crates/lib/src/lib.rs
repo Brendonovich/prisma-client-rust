@@ -27,6 +27,7 @@ use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
+pub use either::Either;
 pub use either::*;
 pub use prisma_models::{self, PrismaValue};
 pub use psl;
@@ -138,9 +139,4 @@ pub fn merge_fields(fields: Vec<(String, PrismaValue)>) -> Vec<(String, PrismaVa
 
 pub fn sel(name: &str) -> Selection {
     Selection::new(name, None, [], [])
-}
-
-pub enum Either<Left, Right> {
-    Left(Left),
-    Right(Right),
 }

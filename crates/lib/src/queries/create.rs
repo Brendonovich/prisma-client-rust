@@ -2,19 +2,19 @@ use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
-    merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
+    merge_fields, CreateModelTypes, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
     ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
     WithQuery,
 };
 
-pub struct Create<'a, Actions: ModelTypes> {
+pub struct Create<'a, Types: CreateModelTypes> {
     client: &'a PrismaClientInternals,
-    pub set_params: Vec<Actions::Set>,
-    pub with_params: Vec<Actions::With>,
+    pub set_params: Vec<Types::Create>,
+    pub with_params: Vec<Types::With>,
 }
 
-impl<'a, Actions: ModelTypes> Create<'a, Actions> {
-    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::Set>) -> Self {
+impl<'a, Actions: CreateModelTypes> Create<'a, Actions> {
+    pub fn new(client: &'a PrismaClientInternals, set_params: Vec<Actions::Create>) -> Self {
         Self {
             client,
             set_params,
@@ -28,7 +28,7 @@ impl<'a, Actions: ModelTypes> Create<'a, Actions> {
     }
 
     fn to_selection(
-        set_params: Vec<Actions::Set>,
+        set_params: Vec<Actions::Create>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Self::base_selection(
@@ -69,8 +69,8 @@ impl<'a, Actions: ModelTypes> Create<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> QueryConvert for Create<'a, Actions> {
-    type RawType = Actions::Data;
+impl<'a, Types: CreateModelTypes> QueryConvert for Create<'a, Types> {
+    type RawType = Types::Data;
     type ReturnValue = Self::RawType;
 
     fn convert(raw: Self::RawType) -> super::Result<Self::ReturnValue> {
@@ -78,9 +78,9 @@ impl<'a, Actions: ModelTypes> QueryConvert for Create<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> Query<'a> for Create<'a, Actions> {
+impl<'a, Types: CreateModelTypes> Query<'a> for Create<'a, Types> {
     fn graphql(self) -> (Operation, &'a PrismaClientInternals) {
-        let mut scalar_selections = Actions::scalar_selections();
+        let mut scalar_selections = Types::scalar_selections();
 
         scalar_selections.extend(self.with_params.into_iter().map(Into::into));
 
@@ -91,23 +91,20 @@ impl<'a, Actions: ModelTypes> Query<'a> for Create<'a, Actions> {
     }
 }
 
-impl<'a, Actions: ModelTypes> ModelQuery<'a> for Create<'a, Actions> {
-    type Types = Actions;
+impl<'a, Types: CreateModelTypes> ModelQuery<'a> for Create<'a, Types> {
+    type Types = Types;
 
     const TYPE: ModelOperation = ModelOperation::Write(ModelWriteOperation::Create);
 }
 
-impl<'a, Actions: ModelTypes> SetQuery<'a> for Create<'a, Actions> {
-    fn add_set(&mut self, param: Actions::Set) {
-        self.set_params.push(param);
-    }
-}
+// impl<'a, Actions: CreateModelTypes> SetQuery<'a> for Create<'a, Actions> {
+//     fn add_set(&mut self, param: Actions::Set) {
+//         self.set_params.push(param);
+//     }
+// }
 
-impl<'a, Actions: ModelTypes> WithQuery<'a> for Create<'a, Actions> {
-    fn add_with(
-        &mut self,
-        param: impl Into<<<Self as ModelQuery<'a>>::Types as ModelTypes>::With>,
-    ) {
+impl<'a, Types: CreateModelTypes> WithQuery<'a> for Create<'a, Types> {
+    fn add_with(&mut self, param: impl Into<Types::With>) {
         self.with_params.push(param.into());
     }
 }

@@ -13,9 +13,12 @@ async fn create() -> TestResult {
         .create(
             "Hi from Prisma!".to_string(),
             true,
-            vec![post::desc::set(Some(
-                "Prisma is a database toolkit that makes databases easy.".to_string(),
-            ))],
+            vec![
+                post::desc::set(Some(
+                    "Prisma is a database toolkit that makes databases easy.".to_string(),
+                )),
+                post::categories::connect(vec![]),
+            ],
         )
         .exec()
         .await?;
@@ -144,38 +147,41 @@ async fn from_struct() -> TestResult {
 async fn nested_create() -> TestResult {
     let client = client().await;
 
-    let post = client
-        .post()
+    let profile = client
+        .profile()
         .create(
-            "Hi from Prisma!".to_string(),
-            true,
-            vec![
-                post::author::create("Brendan".to_string(), vec![]),
-                post::author::create_unchecked(),
-                post::author::connect_or_create(
-                    user::id::equals("bruh".to_string()),
-                    post::author::create(),
-                ),
-                post::author::connect(),
-            ],
+            profile::user::create(
+                "Brendan Allan".to_string(),
+                vec![user::posts::create_multiple(vec![
+                    user::posts::create("Post One".to_string(), true, vec![]),
+                    user::posts::create("Post Two".to_string(), false, vec![]),
+                ])],
+            ),
+            "Software developer from Western Australia".to_string(),
+            "Australia".to_string(),
+            vec![],
         )
+        .select(profile::select!({
+            country
+            user: select {
+                name
+                posts: select {
+                    title
+                    published
+                }
+            }
+        }))
         .exec()
         .await?;
+    let profile = &profile;
 
-    assert_eq!(post.title, "Hi from Prisma!");
-    assert_eq!(
-        post.desc,
-        Some("Prisma is a database toolkit that makes databases easy.".to_string())
-    );
-    assert_eq!(post.published, true);
-
-    let user = client
-        .user()
-        .create("Brendan".to_string(), vec![])
-        .exec()
-        .await?;
-
-    assert_eq!(user.name, "Brendan");
+    assert_eq!(&profile.country, "Australia");
+    assert_eq!(&profile.user.name, "Brendan Allan");
+    assert_eq!(profile.user.posts.len(), 2);
+    assert_eq!(&profile.user.posts[0].title, "Post One");
+    assert_eq!(profile.user.posts[0].published, true);
+    assert_eq!(&profile.user.posts[1].title, "Post Two");
+    assert_eq!(profile.user.posts[1].published, false);
 
     cleanup(client).await
 }

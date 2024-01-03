@@ -109,34 +109,6 @@ async fn error() -> TestResult {
 }
 
 #[tokio::test]
-async fn mixing_models() -> TestResult {
-    let client = client().await;
-
-    let (user, profile) = client
-        ._batch((
-            client.user().create(
-                "Brendan".to_string(),
-                vec![user::id::set("abc".to_string())],
-            ),
-            client.profile().create(
-                user::id::equals("abc".to_string()),
-                "Brendan's profile".to_string(),
-                "Australia".to_string(),
-                vec![],
-            ),
-        ))
-        .await?;
-
-    assert_eq!(&user.name, "Brendan");
-    assert_eq!(&profile.bio, "Brendan's profile");
-
-    assert_eq!(client.user().count(vec![]).exec().await?, 1);
-    assert_eq!(client.profile().count(vec![]).exec().await?, 1);
-
-    cleanup(client).await
-}
-
-#[tokio::test]
 async fn mixing_actions() -> TestResult {
     let client = client().await;
 

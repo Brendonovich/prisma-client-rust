@@ -27,6 +27,7 @@ impl<'a> GenerateArgs<'a> {
         dmmf: &'a DataModelMetaFormat,
         engine_dmmf: EngineDMMF,
     ) -> Self {
+        std::fs::write("./bruh.json", serde_json::to_string_pretty(&dmmf).unwrap()).unwrap();
         let scalars = dmmf
             .schema
             .input_object_types

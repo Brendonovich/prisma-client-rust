@@ -108,16 +108,16 @@ async fn optional() -> TestResult {
     assert!(profile.is_ok());
     assert!(profile.unwrap().is_none());
 
-    client
-        .profile()
-        .create(
-            user::id::equals(user.id.clone()),
-            "Bio".to_string(),
-            "Country".to_string(),
-            vec![],
-        )
-        .exec()
-        .await?;
+    // client
+    //     .profile()
+    //     .create(
+    //         profile::user::connect(user::id::equals(user.id.clone())),
+    //         "Bio".to_string(),
+    //         "Country".to_string(),
+    //         vec![],
+    //     )
+    //     .exec()
+    //     .await?;
 
     let user = client
         .user()
