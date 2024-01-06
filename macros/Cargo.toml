@@ -1,6 +1,6 @@
 [package]
 name = "prisma-client-rust-macros"
-version = "0.6.10"
+version = "0.6.11"
 edition = "2021"
 
 [lib]
