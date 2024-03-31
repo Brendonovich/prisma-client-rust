@@ -4,7 +4,7 @@ use directories::BaseDirs;
 use flate2::read::GzDecoder;
 use http::StatusCode;
 use reqwest::blocking as reqwest;
-use std::fs::{copy, create_dir_all, metadata, File};
+use std::fs::{rename, create_dir_all, metadata, File, remove_file};
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -123,26 +123,28 @@ fn download(url: String, to: String) -> Result<(), ()> {
         panic!("received code {} from {}", resp.status(), &url);
     };
 
-    let mut tmp_file = File::create(tmp).expect(&format!("could not create {}", tmp));
+    {
+        let mut tmp_file = File::create(tmp).expect(&format!("could not create {}", tmp));
 
-    if !cfg!(target_os = "windows") {
-        Command::new("chmod")
-            .arg("+x")
-            .arg(tmp)
-            .output()
-            .expect("failed to make file executable");
+        if !cfg!(target_os = "windows") {
+            Command::new("chmod")
+                .arg("+x")
+                .arg(tmp)
+                .output()
+                .expect("failed to make file executable");
+        }
+
+        let mut buffer = Vec::new();
+        io::BufReader::new(GzDecoder::new(resp))
+            .read_to_end(&mut buffer)
+            .unwrap();
+
+        tmp_file
+            .write(buffer.as_slice())
+            .expect("could not write to .tmp file");
+
     }
-
-    let mut buffer = Vec::new();
-    io::BufReader::new(GzDecoder::new(resp))
-        .read_to_end(&mut buffer)
-        .unwrap();
-
-    tmp_file
-        .write(buffer.as_slice())
-        .expect("could not write to .tmp file");
-
-    copy(tmp, to).expect(&format!("could not copy file {}", url));
+    rename(tmp, to).expect(&format!("could not rename file {}", url));
 
     Ok(())
 }
