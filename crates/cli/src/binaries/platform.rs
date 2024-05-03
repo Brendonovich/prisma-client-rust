@@ -127,7 +127,7 @@ fn parse_openssl_version(v: &str) -> String {
     let matches = r.unwrap().captures(v).unwrap();
     if matches.len() > 0 {
         match matches.get(1).unwrap().as_str() {
-            "3.1" => "3.0.x".to_string(),
+            version if version.starts_with("3.") => "3.0.x".to_string(),
             version => format!("{version}.x"),
         }
     } else {
