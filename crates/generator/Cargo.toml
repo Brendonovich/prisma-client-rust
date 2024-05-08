@@ -29,7 +29,10 @@ proc-macro2 = "1.0.39"
 http = "0.2.6"
 directories = "4.0.1"
 flate2 = "1.0.23"
-reqwest = { version = "0.11.10", features = ["blocking"] }
+reqwest = { version = "0.11.10", features = [
+    "blocking",
+    "native-tls-vendored",
+] }
 regex = "1.5.5"
 thiserror = "1.0.37"
 
