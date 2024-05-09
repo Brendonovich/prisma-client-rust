@@ -160,7 +160,7 @@ pub fn r#struct(model: ModelWalker) -> TokenStream {
 
         quote! {
             #[derive(::prisma_client_rust::specta::Type)]
-            #[specta(rename = #model_name_pascal_str, crate = "prisma_client_rust::specta")]
+            #[specta(rename = #model_name_pascal_str, crate = prisma_client_rust::specta)]
         }
     });
 
