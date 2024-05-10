@@ -174,7 +174,7 @@ impl PrismaClientInternals {
                     Ok(url) => Some(url),
                     Err(_) => source.load_shadow_database_url()?,
                 }
-                .unwrap();
+                .expect("Datasource could not be fetched, please check your schema.prisma file or your environment variables");
 
                 match url.starts_with("file:") {
                     true => {
