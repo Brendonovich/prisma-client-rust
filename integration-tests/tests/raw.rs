@@ -1,4 +1,4 @@
-use prisma_client_rust::{prisma_models::PrismaValue, raw};
+use prisma_client_rust::{raw, PrismaValue};
 
 use crate::{db::*, utils::*};
 
