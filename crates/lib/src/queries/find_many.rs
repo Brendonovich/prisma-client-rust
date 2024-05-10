@@ -102,8 +102,8 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                         .into(),
                     )
                 }),
-                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
-                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32).into())),
+                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i32).into())),
             ]
             .into_iter()
             .flatten(),
@@ -304,9 +304,9 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
                 )
             }),
             self.skip
-                .map(|skip| ("skip".to_string(), PrismaValue::Int(skip))),
+                .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32))),
             self.take
-                .map(|take| ("take".to_string(), PrismaValue::Int(take))),
+                .map(|take| ("take".to_string(), PrismaValue::Int(take as i32))),
         ]
         .into_iter()
         .flatten()

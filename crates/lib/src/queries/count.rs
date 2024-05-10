@@ -115,9 +115,9 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                         )
                     }),
                     self.skip
-                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip))),
+                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32))),
                     self.take
-                        .map(|take| ("take".to_string(), PrismaValue::Int(take))),
+                        .map(|take| ("take".to_string(), PrismaValue::Int(take as i32))),
                 ]
                 .into_iter()
                 .flatten(),
