@@ -1,7 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
-use chrono::{DateTime, FixedOffset};
 use indexmap::IndexMap;
 use query_core::{
     constants::custom_types::{self},
@@ -9,6 +8,8 @@ use query_core::{
 };
 use serde::{Serialize, Serializer};
 use uuid::Uuid;
+
+use crate::scalar_types;
 
 /// A Rust-friendly version of Prisma's own PrismaValue.
 ///
@@ -20,22 +21,22 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum PrismaValue {
-    String(String),
-    Boolean(bool),
+    String(scalar_types::String),
+    Boolean(scalar_types::Boolean),
     Enum(String),
-    Int(i32),
+    Int(scalar_types::Int),
     Uuid(Uuid),
     List(Vec<PrismaValue>),
-    Json(serde_json::Value),
+    Json(scalar_types::Json),
     Object(Vec<(String, PrismaValue)>),
     #[serde(serialize_with = "serialize_null")]
     Null,
-    DateTime(DateTime<FixedOffset>),
-    Float(f64),
+    DateTime(scalar_types::DateTime),
+    Float(scalar_types::Float),
     // Special variant for distinguishing between Float and Decimal
-    Decimal(BigDecimal),
-    BigInt(i64),
-    Bytes(Vec<u8>),
+    Decimal(scalar_types::Decimal),
+    BigInt(scalar_types::BigInt),
+    Bytes(scalar_types::Bytes),
 }
 
 /// A Rust-friendly version of Prisma's own Item.
@@ -145,8 +146,12 @@ impl From<PrismaValue> for prisma_models::PrismaValue {
             }
             PrismaValue::Null => Self::Null,
             PrismaValue::DateTime(value) => Self::DateTime(value),
-            PrismaValue::Decimal(value) => Self::Float(value),
-            PrismaValue::Float(value) => Self::Float(BigDecimal::from_f64(value).unwrap()),
+            PrismaValue::Decimal(value) => {
+                Self::Float(bigdecimal_03::BigDecimal::from_str(&value.to_string()).unwrap())
+            }
+            PrismaValue::Float(value) => {
+                Self::Float(bigdecimal_03::BigDecimal::from_f64(value).unwrap())
+            }
             PrismaValue::BigInt(value) => Self::BigInt(value),
             PrismaValue::Bytes(value) => Self::Bytes(value),
         }

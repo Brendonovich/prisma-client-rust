@@ -24,7 +24,7 @@ pub fn definitions(input: &Input) -> TokenStream {
     if cfg!(feature = "specta") {
         attrs.extend(quote! {
             #[derive(::prisma_client_rust::specta::Type)]
-            #[specta(crate = "prisma_client_rust::specta")]
+            #[specta(crate = prisma_client_rust::specta)]
         });
 
         attrs.extend(match &macro_rules.name {
@@ -62,9 +62,10 @@ pub fn definitions(input: &Input) -> TokenStream {
             let (field_type, field_module) = field_in_selectables
                 .zip(field_in_selection.and_then(|f| f.sub_selection.as_ref()))
                 .and_then(|(field_in_selectables, (variant, sub_selection))| {
-                    let Arity::Relation(relation_model_path, arity) = &field_in_selectables.arity else {
-						return None;
-					};
+                    let Arity::Relation(relation_model_path, arity) = &field_in_selectables.arity
+                    else {
+                        return None;
+                    };
 
                     let value = quote! {
                         pub mod #ident {
@@ -77,9 +78,9 @@ pub fn definitions(input: &Input) -> TokenStream {
                     let base = quote!(#ident::Data);
 
                     let typ = match arity {
-                    RelationArity::One => base,
-                    RelationArity::Many => quote!(Vec<#base>),
-                    RelationArity::Optional => quote!(Option<#base>),
+                        RelationArity::One => base,
+                        RelationArity::Many => quote!(Vec<#base>),
+                        RelationArity::Optional => quote!(Option<#base>),
                     };
 
                     Some((typ, Some(value)))

@@ -73,7 +73,7 @@ pub fn proc_macro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let specta_attrs = cfg!(feature = "specta").then(|| {
         quote! {
             #[derive(::prisma_client_rust::specta::Type)]
-            #[specta(crate = "prisma_client_rust::specta")]
+            #[specta(crate = prisma_client_rust::specta)]
         }
     });
 

@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
-    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
+    PrismaClientInternals, PrismaValue, Query, QueryConvert, Select, SelectType, WhereInput,
+    WithQuery,
 };
 
 pub struct FindUnique<'a, Actions: ModelTypes> {
@@ -37,7 +37,7 @@ impl<'a, Actions: ModelTypes> FindUnique<'a, Actions> {
         Self::base_selection(
             [(
                 "where".to_string(),
-                PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
             )],
             nested_selections,
         )

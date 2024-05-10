@@ -1,13 +1,10 @@
-use prisma_models::PrismaValue;
 use query_core::{ArgumentValue, Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
-    OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
-    WhereInput, WhereQuery, WithQuery,
+    OrderByQuery, PaginatedQuery, PrismaClientInternals, PrismaValue, Query, QueryConvert, Select,
+    SelectType, WhereInput, WhereQuery, WithQuery,
 };
-
-use super::SerializedWhereInput;
 
 pub struct FindMany<'a, Actions: ModelTypes> {
     client: &'a PrismaClientInternals,
@@ -105,8 +102,8 @@ impl<'a, Actions: ModelTypes> FindMany<'a, Actions> {
                         .into(),
                     )
                 }),
-                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
-                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32).into())),
+                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i32).into())),
             ]
             .into_iter()
             .flatten(),
@@ -303,17 +300,17 @@ impl<Actions: ModelTypes> ManyArgs<Actions> {
                             .map(WhereInput::serialize)
                             .map(|s| (s.field, s.value.into()))
                             .collect(),
-                    )
-                    .into(),
+                    ),
                 )
             }),
             self.skip
-                .map(|skip| ("skip".to_string(), PrismaValue::Int(skip).into())),
+                .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32))),
             self.take
-                .map(|take| ("take".to_string(), PrismaValue::Int(take).into())),
+                .map(|take| ("take".to_string(), PrismaValue::Int(take as i32))),
         ]
         .into_iter()
         .flatten()
+        .map(|(k, v)| (k, prisma_models::PrismaValue::from(v).into()))
         .collect();
 
         let nested_selections = (self.with_params.len() > 0)

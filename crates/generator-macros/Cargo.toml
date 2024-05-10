@@ -6,11 +6,12 @@ edition = "2021"
 [lib]
 proc-macro = true
 
+[features]
+specta = []
+
 [dependencies]
 prisma-client-rust-generator-shared = { path = "../generator-shared" }
 convert_case.workspace = true
 proc-macro2 = "1.0.39"
 quote = "1.0.18"
 syn = "1.0.91"
-
-specta = { workspace = true, optional = true }

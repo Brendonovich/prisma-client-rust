@@ -1,10 +1,9 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 use serde::Deserialize;
 
 use crate::{
     merge_fields, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes, OrderByQuery,
-    PaginatedQuery, PrismaClientInternals, Query, QueryConvert, SerializedWhereInput, WhereInput,
+    PaginatedQuery, PrismaClientInternals, PrismaValue, Query, QueryConvert, WhereInput,
     WhereQuery,
 };
 
@@ -112,14 +111,13 @@ impl<'a, Actions: ModelTypes> Query<'a> for Count<'a, Actions> {
                                     .map(WhereInput::serialize)
                                     .map(|s| (s.field, s.value.into()))
                                     .collect(),
-                            )
-                            .into(),
+                            ),
                         )
                     }),
                     self.skip
-                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
+                        .map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32))),
                     self.take
-                        .map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                        .map(|take| ("take".to_string(), PrismaValue::Int(take as i32))),
                 ]
                 .into_iter()
                 .flatten(),

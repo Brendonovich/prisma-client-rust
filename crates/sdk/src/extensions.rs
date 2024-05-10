@@ -235,11 +235,9 @@ impl ScalarTypeExt for ScalarType {
         let v = quote!(#pcr::PrismaValue);
 
         match self {
-            ScalarType::Int => quote!(#v::Int(#var as i64)),
+            ScalarType::Int => quote!(#v::Int(#var)),
             ScalarType::BigInt => quote!(#v::BigInt(#var)),
-            ScalarType::Float => {
-                quote!(#v::Float(<#pcr::bigdecimal::BigDecimal as #pcr::bigdecimal::FromPrimitive>::from_f64(#var).unwrap().normalized()))
-            }
+            ScalarType::Float => quote!(#v::Float(#var)),
             ScalarType::Decimal => quote!(#v::String(#var.to_string())),
             ScalarType::Boolean => quote!(#v::Boolean(#var)),
             ScalarType::String => quote!(#v::String(#var)),
