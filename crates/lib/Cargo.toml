@@ -11,7 +11,13 @@ default = []
 rspc = ["dep:rspc", "specta"]
 specta = ["dep:specta", "prisma-client-rust-generator-macros/specta"]
 sqlite-create-many = ["psl/sqlite-create-many"]
-migrations = ["schema-core", "dep:include_dir", "dep:tempfile", "tokio/fs", "dep:tracing"]
+migrations = [
+  "schema-core",
+  "dep:include_dir",
+  "dep:tempfile",
+  "tokio/fs",
+  "dep:tracing",
+]
 mocking = ["tokio"]
 # mutation-callbacks = []
 
@@ -27,7 +33,8 @@ serde.workspace = true
 serde_json.workspace = true
 chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "1.0.30"
-bigdecimal = { version = "0.3", features = ["serde"] }
+bigdecimal = { version = "0.4", features = ["serde"] }
+bigdecimal_03 = { package = "bigdecimal", version = "0.3" }
 uuid = { version = "1", features = ["serde"] }
 indexmap = "1.8.2"
 serde-value = "0.7.0"

@@ -721,7 +721,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -735,6 +734,7 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -4989,6 +4989,7 @@ version = "0.6.8"
 dependencies = [
  "base64 0.13.1",
  "bigdecimal 0.3.0",
+ "bigdecimal 0.4.2",
  "chrono",
  "diagnostics",
  "dotenvy",

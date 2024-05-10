@@ -1,10 +1,9 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
-    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
-    UncheckedSetQuery, WithQuery,
+    ModelWriteOperation, PrismaClientInternals, PrismaValue, Query, QueryConvert, Select,
+    SelectType, UncheckedSetQuery, WithQuery,
 };
 
 pub struct CreateUnchecked<'a, Actions: ModelTypes> {
@@ -36,8 +35,7 @@ impl<'a, Actions: ModelTypes> CreateUnchecked<'a, Actions> {
                 "data".to_string(),
                 PrismaValue::Object(merge_fields(
                     set_params.into_iter().map(Into::into).collect(),
-                ))
-                .into(),
+                )),
             )]
             .into_iter(),
             nested_selections,

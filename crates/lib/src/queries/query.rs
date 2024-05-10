@@ -1,8 +1,7 @@
-use prisma_models::PrismaValue;
-use query_core::{Operation, Selection, SelectionArgument};
+use query_core::{Operation, Selection};
 use serde::de::DeserializeOwned;
 
-use crate::{PrismaClientInternals, WhereInput};
+use crate::{PrismaClientInternals, PrismaValue, WhereInput};
 
 pub trait QueryConvert {
     type RawType: Data;
@@ -97,13 +96,16 @@ pub trait ModelQuery<'a>: Query<'a> {
     const TYPE: ModelOperation;
 
     fn base_selection(
-        arguments: impl IntoIterator<Item = SelectionArgument>,
+        arguments: impl IntoIterator<Item = (String, PrismaValue)>,
         nested_selections: impl IntoIterator<Item = Selection>,
     ) -> Selection {
         Selection::new(
             format!("{}{}", Self::TYPE.name(), Self::Types::MODEL),
             None,
-            arguments.into_iter().collect::<Vec<_>>(),
+            arguments
+                .into_iter()
+                .map(|(k, v)| (k, prisma_models::PrismaValue::from(v).into()))
+                .collect::<Vec<_>>(),
             nested_selections.into_iter().collect::<Vec<_>>(),
         )
     }

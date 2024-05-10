@@ -1,10 +1,9 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelTypes,
-    ModelWriteOperation, PrismaClientInternals, Query, QueryConvert, Select, SelectType, SetQuery,
-    WhereInput, WithQuery,
+    ModelWriteOperation, PrismaClientInternals, PrismaValue, Query, QueryConvert, Select,
+    SelectType, SetQuery, WhereInput, WithQuery,
 };
 
 pub struct Update<'a, Actions: ModelTypes> {
@@ -43,14 +42,13 @@ impl<'a, Actions: ModelTypes> Update<'a, Actions> {
             [
                 (
                     "where".to_string(),
-                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
                 ),
                 (
                     "data".to_string(),
                     PrismaValue::Object(merge_fields(
                         set_params.into_iter().map(Into::into).collect(),
-                    ))
-                    .into(),
+                    )),
                 ),
             ],
             nested_selections,

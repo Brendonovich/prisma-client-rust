@@ -1,9 +1,8 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert,
+    PrismaClientInternals, PrismaValue, Query, QueryConvert,
 };
 
 pub struct CreateMany<'a, Actions: ModelTypes> {
@@ -48,8 +47,7 @@ impl<'a, Actions: ModelTypes> CreateMany<'a, Actions> {
                                 ))
                             })
                             .collect(),
-                    )
-                    .into(),
+                    ),
                 )),
                 _skip_duplicates.then(|| {
                     (

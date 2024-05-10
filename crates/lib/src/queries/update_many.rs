@@ -1,9 +1,8 @@
-use prisma_models::PrismaValue;
 use query_core::Operation;
 
 use crate::{
     merge_fields, BatchResult, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, SetQuery, WhereInput, WhereQuery,
+    PrismaClientInternals, PrismaValue, Query, QueryConvert, SetQuery, WhereInput, WhereQuery,
 };
 
 pub struct UpdateMany<'a, Actions: ModelTypes> {
@@ -52,8 +51,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for UpdateMany<'a, Actions> {
                                 .map(Into::into)
                                 .map(Into::into)
                                 .collect(),
-                        ))
-                        .into(),
+                        )),
                     )),
                     (!self.where_params.is_empty()).then(|| {
                         (
@@ -64,8 +62,7 @@ impl<'a, Actions: ModelTypes> Query<'a> for UpdateMany<'a, Actions> {
                                     .map(WhereInput::serialize)
                                     .map(|s| (s.field, s.value.into()))
                                     .collect(),
-                            ))
-                            .into(),
+                            )),
                         )
                     }),
                 ]

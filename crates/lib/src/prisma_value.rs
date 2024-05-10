@@ -23,7 +23,7 @@ pub enum PrismaValue {
     String(String),
     Boolean(bool),
     Enum(String),
-    Int(i32),
+    Int(i64),
     Uuid(Uuid),
     List(Vec<PrismaValue>),
     Json(serde_json::Value),
@@ -78,7 +78,7 @@ impl From<prisma_models::PrismaValue> for PrismaValue {
             prisma_models::PrismaValue::String(value) => Self::String(value),
             prisma_models::PrismaValue::Boolean(value) => Self::Boolean(value),
             prisma_models::PrismaValue::Enum(value) => Self::Enum(value),
-            prisma_models::PrismaValue::Int(value) => Self::Int(value as i32),
+            prisma_models::PrismaValue::Int(value) => Self::Int(value),
             prisma_models::PrismaValue::Uuid(value) => Self::Uuid(value),
             prisma_models::PrismaValue::List(value) => {
                 Self::List(value.into_iter().map(Into::into).collect())
@@ -145,8 +145,12 @@ impl From<PrismaValue> for prisma_models::PrismaValue {
             }
             PrismaValue::Null => Self::Null,
             PrismaValue::DateTime(value) => Self::DateTime(value),
-            PrismaValue::Decimal(value) => Self::Float(value),
-            PrismaValue::Float(value) => Self::Float(BigDecimal::from_f64(value).unwrap()),
+            PrismaValue::Decimal(value) => {
+                Self::Float(bigdecimal_03::BigDecimal::from_str(&value.to_string()).unwrap())
+            }
+            PrismaValue::Float(value) => {
+                Self::Float(bigdecimal_03::BigDecimal::from_f64(value.to_f64().unwrap()).unwrap())
+            }
             PrismaValue::BigInt(value) => Self::BigInt(value),
             PrismaValue::Bytes(value) => Self::Bytes(value),
         }

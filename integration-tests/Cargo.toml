@@ -24,5 +24,5 @@ prisma-client-rust = { workspace = true, features = [
 ] }
 async-trait = "0.1.60"
 thiserror = "1.0.37"
-specta.workspace = true
+specta = { workspace = true, features = ["typescript"] }
 serde_json = { version = "1" }

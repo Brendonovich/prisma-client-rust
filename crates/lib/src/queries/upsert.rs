@@ -1,9 +1,9 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     Include, IncludeType, ModelOperation, ModelQuery, ModelTypes, ModelWriteOperation,
-    PrismaClientInternals, Query, QueryConvert, Select, SelectType, WhereInput, WithQuery,
+    PrismaClientInternals, PrismaValue, Query, QueryConvert, Select, SelectType, WhereInput,
+    WithQuery,
 };
 
 pub struct Upsert<'a, Actions: ModelTypes> {
@@ -45,15 +45,15 @@ impl<'a, Actions: ModelTypes> Upsert<'a, Actions> {
             [
                 (
                     "where".to_string(),
-                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]).into(),
+                    PrismaValue::Object(vec![where_param.serialize().transform_equals()]),
                 ),
                 (
                     "create".to_string(),
-                    PrismaValue::Object(create_params.into_iter().map(Into::into).collect()).into(),
+                    PrismaValue::Object(create_params.into_iter().map(Into::into).collect()),
                 ),
                 (
                     "update".to_string(),
-                    PrismaValue::Object(update_params.into_iter().map(Into::into).collect()).into(),
+                    PrismaValue::Object(update_params.into_iter().map(Into::into).collect()),
                 ),
             ],
             nested_selections,
