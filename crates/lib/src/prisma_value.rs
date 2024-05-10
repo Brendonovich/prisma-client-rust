@@ -150,7 +150,7 @@ impl From<PrismaValue> for prisma_models::PrismaValue {
                 Self::Float(bigdecimal_03::BigDecimal::from_str(&value.to_string()).unwrap())
             }
             PrismaValue::Float(value) => {
-                Self::Float(bigdecimal_03::BigDecimal::from_f64(value.to_f64().unwrap()).unwrap())
+                Self::Float(bigdecimal_03::BigDecimal::from_f64(value).unwrap())
             }
             PrismaValue::BigInt(value) => Self::BigInt(value),
             PrismaValue::Bytes(value) => Self::Bytes(value),
