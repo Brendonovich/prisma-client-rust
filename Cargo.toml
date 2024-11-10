@@ -1,12 +1,12 @@
 [workspace]
 members = [
-  "examples/*",
-  "examples/tauri/src-tauri",
-  "integration-tests",
-  "tests/*/*",
-  "crates/*",
-  "crates/sdk/example/*",
-  "prisma-cli",
+	"examples/*",
+	"examples/tauri/src-tauri",
+	"integration-tests",
+	"tests/*/*",
+	"crates/*",
+	"crates/sdk/example/*",
+	"prisma-cli",
 ]
 exclude = ["examples/tauri"]
 resolver = "2"
