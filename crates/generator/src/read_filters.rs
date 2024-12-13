@@ -23,9 +23,9 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
 
                 let typ = field.type_tokens(&quote!(super::super::));
 
-                // https://github.com/Brendonovich/prisma-client-rust/issues/297
-                if filter.name == "JsonNullable" && field.name == "equals" {
-                    Some((
+                match (filter.name.as_str(), field.name.as_str()) {
+                    // https://github.com/Brendonovich/prisma-client-rust/issues/297
+                    ("JsonNullable", "equals") => Some((
                         quote!(#variant_name(Option<#typ>)),
                         quote! {
                             Self::#variant_name(#value_ident) =>
@@ -37,9 +37,8 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
                                     )]
                                 )
                         },
-                    ))
-                } else {
-                    Some((
+                    )),
+                    _ => Some((
                         quote!(#variant_name(#typ)),
                         quote! {
                             Self::#variant_name(#value_ident) =>
@@ -50,7 +49,7 @@ pub fn generate_module(args: &GenerateArgs) -> TokenStream {
                                     )]
                                 )
                         },
-                    ))
+                    )),
                 }
             })
             .unzip();
