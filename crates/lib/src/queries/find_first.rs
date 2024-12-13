@@ -1,10 +1,9 @@
-use prisma_models::PrismaValue;
 use query_core::{Operation, Selection};
 
 use crate::{
     merge_fields, Include, IncludeType, ModelOperation, ModelQuery, ModelReadOperation, ModelTypes,
-    OrderByQuery, PaginatedQuery, PrismaClientInternals, Query, QueryConvert, Select, SelectType,
-    WhereInput, WhereQuery, WithQuery,
+    OrderByQuery, PaginatedQuery, PrismaClientInternals, PrismaValue, Query, QueryConvert, Select,
+    SelectType, WhereInput, WhereQuery, WithQuery,
 };
 
 pub struct FindFirst<'a, Actions: ModelTypes> {
@@ -74,8 +73,7 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                                 .map(WhereInput::serialize)
                                 .map(|s| (s.field, s.value.into()))
                                 .collect(),
-                        ))
-                        .into(),
+                        )),
                     )
                 }),
                 (!order_by_params.is_empty()).then(|| {
@@ -86,8 +84,7 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                                 .into_iter()
                                 .map(|p| PrismaValue::Object(vec![p.into()]))
                                 .collect(),
-                        )
-                        .into(),
+                        ),
                     )
                 }),
                 (!cursor_params.is_empty()).then(|| {
@@ -99,12 +96,11 @@ impl<'a, Actions: ModelTypes> FindFirst<'a, Actions> {
                                 .map(WhereInput::serialize)
                                 .map(|s| (s.field, s.value.into()))
                                 .collect(),
-                        )
-                        .into(),
+                        ),
                     )
                 }),
-                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i64).into())),
-                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i64).into())),
+                skip.map(|skip| ("skip".to_string(), PrismaValue::Int(skip as i32).into())),
+                take.map(|take| ("take".to_string(), PrismaValue::Int(take as i32).into())),
             ]
             .into_iter()
             .flatten(),

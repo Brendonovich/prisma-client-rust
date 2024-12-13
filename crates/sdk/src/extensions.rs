@@ -225,25 +225,9 @@ pub trait ScalarTypeExt {
 
 impl ScalarTypeExt for ScalarType {
     fn to_tokens(&self) -> TokenStream {
-        let pcr = quote!(::prisma_client_rust);
+        let ident = format_ident!("{}", self.as_str());
 
-        match self {
-            ScalarType::Int => quote!(i32),
-            ScalarType::BigInt => quote!(i64),
-            ScalarType::Float => quote!(f64),
-            ScalarType::Decimal => quote!(#pcr::bigdecimal::BigDecimal),
-            ScalarType::Boolean => quote!(bool),
-            ScalarType::String => quote!(String),
-            ScalarType::Json => quote!(#pcr::serde_json::Value),
-            ScalarType::DateTime => {
-                quote!(
-                    #pcr::chrono::DateTime<
-                        #pcr::chrono::FixedOffset,
-                    >
-                )
-            }
-            ScalarType::Bytes => quote!(Vec<u8>),
-        }
+        quote!(#ident)
     }
 
     fn to_prisma_value(&self, var: &Ident) -> TokenStream {
@@ -251,15 +235,13 @@ impl ScalarTypeExt for ScalarType {
         let v = quote!(#pcr::PrismaValue);
 
         match self {
-            ScalarType::Int => quote!(#v::Int(#var as i64)),
+            ScalarType::Int => quote!(#v::Int(#var)),
             ScalarType::BigInt => quote!(#v::BigInt(#var)),
-            ScalarType::Float => {
-                quote!(#v::Float(<#pcr::bigdecimal::BigDecimal as #pcr::bigdecimal::FromPrimitive>::from_f64(#var).unwrap().normalized()))
-            }
+            ScalarType::Float => quote!(#v::Float(#var)),
             ScalarType::Decimal => quote!(#v::String(#var.to_string())),
             ScalarType::Boolean => quote!(#v::Boolean(#var)),
             ScalarType::String => quote!(#v::String(#var)),
-            ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_string(&#var).unwrap())),
+            ScalarType::Json => quote!(#v::Json(#pcr::serde_json::to_value(&#var).unwrap())),
             ScalarType::DateTime => quote!(#v::DateTime(#var)),
             ScalarType::Bytes => quote!(#v::Bytes(#var)),
         }

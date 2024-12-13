@@ -64,7 +64,14 @@ impl Variant {
             field_name: field.name().to_string(),
             field_required_type: field
                 .scalar_field_type()
-                .to_tokens(module_path, &FieldArity::Required, field.db)
+                .to_tokens(
+                    module_path,
+                    &match field.ast_field().arity {
+                        FieldArity::Optional => FieldArity::Required,
+                        a => a,
+                    },
+                    field.db,
+                )
                 .unwrap(),
             read_filter_name: read_filter.name.to_string(),
             optional: field.ast_field().arity.is_optional(),
@@ -645,9 +652,9 @@ pub fn field_module(
 							let mut fields = idx.fields();
 							idx.is_unique() && fields.len() == 1 && fields.next().map(|f| f.field_id()) == Some(scalar_field.field_id())
 						}),
-						arity.is_required()
+						arity.is_optional()
 					) {
-						(true, _, _) | (_, true, true) => quote! {
+						(true, _, _) | (_, true, false) => quote! {
 							pub fn equals<T: From<Equals>>(value: impl Into<#field_type>) -> T {
 								Equals(value.into()).into()
 							}
@@ -658,12 +665,12 @@ pub fn field_module(
 								}
 							}
 						},
-						(_, true, false) => quote! {
+						(_, true, true) => quote! {
 							pub fn equals<T: #pcr::FromOptionalUniqueArg<Equals>>(value: T::Arg) -> T {
 								T::from_arg(value)
 							}
 						},
-						(_, _, _) => quote! {
+						(false, false, _) => quote! {
 							pub fn equals<T: From<Equals>>(value: impl Into<#field_type>) -> T {
 								Equals(value.into()).into()
 							}

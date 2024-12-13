@@ -52,6 +52,7 @@ impl PrismaGenerator for Generator {
                 #header
 
                 pub use _prisma::*;
+                use prisma_client_rust::scalar_types::*;
 
                 #enums
             },
@@ -65,6 +66,8 @@ impl PrismaGenerator for Generator {
         module.add_submodule(Module::new(
             "_prisma",
             quote! {
+                use super::*;
+
                 #client
                 #internal_enums
                 #read_filters_module

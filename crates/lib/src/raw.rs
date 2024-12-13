@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::PrismaValue;
 use chrono::SecondsFormat;
-use prisma_models::PrismaValue;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Value};
 use std::str::FromStr;
@@ -27,8 +27,8 @@ impl Raw {
             query: query.to_string(),
             values: values
                 .into_iter()
-                .map(|v| match v {
-                    PrismaValue::DateTime(dt) => json!({
+                .map(|v| match v.into() {
+                    prisma_models::PrismaValue::DateTime(dt) => json!({
                         "prisma__type": "date",
                         "prisma__value": dt.to_rfc3339_opts(SecondsFormat::Millis, true)
                     }),

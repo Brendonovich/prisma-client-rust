@@ -18,6 +18,7 @@ pub mod operator;
 mod prisma_value;
 pub mod queries;
 pub mod raw;
+pub mod scalar_types;
 pub mod serde;
 mod traits;
 mod transaction;
@@ -26,7 +27,8 @@ use std::collections::HashMap;
 
 pub use bigdecimal;
 pub use chrono;
-pub use prisma_models::{self, PrismaValue};
+pub use prisma_models;
+pub use prisma_value::PrismaValue;
 pub use psl;
 pub use query_core;
 pub use query_core::{schema, Selection};

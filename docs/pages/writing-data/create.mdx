@@ -81,7 +81,7 @@ let comment: comment::Data = client
     .comment()
     .create(
         "content".to_string(),
-        // If post wasn't required, then the equals() would need
+        // If post wasn't required, then this would need
         // to be wrapped in comment::post::connect(..).
         post::id::equals("id".to_string())
         vec![]
@@ -107,9 +107,9 @@ use prisma::{comment, post};
 
 let comment: comment::Data = client
     .comment()
-    .create(
+    .create_unchecked(
         "content".to_string(),
-		// requires specifying field for postID,
+		// requires providing value for postID foreign key,
 		// rather than connecting a relation
         0,
         vec![]

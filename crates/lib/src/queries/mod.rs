@@ -48,19 +48,19 @@ use serde::de::IntoDeserializer;
 use serde::Deserialize;
 use std::future::Future;
 
-use crate::ExecutionEngine;
+use crate::{ExecutionEngine, PrismaValue};
 
 pub enum SerializedWhereValue {
-    Object(Vec<(String, prisma_models::PrismaValue)>),
-    List(Vec<prisma_models::PrismaValue>),
-    Value(prisma_models::PrismaValue),
+    Object(Vec<(String, PrismaValue)>),
+    List(Vec<PrismaValue>),
+    Value(PrismaValue),
 }
 
-impl Into<prisma_models::PrismaValue> for SerializedWhereValue {
-    fn into(self) -> prisma_models::PrismaValue {
+impl Into<PrismaValue> for SerializedWhereValue {
+    fn into(self) -> PrismaValue {
         match self {
-            Self::Object(v) => prisma_models::PrismaValue::Object(v),
-            Self::List(v) => prisma_models::PrismaValue::List(v),
+            Self::Object(v) => PrismaValue::Object(v),
+            Self::List(v) => PrismaValue::List(v),
             Self::Value(v) => v,
         }
     }
@@ -82,7 +82,7 @@ impl SerializedWhereInput {
     /// If the parameter is an 'equals' parameter, collapses the value provided directly
     /// into the where clause. This is necessary for unique queries that have no filters,
     /// only direct value comparisons.
-    pub fn transform_equals(self) -> (String, prisma_models::PrismaValue) {
+    pub fn transform_equals(self) -> (String, PrismaValue) {
         let Self { field, value } = self;
 
         (
@@ -94,17 +94,17 @@ impl SerializedWhereInput {
                     .map(|i| params.swap_remove(i))
                 {
                     Some((_, value)) => value,
-                    None => prisma_models::PrismaValue::Object(params),
+                    None => PrismaValue::Object(params),
                 },
-                SerializedWhereValue::List(values) => prisma_models::PrismaValue::List(values),
+                SerializedWhereValue::List(values) => PrismaValue::List(values),
                 SerializedWhereValue::Value(v) => v,
             },
         )
     }
 }
 
-impl Into<(String, prisma_models::PrismaValue)> for SerializedWhereInput {
-    fn into(self) -> (String, prisma_models::PrismaValue) {
+impl Into<(String, PrismaValue)> for SerializedWhereInput {
+    fn into(self) -> (String, PrismaValue) {
         let SerializedWhereInput { field, value } = self;
         (field, value.into())
     }

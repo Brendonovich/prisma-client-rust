@@ -1,12 +1,12 @@
 [workspace]
 members = [
-  "examples/*",
-  "examples/tauri/src-tauri",
-  "integration-tests",
-  "tests/*/*",
-  "crates/*",
-  "crates/sdk/example/*",
-  "prisma-cli"
+	"examples/*",
+	"examples/tauri/src-tauri",
+	"integration-tests",
+	"tests/*/*",
+	"crates/*",
+	"crates/sdk/example/*",
+	"prisma-cli",
 ]
 exclude = ["examples/tauri"]
 resolver = "2"
@@ -27,7 +27,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 convert_case = "0.6.0"
-rspc = { version = "=1.0.0-rc.5" }
 
-specta = { version = "=2.0.0-rc.1" }
-tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", branch = "v2" }
+tauri-specta = { version = "2.0.0-rc.9" }
+
+# This is a deprecated feature so we don't really care about the verison
+rspc = "*"
+
+# We don't lock version cause PCR only depends on `derive(Type)` so it should be fine.
+specta = "^2.0.0-rc"
