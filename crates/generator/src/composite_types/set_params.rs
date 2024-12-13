@@ -75,8 +75,8 @@ pub fn module_part(comp_type: CompositeTypeWalker) -> CompositeTypeModulePart {
                 (
                     field.name().to_string(),
                     quote! {
-                        pub fn set(val: #field_type) -> SetParam {
-                            SetParam::#variant_name(val)
+                        pub fn set(val: impl Into<#field_type>) -> SetParam {
+                            SetParam::#variant_name(val.into())
                         }
                     },
                 ),

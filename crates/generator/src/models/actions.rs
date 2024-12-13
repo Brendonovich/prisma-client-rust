@@ -17,8 +17,18 @@ pub fn create_fn(model: ModelWalker) -> Option<TokenStream> {
         })
         .unzip();
 
+    let types_impl_into = types.iter().map(|t| {
+        if t.to_string().contains("Param") {
+            quote!(#t)
+        } else {
+            quote!(impl Into<#t>)
+        }
+    });
+
     Some(quote! {
-        pub fn create(self, #(#names: #types,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
+        pub fn create(self, #(#names: #types_impl_into,)* mut _params: Vec<SetParam>) -> CreateQuery<'a> {
+            #(let #names = #names.into();)*
+
             _params.extend([
                 #(#names::#push_wrapper(#names)),*
             ]);
@@ -60,7 +70,9 @@ pub fn create_unchecked_fn(model: ModelWalker) -> Option<TokenStream> {
         .unzip();
 
     Some(quote! {
-        pub fn create_unchecked(self, #(#names: #types,)* mut _params: Vec<UncheckedSetParam>) -> CreateUncheckedQuery<'a> {
+        pub fn create_unchecked(self, #(#names: impl Into<#types>,)* mut _params: Vec<UncheckedSetParam>) -> CreateUncheckedQuery<'a> {
+            #(let #names = #names.into();)*
+
             _params.extend([
                 #(#names::set(#names)),*
             ]);
