@@ -292,7 +292,7 @@ pub fn model_data(
                 let field_name_snake = snake_ident(field.name());
 
                 (
-                    (quote!(#field_name_snake: Impl Into<#field_type>), field_type),
+                    (quote!(#field_name_snake: impl Into<#field_type>), field_type),
                     (field.scalar_field_type().to_prisma_value(&field_name_snake, &FieldArity::Required), field_name_snake)
                 )
             }).unzip();

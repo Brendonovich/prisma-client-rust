@@ -118,7 +118,7 @@ fn field_set_params(
                             quote! {
                                 pub struct Set(#field_type);
 
-                                pub fn set<T: From<Set>>(create: Impl Into<#field_type>) -> T {
+                                pub fn set<T: From<Set>>(create: impl Into<#field_type>) -> T {
                                     Set(create.into()).into()
                                 }
 
